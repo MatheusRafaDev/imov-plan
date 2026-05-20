@@ -1,0 +1,13 @@
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\bin\Debug\net9.0\ImovPlan.Domain.deps.json
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\bin\Debug\net9.0\ImovPlan.Domain.dll
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\bin\Debug\net9.0\ImovPlan.Domain.pdb
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.csproj.AssemblyReference.cache
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.AssemblyInfoInputs.cache
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.AssemblyInfo.cs
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.csproj.CoreCompileInputs.cache
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.sourcelink.json
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.dll
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\refint\ImovPlan.Domain.dll
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ImovPlan.Domain.pdb
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Domain\obj\Debug\net9.0\ref\ImovPlan.Domain.dll

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Core/">
+    <Project Path="Core/ImovPlan.Application/ImovPlan.Application.csproj" />
+    <Project Path="Core/ImovPlan.Domain/ImovPlan.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Infrastructure/ImovPlan.Infrastructure/ImovPlan.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Presentation/">
+    <Project Path="Presentation/ImovPlan.API/ImovPlan.API.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,215 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Editorial / cozy-home palette: warm cream, deep ink, terracotta accent, sage success */
+    --background: 38 40% 96%;
+    --foreground: 220 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 12%;
+
+    --primary: 220 35% 14%;
+    --primary-foreground: 38 40% 96%;
+
+    --secondary: 32 35% 90%;
+    --secondary-foreground: 220 25% 12%;
+
+    --muted: 35 25% 92%;
+    --muted-foreground: 220 12% 42%;
+
+    --accent: 16 65% 52%;
+    --accent-foreground: 38 40% 98%;
+
+    --success: 145 35% 38%;
+    --success-foreground: 38 40% 98%;
+
+    --warning: 38 85% 50%;
+    --warning-foreground: 220 25% 12%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 38 40% 98%;
+
+    --border: 32 20% 84%;
+    --input: 32 20% 84%;
+    --ring: 16 65% 52%;
+
+    --radius: 0.875rem;
+
+    --gradient-warm: linear-gradient(135deg, hsl(16 65% 52%) 0%, hsl(28 75% 58%) 100%);
+    --gradient-ink: linear-gradient(160deg, hsl(220 35% 14%) 0%, hsl(220 30% 22%) 100%);
+    --gradient-cream: linear-gradient(180deg, hsl(38 50% 97%) 0%, hsl(35 35% 92%) 100%);
+
+    --shadow-soft: 0 1px 2px hsl(220 25% 12% / 0.04), 0 8px 24px -8px hsl(220 25% 12% / 0.08);
+    --shadow-elevated: 0 2px 4px hsl(220 25% 12% / 0.06), 0 24px 48px -16px hsl(220 25% 12% / 0.16);
+    --shadow-glow: 0 0 0 1px hsl(16 65% 52% / 0.2), 0 12px 32px -8px hsl(16 65% 52% / 0.35);
+
+    --sidebar-background: 38 40% 96%;
+    --sidebar-foreground: 220 25% 12%;
+    --sidebar-primary: 220 35% 14%;
+    --sidebar-primary-foreground: 38 40% 96%;
+    --sidebar-accent: 32 35% 90%;
+    --sidebar-accent-foreground: 220 25% 12%;
+    --sidebar-border: 32 20% 84%;
+    --sidebar-ring: 16 65% 52%;
+  }
+
+  .dark {
+    --background: 220 30% 8%;
+    --foreground: 38 30% 94%;
+    --card: 220 28% 11%;
+    --card-foreground: 38 30% 94%;
+    --popover: 220 28% 11%;
+    --popover-foreground: 38 30% 94%;
+    --primary: 38 40% 92%;
+    --primary-foreground: 220 30% 10%;
+    --secondary: 220 22% 16%;
+    --secondary-foreground: 38 30% 94%;
+    --muted: 220 22% 16%;
+    --muted-foreground: 38 12% 65%;
+    --accent: 16 70% 58%;
+    --accent-foreground: 220 30% 8%;
+    --success: 145 40% 50%;
+    --success-foreground: 220 30% 8%;
+    --warning: 38 85% 55%;
+    --warning-foreground: 220 30% 8%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 38 30% 94%;
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 16 70% 58%;
+  }
+
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+}
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer utilities {
+  .bg-gradient-warm { background: var(--gradient-warm); }
+  .bg-gradient-ink { background: var(--gradient-ink); }
+  .bg-gradient-cream { background: var(--gradient-cream); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+
+  /* Spinner animation */
+  @keyframes spin-smooth {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-smooth {
+    animation: spin-smooth 0.8s linear infinite;
+  }
+
+  /* Shimmer / skeleton loading */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--secondary)) 50%, hsl(var(--muted)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* Pulse glow for loading logo */
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Fade-in for page transitions */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out forwards;
+  }
+
+  /* Progress bar animation */
+  .progress-bar {
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Error state for inputs */
+  .input-error {
+    border-color: hsl(var(--destructive)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--destructive) / 0.3);
+  }
+
+  /* Success state for inputs */
+  .input-success {
+    border-color: hsl(var(--success)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--success) / 0.3);
+  }
+
+  /* Warning card border */
+  .border-warning {
+    border-color: hsl(var(--warning)) !important;
+  }
+  .border-error {
+    border-color: hsl(var(--destructive)) !important;
+  }
+
+  /* Ensure containers are always centered */
+  .container {
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}

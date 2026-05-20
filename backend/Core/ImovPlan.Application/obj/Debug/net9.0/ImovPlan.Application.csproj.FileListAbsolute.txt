@@ -1,0 +1,16 @@
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\bin\Debug\net9.0\ImovPlan.Application.deps.json
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\bin\Debug\net9.0\ImovPlan.Application.dll
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\bin\Debug\net9.0\ImovPlan.Application.pdb
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\bin\Debug\net9.0\ImovPlan.Domain.dll
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\bin\Debug\net9.0\ImovPlan.Domain.pdb
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.csproj.AssemblyReference.cache
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.AssemblyInfoInputs.cache
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.AssemblyInfo.cs
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.csproj.CoreCompileInputs.cache
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.sourcelink.json
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.C5B775A9.Up2Date
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.dll
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\refint\ImovPlan.Application.dll
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ImovPlan.Application.pdb
+C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Core\ImovPlan.Application\obj\Debug\net9.0\ref\ImovPlan.Application.dll
