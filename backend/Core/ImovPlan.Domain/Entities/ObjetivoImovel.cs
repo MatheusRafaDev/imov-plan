@@ -57,6 +57,16 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("aportesExtras")]
         public List<AporteExtra> AportesExtras { get; set; } = new();
 
+        [BsonElement("usuarioId")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? UsuarioId { get; set; }
+
+        [BsonElement("sessionId")]
+        public string? SessionId { get; set; }
+
+        [BsonElement("status")]
+        public string Status { get; set; } = "Draft"; // "Draft", "Completed"
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

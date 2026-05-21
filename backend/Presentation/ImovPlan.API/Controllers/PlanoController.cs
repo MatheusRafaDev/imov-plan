@@ -1,0 +1,55 @@
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using ImovPlan.Application.DTOs;
+using ImovPlan.Application.Services.Interfaces;
+
+namespace ImovPlan.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PlanoController : ControllerBase
+    {
+        private readonly IPlanoService _planoService;
+
+        public PlanoController(IPlanoService planoService)
+        {
+            _planoService = planoService;
+        }
+
+        [HttpPost("draft")]
+        public async Task<IActionResult> CreateDraft([FromQuery] string sessionId)
+        {
+            if (string.IsNullOrEmpty(sessionId))
+                return BadRequest("SessionId is required.");
+
+            var id = await _planoService.CreateDraftAsync(sessionId);
+            return Ok(new { id });
+        }
+
+        [HttpGet("draft/{id}")]
+        public async Task<IActionResult> GetDraft(string id, [FromQuery] string sessionId)
+        {
+            if (string.IsNullOrEmpty(sessionId))
+                return BadRequest("SessionId is required.");
+
+            var draft = await _planoService.GetDraftAsync(id, sessionId);
+            if (draft == null)
+                return NotFound("Plano não encontrado ou não autorizado.");
+
+            return Ok(draft);
+        }
+
+        [HttpPut("draft/{id}")]
+        public async Task<IActionResult> UpdateDraft(string id, [FromBody] PlanoDraftDto draftDto)
+        {
+            if (string.IsNullOrEmpty(draftDto.SessionId))
+                return BadRequest("SessionId is required in the payload.");
+
+            var success = await _planoService.UpdateDraftAsync(id, draftDto);
+            if (!success)
+                return NotFound("Plano não encontrado ou não autorizado para atualização.");
+
+            return NoContent();
+        }
+    }
+}

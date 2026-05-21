@@ -160,6 +160,9 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
+              "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Application\\ImovPlan.Application.csproj": {
+                "projectPath": "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Application\\ImovPlan.Application.csproj"
+              },
               "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Domain\\ImovPlan.Domain.csproj": {
                 "projectPath": "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Domain\\ImovPlan.Domain.csproj"
               }
@@ -182,6 +185,10 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "Microsoft.Extensions.Configuration.Abstractions": {
+              "target": "Package",
+              "version": "[10.0.8, )"
+            },
             "MongoDB.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.1.1, )"
@@ -256,6 +263,10 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "DotNetEnv": {
+              "target": "Package",
+              "version": "[3.2.0, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[9.0.16, )"

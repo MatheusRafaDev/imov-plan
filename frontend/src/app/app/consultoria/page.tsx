@@ -19,7 +19,7 @@ export default function ConsultoriaPage() {
     setLoading(true);
     setReport(null);
     try {
-      const response = await fetch("/api/ai-advisor", {
+      const response = await fetch("http://localhost:5179/api/consultoria/analisar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -101,8 +101,8 @@ export default function ConsultoriaPage() {
               <Button variant="ghost" onClick={requestAI} className="text-muted-foreground">
                 <Sparkles className="mr-2 h-4 w-4" /> Gerar Novamente
               </Button>
-              <Button size="lg" onClick={() => router.push("/app/planejamento")} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
-                Ir para Simulação Numérica <ArrowRight className="ml-2 h-4 w-4" />
+              <Button size="lg" onClick={() => router.push("/app/bancos")} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
+                Ir para Escolha do Banco <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </Card>

@@ -25,8 +25,14 @@ const addMonthsISO = (iso: string, months: number) => {
 };
 
 export default function ObjetivoPage() {
-  const { objetivo, setObjetivo } = usePlanContext();
+  const { objetivo, setObjetivo, saveDraft } = usePlanContext();
   const router = useRouter();
+
+  const handleNext = async () => {
+    // We could add validation here before moving on
+    await saveDraft();
+    router.push("/app/pessoas");
+  };
 
   const [form, setForm] = useState({
     nome: "Meu apê dos sonhos",

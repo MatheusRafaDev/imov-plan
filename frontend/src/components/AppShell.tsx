@@ -3,17 +3,18 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Users, Calculator, LineChart, LogOut, Home, Bot } from "lucide-react";
+import { Building2, Users, Calculator, LineChart, LogOut, Home, Bot, Landmark } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const nav = [
-  { to: "/app/objetivo", icon: Building2, label: "Imóvel" },
-  { to: "/app/pessoas", icon: Users, label: "Pessoas" },
-  { to: "/app/consultoria", icon: Bot, label: "Especialista IA" },
-  { to: "/app/planejamento", icon: Calculator, label: "Plano" },
-  { to: "/app/resultado", icon: LineChart, label: "Resultado" },
-  { to: "/app/financiamento", icon: Home, label: "Financiamento" },
+  { to: "/app/objetivo", icon: Building2, label: "1. Imóvel" },
+  { to: "/app/pessoas", icon: Users, label: "2. Perfil" },
+  { to: "/app/consultoria", icon: Bot, label: "3. IA" },
+  { to: "/app/bancos", icon: Landmark, label: "4. Banco" },
+  { to: "/app/financiamento", icon: Home, label: "5. Simulação" },
+  { to: "/app/planejamento", icon: Calculator, label: "6. Plano" },
+  { to: "/app/resultado", icon: LineChart, label: "7. Resultado" },
 ];
 
 export const AppShell = ({ children }: { children: ReactNode }) => {

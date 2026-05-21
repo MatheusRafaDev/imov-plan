@@ -133,6 +133,25 @@
           "buildTransitive/net6.0/_._": {}
         }
       },
+      "Microsoft.Extensions.Configuration.Abstractions/10.0.8": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.8"
+        },
+        "compile": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net8.0/_._": {}
+        }
+      },
       "Microsoft.Extensions.DependencyInjection/8.0.0": {
         "type": "package",
         "dependencies": {
@@ -228,20 +247,20 @@
           "buildTransitive/net6.0/Microsoft.Extensions.Options.targets": {}
         }
       },
-      "Microsoft.Extensions.Primitives/8.0.0": {
+      "Microsoft.Extensions.Primitives/10.0.8": {
         "type": "package",
         "compile": {
-          "lib/net8.0/Microsoft.Extensions.Primitives.dll": {
+          "lib/net9.0/Microsoft.Extensions.Primitives.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/Microsoft.Extensions.Primitives.dll": {
+          "lib/net9.0/Microsoft.Extensions.Primitives.dll": {
             "related": ".xml"
           }
         },
         "build": {
-          "buildTransitive/net6.0/_._": {}
+          "buildTransitive/net8.0/_._": {}
         }
       },
       "Microsoft.NETCore.Platforms/5.0.0": {
@@ -490,6 +509,19 @@
           "lib/net7.0/ZstdSharp.dll": {}
         }
       },
+      "ImovPlan.Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "dependencies": {
+          "ImovPlan.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/ImovPlan.Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/ImovPlan.Application.dll": {}
+        }
+      },
       "ImovPlan.Domain/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
@@ -685,6 +717,35 @@
         "lib/netstandard2.0/Microsoft.Extensions.Caching.Memory.xml",
         "microsoft.extensions.caching.memory.8.0.0.nupkg.sha512",
         "microsoft.extensions.caching.memory.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
+    "Microsoft.Extensions.Configuration.Abstractions/10.0.8": {
+      "sha512": "I63esIFbL3h5pSt7gXpXOlmcwDmYBUoYNEglKfDPFUqtYvSV84f2l28hO2lfVXsV0wdlplgAM7IVz16matapSg==",
+      "type": "package",
+      "path": "microsoft.extensions.configuration.abstractions/10.0.8",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/Microsoft.Extensions.Configuration.Abstractions.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net8.0/_._",
+        "buildTransitive/netcoreapp2.0/Microsoft.Extensions.Configuration.Abstractions.targets",
+        "lib/net10.0/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/net10.0/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "lib/net462/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/net462/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "lib/net8.0/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/net8.0/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "lib/net9.0/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/net9.0/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "lib/netstandard2.0/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/netstandard2.0/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "microsoft.extensions.configuration.abstractions.10.0.8.nupkg.sha512",
+        "microsoft.extensions.configuration.abstractions.nuspec",
         "useSharedDesignerContext.txt"
       ]
     },
@@ -904,32 +965,31 @@
         "useSharedDesignerContext.txt"
       ]
     },
-    "Microsoft.Extensions.Primitives/8.0.0": {
-      "sha512": "bXJEZrW9ny8vjMF1JV253WeLhpEVzFo1lyaZu1vQ4ZxWUlVvknZ/+ftFgVheLubb4eZPSwwxBeqS1JkCOjxd8g==",
+    "Microsoft.Extensions.Primitives/10.0.8": {
+      "sha512": "OBPo4nYhMyIbtueoC10CBm6AGAbo/A9IV8QQ/6ryZS7VvmqpGT7hunazeHLxFawRzn3oLOq4jhqhpBX4tfswWQ==",
       "type": "package",
-      "path": "microsoft.extensions.primitives/8.0.0",
+      "path": "microsoft.extensions.primitives/10.0.8",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "Icon.png",
-        "LICENSE.TXT",
         "PACKAGE.md",
         "THIRD-PARTY-NOTICES.TXT",
         "buildTransitive/net461/Microsoft.Extensions.Primitives.targets",
         "buildTransitive/net462/_._",
-        "buildTransitive/net6.0/_._",
+        "buildTransitive/net8.0/_._",
         "buildTransitive/netcoreapp2.0/Microsoft.Extensions.Primitives.targets",
+        "lib/net10.0/Microsoft.Extensions.Primitives.dll",
+        "lib/net10.0/Microsoft.Extensions.Primitives.xml",
         "lib/net462/Microsoft.Extensions.Primitives.dll",
         "lib/net462/Microsoft.Extensions.Primitives.xml",
-        "lib/net6.0/Microsoft.Extensions.Primitives.dll",
-        "lib/net6.0/Microsoft.Extensions.Primitives.xml",
-        "lib/net7.0/Microsoft.Extensions.Primitives.dll",
-        "lib/net7.0/Microsoft.Extensions.Primitives.xml",
         "lib/net8.0/Microsoft.Extensions.Primitives.dll",
         "lib/net8.0/Microsoft.Extensions.Primitives.xml",
+        "lib/net9.0/Microsoft.Extensions.Primitives.dll",
+        "lib/net9.0/Microsoft.Extensions.Primitives.xml",
         "lib/netstandard2.0/Microsoft.Extensions.Primitives.dll",
         "lib/netstandard2.0/Microsoft.Extensions.Primitives.xml",
-        "microsoft.extensions.primitives.8.0.0.nupkg.sha512",
+        "microsoft.extensions.primitives.10.0.8.nupkg.sha512",
         "microsoft.extensions.primitives.nuspec",
         "useSharedDesignerContext.txt"
       ]
@@ -1343,6 +1403,11 @@
         "zstdsharp.port.nuspec"
       ]
     },
+    "ImovPlan.Application/1.0.0": {
+      "type": "project",
+      "path": "../../Core/ImovPlan.Application/ImovPlan.Application.csproj",
+      "msbuildProject": "../../Core/ImovPlan.Application/ImovPlan.Application.csproj"
+    },
     "ImovPlan.Domain/1.0.0": {
       "type": "project",
       "path": "../../Core/ImovPlan.Domain/ImovPlan.Domain.csproj",
@@ -1351,7 +1416,9 @@
   },
   "projectFileDependencyGroups": {
     "net9.0": [
+      "ImovPlan.Application >= 1.0.0",
       "ImovPlan.Domain >= 1.0.0",
+      "Microsoft.Extensions.Configuration.Abstractions >= 10.0.8",
       "MongoDB.EntityFrameworkCore >= 8.1.1"
     ]
   },
@@ -1361,11 +1428,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Infrastructure\\ImovPlan.Infrastructure\\ImovPlan.Infrastructure.csproj",
+      "projectUniqueName": "c:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Infrastructure\\ImovPlan.Infrastructure\\ImovPlan.Infrastructure.csproj",
       "projectName": "ImovPlan.Infrastructure",
-      "projectPath": "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Infrastructure\\ImovPlan.Infrastructure\\ImovPlan.Infrastructure.csproj",
+      "projectPath": "c:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Infrastructure\\ImovPlan.Infrastructure\\ImovPlan.Infrastructure.csproj",
       "packagesPath": "C:\\Users\\rafae_llizu7w\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Infrastructure\\ImovPlan.Infrastructure\\obj\\",
+      "outputPath": "c:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Infrastructure\\ImovPlan.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\rafae_llizu7w\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -1382,6 +1449,9 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
+            "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Application\\ImovPlan.Application.csproj": {
+              "projectPath": "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Application\\ImovPlan.Application.csproj"
+            },
             "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Domain\\ImovPlan.Domain.csproj": {
               "projectPath": "C:\\Users\\rafae_llizu7w\\Documents\\git\\imov-plan\\backend\\Core\\ImovPlan.Domain\\ImovPlan.Domain.csproj"
             }
@@ -1404,6 +1474,10 @@
       "net9.0": {
         "targetAlias": "net9.0",
         "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": {
+            "target": "Package",
+            "version": "[10.0.8, )"
+          },
           "MongoDB.EntityFrameworkCore": {
             "target": "Package",
             "version": "[8.1.1, )"

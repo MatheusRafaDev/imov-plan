@@ -10,10 +10,10 @@ import { MoneyInput } from "@/components/MoneyInput";
 import { brl } from "@/lib/finance";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { Calculator, Landmark } from "lucide-react";
+import { Calculator, Landmark, ArrowRight } from "lucide-react";
 
 export default function FinanciamentoPage() {
-  const { objetivo } = usePlanContext();
+  const { objetivo, bancoEscolhido } = usePlanContext();
   
   const valorImovel = objetivo?.valorImovel ?? 500000;
   const valorEntrada = (valorImovel * (objetivo?.percentualEntrada ?? 20)) / 100;
@@ -21,7 +21,7 @@ export default function FinanciamentoPage() {
   const [form, setForm] = useState({
     valorImovel: valorImovel,
     valorEntrada: valorEntrada,
-    taxaJurosAnual: 9.5,
+    taxaJurosAnual: bancoEscolhido?.taxa ?? 9.5,
     prazoMeses: 360,
   });
 
@@ -43,9 +43,13 @@ export default function FinanciamentoPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Simulação Extra</p>
-        <h1 className="font-display text-4xl md:text-5xl mb-2">Financiamento (SAC)</h1>
-        <p className="text-muted-foreground">Saiba como ficarão as parcelas do financiamento usando o método SAC.</p>
+        <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 5 de 6</p>
+        <h1 className="font-display text-4xl md:text-5xl mb-2">Simulação: {bancoEscolhido?.nome || "Financiamento"}</h1>
+        <p className="text-muted-foreground">
+          {bancoEscolhido 
+            ? `Você selecionou ${bancoEscolhido.nome}. Ajuste os valores abaixo se necessário e clique em Simular.` 
+            : "Saiba como ficarão as parcelas do financiamento usando o método SAC e PRICE."}
+        </p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -119,6 +123,18 @@ export default function FinanciamentoPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="mt-6 flex justify-between items-center border-t border-border pt-6">
+                <Button variant="ghost" onClick={() => window.history.back()}>
+                  Voltar
+                </Button>
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow"
+                  onClick={() => window.location.href = "/app/planejamento"}
+                >
+                  Plano de Ação (Como Juntar a Entrada) <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             </Card>
           ) : (

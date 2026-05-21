@@ -14,3 +14,5 @@ C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Infrastructure\ImovPlan.I
 C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Infrastructure\ImovPlan.Infrastructure\obj\Debug\net9.0\refint\ImovPlan.Infrastructure.dll
 C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Infrastructure\ImovPlan.Infrastructure\obj\Debug\net9.0\ImovPlan.Infrastructure.pdb
 C:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Infrastructure\ImovPlan.Infrastructure\obj\Debug\net9.0\ref\ImovPlan.Infrastructure.dll
+c:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Infrastructure\ImovPlan.Infrastructure\bin\Debug\net9.0\ImovPlan.Application.dll
+c:\Users\rafae_llizu7w\Documents\git\imov-plan\backend\Infrastructure\ImovPlan.Infrastructure\bin\Debug\net9.0\ImovPlan.Application.pdb
