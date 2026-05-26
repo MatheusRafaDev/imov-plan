@@ -7,6 +7,11 @@ type User = {
   id: string;
   email: string;
   name: string;
+  dataNascimento: string | null;
+  estadoCivil: string;
+  rendaMensal: number;
+  regimeTrabalho: string;
+  saldoFgts: number;
 };
 
 type AuthContextType = {
@@ -14,10 +19,11 @@ type AuthContextType = {
   token: string | null;
   loading: boolean;
   error: string | null;
-  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, name: string, dataNascimento?: string) => Promise<{ success: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: () => boolean;
+  updateUser: (data: Partial<User>) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,11 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string, dataNascimento?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.post("/auth/register", { email, password, name });
+      const response = await api.post("/auth/register", { email, password, name, dataNascimento });
       const { token: newToken, user: userData } = response.data;
       setToken(newToken);
       setUser(userData);
@@ -98,8 +104,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !!token && !!user;
   };
 
+  const updateUser = (data: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...data };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, error, register, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, token, loading, error, register, login, logout, isAuthenticated, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -112,3 +127,4 @@ export function useAuth() {
   }
   return context;
 }
+

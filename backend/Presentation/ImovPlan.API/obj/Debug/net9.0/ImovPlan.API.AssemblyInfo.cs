@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ImovPlan.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+beb4716a9f0fbc268692ecbb2ecf60698690cc47")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bbea415dfd4b199e39b6b26ad9276f7b4c8a8040")]
 [assembly: System.Reflection.AssemblyProductAttribute("ImovPlan.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ImovPlan.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

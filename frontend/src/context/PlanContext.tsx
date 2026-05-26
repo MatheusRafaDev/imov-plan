@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import type { SimInput, Aporte } from "@/lib/finance";
+import { PlanoService } from "@/services/PlanoService";
 
 export type GastoDetalhado = {
   id: string;
@@ -35,7 +36,12 @@ type PlanContextType = {
   setAportesExtras: React.Dispatch<React.SetStateAction<Aporte[]>>;
   planoId: string | null;
   sessionId: string | null;
-  saveDraft: () => Promise<void>;
+  saveDraft: (overrideData?: {
+    objetivo?: Partial<SimInput> | null;
+    pessoas?: Pessoa[];
+    bancoEscolhido?: Banco | null;
+    aportesExtras?: Aporte[];
+  }) => Promise<void>;
   bancoEscolhido: Banco | null;
   setBancoEscolhido: React.Dispatch<React.SetStateAction<Banco | null>>;
 };
@@ -76,21 +82,29 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const initDraft = async () => {
       try {
         if (localPlanoId) {
-          // Fetch existing draft
-          const res = await fetch(`http://localhost:5179/api/plano/draft/${localPlanoId}?sessionId=${localSessionId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.objetivo) setObjetivo(data.objetivo);
-            if (data.pessoas) setPessoas(data.pessoas);
-            setPlanoId(localPlanoId);
-            return;
+          try {
+            const data = await PlanoService.getDraft(localPlanoId, localSessionId);
+            if (data) {
+              if (data.objetivo) {
+                setObjetivo({
+                  ...data.objetivo,
+                  dataInicio: data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date()
+                });
+              }
+              if (data.pessoas) setPessoas(data.pessoas);
+              if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
+              if (data.aportesExtras) setAportesExtras(data.aportesExtras);
+              setPlanoId(localPlanoId);
+              return;
+            }
+          } catch (e) {
+            console.log("Draft não encontrado, criando novo...");
           }
         }
         
         // Create new draft if not found or no localPlanoId
-        const res = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`, { method: "POST" });
-        if (res.ok) {
-          const data = await res.json();
+        const data = await PlanoService.createDraft(localSessionId);
+        if (data && data.id) {
           setPlanoId(data.id);
           localStorage.setItem("imovplan_planoId", data.id);
         }
@@ -102,17 +116,28 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     initDraft();
   }, []);
 
-  const saveDraft = async () => {
+  const saveDraft = async (overrideData?: {
+    objetivo?: Partial<SimInput> | null;
+    pessoas?: Pessoa[];
+    bancoEscolhido?: Banco | null;
+    aportesExtras?: Aporte[];
+  }) => {
     if (!planoId || !sessionId) return;
     try {
-      await fetch(`http://localhost:5179/api/plano/draft/${planoId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          objetivo,
-          pessoas
-        })
+      const payloadObjetivo = overrideData && overrideData.objetivo !== undefined ? overrideData.objetivo : objetivo;
+      const payloadPessoas = overrideData && overrideData.pessoas !== undefined ? overrideData.pessoas : pessoas;
+      const payloadBanco = overrideData && overrideData.bancoEscolhido !== undefined ? overrideData.bancoEscolhido : bancoEscolhido;
+      const payloadAportes = overrideData && overrideData.aportesExtras !== undefined ? overrideData.aportesExtras : aportesExtras;
+
+      await PlanoService.updateDraft(planoId, {
+        sessionId,
+        objetivo: payloadObjetivo ? {
+          ...payloadObjetivo,
+          dataInicio: payloadObjetivo.dataInicio?.toISOString().slice(0, 10)
+        } : null,
+        pessoas: payloadPessoas,
+        bancoEscolhido: payloadBanco,
+        aportesExtras: payloadAportes
       });
     } catch (err) {
       console.error("Falha ao salvar rascunho:", err);

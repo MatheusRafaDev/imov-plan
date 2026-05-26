@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext, type Pessoa, type GastoDetalhado } from "@/context/PlanContext";
+import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -18,8 +19,31 @@ const calcularGastos = (p: Partial<Pessoa>) => {
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas } = usePlanContext();
+  const { pessoas, setPessoas, saveDraft } = usePlanContext();
+  const { user } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (pessoas.length === 0 && user) {
+      const defaultPessoa: Pessoa = {
+        id: "user-" + user.id,
+        nome: user.name || "Eu",
+        renda_mensal: user.rendaMensal || 0,
+        renda_complementar: 0,
+        gastos_mensais: 0,
+        usar_gastos_detalhados: false,
+        gastos_detalhados: [],
+        aporte_mensal: Math.round((user.rendaMensal || 0) * 0.5)
+      };
+      setPessoas([defaultPessoa]);
+      saveDraft({ pessoas: [defaultPessoa] });
+    }
+  }, [user, pessoas.length, setPessoas]);
+
+  const prosseguir = async () => {
+    await saveDraft();
+    router.push("/app/consultoria");
+  };
   
   const [form, setForm] = useState({ 
     nome: "", 
@@ -208,7 +232,7 @@ export default function PessoasPage() {
             <p className="font-display text-3xl md:text-4xl num mt-1">{brl(sobraTotal)}</p>
             <p className="text-xs opacity-70 mt-1">Este valor será usado como base para os aportes no plano.</p>
           </div>
-          <Button onClick={() => router.push("/app/consultoria")} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-12 px-6">
+          <Button onClick={prosseguir} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-12 px-6">
             Consultar Especialista IA <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Card>

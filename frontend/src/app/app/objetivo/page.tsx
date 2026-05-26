@@ -28,11 +28,7 @@ export default function ObjetivoPage() {
   const { objetivo, setObjetivo, saveDraft } = usePlanContext();
   const router = useRouter();
 
-  const handleNext = async () => {
-    // We could add validation here before moving on
-    await saveDraft();
-    router.push("/app/pessoas");
-  };
+
 
   const [form, setForm] = useState({
     nome: "Meu apê dos sonhos",
@@ -53,8 +49,8 @@ export default function ObjetivoPage() {
   const custos = calcularCustosExtras(form.valor_imovel, form.percentual_custos_extras);
   const falta = Math.max(0, meta - form.valor_ja_guardado);
 
-  const salvar = (avancar = false) => {
-    setObjetivo({
+  const salvar = async (avancar = false) => {
+    const novoObjetivo = {
       valorImovel: form.valor_imovel,
       percentualEntrada: form.percentual_entrada,
       percentualCustosExtras: form.percentual_custos_extras,
@@ -63,7 +59,9 @@ export default function ObjetivoPage() {
       percentualCdi: form.percentual_cdi,
       dataInicio: new Date(form.data_inicio),
       prazoMaxMeses: prazoMeses,
-    });
+    };
+    setObjetivo(novoObjetivo);
+    await saveDraft({ objetivo: novoObjetivo });
     if (avancar) router.push("/app/pessoas");
   };
 

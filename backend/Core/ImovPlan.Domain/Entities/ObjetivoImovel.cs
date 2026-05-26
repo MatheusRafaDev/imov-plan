@@ -11,6 +11,9 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
+        [BsonElement("nomePlano")]
+        public string NomePlano { get; set; } = string.Empty;
+
         [BsonElement("valorImovel")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal ValorImovel { get; set; }
@@ -19,8 +22,12 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal PercentualEntrada { get; set; }
 
-        [BsonElement("prazoMeses")]
-        public int PrazoMeses { get; set; }
+        [BsonElement("percentualCustosExtras")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal PercentualCustosExtras { get; set; }
+
+        [BsonElement("prazoMaxMeses")]
+        public int PrazoMaxMeses { get; set; }
 
         [BsonElement("valorEntrada")]
         [BsonRepresentation(BsonType.Decimal128)]
@@ -46,9 +53,27 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal ValorJaGuardado { get; set; }
 
-        [BsonElement("taxaCDI")]
+        [BsonElement("taxaCdiAnual")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal TaxaCDI { get; set; }
+        public decimal TaxaCdiAnual { get; set; }
+
+        [BsonElement("percentualCdi")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal PercentualCdi { get; set; }
+
+        [BsonElement("dataInicio")]
+        public DateTime? DataInicio { get; set; }
+
+        // Banco escolhido (embedded)
+        [BsonElement("bancoEscolhidoId")]
+        public string? BancoEscolhidoId { get; set; }
+
+        [BsonElement("bancoEscolhidoNome")]
+        public string? BancoEscolhidoNome { get; set; }
+
+        [BsonElement("bancoEscolhidoTaxa")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal? BancoEscolhidoTaxa { get; set; }
 
         [BsonElement("pessoasIds")]
         [BsonRepresentation(BsonType.ObjectId)]

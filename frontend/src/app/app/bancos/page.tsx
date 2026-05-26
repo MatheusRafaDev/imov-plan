@@ -15,11 +15,12 @@ const bancosMock = [
 ];
 
 export default function BancosPage() {
-  const { bancoEscolhido, setBancoEscolhido } = usePlanContext();
+  const { bancoEscolhido, setBancoEscolhido, saveDraft } = usePlanContext();
   const router = useRouter();
 
-  const prosseguir = () => {
+  const prosseguir = async () => {
     if (bancoEscolhido) {
+      await saveDraft({ bancoEscolhido });
       router.push("/app/financiamento");
     }
   };

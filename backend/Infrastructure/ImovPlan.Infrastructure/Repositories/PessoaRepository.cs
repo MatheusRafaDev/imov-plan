@@ -40,7 +40,10 @@ namespace ImovPlan.Infrastructure.Repositories
             {
                 existing.Nome = pessoa.Nome;
                 existing.RendaMensal = pessoa.RendaMensal;
+                existing.RendaComplementar = pessoa.RendaComplementar;
                 existing.GastosMensais = pessoa.GastosMensais;
+                existing.UsarGastosDetalhados = pessoa.UsarGastosDetalhados;
+                existing.GastosDetalhados = pessoa.GastosDetalhados;
                 existing.SobraMensal = pessoa.SobraMensal;
                 existing.AporteMensal = pessoa.AporteMensal;
                 

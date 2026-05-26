@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Bot, Building2, ChevronLeft, Loader2, Sparkles, Building } from "lucide-react";
+import { Sparkles, Building, Loader2, Bot, ChevronLeft, ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { ConsultoriaService } from "@/services/ConsultoriaService";
 
 export default function ConsultoriaPage() {
   const { pessoas, objetivo } = usePlanContext();
@@ -19,23 +20,17 @@ export default function ConsultoriaPage() {
     setLoading(true);
     setReport(null);
     try {
-      const response = await fetch("http://localhost:5179/api/consultoria/analisar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pessoas: pessoas.map(p => ({
-            nome: p.nome,
-            renda_mensal: p.renda_mensal,
-            renda_complementar: p.renda_complementar,
-            gastos_totais_calculados: p.gastos_mensais,
-            usa_gastos_detalhados: p.usar_gastos_detalhados
-          })),
-          renda_total_bruta: pessoas.reduce((acc, p) => acc + Number(p.renda_mensal) + Number(p.renda_complementar || 0), 0),
-          imovel: objetivo
-        }),
+      const data = await ConsultoriaService.analisar({
+        pessoas: pessoas.map(p => ({
+          nome: p.nome,
+          renda_mensal: p.renda_mensal,
+          renda_complementar: p.renda_complementar,
+          gastos_totais_calculados: p.gastos_mensais,
+          usa_gastos_detalhados: p.usar_gastos_detalhados
+        })),
+        renda_total_bruta: pessoas.reduce((acc, p) => acc + Number(p.renda_mensal) + Number(p.renda_complementar || 0), 0),
+        imovel: objetivo
       });
-      
-      const data = await response.json();
       if (data.text) {
         setReport(data.text);
       } else {

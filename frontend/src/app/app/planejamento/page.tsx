@@ -15,8 +15,13 @@ import { ArrowRight, Plus, Trash2, Sparkles } from "lucide-react";
 const ORIGENS = ["FGTS", "Bônus / 13º", "Freelance", "Restituição IR", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras } = usePlanContext();
+  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft } = usePlanContext();
   const router = useRouter();
+
+  const prosseguir = async () => {
+    await saveDraft();
+    router.push("/app/resultado");
+  };
   
   const [novoAporte, setNovoAporte] = useState({
     data: new Date().toISOString().slice(0, 10),
@@ -185,7 +190,7 @@ export default function PlanejamentoPage() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={() => router.push("/app/resultado")} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
+        <Button onClick={prosseguir} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
           Ver resultado <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

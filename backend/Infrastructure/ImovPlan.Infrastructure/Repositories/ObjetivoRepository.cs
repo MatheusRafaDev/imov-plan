@@ -32,16 +32,23 @@ namespace ImovPlan.Infrastructure.Repositories
             var existing = await _context.Objetivos.FirstOrDefaultAsync(o => o.Id == id);
             if (existing != null)
             {
+                existing.NomePlano = objetivo.NomePlano;
                 existing.ValorImovel = objetivo.ValorImovel;
                 existing.PercentualEntrada = objetivo.PercentualEntrada;
-                existing.PrazoMeses = objetivo.PrazoMeses;
+                existing.PercentualCustosExtras = objetivo.PercentualCustosExtras;
+                existing.PrazoMaxMeses = objetivo.PrazoMaxMeses;
                 existing.ValorEntrada = objetivo.ValorEntrada;
                 existing.CustoITBI = objetivo.CustoITBI;
                 existing.CustoEscritura = objetivo.CustoEscritura;
                 existing.CustoRegistro = objetivo.CustoRegistro;
                 existing.TotalNecessario = objetivo.TotalNecessario;
                 existing.ValorJaGuardado = objetivo.ValorJaGuardado;
-                existing.TaxaCDI = objetivo.TaxaCDI;
+                existing.TaxaCdiAnual = objetivo.TaxaCdiAnual;
+                existing.PercentualCdi = objetivo.PercentualCdi;
+                existing.DataInicio = objetivo.DataInicio;
+                existing.BancoEscolhidoId = objetivo.BancoEscolhidoId;
+                existing.BancoEscolhidoNome = objetivo.BancoEscolhidoNome;
+                existing.BancoEscolhidoTaxa = objetivo.BancoEscolhidoTaxa;
                 existing.PessoasIds = objetivo.PessoasIds;
                 existing.AportesExtras = objetivo.AportesExtras;
 

@@ -179,5 +179,5 @@ export function aporteNecessarioParaPrazo(input: Omit<SimInput, "aporteMensalTot
   return Math.ceil(hi);
 }
 
-export const brl = (n: number) =>
-  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+export const brl = (n: number | undefined | null) =>
+  (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
