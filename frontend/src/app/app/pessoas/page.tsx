@@ -28,12 +28,12 @@ export default function PessoasPage() {
       const defaultPessoa: Pessoa = {
         id: "user-" + user.id,
         nome: user.name || "Eu",
-        renda_mensal: user.rendaMensal || 0,
+        renda_mensal: 0,
         renda_complementar: 0,
         gastos_mensais: 0,
         usar_gastos_detalhados: false,
         gastos_detalhados: [],
-        aporte_mensal: Math.round((user.rendaMensal || 0) * 0.5)
+        aporte_mensal: 0
       };
       setPessoas([defaultPessoa]);
       saveDraft({ pessoas: [defaultPessoa] });
@@ -42,7 +42,7 @@ export default function PessoasPage() {
 
   const prosseguir = async () => {
     await saveDraft();
-    router.push("/app/consultoria");
+    router.push("/app/planejamento");
   };
   
   const [form, setForm] = useState({ 
@@ -54,6 +54,7 @@ export default function PessoasPage() {
     gastos_detalhados: [] as GastoDetalhado[]
   });
   const [novoGastoForm, setNovoGastoForm] = useState({ nome: "", valor: 0 });
+  const [pessoaParaRemover, setPessoaParaRemover] = useState<string | null>(null);
 
   const sobraTotal = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0) - calcularGastos(p)), 0);
 
@@ -91,8 +92,15 @@ export default function PessoasPage() {
     setNovoGastoForm({ nome: "", valor: 0 });
   };
 
-  const remover = (id: string) => {
-    setPessoas(pessoas.filter((p) => p.id !== id));
+  const confirmarRemocao = (id: string) => {
+    setPessoaParaRemover(id);
+  };
+
+  const efetivarRemocao = () => {
+    if (pessoaParaRemover) {
+      setPessoas(pessoas.filter((p) => p.id !== pessoaParaRemover));
+      setPessoaParaRemover(null);
+    }
   };
 
   const atualizarPessoa = (pId: string, patch: Partial<Pessoa>) => {
@@ -122,7 +130,7 @@ export default function PessoasPage() {
 
       <div className="grid lg:grid-cols-2 gap-4">
         {pessoas.map((p) => (
-          <PessoaCard key={p.id} p={p} remover={remover} atualizarPessoa={atualizarPessoa} />
+          <PessoaCard key={p.id} p={p} remover={confirmarRemocao} atualizarPessoa={atualizarPessoa} />
         ))}
 
         <Card className="p-6 border-dashed shadow-none space-y-4">
@@ -233,9 +241,35 @@ export default function PessoasPage() {
             <p className="text-xs opacity-70 mt-1">Este valor será usado como base para os aportes no plano.</p>
           </div>
           <Button onClick={prosseguir} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-12 px-6">
-            Consultar Especialista IA <ArrowRight className="ml-2 h-4 w-4" />
+            Ir para o Plano <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Card>
+      )}
+
+      {pessoaParaRemover && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <Card className="max-w-md w-full p-6 shadow-xl border-border/50 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-display text-xl">Remover pessoa?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Tem certeza que deseja remover <strong>{pessoas.find(p => p.id === pessoaParaRemover)?.nome || "esta pessoa"}</strong> do planejamento? Esta ação não poderá ser desfeita.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setPessoaParaRemover(null)}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={efetivarRemocao}>
+                  Remover
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );

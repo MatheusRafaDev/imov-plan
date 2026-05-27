@@ -14,7 +14,7 @@ import { Calculator, Landmark, ArrowRight } from "lucide-react";
 export default function FinanciamentoPage() {
   const { objetivo, bancoEscolhido } = usePlanContext();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{valorFinanciado: number | ""; taxaAnual: number | ""; prazoMeses: number | ""}>({
     valorFinanciado: (objetivo?.valorImovel || 500000) - (objetivo?.valorImovel && objetivo?.percentualEntrada ? objetivo.valorImovel * (objetivo.percentualEntrada / 100) : 100000),
     taxaAnual: bancoEscolhido?.taxa ?? 9.5,
     prazoMeses: objetivo?.prazoMaxMeses || 360,
@@ -99,7 +99,7 @@ export default function FinanciamentoPage() {
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
                     <Landmark className="h-3 w-3" /> Valor Financiado
                   </p>
-                  <p className="font-display text-2xl num">{brl(form.valorFinanciado)}</p>
+                  <p className="font-display text-2xl num">{brl(Number(form.valorFinanciado) || 0)}</p>
                 </div>
                 <div className="bg-secondary/40 p-4 rounded-xl border border-border">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Total a Pagar ({sistemaAtivo.toUpperCase()})</p>

@@ -3,51 +3,89 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Users, Calculator, LineChart, LogOut, Home, Bot, Landmark } from "lucide-react";
+import { Building2, Users, Calculator, LineChart, LogOut, Home, Key, HardHat } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { usePlanContext } from "@/context/PlanContext";
 import { Button } from "@/components/ui/button";
 
-const nav = [
-  { to: "/app/objetivo", icon: Building2, label: "1. Imóvel" },
-  { to: "/app/pessoas", icon: Users, label: "2. Perfil" },
-  { to: "/app/consultoria", icon: Bot, label: "3. IA" },
-  { to: "/app/bancos", icon: Landmark, label: "4. Banco" },
-  { to: "/app/financiamento", icon: Home, label: "5. Simulação" },
-  { to: "/app/planejamento", icon: Calculator, label: "6. Plano" },
-  { to: "/app/resultado", icon: LineChart, label: "7. Resultado" },
-];
+const navPorCenario = {
+  entrada: [
+    { to: "/app/objetivo", icon: Building2, label: "Imóvel" },
+    { to: "/app/pessoas", icon: Users, label: "Perfil" },
+    { to: "/app/planejamento", icon: Calculator, label: "Plano" },
+    { to: "/app/resultado", icon: LineChart, label: "Resultado" },
+  ],
+  pronto: [
+    { to: "/app/pronto", icon: Key, label: "Financiamento" },
+    { to: "/app/planejamento", icon: Calculator, label: "Plano" },
+    { to: "/app/resultado", icon: LineChart, label: "Resultado" },
+  ],
+  planta: [
+    { to: "/app/planta", icon: HardHat, label: "Fluxo" },
+    { to: "/app/planejamento", icon: Calculator, label: "Plano" },
+    { to: "/app/resultado", icon: LineChart, label: "Resultado" },
+  ],
+};
+
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const { logout, user } = useAuth();
+  const { cenario } = usePlanContext();
   const pathname = usePathname();
+  const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
+  const homeHref = nav[0]?.to ?? "/app/objetivo";
+
   return (
     <div className="min-h-screen bg-gradient-cream">
       <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <Link href="/app/objetivo" className="flex items-center gap-2">
+          <Link href={homeHref} className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
               <Building2 className="h-4 w-4 text-accent-foreground" />
             </div>
             <span className="font-display text-xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
-            {nav.map((n) => {
-              const isActive = pathname?.startsWith(n.to) || false;
+          <nav className="hidden lg:flex items-center bg-secondary/40 rounded-full px-2 py-1.5 border border-border/50">
+            {nav.map((n, index) => {
+              const activeIndex = nav.findIndex(item => pathname?.startsWith(item.to));
+              const isActive = index === activeIndex;
+              const isPast = activeIndex !== -1 && index < activeIndex;
+
               return (
-              <Link
-                key={n.to}
-                href={n.to}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                }`}
-              >
-                {n.label}
-              </Link>
-            )})}
+                <div key={n.to} className="flex items-center">
+                  <Link
+                    href={n.to}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      isActive 
+                        ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" 
+                        : isPast 
+                          ? "text-accent hover:bg-secondary/60" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    }`}
+                  >
+                    <div className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${
+                      isActive ? "bg-accent text-accent-foreground" : isPast ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <span className="hidden xl:inline">{n.label}</span>
+                  </Link>
+                  {index < nav.length - 1 && (
+                    <div className="w-4 h-[1px] bg-border/60 mx-1" />
+                  )}
+                </div>
+              );
+            })}
           </nav>
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-xs text-muted-foreground">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={logout}>
+            <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-2">{user?.name?.split(' ')[0] || user?.email}</span>
+            <Link href="/app/perfil">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Perfil</span>
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

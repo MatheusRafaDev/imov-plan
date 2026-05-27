@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import api from "@/lib/api";
+import Cookies from "js-cookie";
 
 type User = {
   id: string;
@@ -36,8 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
+      const storedToken = Cookies.get("token");
+      const storedUser = Cookies.get("user");
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
@@ -55,8 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { token: newToken, user: userData } = response.data;
       setToken(newToken);
       setUser(userData);
-      localStorage.setItem("token", newToken);
-      localStorage.setItem("user", JSON.stringify(userData));
+      Cookies.set("token", newToken, { expires: 7 }); // 7 days
+      Cookies.set("user", JSON.stringify(userData), { expires: 7 });
       api.defaults.headers.Authorization = `Bearer ${newToken}`;
       return { success: true };
     } catch (err: any) {
@@ -76,8 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { token: newToken, user: userData } = response.data;
       setToken(newToken);
       setUser(userData);
-      localStorage.setItem("token", newToken);
-      localStorage.setItem("user", JSON.stringify(userData));
+      Cookies.set("token", newToken, { expires: 7 });
+      Cookies.set("user", JSON.stringify(userData), { expires: 7 });
       api.defaults.headers.Authorization = `Bearer ${newToken}`;
       return { success: true };
     } catch (err: any) {
@@ -92,8 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    Cookies.remove("token");
+    Cookies.remove("user");
     delete api.defaults.headers.Authorization;
     if (typeof window !== "undefined") {
       window.location.href = "/auth";
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, ...data };
-      localStorage.setItem("user", JSON.stringify(updated));
+      Cookies.set("user", JSON.stringify(updated), { expires: 7 });
       return updated;
     });
   };

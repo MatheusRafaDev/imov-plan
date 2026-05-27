@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { brl, simular } from "@/lib/finance";
 import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine } from "recharts";
-import { CalendarCheck, Coins, TrendingUp, Wallet, ArrowRight } from "lucide-react";
+import { CalendarCheck, Coins, TrendingUp, Wallet, ArrowRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ResultadoPage() {
@@ -41,13 +41,24 @@ export default function ResultadoPage() {
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 4 de 4</p>
+          <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 5 de 5</p>
           <h1 className="font-display text-4xl md:text-5xl mb-2">Seu plano em números</h1>
-          <p className="text-muted-foreground">Simulação mês a mês com juros compostos e IR regressivo.</p>
+          <p className="text-muted-foreground">O resultado de tudo o que você preencheu nas etapas anteriores.</p>
         </div>
-        <Button onClick={() => router.push("/app/financiamento")} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow hidden md:flex">
-          Simular Financiamento <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+      </div>
+
+      <div className="bg-secondary/40 border border-border/60 rounded-xl p-5 mb-8">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-accent mt-0.5 shrink-0" />
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Como este cálculo é feito?</p>
+            <ul className="list-disc list-inside space-y-1 ml-1 opacity-90">
+              <li><strong>Meta de {brl(sim.meta)}:</strong> É a soma da Entrada do Imóvel + Custos Extras que você definiu na Etapa 1.</li>
+              <li><strong>Aportes de {brl(aporteTotal)}/mês:</strong> É a soma de tudo que você e os participantes inseriram no perfil na Etapa 2.</li>
+              <li><strong>Rendimento:</strong> Seu dinheiro foi projetado rendendo {objetivo?.percentualCdi}% do CDI (aprox. {(Number(objetivo?.taxaCdiAnual) * Number(objetivo?.percentualCdi) / 100).toFixed(2)}% ao ano), já descontando o Imposto de Renda Regressivo (começa em 22,5% e cai para 15% após 2 anos).</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-4 gap-4">
@@ -129,11 +140,6 @@ export default function ResultadoPage() {
         </div>
       </Card>
 
-      <div className="md:hidden pt-4 pb-12">
-        <Button onClick={() => router.push("/app/financiamento")} className="w-full bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
-          Simular Financiamento <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
     </div>
   );
 }

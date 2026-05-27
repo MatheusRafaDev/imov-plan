@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type Props = Omit<React.ComponentProps<"input">, "value" | "onChange" | "type"> & {
-  value: number;
-  onChange: (value: number) => void;
+  value: number | "";
+  onChange: (value: number | "") => void;
   variant?: "money" | "decimal" | "percent";
   decimals?: number;
   min?: number;
@@ -14,31 +14,33 @@ type Props = Omit<React.ComponentProps<"input">, "value" | "onChange" | "type"> 
   errorMessage?: string;
 };
 
-const fmt = (n: number, decimals: number) =>
-  (isFinite(n) ? n : 0).toLocaleString("pt-BR", {
+const fmt = (n: number | "", decimals: number) => {
+  if (n === "") return "";
+  return (isFinite(n) ? n : 0).toLocaleString("pt-BR", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+};
 
 export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
   ({ value, onChange, variant = "money", decimals, className, onFocus, onBlur, placeholder, min, max, errorMessage, ...rest }, ref) => {
     const dec = decimals ?? (variant === "money" ? 2 : variant === "percent" ? 2 : 2);
     
     // State of the formatted text inside the input
-    const [text, setText] = React.useState(() => fmt(Number(value) || 0, dec));
+    const [text, setText] = React.useState(() => fmt(value, dec));
     const [focused, setFocused] = React.useState(false);
     const [touched, setTouched] = React.useState(false);
 
     // Sync input text with prop value when external changes happen or on blur
     React.useEffect(() => {
       if (!focused) {
-        setText(fmt(Number(value) || 0, dec));
+        setText(fmt(value, dec));
       }
     }, [value, focused, dec]);
 
     // Validation checks
-    const hasMinError = min !== undefined && touched && value < min;
-    const hasMaxError = max !== undefined && touched && value > max;
+    const hasMinError = min !== undefined && touched && value !== "" && value < min;
+    const hasMaxError = max !== undefined && touched && value !== "" && value > max;
     const hasError = hasMinError || hasMaxError;
 
     const getErrorMessage = () => {
@@ -77,7 +79,9 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
       }
       
       if (!digits) {
-        digits = "0";
+        setText("");
+        onChange("");
+        return;
       }
 
       let parsed = 0;
@@ -102,13 +106,13 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
       setTouched(true);
       
       let n = value;
-      // Clamp values strictly on blur to maintain logical bounds
-      if (min !== undefined && n < min) n = min;
-      if (max !== undefined && n > max) n = max;
-      
-      const clamped = Math.max(0, n);
-      onChange(clamped);
-      setText(fmt(clamped, dec));
+      if (n !== "") {
+        if (min !== undefined && n < min) n = min;
+        if (max !== undefined && n > max) n = max;
+        const clamped = Math.max(0, n);
+        onChange(clamped);
+        setText(fmt(clamped, dec));
+      }
       
       onBlur?.(e);
     };

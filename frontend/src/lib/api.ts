@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 const api = axios.create({
   baseURL: 'http://localhost:5179/api',
@@ -11,7 +12,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
+      const token = Cookies.get('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -27,8 +28,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        Cookies.remove('token');
+        Cookies.remove('user');
         window.location.href = '/auth';
       }
     }

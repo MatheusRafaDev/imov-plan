@@ -16,6 +16,10 @@ import {
   Loader2,
   CheckCircle2,
   Clock,
+  Briefcase,
+  DollarSign,
+  Heart,
+  PiggyBank
 } from "lucide-react";
 
 export default function PerfilPage() {
@@ -26,6 +30,10 @@ export default function PerfilPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
+  const [rendaMensal, setRendaMensal] = useState<number | "">("");
+  const [saldoFgts, setSaldoFgts] = useState<number | "">("");
+  const [estadoCivil, setEstadoCivil] = useState("");
+  const [regimeTrabalho, setRegimeTrabalho] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -36,11 +44,19 @@ export default function PerfilPage() {
         setName(profile.name || "");
         setEmail(profile.email || "");
         setDataNascimento(profile.dataNascimento || "");
+        setRendaMensal(profile.rendaMensal || "");
+        setSaldoFgts(profile.saldoFgts || "");
+        setEstadoCivil(profile.estadoCivil || "");
+        setRegimeTrabalho(profile.regimeTrabalho || "");
       } catch {
         // Fallback to context data if API fails
         setName(user!.name || "");
         setEmail(user!.email || "");
         setDataNascimento(user!.dataNascimento || "");
+        setRendaMensal(user!.rendaMensal || "");
+        setSaldoFgts(user!.saldoFgts || "");
+        setEstadoCivil(user!.estadoCivil || "");
+        setRegimeTrabalho(user!.regimeTrabalho || "");
       } finally {
         setLoadingProfile(false);
       }
@@ -67,6 +83,10 @@ export default function PerfilPage() {
       const payload: UpdateProfilePayload = {
         name: name || undefined,
         dataNascimento: dataNascimento || undefined,
+        rendaMensal: rendaMensal !== "" ? Number(rendaMensal) : undefined,
+        saldoFgts: saldoFgts !== "" ? Number(saldoFgts) : undefined,
+        estadoCivil: estadoCivil || undefined,
+        regimeTrabalho: regimeTrabalho || undefined,
       };
 
       const updated = await UsuarioService.updateProfile(user.id, payload);
@@ -79,8 +99,8 @@ export default function PerfilPage() {
     }
   };
 
-  const completedFields = [name, email, dataNascimento].filter(Boolean).length;
-  const totalFields = 3;
+  const completedFields = [name, email, dataNascimento, rendaMensal, saldoFgts, estadoCivil, regimeTrabalho].filter(Boolean).length;
+  const totalFields = 7;
   const completionPercent = Math.round((completedFields / totalFields) * 100);
 
   if (loadingProfile) {
@@ -192,6 +212,78 @@ export default function PerfilPage() {
               value={dataNascimento}
               onChange={(e) => setDataNascimento(e.target.value)}
             />
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-8 shadow-soft border-border/60 space-y-6">
+        <h3 className="font-display text-xl">Informações Financeiras e Perfil</h3>
+
+        <div className="grid md:grid-cols-2 gap-5">
+          {/* Renda Mensal */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-renda" className="flex items-center gap-1.5">
+              <DollarSign className="h-3.5 w-3.5 text-muted-foreground" /> Renda Mensal (R$)
+            </Label>
+            <Input
+              id="profile-renda"
+              type="number"
+              value={rendaMensal}
+              onChange={(e) => setRendaMensal(e.target.value ? Number(e.target.value) : "")}
+              placeholder="Ex: 5000"
+            />
+          </div>
+
+          {/* Saldo FGTS */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-fgts" className="flex items-center gap-1.5">
+              <PiggyBank className="h-3.5 w-3.5 text-muted-foreground" /> Saldo FGTS (R$)
+            </Label>
+            <Input
+              id="profile-fgts"
+              type="number"
+              value={saldoFgts}
+              onChange={(e) => setSaldoFgts(e.target.value ? Number(e.target.value) : "")}
+              placeholder="Ex: 10000"
+            />
+          </div>
+
+          {/* Estado Civil */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-estado-civil" className="flex items-center gap-1.5">
+              <Heart className="h-3.5 w-3.5 text-muted-foreground" /> Estado Civil
+            </Label>
+            <select
+              id="profile-estado-civil"
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={estadoCivil}
+              onChange={(e) => setEstadoCivil(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              <option value="Solteiro">Solteiro(a)</option>
+              <option value="Casado">Casado(a)</option>
+              <option value="Divorciado">Divorciado(a)</option>
+              <option value="Viúvo">Viúvo(a)</option>
+            </select>
+          </div>
+
+          {/* Regime de Trabalho */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-regime" className="flex items-center gap-1.5">
+              <Briefcase className="h-3.5 w-3.5 text-muted-foreground" /> Regime de Trabalho
+            </Label>
+            <select
+              id="profile-regime"
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={regimeTrabalho}
+              onChange={(e) => setRegimeTrabalho(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              <option value="CLT">CLT</option>
+              <option value="Autonomo">Autônomo/PJ</option>
+              <option value="Funcionario_Publico">Funcionário Público</option>
+              <option value="Empresario">Empresário</option>
+            </select>
           </div>
         </div>
 

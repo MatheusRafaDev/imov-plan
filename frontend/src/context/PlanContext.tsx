@@ -3,6 +3,9 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import type { SimInput, Aporte } from "@/lib/finance";
 import { PlanoService } from "@/services/PlanoService";
+import Cookies from "js-cookie";
+
+export type CenarioCompra = "entrada" | "pronto" | "planta";
 
 export type GastoDetalhado = {
   id: string;
@@ -44,6 +47,8 @@ type PlanContextType = {
   }) => Promise<void>;
   bancoEscolhido: Banco | null;
   setBancoEscolhido: React.Dispatch<React.SetStateAction<Banco | null>>;
+  cenario: CenarioCompra;
+  setCenario: React.Dispatch<React.SetStateAction<CenarioCompra>>;
 };
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
@@ -63,6 +68,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [aportesExtras, setAportesExtras] = useState<Aporte[]>([]);
   const [bancoEscolhido, setBancoEscolhido] = useState<Banco | null>(null);
+  const [cenario, setCenario] = useState<CenarioCompra>(
+    (Cookies.get("imovplan_cenario") as CenarioCompra) || "entrada"
+  );
   
   const [planoId, setPlanoId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -70,12 +78,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   // Initialize Session and Draft
   React.useEffect(() => {
     // Check local storage for existing session/draft
-    let localSessionId = localStorage.getItem("imovplan_sessionId");
-    let localPlanoId = localStorage.getItem("imovplan_planoId");
+    let localSessionId = Cookies.get("imovplan_sessionId");
+    let localPlanoId = Cookies.get("imovplan_planoId");
 
     if (!localSessionId) {
       localSessionId = Math.random().toString(36).substring(2, 15);
-      localStorage.setItem("imovplan_sessionId", localSessionId);
+      Cookies.set("imovplan_sessionId", localSessionId, { expires: 30 });
     }
     setSessionId(localSessionId);
 
@@ -106,7 +114,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         const data = await PlanoService.createDraft(localSessionId);
         if (data && data.id) {
           setPlanoId(data.id);
-          localStorage.setItem("imovplan_planoId", data.id);
+          Cookies.set("imovplan_planoId", data.id, { expires: 30 });
         }
       } catch (err) {
         console.error("Erro ao gerenciar rascunho:", err);
@@ -150,7 +158,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       pessoas, setPessoas, 
       aportesExtras, setAportesExtras,
       planoId, sessionId, saveDraft,
-      bancoEscolhido, setBancoEscolhido
+      bancoEscolhido, setBancoEscolhido,
+      cenario, setCenario
     }}>
       {children}
     </PlanContext.Provider>
