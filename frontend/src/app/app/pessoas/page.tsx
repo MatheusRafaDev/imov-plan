@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext, type Pessoa, type GastoDetalhado } from "@/context/PlanContext";
+import PessoaCard from "@/components/PessoaCard";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
-import { Plus, Trash2, ArrowRight, User, Calculator, ListTodo, Briefcase } from "lucide-react";
+import { Plus, Trash2, ArrowRight, User, Calculator, ListTodo, Briefcase, Pencil, X, Check } from "lucide-react";
 
 const calcularGastos = (p: Partial<Pessoa>) => {
   return p.usar_gastos_detalhados 
@@ -19,9 +21,22 @@ const calcularGastos = (p: Partial<Pessoa>) => {
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas, saveDraft } = usePlanContext();
+  const { pessoas, setPessoas, saveDraft, objetivo, cenario, planoId } = usePlanContext();
   const { user } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    // Só pode ir para a parte de perfil (pessoas) se preencher o que foi colocado no imóvel (objetivo)
+    if (planoId && (!objetivo || !objetivo.valorImovel || objetivo.valorImovel === 0)) {
+      toast.warning("Por favor, preencha as informações do imóvel primeiro.");
+      const paths: Record<string, string> = {
+        entrada: "/app/objetivo",
+        pronto: "/app/pronto",
+        planta: "/app/planta"
+      };
+      router.replace(paths[cenario] || "/app/objetivo");
+    }
+  }, [planoId, objetivo, cenario, router]);
 
   useEffect(() => {
     if (pessoas.length === 0 && user) {
@@ -41,10 +56,15 @@ export default function PessoasPage() {
   }, [user, pessoas.length, setPessoas]);
 
   const prosseguir = async () => {
-    await saveDraft();
-    router.push("/app/planejamento");
+    const success = await saveDraft();
+    if (success) {
+      router.push("/app/planejamento");
+    } else {
+      toast.error("Erro ao salvar os dados. Tente novamente.");
+    }
   };
   
+  const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState({ 
     nome: "", 
     renda_mensal: 0, 
@@ -54,6 +74,7 @@ export default function PessoasPage() {
     gastos_detalhados: [] as GastoDetalhado[]
   });
   const [novoGastoForm, setNovoGastoForm] = useState({ nome: "", valor: 0 });
+  const [isEditing, setIsEditing] = useState(false);
   const [pessoaParaRemover, setPessoaParaRemover] = useState<string | null>(null);
 
   const sobraTotal = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0) - calcularGastos(p)), 0);
@@ -77,6 +98,11 @@ export default function PessoasPage() {
     });
   };
 
+  const atualizarGastoForm = (gId: string, patch: Partial<GastoDetalhado>) => {
+    const newGastos = form.gastos_detalhados.map(g => g.id === gId ? { ...g, ...patch } : g);
+    setForm({ ...form, gastos_detalhados: newGastos });
+  };
+
   const adicionar = () => {
     if (!form.nome) return;
     const gastosTotais = calcularGastos(form);
@@ -90,6 +116,7 @@ export default function PessoasPage() {
     setPessoas([...pessoas, novaPessoa]);
     setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
     setNovoGastoForm({ nome: "", valor: 0 });
+    setShowAddForm(false);
   };
 
   const confirmarRemocao = (id: string) => {
@@ -117,6 +144,25 @@ export default function PessoasPage() {
     }));
   };
 
+  // Handlers for editing a person's detailed expenses
+  const handleUpdateGasto = (gId: string, patch: Partial<GastoDetalhado>) => {
+    const updated = (p?.gastos_detalhados || []).map(g => g.id === gId ? { ...g, ...patch } : g);
+    atualizarPessoa(p.id, { gastos_detalhados: updated });
+  };
+
+  const handleRemoveGasto = (gId: string) => {
+    const updated = (p?.gastos_detalhados || []).filter(g => g.id !== gId);
+    atualizarPessoa(p.id, { gastos_detalhados: updated });
+  };
+
+  const handleAddGasto = () => {
+    if (!novoGasto.nome || !novoGasto.valor) return;
+    const newGasto = { id: Math.random().toString(), ...novoGasto };
+    const updated = [...(p?.gastos_detalhados || []), newGasto];
+    atualizarPessoa(p.id, { gastos_detalhados: updated });
+    setNovoGasto({ nome: "", valor: 0 });
+  };
+
   const gastosTotaisForm = calcularGastos(form);
   const sobraForm = (form.renda_mensal + form.renda_complementar) - gastosTotaisForm;
 
@@ -133,104 +179,151 @@ export default function PessoasPage() {
           <PessoaCard key={p.id} p={p} remover={confirmarRemocao} atualizarPessoa={atualizarPessoa} />
         ))}
 
-        <Card className="p-6 border-dashed shadow-none space-y-4">
-          <div>
-            <h3 className="font-display text-lg">Adicionar pessoa</h3>
-            <p className="text-xs text-muted-foreground mt-1 mb-3">
-              Preencha a renda e escolha se prefere informar as despesas de forma direta ou detalhada.
+        {!showAddForm ? (
+          <Card 
+            onClick={() => setShowAddForm(true)}
+            className="glass p-6 border-2 border-dashed hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[300px] text-muted-foreground hover:text-foreground group"
+          >
+            <div className="h-12 w-12 rounded-full bg-secondary group-hover:bg-accent/10 grid place-items-center mb-3 transition-colors">
+              <Plus className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors" />
+            </div>
+            <h3 className="font-display text-lg font-semibold text-foreground">Adicionar participante</h3>
+            <p className="text-xs text-center mt-1 max-w-[240px] text-muted-foreground">
+              Adicione outra pessoa para somar renda e planejar juntos a entrada do imóvel.
             </p>
-          </div>
-          
-          <div className="space-y-4">
+          </Card>
+        ) : (
+          <Card className="p-6 border-dashed shadow-none space-y-4 relative animate-fade-in-up">
+            <button 
+              onClick={() => {
+                setShowAddForm(false);
+                setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <div>
-              <Label className="text-xs">Nome</Label>
-              <Input placeholder="Ex: João" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              <h3 className="font-display text-lg">Adicionar pessoa</h3>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
+                Preencha a renda e escolha se prefere informar as despesas de forma direta ou detalhada.
+              </p>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4">
               <div>
-                <Label className="text-xs">Renda Principal</Label>
-                <MoneyInput variant="money" min={0} value={form.renda_mensal}
-                  onChange={(v) => setForm({ ...form, renda_mensal: v })} placeholder="Salário" />
+                <Label className="text-xs">Nome</Label>
+                <Input placeholder="Ex: João" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
               </div>
-              <div>
-                <Label className="text-xs">Renda Extra</Label>
-                <MoneyInput variant="money" min={0} value={form.renda_complementar}
-                  onChange={(v) => setForm({ ...form, renda_complementar: v })} placeholder="Freelance, etc" />
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-border/50">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-sm font-medium">Como informar as despesas?</Label>
-                <div className="flex bg-secondary rounded-lg p-1">
-                  <button 
-                    onClick={() => setForm({ ...form, usar_gastos_detalhados: false })}
-                    className={`text-xs px-3 py-1.5 rounded-md transition-colors ${!form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
-                  >
-                    Valor Direto
-                  </button>
-                  <button 
-                    onClick={() => setForm({ ...form, usar_gastos_detalhados: true })}
-                    className={`text-xs px-3 py-1.5 rounded-md transition-colors ${form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
-                  >
-                    Detalhado
-                  </button>
-                </div>
-              </div>
-
-              {!form.usar_gastos_detalhados ? (
+              
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Despesas Mensais (Total)</Label>
-                  <MoneyInput variant="money" min={0} value={form.gastos_mensais}
-                    onChange={(v) => setForm({ ...form, gastos_mensais: v })} placeholder="Contas, lazer..." />
+                  <Label className="text-xs">Renda Principal</Label>
+                  <MoneyInput variant="money" min={0} value={form.renda_mensal}
+                    onChange={(v) => setForm({ ...form, renda_mensal: v })} placeholder="Salário" />
                 </div>
-              ) : (
-                <div className="space-y-3 bg-secondary/30 p-3 rounded-xl border border-border/50">
-                  {form.gastos_detalhados.map(g => (
-                    <div key={g.id} className="flex items-center justify-between text-sm bg-background p-2 rounded-lg border border-border/50">
-                      <span className="text-muted-foreground">{g.nome}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{brl(g.valor)}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removerGastoForm(g.id)}>
-                          <Trash2 className="h-3 w-3 text-destructive" />
+                <div>
+                  <Label className="text-xs">Renda Extra</Label>
+                  <MoneyInput variant="money" min={0} value={form.renda_complementar}
+                    onChange={(v) => setForm({ ...form, renda_complementar: v })} placeholder="Freelance, etc" />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/50">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm font-medium">Como informar as despesas?</Label>
+                  <div className="flex bg-secondary rounded-lg p-1">
+                    <button 
+                      onClick={() => setForm({ ...form, usar_gastos_detalhados: false })}
+                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${!form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                    >
+                      Valor Direto
+                    </button>
+                    <button 
+                      onClick={() => setForm({ ...form, usar_gastos_detalhados: true })}
+                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                    >
+                      Detalhado
+                    </button>
+                  </div>
+                </div>
+
+                {!form.usar_gastos_detalhados ? (
+                  <div>
+                    <Label className="text-xs">Despesas Mensais (Total)</Label>
+                    <MoneyInput variant="money" min={0} value={form.gastos_mensais}
+                      onChange={(v) => setForm({ ...form, gastos_mensais: v })} placeholder="Contas, lazer..." />
+                  </div>
+                ) : (
+                  <div className="space-y-3 bg-secondary/30 p-3 rounded-xl border border-border/50">
+                    {form.gastos_detalhados.map(g => (
+                      <div key={g.id} className="flex items-center gap-2 bg-background p-2 rounded-lg border border-border/50">
+                        <Input 
+                          value={g.nome} 
+                          onChange={(e) => atualizarGastoForm(g.id, { nome: e.target.value })} 
+                          className="h-8 text-xs flex-1 bg-transparent"
+                          placeholder="Nome do gasto"
+                        />
+                        <div className="w-24">
+                          <MoneyInput 
+                            variant="money" 
+                            min={0} 
+                            value={g.valor} 
+                            onChange={(v) => atualizarGastoForm(g.id, { valor: v })} 
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removerGastoForm(g.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
+                    ))}
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Descrição</Label>
+                        <Input placeholder="Ex: Aluguel" className="h-9 text-sm" value={novoGastoForm.nome} onChange={e => setNovoGastoForm({...novoGastoForm, nome: e.target.value})} />
+                      </div>
+                      <div className="w-32">
+                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor</Label>
+                        <MoneyInput variant="money" min={0} placeholder="R$" className="h-9 text-sm" value={novoGastoForm.valor} onChange={v => setNovoGastoForm({...novoGastoForm, valor: v})} />
+                      </div>
+                      <Button size="icon" className="h-9 w-9 bg-primary" onClick={adicionarGastoForm} disabled={!novoGastoForm.nome || !novoGastoForm.valor}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ))}
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Descrição</Label>
-                      <Input placeholder="Ex: Aluguel" className="h-9 text-sm" value={novoGastoForm.nome} onChange={e => setNovoGastoForm({...novoGastoForm, nome: e.target.value})} />
+                    <div className="flex justify-between items-center pt-2 px-1">
+                      <span className="text-xs text-muted-foreground">Total das despesas</span>
+                      <span className="font-display text-lg">{brl(gastosTotaisForm)}</span>
                     </div>
-                    <div className="w-32">
-                      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor</Label>
-                      <MoneyInput variant="money" min={0} placeholder="R$" className="h-9 text-sm" value={novoGastoForm.valor} onChange={v => setNovoGastoForm({...novoGastoForm, valor: v})} />
-                    </div>
-                    <Button size="icon" className="h-9 w-9 bg-primary" onClick={adicionarGastoForm} disabled={!novoGastoForm.nome || !novoGastoForm.valor}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
                   </div>
-                  <div className="flex justify-between items-center pt-2 px-1">
-                    <span className="text-xs text-muted-foreground">Total das despesas</span>
-                    <span className="font-display text-lg">{brl(gastosTotaisForm)}</span>
-                  </div>
+                )}
+              </div>
+
+              {form.nome && (
+                <div className={`p-3 rounded-xl flex justify-between items-center transition-colors ${sobraForm >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                  <span className="text-xs font-medium uppercase tracking-wider">Sobra Estimada</span>
+                  <span className="font-display text-xl num">{brl(sobraForm)}</span>
                 </div>
               )}
             </div>
-
-            {form.nome && (
-              <div className={`p-3 rounded-xl flex justify-between items-center transition-colors ${sobraForm >= 0 ? "bg-success/10 text-success-foreground" : "bg-destructive/10 text-destructive-foreground"}`}>
-                <span className="text-xs font-medium uppercase tracking-wider">Sobra Estimada</span>
-                <span className="font-display text-xl num">{brl(sobraForm)}</span>
-              </div>
-            )}
-          </div>
-          
-          <Button onClick={adicionar} className="w-full mt-2" variant="secondary" disabled={!form.nome}>
-            <Plus className="h-4 w-4 mr-1" /> Adicionar {form.nome || "Pessoa"}
-          </Button>
-        </Card>
+            
+            <div className="flex items-center gap-3 pt-2">
+              <Button 
+                onClick={() => {
+                  setShowAddForm(false);
+                  setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
+                }} 
+                variant="outline" 
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button onClick={adicionar} className="flex-1 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow" disabled={!form.nome}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar
+              </Button>
+            </div>
+          </Card>
+        )}
       </div>
 
       {pessoas.length > 0 && (
@@ -272,107 +365,5 @@ export default function PessoasPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function PessoaCard({ p, remover, atualizarPessoa }: { p: Pessoa, remover: (id: string) => void, atualizarPessoa: (id: string, patch: Partial<Pessoa>) => void }) {
-  const [novoGasto, setNovoGasto] = useState({ nome: "", valor: 0 });
-  const gastosTotais = calcularGastos(p);
-  const sobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - gastosTotais;
-
-  const handleAddGasto = () => {
-    if (!novoGasto.nome || !novoGasto.valor) return;
-    const newGastos = [...(p.gastos_detalhados || []), { id: Math.random().toString(), nome: novoGasto.nome, valor: novoGasto.valor }];
-    atualizarPessoa(p.id, { gastos_detalhados: newGastos });
-    setNovoGasto({ nome: "", valor: 0 });
-  };
-
-  const handleRemoveGasto = (id: string) => {
-    const newGastos = (p.gastos_detalhados || []).filter(g => g.id !== id);
-    atualizarPessoa(p.id, { gastos_detalhados: newGastos });
-  };
-
-  return (
-    <Card className="p-6 shadow-soft space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 w-full">
-          <div className="h-10 w-10 shrink-0 rounded-full bg-secondary grid place-items-center">
-            <User className="h-4 w-4" />
-          </div>
-          <Input
-            value={p.nome}
-            onChange={(e) => atualizarPessoa(p.id, { nome: e.target.value })}
-            className="font-display text-lg border-none px-0 focus-visible:ring-0 h-auto"
-          />
-        </div>
-        <Button variant="ghost" size="icon" onClick={() => remover(p.id)} className="shrink-0">
-          <Trash2 className="h-4 w-4 text-muted-foreground" />
-        </Button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Renda Principal</Label>
-          <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)}
-            onChange={(v) => atualizarPessoa(p.id, { renda_mensal: v })} />
-        </div>
-        <div>
-          <Label className="text-xs">Renda Extra (Opcional)</Label>
-          <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)}
-            onChange={(v) => atualizarPessoa(p.id, { renda_complementar: v })} />
-        </div>
-        
-        <div className="col-span-2 pt-2">
-          <div className="flex items-center justify-between mb-2">
-            <Label className="text-xs font-medium">Despesas Mensais</Label>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 text-[10px] px-2"
-              onClick={() => atualizarPessoa(p.id, { usar_gastos_detalhados: !p.usar_gastos_detalhados })}
-            >
-              {p.usar_gastos_detalhados ? "Mudar para Valor Direto" : "Detalhar Gastos"}
-            </Button>
-          </div>
-
-          {!p.usar_gastos_detalhados ? (
-            <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)}
-              onChange={(v) => atualizarPessoa(p.id, { gastos_mensais: v })} />
-          ) : (
-            <div className="space-y-2 bg-secondary/20 p-3 rounded-lg border border-border/40">
-              {(p.gastos_detalhados || []).map(g => (
-                <div key={g.id} className="flex items-center justify-between text-sm bg-background p-1.5 rounded-md border border-border/40">
-                  <span className="text-muted-foreground text-xs pl-1">{g.nome}</span>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-xs">{brl(g.valor)}</span>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemoveGasto(g.id)}>
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <div className="flex gap-2 items-end pt-1">
-                <div className="flex-1">
-                  <Input placeholder="Ex: Mercado" className="h-8 text-xs" value={novoGasto.nome} onChange={e => setNovoGasto({...novoGasto, nome: e.target.value})} />
-                </div>
-                <div className="w-24">
-                  <MoneyInput variant="money" min={0} placeholder="R$" className="h-8 text-xs" value={novoGasto.valor} onChange={v => setNovoGasto({...novoGasto, valor: v})} />
-                </div>
-                <Button size="icon" className="h-8 w-8 bg-primary" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="flex justify-between items-center pt-2 px-1 border-t border-border/40 mt-2">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</span>
-                <span className="font-medium">{brl(gastosTotais)}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      <div className={`rounded-lg p-3 flex items-center justify-between transition-colors ${sobra >= 0 ? "bg-success/10" : "bg-destructive/10"}`}>
-        <span className={`text-sm ${sobra >= 0 ? "text-success" : "text-destructive"}`}>Sobra mensal</span>
-        <span className={`font-display text-xl num ${sobra >= 0 ? "text-success" : "text-destructive"}`}>{brl(sobra)}</span>
-      </div>
-    </Card>
   );
 }

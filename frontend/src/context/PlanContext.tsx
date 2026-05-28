@@ -44,7 +44,7 @@ type PlanContextType = {
     pessoas?: Pessoa[];
     bancoEscolhido?: Banco | null;
     aportesExtras?: Aporte[];
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   bancoEscolhido: Banco | null;
   setBancoEscolhido: React.Dispatch<React.SetStateAction<Banco | null>>;
   cenario: CenarioCompra;
@@ -54,16 +54,7 @@ type PlanContextType = {
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
 export function PlanProvider({ children }: { children: ReactNode }) {
-  const [objetivo, setObjetivo] = useState<Partial<SimInput> | null>({
-    valorImovel: 500000,
-    percentualEntrada: 20,
-    percentualCustosExtras: 5,
-    valorJaGuardado: 10000,
-    taxaCdiAnual: 13.65,
-    percentualCdi: 100,
-    dataInicio: new Date(),
-    prazoMaxMeses: 36,
-  });
+  const [objetivo, setObjetivo] = useState<Partial<SimInput> | null>(null);
   
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [aportesExtras, setAportesExtras] = useState<Aporte[]>([]);
@@ -129,8 +120,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     pessoas?: Pessoa[];
     bancoEscolhido?: Banco | null;
     aportesExtras?: Aporte[];
-  }) => {
-    if (!planoId || !sessionId) return;
+  }): Promise<boolean> => {
+    if (!planoId || !sessionId) return false;
     try {
       const payloadObjetivo = overrideData && overrideData.objetivo !== undefined ? overrideData.objetivo : objetivo;
       const payloadPessoas = overrideData && overrideData.pessoas !== undefined ? overrideData.pessoas : pessoas;
@@ -141,14 +132,16 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         sessionId,
         objetivo: payloadObjetivo ? {
           ...payloadObjetivo,
-          dataInicio: payloadObjetivo.dataInicio?.toISOString().slice(0, 10)
+          dataInicio: payloadObjetivo.dataInicio ? (payloadObjetivo.dataInicio instanceof Date ? payloadObjetivo.dataInicio.toISOString().slice(0,10) : new Date(payloadObjetivo.dataInicio).toISOString().slice(0,10)) : undefined
         } : null,
         pessoas: payloadPessoas,
         bancoEscolhido: payloadBanco,
         aportesExtras: payloadAportes
       });
+      return true;
     } catch (err) {
       console.error("Falha ao salvar rascunho:", err);
+      return false;
     }
   };
 

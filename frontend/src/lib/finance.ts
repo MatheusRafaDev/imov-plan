@@ -83,7 +83,7 @@ export function simular(input: SimInput): SimResult {
   const faltava = Math.max(0, meta - input.valorJaGuardado);
   const taxaMes = taxaMensalEfetiva(input.taxaCdiAnual, input.percentualCdi);
   const prazoMax = input.prazoMaxMeses ?? 600;
-  const inicio = input.dataInicio ?? new Date();
+  const inicio = typeof input.dataInicio === 'string' ? new Date(input.dataInicio) : (input.dataInicio ?? new Date());
 
   const extrasPorMes = new Map<number, number>();
   for (const a of input.aportesExtras) {

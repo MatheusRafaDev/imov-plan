@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext } from "@/context/PlanContext";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -31,7 +32,7 @@ export default function ObjetivoPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [form, setForm] = useState({
-    nome: "",
+    nome: "Imóvel",
     valor_imovel: "" as number | "",
     percentual_entrada: "" as number | "",
     data_inicio: todayISO(),
@@ -41,6 +42,23 @@ export default function ObjetivoPage() {
     percentual_cdi: "" as number | "",
     percentual_custos_extras: "" as number | "",
   });
+
+  useEffect(() => {
+    if (objetivo && objetivo.valorImovel) {
+      setForm((prev) => ({
+        ...prev,
+        nome: (objetivo as any).nomePlano || "Imóvel",
+        valor_imovel: objetivo.valorImovel || "",
+        percentual_entrada: objetivo.percentualEntrada || "",
+        data_inicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : prev.data_inicio,
+        valor_ja_guardado: objetivo.valorJaGuardado || "",
+        taxa_cdi_anual: objetivo.taxaCdiAnual || "",
+        percentual_cdi: objetivo.percentualCdi || "",
+        percentual_custos_extras: objetivo.percentualCustosExtras || "",
+        data_fim: objetivo.prazoMaxMeses ? addMonthsISO(objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : todayISO(), objetivo.prazoMaxMeses) : prev.data_fim,
+      }));
+    }
+  }, [objetivo]);
 
   const isFormValid = form.valor_imovel !== "" && form.percentual_entrada !== "" && form.data_inicio !== "" && form.data_fim !== "";
 
@@ -52,19 +70,30 @@ export default function ObjetivoPage() {
 
   const salvar = async (avancar = false) => {
     if (!isFormValid) return;
+    const nomePlanoFinal = form.nome.trim() === "" ? "Imóvel" : form.nome.trim();
     const novoObjetivo = {
+      nomePlano: nomePlanoFinal,
       valorImovel: Number(form.valor_imovel),
       percentualEntrada: Number(form.percentual_entrada),
       percentualCustosExtras: Number(form.percentual_custos_extras),
       valorJaGuardado: Number(form.valor_ja_guardado) || 0,
       taxaCdiAnual: Number(form.taxa_cdi_anual),
       percentualCdi: Number(form.percentual_cdi),
-      dataInicio: new Date(form.data_inicio),
+      dataInicio: form.data_inicio ? new Date(form.data_inicio).toISOString() : undefined,
       prazoMaxMeses: prazoMeses,
     };
     setObjetivo(novoObjetivo);
-    await saveDraft({ objetivo: novoObjetivo });
-    if (avancar) router.push("/app/pessoas");
+    const success = await saveDraft({ objetivo: novoObjetivo });
+    if (success) {
+      setForm((prev) => ({ ...prev, nome: nomePlanoFinal }));
+      if (avancar) {
+        router.push("/app/pessoas");
+      } else {
+        toast.success("Rascunho salvo com sucesso!");
+      }
+    } else {
+      toast.error("Erro ao salvar os dados. Tente novamente.");
+    }
   };
 
   return (
@@ -87,6 +116,7 @@ export default function ObjetivoPage() {
                 <Input 
                   id="nome" 
                   value={form.nome} 
+                  placeholder="Imóvel"
                   onChange={(e) => setForm({ ...form, nome: e.target.value })} 
                   className="text-lg py-6"
                 />

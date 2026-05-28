@@ -12,7 +12,7 @@ namespace ImovPlan.Domain.Entities
         public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
         [BsonElement("nomePlano")]
-        public string NomePlano { get; set; } = string.Empty;
+        public string NomePlano { get; set; } = "Imóvel";
 
         [BsonElement("valorImovel")]
         [BsonRepresentation(BsonType.Decimal128)]

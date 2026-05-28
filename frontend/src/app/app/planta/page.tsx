@@ -187,7 +187,7 @@ export default function PlantaPage() {
                   <div className="min-w-0">
                     <p className="font-medium truncate">{ev.descricao}</p>
                     <p className="text-xs text-muted-foreground">
-                      {ev.data} · {ev.tipo === "unico" ? "único" : `${ev.quantidade}x ${ev.tipo}`} · {brl(ev.valor)}
+                      {new Date(ev.data + "T12:00:00").toLocaleDateString("pt-BR")} · {ev.tipo === "unico" ? "único" : `${ev.quantidade}x ${ev.tipo}`} · {brl(ev.valor)}
                     </p>
                   </div>
                   <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removerEvento(ev.id)}>

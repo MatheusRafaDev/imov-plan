@@ -139,6 +139,7 @@
   .bg-gradient-warm { background: var(--gradient-warm); }
   .bg-gradient-ink { background: var(--gradient-ink); }
   .bg-gradient-cream { background: var(--gradient-cream); }
+  .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border-radius: var(--radius-lg); }
   .shadow-soft { box-shadow: var(--shadow-soft); }
   .shadow-elevated { box-shadow: var(--shadow-elevated); }
   .shadow-glow { box-shadow: var(--shadow-glow); }

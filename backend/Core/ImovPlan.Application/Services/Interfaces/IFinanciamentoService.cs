@@ -8,5 +8,6 @@ namespace ImovPlan.Application.Services.Interfaces
         decimal CalcularCET(decimal pv, decimal taxaAnual, int prazoMeses, decimal taxaMip, decimal taxaDfi, decimal taxaAdmin);
         bool VerificarComprometimentoRenda(decimal rendaBrutaFamiliar, decimal parcelaCalculada);
         object SimularFGTS(decimal saldoDevedor, decimal saldoFgts, int modalidade, decimal parcelaAtual, int prazoRestante);
+        SimResultDto Simular(SimInputDto input);
     }
 }

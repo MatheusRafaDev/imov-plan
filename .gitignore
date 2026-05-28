@@ -43,3 +43,13 @@ appsettings.*.json
 
 # Node (in case it runs in root)
 node_modules/
+
+# Frontend build artifacts for Next.js
+.next/
+out/
+# Test coverage and logs
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+.eslintcache

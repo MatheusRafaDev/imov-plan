@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext, type Pessoa } from "@/context/PlanContext";
 import { type Aporte } from "@/lib/finance";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -19,8 +20,12 @@ export default function PlanejamentoPage() {
   const router = useRouter();
 
   const prosseguir = async () => {
-    await saveDraft();
-    router.push("/app/resultado");
+    const success = await saveDraft();
+    if (success) {
+      router.push("/app/resultado");
+    } else {
+      toast.error("Erro ao salvar os dados. Tente novamente.");
+    }
   };
   
   const [novoAporte, setNovoAporte] = useState({
@@ -50,18 +55,28 @@ export default function PlanejamentoPage() {
 
   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
   const mesesEstimados = mesesParaMeta({ ...baseSim, aporteMensalTotal: aporteTotal });
-  const aporteSugeridoPrazo = aporteNecessarioParaPrazo({ ...baseSim, prazoMeses });
+  
+  const rendaTotal = pessoas.reduce((acc, p) => acc + Number(p.renda_mensal) + Number(p.renda_complementar || 0), 0);
+  const aporteSugerido = rendaTotal * 0.4; // 40% da renda total
+  const totalSobras = pessoas.reduce((acc, p) => acc + Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)), 0);
 
   const atualizarPessoa = (pId: string, valor: number) => {
     setPessoas(pessoas.map((p) => p.id === pId ? { ...p, aporte_mensal: valor } : p));
   };
 
   const distribuirSugerido = () => {
-    const sobras = pessoas.map((p) => Math.max(1, Number(p.renda_mensal) - Number(p.gastos_mensais)));
-    const total = sobras.reduce((a, b) => a + b, 0);
+    const sobras = pessoas.map((p) => Math.max(1, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)));
+    const tSobras = sobras.reduce((a, b) => a + b, 0);
     setPessoas(pessoas.map((p, i) => ({
       ...p,
-      aporte_mensal: Math.round((sobras[i] / total) * aporteSugeridoPrazo),
+      aporte_mensal: Math.round((sobras[i] / tSobras) * aporteSugerido),
+    })));
+  };
+
+  const distribuirTudo = () => {
+    setPessoas(pessoas.map((p) => ({
+      ...p,
+      aporte_mensal: Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)),
     })));
   };
 
@@ -100,14 +115,24 @@ export default function PlanejamentoPage() {
           <p className="font-display text-3xl num mt-1">{mesesEstimados ? `${mesesEstimados} meses` : "—"}</p>
           <p className="text-xs text-muted-foreground mt-1">Meta: {brl(meta)}</p>
         </Card>
-        <Card className="p-5 shadow-soft bg-secondary/40">
-          <div className="flex items-start justify-between gap-2">
+        <Card className="p-4 shadow-soft bg-secondary/40 flex flex-col justify-center gap-3">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Sugestão p/ {prazoMeses}m</p>
-              <p className="font-display text-3xl num mt-1">{brl(aporteSugeridoPrazo)}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground" title="40% da renda total informada">Segura (40%)</p>
+              <p className="font-display text-2xl num mt-0.5">{brl(aporteSugerido)}</p>
             </div>
-            <Button size="sm" variant="ghost" onClick={distribuirSugerido} title="Distribuir entre as pessoas">
-              <Sparkles className="h-4 w-4 mr-1" /> Aplicar
+            <Button size="sm" variant="secondary" onClick={distribuirSugerido} className="h-8 text-xs px-3">
+              Aplicar
+            </Button>
+          </div>
+          <div className="h-px w-full bg-border/60" />
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground" title="Todo o valor que sobra no fim do mês">Agressiva (100% sobra)</p>
+              <p className="font-display text-2xl num mt-0.5">{brl(totalSobras)}</p>
+            </div>
+            <Button size="sm" variant="secondary" onClick={distribuirTudo} className="h-8 text-xs px-3">
+              Aplicar
             </Button>
           </div>
         </Card>
@@ -176,7 +201,7 @@ export default function PlanejamentoPage() {
           <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
             {aportesExtras.map((a, index) => (
               <div key={index} className="grid grid-cols-12 items-center gap-2 px-4 py-3 text-sm">
-                <span className="col-span-3 num">{new Date(a.data).toLocaleDateString("pt-BR")}</span>
+                <span className="col-span-3 num">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
                 <span className="col-span-3">{a.origem}</span>
                 <span className="col-span-3 text-muted-foreground">{a.pessoaNome ?? "Conjunto"}</span>
                 <span className="col-span-2 num font-medium">{brl(Number(a.valor))}</span>

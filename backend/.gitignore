@@ -1,13 +1,9 @@
-# Folders to ignore
+# Build / output
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
 [Pp]ackages/
 [Tt]est[Rr]esults/
-.vs/
-.vscode/
-
-# Build results
 [Dd]ebug/
 [Rr]elease/
 x64/
@@ -19,14 +15,15 @@ bld/
 [Oo]bjects/
 [Ll]ocal[Rr]esults/
 
-# Rider / ReSharper
+# IDEs / Editors
+.vs/
+.vscode/
 .idea/
 *.sln.iml
+
+# Rider / ReSharper
 *.[Rr]e[Ss]harper
 *.DotSettings.user
-
-# Mac
-.DS_Store
 
 # User-specific files
 *.rsuser
@@ -35,8 +32,37 @@ bld/
 *.userosscache
 *.sln.docstates
 
-# Development settings (prevents pushing keys)
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment / secrets
 appsettings.Development.json
 appsettings.*.json
+.env
+.env.*
 *.env
 *.env.local
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Node
+node_modules/
+
+# Coverage
+coverage/
+coverage.xml
+
+# Publish
+publish/
+
+# Temporary files
+*.tmp
+*.temp
+
+*.dll

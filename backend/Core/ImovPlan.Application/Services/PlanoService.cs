@@ -51,7 +51,7 @@ namespace ImovPlan.Application.Services
                 existingObjetivo.TaxaCdiAnual = o.TaxaCdiAnual;
                 existingObjetivo.PercentualCdi = o.PercentualCdi;
                 existingObjetivo.PrazoMaxMeses = o.PrazoMaxMeses;
-                existingObjetivo.NomePlano = o.NomePlano ?? string.Empty;
+                existingObjetivo.NomePlano = string.IsNullOrWhiteSpace(o.NomePlano) ? "Imóvel" : o.NomePlano.Trim();
 
                 if (!string.IsNullOrEmpty(o.DataInicio))
                 {

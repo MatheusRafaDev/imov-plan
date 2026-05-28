@@ -30,12 +30,12 @@ export default function ResultadoPage() {
 
   const chartData = sim.rows.map((r) => ({
     mes: r.mes,
-    label: new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
+    label: new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
     investido: Math.round(r.totalInvestido),
     saldo: Math.round(r.saldoAcumulado),
   }));
 
-  const dataMeta = sim.dataAtingiuMeta ? new Date(sim.dataAtingiuMeta).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : null;
+  const dataMeta = sim.dataAtingiuMeta ? new Date(sim.dataAtingiuMeta + "T12:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : null;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -126,7 +126,7 @@ export default function ResultadoPage() {
                 return (
                   <tr key={r.mes} className={`border-t border-border ${atingiu ? "bg-accent/10" : ""}`}>
                     <Td>{r.mes}</Td>
-                    <Td>{new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}</Td>
+                    <Td>{new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}</Td>
                     <Td right>{brl(r.aporteRegular)}</Td>
                     <Td right>{r.aportesExtras > 0 ? <span className="text-accent font-medium">{brl(r.aportesExtras)}</span> : "—"}</Td>
                     <Td right className="text-success">{brl(r.rendimentoBruto)}</Td>

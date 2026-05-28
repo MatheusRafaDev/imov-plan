@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ImovPlan.Application.Services.Interfaces;
+using ImovPlan.Application.DTOs;
 
 namespace ImovPlan.Application.Services
 {
@@ -112,6 +114,111 @@ namespace ImovPlan.Application.Services
         {
             var taxaDecimal = taxaAnualPercentual / 100;
             return (decimal)Math.Pow((double)(1 + taxaDecimal), 1.0 / 12.0) - 1;
+        }
+
+        // Aliquota de IR regressiva baseada em dias corridos
+        private decimal AliquotaIR(int diasCorridos)
+        {
+            if (diasCorridos <= 180) return 0.225m;
+            if (diasCorridos <= 360) return 0.20m;
+            if (diasCorridos <= 720) return 0.175m;
+            return 0.15m;
+        }
+
+        // Conversão da taxa CDI anual e percentual CDI para taxa mensal efetiva
+        private decimal TaxaMensalEfetiva(decimal taxaCdiAnual, decimal percentualCdi)
+        {
+            var anual = (taxaCdiAnual / 100m) * (percentualCdi / 100m);
+            return (decimal)Math.Pow((double)(1 + anual), 1.0 / 12.0) - 1;
+        }
+
+        public SimResultDto Simular(SimInputDto input)
+        {
+            // Cálculo da meta
+            var meta = (input.ValorImovel * input.PercentualEntrada) / 100m + (input.ValorImovel * input.PercentualCustosExtras) / 100m;
+            var custosExtras = (input.ValorImovel * input.PercentualCustosExtras) / 100m;
+            var valorEntrada = (input.ValorImovel * input.PercentualEntrada) / 100m;
+            var faltava = Math.Max(0, meta - input.ValorJaGuardado);
+
+            var taxaMes = TaxaMensalEfetiva(input.TaxaCdiAnual, input.PercentualCdi);
+            var prazoMax = input.PrazoMaxMeses ?? 600;
+            var dataInicio = input.DataInicio ?? DateTime.UtcNow;
+
+            // Agrupar aportes extras por mês
+            var extrasPorMes = new Dictionary<int, decimal>();
+            foreach (var a in input.AportesExtras)
+            {
+                var d = a.Data;
+                var mesOffset = (d.Year - dataInicio.Year) * 12 + (d.Month - dataInicio.Month) + 1;
+                if (mesOffset >= 1)
+                {
+                    if (!extrasPorMes.ContainsKey(mesOffset)) extrasPorMes[mesOffset] = 0;
+                    extrasPorMes[mesOffset] += a.Valor;
+                }
+            }
+
+            decimal saldo = input.ValorJaGuardado;
+            decimal totalInvestido = input.ValorJaGuardado;
+            var rows = new List<SimRowDto>();
+            bool atingiuMeta = false;
+            int? mesAtingiuMeta = null;
+            string? dataAtingiuMeta = null;
+
+            for (int mes = 1; mes <= prazoMax; mes++)
+            {
+                var aporteRegular = input.AporteMensalTotal;
+                var aporteExtra = extrasPorMes.ContainsKey(mes) ? extrasPorMes[mes] : 0m;
+
+                saldo += aporteRegular + aporteExtra;
+                totalInvestido += aporteRegular + aporteExtra;
+
+                var rendimentoBruto = saldo * taxaMes;
+                var dias = mes * 30;
+                var ir = AliquotaIR(dias);
+                var imposto = rendimentoBruto * ir;
+                var rendimentoLiquido = rendimentoBruto - imposto;
+                saldo += rendimentoLiquido;
+
+                var dataRef = new DateTime(dataInicio.Year, dataInicio.Month, 1).AddMonths(mes - 1);
+
+                rows.Add(new SimRowDto
+                {
+                    Mes = mes,
+                    Data = dataRef.ToString("yyyy-MM-dd"),
+                    AporteRegular = aporteRegular,
+                    AportesExtras = aporteExtra,
+                    RendimentoBruto = rendimentoBruto,
+                    Imposto = imposto,
+                    RendimentoLiquido = rendimentoLiquido,
+                    SaldoAcumulado = saldo,
+                    TotalInvestido = totalInvestido
+                });
+
+                if (!atingiuMeta && saldo >= meta)
+                {
+                    atingiuMeta = true;
+                    mesAtingiuMeta = mes;
+                    dataAtingiuMeta = dataRef.ToString("yyyy-MM-dd");
+                    break;
+                }
+            }
+
+            var result = new SimResultDto
+            {
+                Meta = meta,
+                CustosExtras = custosExtras,
+                ValorEntrada = valorEntrada,
+                Falta = faltava,
+                Rows = rows,
+                AtingiuMeta = atingiuMeta,
+                MesAtingiuMeta = mesAtingiuMeta,
+                DataAtingiuMeta = dataAtingiuMeta,
+                SaldoFinal = saldo,
+                TotalInvestido = totalInvestido,
+                LucroLiquido = saldo - totalInvestido
+            };
+
+            return result;
         }
     }
 }
