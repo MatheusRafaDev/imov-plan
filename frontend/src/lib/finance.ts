@@ -6,6 +6,7 @@ export type Aporte = {
   valor: number;
   origem: string;
   pessoaNome?: string;
+  checked?: boolean;
 };
 
 export type SimInput = {
@@ -77,6 +78,8 @@ export function taxaMensalEfetiva(taxaCdiAnual: number, percentualCdi: number) {
 }
 
 export function simular(input: SimInput): SimResult {
+  // existing implementation (break on meta)
+
   const meta = calcularMeta(input);
   const custosExtras = calcularCustosExtras(input.valorImovel, input.percentualCustosExtras);
   const valorEntrada = calcularEntrada(input.valorImovel, input.percentualEntrada);

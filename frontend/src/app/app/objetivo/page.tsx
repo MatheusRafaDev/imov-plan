@@ -10,6 +10,7 @@ import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl, calcularEntrada, calcularCustosExtras, calcularMeta, mesesEntre } from "@/lib/finance";
+import { DateInput } from "@/components/DateInput";
 import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 
 const todayISO = () => {
@@ -40,7 +41,7 @@ export default function ObjetivoPage() {
     valor_ja_guardado: "" as number | "",
     taxa_cdi_anual: "" as number | "",
     percentual_cdi: "" as number | "",
-    percentual_custos_extras: "" as number | "",
+    percentual_custos_extras: 0 as number,
   });
 
   useEffect(() => {
@@ -152,19 +153,16 @@ export default function ObjetivoPage() {
 
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Data de início</Label>
-                  <Input 
-                    type="date" 
+                  <DateInput 
                     value={form.data_inicio} 
-                    onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} 
+                    onChange={(v) => setForm({ ...form, data_inicio: v })} 
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Data limite (comprar até)</Label>
-                  <Input 
-                    type="date" 
+                  <DateInput 
                     value={form.data_fim} 
-                    min={form.data_inicio} 
-                    onChange={(e) => setForm({ ...form, data_fim: e.target.value })} 
+                    onChange={(v) => setForm({ ...form, data_fim: v })} 
                   />
                 </div>
               </div>

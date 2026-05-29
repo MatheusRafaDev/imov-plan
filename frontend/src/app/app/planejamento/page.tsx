@@ -11,7 +11,8 @@ import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl, calcularMeta, mesesParaMeta, aporteNecessarioParaPrazo, mesesEntre } from "@/lib/finance";
-import { ArrowRight, Plus, Trash2, Sparkles } from "lucide-react";
+import { DateInput } from "@/components/DateInput";
+import { ArrowRight, Plus, Trash2, Sparkles, X } from "lucide-react";
 
 const ORIGENS = ["FGTS", "Bônus / 13º", "Freelance", "Restituição IR", "Presente", "Outro"];
 
@@ -28,6 +29,8 @@ export default function PlanejamentoPage() {
     }
   };
   
+  const [isAportesExtrasModalOpen, setIsAportesExtrasModalOpen] = useState(false);
+  
   const [novoAporte, setNovoAporte] = useState({
     data: new Date().toISOString().slice(0, 10),
     valor: 0,
@@ -36,11 +39,13 @@ export default function PlanejamentoPage() {
   });
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
-  const meta = calcularMeta({
-    valorImovel: Number(objetivo?.valorImovel ?? 0),
-    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-  });
+  const totalGuardado = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
+  const pessoaGuardado = pessoas.map(p => ({
+    id: p.id,
+    nome: p.nome,
+    valor: p.valorInicial ?? 0,
+    percent: totalGuardado ? ((p.valorInicial ?? 0) / totalGuardado) * 100 : 0,
+  }));
 
   const baseSim = useMemo(() => ({
     valorImovel: Number(objetivo?.valorImovel ?? 0),
@@ -52,6 +57,11 @@ export default function PlanejamentoPage() {
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras,
   }), [objetivo, aportesExtras]);
+  const meta = calcularMeta({
+    valorImovel: Number(objetivo?.valorImovel ?? 0),
+    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
+    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
+  });
 
   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
   const mesesEstimados = mesesParaMeta({ ...baseSim, aporteMensalTotal: aporteTotal });
@@ -138,9 +148,24 @@ export default function PlanejamentoPage() {
         </Card>
       </div>
 
-      <Card className="p-6 shadow-soft">
-        <h2 className="font-display text-2xl mb-4">Aporte de cada pessoa</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
+      <Card className="p-6 shadow-soft mb-6">
+  <h2 className="font-display text-2xl mb-2">Valor já guardado</h2>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="flex justify-between items-center">
+      <span className="font-medium">Total</span>
+      <span>{brl(totalGuardado)}</span>
+    </div>
+    {pessoaGuardado.map(p => (
+      <div key={p.id} className="flex justify-between items-center">
+        <span className="font-medium">{p.nome}</span>
+        <span>{brl(p.valor)} ({p.percent.toFixed(1)}%)</span>
+      </div>
+    ))}
+  </div>
+</Card>
+        <Card className="p-6 shadow-soft">
+  <h2 className="font-display text-2xl mb-4">Aporte de cada pessoa</h2>
+  <div className="grid sm:grid-cols-2 gap-4">
           {pessoas.map((p) => (
             <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -155,50 +180,69 @@ export default function PlanejamentoPage() {
         </div>
       </Card>
 
-      <Card className="p-6 shadow-soft">
-        <h2 className="font-display text-2xl mb-1">Aportes extras</h2>
-        <p className="text-sm text-muted-foreground mb-4">FGTS, bônus, freelances, restituição — tudo que entra fora do mês.</p>
+        {isAportesExtrasModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-3xl bg-card text-card-foreground rounded-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto border border-border">
+              <Button variant="ghost" size="icon" className="absolute top-4 right-4" onClick={() => setIsAportesExtrasModalOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+              <h2 className="font-display text-2xl mb-1">Aportes extras</h2>
+              <p className="text-sm text-muted-foreground mb-4">FGTS, bônus, freelances, restituição — tudo que entra fora do mês.</p>
 
-        <div className="grid md:grid-cols-5 gap-3 items-end mb-4">
-          <div>
-            <Label className="text-xs">Data</Label>
-            <Input type="date" value={novoAporte.data} onChange={(e) => setNovoAporte({ ...novoAporte, data: e.target.value })} />
+              <div className="grid md:grid-cols-5 gap-3 items-end mb-4">
+                <div>
+                  <Label className="text-xs">Data</Label>
+                  <DateInput value={novoAporte.data} onChange={(v) => setNovoAporte({ ...novoAporte, data: v })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Valor</Label>
+                  <MoneyInput variant="money" value={novoAporte.valor}
+                    onChange={(v) => setNovoAporte({ ...novoAporte, valor: v })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Origem</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={novoAporte.origem}
+                    onChange={(e) => setNovoAporte({ ...novoAporte, origem: e.target.value })}
+                  >
+                    {ORIGENS.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Pessoa</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={novoAporte.pessoa_id}
+                    onChange={(e) => setNovoAporte({ ...novoAporte, pessoa_id: e.target.value })}
+                  >
+                    <option value="">Conjunto</option>
+                    {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                </div>
+                <Button onClick={adicionarAporte} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full md:w-auto">
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar
+                </Button>
+              </div>
+
+
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">Valor</Label>
-            <MoneyInput variant="money" value={novoAporte.valor}
-              onChange={(v) => setNovoAporte({ ...novoAporte, valor: v })} />
-          </div>
-          <div>
-            <Label className="text-xs">Origem</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={novoAporte.origem}
-              onChange={(e) => setNovoAporte({ ...novoAporte, origem: e.target.value })}
-            >
-              {ORIGENS.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-          <div>
-            <Label className="text-xs">Pessoa</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={novoAporte.pessoa_id}
-              onChange={(e) => setNovoAporte({ ...novoAporte, pessoa_id: e.target.value })}
-            >
-              <option value="">Conjunto</option>
-              {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-          </div>
-          <Button onClick={adicionarAporte} className="bg-gradient-warm text-accent-foreground hover:opacity-90">
-            <Plus className="h-4 w-4 mr-1" /> Adicionar
+        )}
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="font-display text-2xl">Aportes extras</h2>
+          <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="bg-background text-foreground border-border hover:bg-muted">
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar aportes extras
           </Button>
         </div>
-
+        
         {aportesExtras.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg">Nenhum aporte extra ainda.</p>
         ) : (
-          <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
+          <div className="divide-y divide-border border border-border rounded-lg overflow-hidden bg-card text-card-foreground shadow-sm">
             {aportesExtras.map((a, index) => (
               <div key={index} className="grid grid-cols-12 items-center gap-2 px-4 py-3 text-sm">
                 <span className="col-span-3 num">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
@@ -212,9 +256,9 @@ export default function PlanejamentoPage() {
             ))}
           </div>
         )}
-      </Card>
+      </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-4">
         <Button onClick={prosseguir} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
           Ver resultado <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

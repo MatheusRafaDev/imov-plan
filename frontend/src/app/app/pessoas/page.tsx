@@ -22,6 +22,14 @@ const calcularGastos = (p: Partial<Pessoa>) => {
 
 export default function PessoasPage() {
   const { pessoas, setPessoas, saveDraft, objetivo, cenario, planoId } = usePlanContext();
+  // Valor já guardado calculations
+  const totalGuardado = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
+  const pessoaGuardado = pessoas.map(p => ({
+    id: p.id,
+    nome: p.nome,
+    valor: p.valorInicial ?? 0,
+    percent: totalGuardado ? ((p.valorInicial ?? 0) / totalGuardado) * 100 : 0,
+  }));
   const { user } = useAuth();
   const router = useRouter();
 
@@ -46,9 +54,11 @@ export default function PessoasPage() {
         renda_mensal: 0,
         renda_complementar: 0,
         gastos_mensais: 0,
-        usar_gastos_detalhados: false,
+        usar_gustos_detalhados: false,
         gastos_detalhados: [],
-        aporte_mensal: 0
+        aporte_mensal: 0,
+        // Split the already saved amount (valorJaGuardado) equally; if only one person, give all
+        valorInicial: objetivo?.valorJaGuardado ? Number(objetivo.valorJaGuardado) / 2 : 0,
       };
       setPessoas([defaultPessoa]);
       saveDraft({ pessoas: [defaultPessoa] });
@@ -112,8 +122,14 @@ export default function PessoasPage() {
       ...form,
       gastos_mensais: form.usar_gastos_detalhados ? gastosTotais : form.gastos_mensais,
       aporte_mensal: Math.round(sobra * 0.5),
+      valorInicial: 0,
     };
-    setPessoas([...pessoas, novaPessoa]);
+    // Distribute the already saved amount (valorJaGuardado) equally among all participants
+    const totalSaved = objetivo?.valorJaGuardado ? Number(objetivo.valorJaGuardado) : 0;
+    const allPeople = [...pessoas, novaPessoa];
+    const perPerson = allPeople.length > 0 ? totalSaved / allPeople.length : 0;
+    const updatedPeople = allPeople.map(p => ({ ...p, valorInicial: perPerson }));
+    setPessoas(updatedPeople);
     setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
     setNovoGastoForm({ nome: "", valor: 0 });
     setShowAddForm(false);
@@ -174,6 +190,34 @@ export default function PessoasPage() {
         <p className="text-muted-foreground">Cadastre você e seu par. Peça mais informações e detalhe os gastos para maior precisão.</p>
       </div>
 
+      {/* Valor já guardado */}
+      <Card className="p-6 shadow-soft mb-6">
+        <h2 className="font-display text-2xl mb-2">Valor já guardado</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Total</span>
+            <MoneyInput variant="money" min={0} value={totalGuardado} onChange={(v) => {
+              // distribute proportionally based on current percentages
+              const newTotal = v;
+              const updatedPeople = pessoaGuardado.map(p => ({
+                ...p,
+                valor: totalGuardado ? (p.percent / 100) * newTotal : 0,
+              }));
+              setPessoas(pessoas.map(p => {
+                const upd = updatedPeople.find(up => up.id === p.id);
+                return upd ? { ...p, valorInicial: upd.valor } : p;
+              }));
+            }} className="font-display text-2xl num" />
+          </div>
+          {pessoaGuardado.map(p => (
+            <div key={p.id} className="flex justify-between items-center">
+              <span className="font-medium">{p.nome}</span>
+              <MoneyInput variant="money" min={0} value={p.valor} onChange={(v) => atualizarPessoa(p.id, { valorInicial: v })} className="font-display text-lg" />
+              <span>({p.percent.toFixed(1)}%)</span>
+            </div>
+          ))}
+        </div>
+      </Card>
       <div className="grid lg:grid-cols-2 gap-4">
         {pessoas.map((p) => (
           <PessoaCard key={p.id} p={p} remover={confirmarRemocao} atualizarPessoa={atualizarPessoa} />

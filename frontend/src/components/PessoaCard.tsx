@@ -38,7 +38,7 @@ export default function PessoaCard({ p, remover, atualizarPessoa }: { p: Pessoa;
 
   if (!isEditing) {
     return (
-      <Card className={`glass p-6 shadow-soft space-y-5 transition-transform hover:scale-105 hover:shadow-elevated`}>/* Header */
+      <Card className={`glass p-6 shadow-soft space-y-5 transition-transform hover:scale-105 hover:shadow-elevated`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 shrink-0 rounded-full bg-secondary grid place-items-center">
@@ -82,6 +82,10 @@ export default function PessoaCard({ p, remover, atualizarPessoa }: { p: Pessoa;
                 ))}
               </div>
             )}
+          </div>
+          <div className="col-span-2 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Valor já guardado</span>
+            <MoneyInput variant="money" min={0} value={p.valorInicial ?? 0} onChange={(v) => atualizarPessoa(p.id, { valorInicial: v })} className="font-display text-lg" />
           </div>
         </div>
         <div className={`rounded-lg p-3 flex items-center justify-between transition-colors ${sobra >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"} ${sobra > 0 ? "animate-pulse" : ""}`}>

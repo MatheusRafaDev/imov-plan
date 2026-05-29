@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import React from "react";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
 import { brl, simular } from "@/lib/finance";
 import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine } from "recharts";
-import { CalendarCheck, Coins, TrendingUp, Wallet, ArrowRight, Info } from "lucide-react";
+import { CalendarCheck, Coins, TrendingUp, Wallet, ArrowRight, Info, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ResultadoPage() {
@@ -15,27 +16,35 @@ export default function ResultadoPage() {
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
 
+  const totalGuardado = pessoas.reduce((s,p) => s + (p.valorInicial ?? 0), 0);
+  const pessoaPercentages = pessoas.map(p => ({
+    id: p.id,
+    nome: p.nome,
+    valor: p.valorInicial ?? 0,
+    percent: totalGuardado ? ((p.valorInicial ?? 0) / totalGuardado) * 100 : 0,
+  }));
+
   const sim = useMemo(() => simular({
     valorImovel: Number(objetivo?.valorImovel ?? 0),
     percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
     percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-    valorJaGuardado: Number(objetivo?.valorJaGuardado ?? 0),
+    valorJaGuardado: totalGuardado,
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
     percentualCdi: Number(objetivo?.percentualCdi ?? 100),
     aporteMensalTotal: aporteTotal,
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras: aportesExtras.map((a) => ({ data: a.data, valor: Number(a.valor), origem: a.origem })),
     prazoMaxMeses: 600,
-  }), [objetivo, aportesExtras, aporteTotal]);
+  }), [objetivo, aportesExtras, aporteTotal, totalGuardado]);
 
   const chartData = sim.rows.map((r) => ({
     mes: r.mes,
-    label: new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
+    label: new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
     investido: Math.round(r.totalInvestido),
     saldo: Math.round(r.saldoAcumulado),
   }));
 
-  const dataMeta = sim.dataAtingiuMeta ? new Date(sim.dataAtingiuMeta + "T12:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : null;
+  const dataMeta = sim.dataAtingiuMeta ? new Date(sim.dataAtingiuMeta).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : null;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -104,6 +113,18 @@ export default function ResultadoPage() {
 
       <Card className="p-0 shadow-soft overflow-hidden">
         <div className="p-6 pb-3">
+          <h2 className="font-display text-2xl mb-4">Resumo Financeiro</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 mb-6">
+            <KPI icon={<Coins className="h-4 w-4" />} label="Valor já guardado" value={brl(totalGuardado)} />
+            {pessoaPercentages.map(p => (
+              <KPI
+                key={p.id}
+                icon={<User className="h-4 w-4" />}
+                label={p.nome}
+                value={`${brl(p.valor)} (${p.percent.toFixed(1)}%)`}
+              />
+            ))}
+          </div>
           <h2 className="font-display text-2xl">Tabela mês a mês</h2>
           <p className="text-sm text-muted-foreground">Aporte regular, extras, rendimento, IR e saldo acumulado.</p>
         </div>
@@ -118,6 +139,13 @@ export default function ResultadoPage() {
                 <Th right>Rendimento</Th>
                 <Th right>IR</Th>
                 <Th right>Saldo</Th>
+                {/* Colunas por usuário: aporte mensal e saldo inicial */}
+                {pessoas.map(p => (
+                  <React.Fragment key={p.id}>
+                    <Th>{p.nome} Aporte</Th>
+                    <Th>{p.nome} Saldo Inicial</Th>
+                  </React.Fragment>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -125,15 +153,21 @@ export default function ResultadoPage() {
                 const atingiu = sim.mesAtingiuMeta === r.mes;
                 return (
                   <tr key={r.mes} className={`border-t border-border ${atingiu ? "bg-accent/10" : ""}`}>
-                    <Td>{r.mes}</Td>
-                    <Td>{new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}</Td>
-                    <Td right>{brl(r.aporteRegular)}</Td>
-                    <Td right>{r.aportesExtras > 0 ? <span className="text-accent font-medium">{brl(r.aportesExtras)}</span> : "—"}</Td>
-                    <Td right className="text-success">{brl(r.rendimentoBruto)}</Td>
-                    <Td right className="text-muted-foreground">{brl(r.imposto)}</Td>
-                    <Td right className="font-medium">{brl(r.saldoAcumulado)}</Td>
-                  </tr>
-                );
+                  <Td>{r.mes}</Td>
+                  <Td suppressHydrationWarning>{new Date(r.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</Td>
+                  <Td right>{brl(r.aporteRegular)}</Td>
+                  <Td right>{r.aportesExtras > 0 ? <span className="text-accent font-medium">{brl(r.aportesExtras)}</span> : "—"}</Td>
+                  <Td right className="text-success">{brl(r.rendimentoBruto)}</Td>
+                  <Td right className="text-muted-foreground">{brl(r.imposto)}</Td>
+                  <Td right className="font-medium">{brl(r.saldoAcumulado)}</Td>
+                  {/* Aporte mensal e saldo inicial por usuário */}
+                  {pessoas.map(p => (
+                    <React.Fragment key={p.id}>
+                      <Td right>{p.aporte_mensal ? brl(p.aporte_mensal) : "—"}</Td>
+                      <Td right>{p.valorInicial ? brl(p.valorInicial) : "—"}</Td>
+                    </React.Fragment>
+                  ))}
+                </tr>                );
               })}
             </tbody>
           </table>

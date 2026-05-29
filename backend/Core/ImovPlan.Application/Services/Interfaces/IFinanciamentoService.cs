@@ -1,3 +1,5 @@
+using ImovPlan.Application.DTOs;
+
 namespace ImovPlan.Application.Services.Interfaces
 {
     public interface IFinanciamentoService

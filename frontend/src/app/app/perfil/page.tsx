@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { UsuarioService, UpdateProfilePayload } from "@/services/UsuarioService";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/DateInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
@@ -116,7 +117,7 @@ export default function PerfilPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in-up">
-      {/* Header */}
+
       <div>
         <h1 className="font-display text-3xl md:text-4xl">Meu Perfil</h1>
         <p className="text-muted-foreground mt-1">
@@ -185,6 +186,7 @@ export default function PerfilPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Seu nome completo"
+              className="h-12 text-lg font-medium"
             />
           </div>
 
@@ -206,11 +208,10 @@ export default function PerfilPage() {
             <Label htmlFor="profile-nascimento" className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" /> Data de nascimento
             </Label>
-            <Input
+            <DateInput
               id="profile-nascimento"
-              type="date"
               value={dataNascimento}
-              onChange={(e) => setDataNascimento(e.target.value)}
+              onChange={(v) => setDataNascimento(v)}
             />
           </div>
         </div>

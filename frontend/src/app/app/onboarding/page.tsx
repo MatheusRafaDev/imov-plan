@@ -92,7 +92,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gradient-cream flex items-center justify-center p-4">
       <div className="max-w-2xl w-full animate-fade-in-up">
-        {/* Header */}
+   
         <div className="text-center mb-8">
           <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-warm items-center justify-center shadow-glow mb-4">
             <Award className="h-7 w-7 text-accent-foreground" />

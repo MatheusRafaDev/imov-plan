@@ -28,6 +28,7 @@ export type Pessoa = {
   gastos_detalhados?: GastoDetalhado[];
   usar_gastos_detalhados?: boolean;
   aporte_mensal: number;
+  valorInicial?: number;
 };
 
 type PlanContextType = {
