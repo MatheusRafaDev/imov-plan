@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
 import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check } from "lucide-react";
 
-const calcularGastos = (p: Partial<Pessoa>) => {
+const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados?: GastoDetalhado[]; gastos_mensais?: number | "" }) => {
   return p.usar_gastos_detalhados 
     ? (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor), 0)
     : Number(p.gastos_mensais || 0);
@@ -85,13 +85,13 @@ export default function PessoasPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState({ 
     nome: "", 
-    renda_mensal: 0, 
-    renda_complementar: 0, 
-    gastos_mensais: 0,
+    renda_mensal: 0 as number | "", 
+    renda_complementar: 0 as number | "", 
+    gastos_mensais: 0 as number | "",
     usar_gastos_detalhados: false,
     gastos_detalhados: [] as GastoDetalhado[]
   });
-  const [novoGastoForm, setNovoGastoForm] = useState({ nome: "", valor: 0 });
+  const [novoGastoForm, setNovoGastoForm] = useState({ nome: "", valor: 0 as number | "" });
   const [pessoaParaRemover, setPessoaParaRemover] = useState<string | null>(null);
 
   const sobraTotal = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0) - calcularGastos(p)), 0);
@@ -102,7 +102,7 @@ export default function PessoasPage() {
       ...form,
       gastos_detalhados: [
         ...form.gastos_detalhados,
-        { id: Math.random().toString(), nome: novoGastoForm.nome, valor: novoGastoForm.valor }
+        { id: Math.random().toString(), nome: novoGastoForm.nome, valor: Number(novoGastoForm.valor) || 0 }
       ]
     });
     setNovoGastoForm({ nome: "", valor: 0 });
@@ -123,7 +123,7 @@ export default function PessoasPage() {
   const adicionar = () => {
     if (!form.nome) return;
     const gastosTotais = calcularGastos(form);
-    const sobra = Math.max(0, form.renda_mensal + form.renda_complementar - gastosTotais);
+    const sobra = Math.max(0, (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais);
     
     const allPeople = [...pessoas];
     const perPerson = (allPeople.length + 1) > 0 ? totalObjetivo / (allPeople.length + 1) : 0;
@@ -132,8 +132,12 @@ export default function PessoasPage() {
     
     const novaPessoa: Pessoa = {
       id: Math.random().toString(),
-      ...form,
-      gastos_mensais: form.usar_gastos_detalhados ? gastosTotais : form.gastos_mensais,
+      nome: form.nome,
+      renda_mensal: Number(form.renda_mensal) || 0,
+      renda_complementar: Number(form.renda_complementar) || 0,
+      gastos_mensais: form.usar_gastos_detalhados ? gastosTotais : (Number(form.gastos_mensais) || 0),
+      usar_gastos_detalhados: form.usar_gastos_detalhados,
+      gastos_detalhados: form.gastos_detalhados,
       aporte_mensal: Math.round(sobra * 0.5),
       valorInicial: perPerson,
     };
@@ -183,18 +187,19 @@ export default function PessoasPage() {
     });
   };
 
-  const handleUpdateTotal = (novoTotal: number) => {
-    setObjetivo(prev => prev ? { ...prev, valorJaGuardado: novoTotal } : null);
+  const handleUpdateTotal = (novoTotal: number | "") => {
+    const val = novoTotal === "" ? 0 : novoTotal;
+    setObjetivo(prev => prev ? { ...prev, valorJaGuardado: val } : null);
     
     const currentTotal = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0) || 1;
     setPessoas(pessoas.map(p => {
        const perc = (p.valorInicial ?? 0) / currentTotal;
-       return { ...p, valorInicial: novoTotal * perc };
+       return { ...p, valorInicial: val * perc };
     }));
   };
 
   const gastosTotaisForm = calcularGastos(form);
-  const sobraForm = (form.renda_mensal + form.renda_complementar) - gastosTotaisForm;
+  const sobraForm = ((Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0)) - gastosTotaisForm;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">
@@ -365,7 +370,7 @@ export default function PessoasPage() {
                             variant="money" 
                             min={0} 
                             value={g.valor} 
-                            onChange={(v) => atualizarGastoForm(g.id, { valor: v })} 
+                            onChange={(v) => atualizarGastoForm(g.id, { valor: Number(v) || 0 })} 
                             className="h-8 text-xs"
                           />
                         </div>

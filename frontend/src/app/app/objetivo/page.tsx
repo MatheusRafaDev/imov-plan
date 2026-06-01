@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl, calcularEntrada, calcularCustosExtras, calcularMeta, mesesEntre } from "@/lib/finance";
 import { DateInput } from "@/components/DateInput";
+import { MonthYearInput } from "@/components/MonthYearInput";
 import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 
 const todayISO = () => {
@@ -41,7 +42,7 @@ export default function ObjetivoPage() {
     valor_ja_guardado: "" as number | "",
     taxa_cdi_anual: "" as number | "",
     percentual_cdi: "" as number | "",
-    percentual_custos_extras: 0 as number,
+    percentual_custos_extras: 0 as number | "",
   });
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export default function ObjetivoPage() {
       valorJaGuardado: Number(form.valor_ja_guardado) || 0,
       taxaCdiAnual: Number(form.taxa_cdi_anual),
       percentualCdi: Number(form.percentual_cdi),
-      dataInicio: form.data_inicio ? new Date(form.data_inicio).toISOString() : undefined,
+      dataInicio: form.data_inicio ? new Date(form.data_inicio) : undefined,
       prazoMaxMeses: prazoMeses,
     };
     setObjetivo(novoObjetivo);
@@ -153,7 +154,7 @@ export default function ObjetivoPage() {
 
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Data de início</Label>
-                  <DateInput 
+                  <MonthYearInput 
                     value={form.data_inicio} 
                     onChange={(v) => setForm({ ...form, data_inicio: v })} 
                   />
@@ -184,7 +185,7 @@ export default function ObjetivoPage() {
                 <div className="grid sm:grid-cols-2 gap-6 mt-6 animate-fade-in-up p-5 rounded-xl bg-secondary/30 border border-border/50">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Já guardado</Label>
-                    <MoneyInput variant="money" min={0} max={form.valor_imovel} value={form.valor_ja_guardado} onChange={(v) => setForm({ ...form, valor_ja_guardado: v })} />
+                    <MoneyInput variant="money" min={0} max={form.valor_imovel === "" ? undefined : form.valor_imovel} value={form.valor_ja_guardado} onChange={(v) => setForm({ ...form, valor_ja_guardado: v })} />
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
@@ -262,11 +263,11 @@ export default function ObjetivoPage() {
             <p className="font-display text-4xl mt-3 text-foreground">{brl(falta)}</p>
             
             <div className="mt-8 space-y-5">
-              <Stat icon={<Building2 className="h-4 w-4" />} label="Valor do Imóvel" value={brl(form.valor_imovel)} />
+              <Stat icon={<Building2 className="h-4 w-4" />} label="Valor do Imóvel" value={brl(Number(form.valor_imovel) || 0)} />
               <div className="h-px w-full bg-border/40" />
               <Stat icon={<Calendar className="h-4 w-4" />} label="Tempo de Preparo" value={`${prazoMeses} meses`} />
               <div className="h-px w-full bg-border/40" />
-              <Stat icon={<Wallet className="h-4 w-4" />} label="Valor Guardado" value={brl(form.valor_ja_guardado)} />
+              <Stat icon={<Wallet className="h-4 w-4" />} label="Valor Guardado" value={brl(Number(form.valor_ja_guardado) || 0)} />
             </div>
           </Card>
         </div>

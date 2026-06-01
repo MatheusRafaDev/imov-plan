@@ -14,7 +14,7 @@ import { brl, calcularMeta, mesesParaMeta, aporteNecessarioParaPrazo, mesesEntre
 import { DateInput } from "@/components/DateInput";
 import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle } from "lucide-react";
 
-const ORIGENS = ["FGTS", "Bônus / 13º", "Freelance", "Restituição IR", "Presente", "Outro"];
+const ORIGENS = ["FGTS", "Bônus / 13º", "Férias", "Freelance", "Restituição IR", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
   const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft } = usePlanContext();
@@ -88,8 +88,9 @@ export default function PlanejamentoPage() {
   const totalSobras = pessoas.reduce((acc, p) => acc + Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)), 0);
   const progressoPercent = Math.min(100, (totalGuardado / meta) * 100);
 
-  const atualizarPessoa = (pId: string, valor: number) => {
-    setPessoas(pessoas.map((p) => p.id === pId ? { ...p, aporte_mensal: valor } : p));
+  const atualizarPessoa = (pId: string, valor: number | "") => {
+    const val = valor === "" ? 0 : valor;
+    setPessoas(pessoas.map((p) => p.id === pId ? { ...p, aporte_mensal: val } : p));
   };
 
   const distribuirSugerido = () => {

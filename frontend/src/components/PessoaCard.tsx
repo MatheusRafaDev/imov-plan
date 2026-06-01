@@ -53,17 +53,19 @@ export default function PessoaCard({
   };
 
   if (!isEditing) {
+    const rendaTotal = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
     return (
-      <Card className="glass p-6 shadow-soft space-y-6 transition-all hover:shadow-elevated border-border/60 relative overflow-hidden group">
+      <Card className="glass p-6 shadow-soft space-y-4 transition-all hover:shadow-elevated border-border/60 relative overflow-hidden group">
         <div className="absolute -right-12 -top-12 h-32 w-32 bg-accent/5 rounded-full blur-2xl group-hover:bg-accent/10 transition-colors duration-700" />
 
+        {/* Header */}
         <div className="flex items-start justify-between relative z-10">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 shrink-0 rounded-full bg-secondary grid place-items-center border border-border/50 shadow-sm">
+            <div className="h-11 w-11 shrink-0 rounded-full bg-secondary grid place-items-center border border-border/50 shadow-sm">
               <span className="font-display font-bold text-lg text-foreground/80">{p.nome.charAt(0).toUpperCase()}</span>
             </div>
             <div>
-              <h3 className="font-display text-xl font-semibold text-foreground leading-tight">{p.nome}</h3>
+              <h3 className="font-display text-lg font-semibold text-foreground leading-tight">{p.nome}</h3>
               <p className="text-[10px] uppercase tracking-widest text-accent font-medium mt-0.5">{role}</p>
             </div>
           </div>
@@ -79,24 +81,79 @@ export default function PessoaCard({
           </div>
         </div>
 
+        <div className="relative z-10 space-y-3">
+          {/* Renda */}
+          <div className="bg-secondary/30 rounded-xl p-3 border border-border/40">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex items-center gap-1.5 mb-2">
+              <Briefcase className="h-3 w-3" /> Renda
+            </p>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Principal</span>
+                <span className="num font-medium">{brl(Number(p.renda_mensal))}</span>
+              </div>
+              {Number(p.renda_complementar) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Extra</span>
+                  <span className="num font-medium">{brl(Number(p.renda_complementar))}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-semibold pt-1.5 border-t border-border/40 mt-1">
+                <span>Total</span>
+                <span className="num">{brl(rendaTotal)}</span>
+              </div>
+            </div>
+          </div>
 
-        {/* Seção Destacada: Valor Já Guardado */}
-        <div className="relative z-10 bg-secondary/50 rounded-xl p-4 border border-border/50">
-          <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm font-medium text-foreground">Sua parte do valor guardado</Label>
-            <span className="text-xs font-display text-accent font-semibold bg-accent/10 px-2 py-0.5 rounded-full">
-              {percent.toFixed(1)}%
+          {/* Gastos */}
+          <div className="bg-destructive/5 rounded-xl p-3 border border-destructive/10">
+            <p className="text-[10px] uppercase tracking-widest text-destructive/70 font-medium flex items-center gap-1.5 mb-2">
+              <TrendingDown className="h-3 w-3" /> Gastos
+            </p>
+            <div className="space-y-1.5">
+              {p.usar_gastos_detalhados && (p.gastos_detalhados || []).length > 0 ? (
+                <>
+                  {(p.gastos_detalhados || []).map(g => (
+                    <div key={g.id} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground truncate mr-2">{g.nome}</span>
+                      <span className="num text-destructive/80 shrink-0">{brl(g.valor)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-sm font-semibold pt-1.5 border-t border-destructive/10 mt-1">
+                    <span>Total</span>
+                    <span className="num text-destructive">{brl(gastosTotais)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between text-sm font-semibold">
+                  <span>Total</span>
+                  <span className="num text-destructive">{brl(gastosTotais)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sobra */}
+          <div className={`rounded-xl p-3 border flex items-center justify-between ${sobra >= 0 ? "bg-[#3B6D11]/5 border-[#3B6D11]/15" : "bg-destructive/5 border-destructive/15"}`}>
+            <span className="text-sm font-medium flex items-center gap-1.5 text-muted-foreground">
+              <Wallet className="h-3.5 w-3.5" /> Sobra mensal
+            </span>
+            <span className={`font-display text-xl num font-semibold ${sobra >= 0 ? "text-[#3B6D11] dark:text-[#80B551]" : "text-destructive"}`}>
+              {brl(sobra)}
             </span>
           </div>
 
-          <div className="space-y-3">
-            <div className="w-full bg-secondary/80 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-accent h-full rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${percent}%` }}
-              />
+          {/* Valor guardado */}
+          <div className="bg-secondary/50 rounded-xl p-3 border border-border/50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-foreground">Valor guardado</span>
+              <span className="text-xs font-display text-accent font-semibold bg-accent/10 px-2 py-0.5 rounded-full">
+                {percent.toFixed(1)}%
+              </span>
             </div>
-
+            <div className="w-full bg-secondary/80 rounded-full h-1.5 overflow-hidden mb-2">
+              <div className="bg-accent h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${percent}%` }} />
+            </div>
             <span className="font-display text-2xl num font-semibold">{brl(valorInicial)}</span>
           </div>
         </div>
