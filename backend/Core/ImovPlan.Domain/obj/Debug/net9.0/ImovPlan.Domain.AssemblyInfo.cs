@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ImovPlan.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+38e18e9177f2b7585465931eaff946813e3a0833")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3e95ab7beecbdf247aa154e6282d42c38bf2a46e")]
 [assembly: System.Reflection.AssemblyProductAttribute("ImovPlan.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ImovPlan.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -174,7 +174,7 @@ namespace ImovPlan.Application.Services
                         Valor = g.Valor
                     }).ToList() ?? new List<GastoDetalhadoDraftDto>(),
                     Aporte_mensal = p.AporteMensal,
-                    ValorInicial = p.ValorInicial,
+                    ValorInicial = p.ValorInicial ?? 0,
                 }).ToList(),
                 BancoEscolhido = !string.IsNullOrEmpty(objetivo.BancoEscolhidoId)
                     ? new BancoDraftDto

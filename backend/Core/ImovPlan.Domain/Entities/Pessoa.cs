@@ -46,7 +46,7 @@ namespace ImovPlan.Domain.Entities
 
         [BsonElement("valorInicial")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal ValorInicial { get; set; }
+        public decimal? ValorInicial { get; set; }
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
