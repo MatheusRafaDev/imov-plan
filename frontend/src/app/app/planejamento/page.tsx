@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl, calcularMeta, mesesParaMeta, aporteNecessarioParaPrazo, mesesEntre } from "@/lib/finance";
 import { DateInput } from "@/components/DateInput";
-import { ArrowRight, Plus, Trash2, Sparkles, X } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle } from "lucide-react";
 
 const ORIGENS = ["FGTS", "Bônus / 13º", "Freelance", "Restituição IR", "Presente", "Outro"];
 
@@ -39,7 +39,8 @@ export default function PlanejamentoPage() {
   });
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
-  const totalGuardado = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
+  const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
+  const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
   const pessoaGuardado = pessoas.map(p => ({
     id: p.id,
     nome: p.nome,
@@ -51,12 +52,13 @@ export default function PlanejamentoPage() {
     valorImovel: Number(objetivo?.valorImovel ?? 0),
     percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
     percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-    valorJaGuardado: Number(objetivo?.valorJaGuardado ?? 0),
+    valorJaGuardado: totalGuardado,
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
     percentualCdi: Number(objetivo?.percentualCdi ?? 100),
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras,
-  }), [objetivo, aportesExtras]);
+  }), [objetivo, aportesExtras, totalGuardado]);
+  
   const meta = calcularMeta({
     valorImovel: Number(objetivo?.valorImovel ?? 0),
     percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
@@ -68,15 +70,29 @@ export default function PlanejamentoPage() {
   
   const rendaTotal = pessoas.reduce((acc, p) => acc + Number(p.renda_mensal) + Number(p.renda_complementar || 0), 0);
   const aporteSugerido = rendaTotal * 0.4; // 40% da renda total
+
+  // Cálculo de sobras e limites individuais
+  const sobras = pessoas.map((p) => Math.max(1, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)));
+  const tSobras = sobras.reduce((a, b) => a + b, 0);
+
+  const pessoasComMinimo = pessoas.map((p, i) => {
+    const sobra = Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais));
+    const sobraProporcional = sobras[i];
+    const minimoSugerido = Math.round((sobraProporcional / tSobras) * aporteSugerido);
+    const aporteAtual = Number(p.aporte_mensal || 0);
+    const falta = Math.max(0, minimoSugerido - aporteAtual);
+    const isAbaixo = aporteAtual < minimoSugerido;
+    return { ...p, sobra, minimoSugerido, falta, isAbaixo, aporteAtual };
+  });
+
   const totalSobras = pessoas.reduce((acc, p) => acc + Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)), 0);
+  const progressoPercent = Math.min(100, (totalGuardado / meta) * 100);
 
   const atualizarPessoa = (pId: string, valor: number) => {
     setPessoas(pessoas.map((p) => p.id === pId ? { ...p, aporte_mensal: valor } : p));
   };
 
   const distribuirSugerido = () => {
-    const sobras = pessoas.map((p) => Math.max(1, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)));
-    const tSobras = sobras.reduce((a, b) => a + b, 0);
     setPessoas(pessoas.map((p, i) => ({
       ...p,
       aporte_mensal: Math.round((sobras[i] / tSobras) * aporteSugerido),
@@ -108,159 +124,250 @@ export default function PlanejamentoPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-10">
       <div>
-        <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 3 de 4</p>
-        <h1 className="font-display text-4xl md:text-5xl mb-2">Monte o plano mensal</h1>
-        <p className="text-muted-foreground">Defina quanto cada um aporta e adicione entradas extras.</p>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">Etapa 3 de 4</p>
+        <h1 className="font-display text-4xl md:text-5xl mb-3 font-light">Monte o plano mensal</h1>
+        <p className="text-muted-foreground text-lg">Defina quanto cada um aporta e adicione entradas extras.</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="p-5 shadow-soft">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Aporte mensal total</p>
-          <p className="font-display text-3xl num mt-1">{brl(aporteTotal)}</p>
+      {/* Top Cards */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <Card className="p-6 border-border/50 bg-primary/5 flex flex-col justify-center items-center text-center">
+          <p className="text-sm font-medium text-muted-foreground mb-2">Tempo para a meta</p>
+          <p className="font-display text-6xl text-primary num">{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
+          <p className="text-sm text-muted-foreground mt-2">{mesesEstimados ? "meses" : "Indefinido"}</p>
         </Card>
-        <Card className="p-5 shadow-soft">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Atinge a meta em</p>
-          <p className="font-display text-3xl num mt-1">{mesesEstimados ? `${mesesEstimados} meses` : "—"}</p>
-          <p className="text-xs text-muted-foreground mt-1">Meta: {brl(meta)}</p>
-        </Card>
-        <Card className="p-4 shadow-soft bg-secondary/40 flex flex-col justify-center gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground" title="40% da renda total informada">Segura (40%)</p>
-              <p className="font-display text-2xl num mt-0.5">{brl(aporteSugerido)}</p>
+
+        <Card className="p-6 border-border/50 flex flex-col justify-center">
+          <p className="text-sm font-medium text-muted-foreground mb-4">Progresso da meta</p>
+          <div className="space-y-3">
+            <div className="flex justify-between items-end">
+              <span className="font-display text-3xl num leading-none">{brl(totalGuardado)}</span>
+              <span className="text-sm text-muted-foreground mb-1">de {brl(meta)}</span>
             </div>
-            <Button size="sm" variant="secondary" onClick={distribuirSugerido} className="h-8 text-xs px-3">
-              Aplicar
-            </Button>
-          </div>
-          <div className="h-px w-full bg-border/60" />
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground" title="Todo o valor que sobra no fim do mês">Agressiva (100% sobra)</p>
-              <p className="font-display text-2xl num mt-0.5">{brl(totalSobras)}</p>
+            <div className="h-3 w-full bg-secondary rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                style={{ width: `${progressoPercent}%` }}
+              />
             </div>
-            <Button size="sm" variant="secondary" onClick={distribuirTudo} className="h-8 text-xs px-3">
-              Aplicar
-            </Button>
+            <p className="text-xs text-muted-foreground text-right">{progressoPercent.toFixed(1)}% alcançado</p>
           </div>
         </Card>
-      </div>
 
-      <Card className="p-6 shadow-soft mb-6">
-  <h2 className="font-display text-2xl mb-2">Valor já guardado</h2>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div className="flex justify-between items-center">
-      <span className="font-medium">Total</span>
-      <span>{brl(totalGuardado)}</span>
-    </div>
-    {pessoaGuardado.map(p => (
-      <div key={p.id} className="flex justify-between items-center">
-        <span className="font-medium">{p.nome}</span>
-        <span>{brl(p.valor)} ({p.percent.toFixed(1)}%)</span>
-      </div>
-    ))}
-  </div>
-</Card>
-        <Card className="p-6 shadow-soft">
-  <h2 className="font-display text-2xl mb-4">Aporte de cada pessoa</h2>
-  <div className="grid sm:grid-cols-2 gap-4">
-          {pessoas.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{p.nome}</span>
-                <span className="text-xs text-muted-foreground">sobra {brl(Number(p.renda_mensal) - Number(p.gastos_mensais))}</span>
-              </div>
-              <MoneyInput variant="money" value={Number(p.aporte_mensal)}
-                onChange={(v) => atualizarPessoa(p.id, v)}
-                className="font-display text-2xl num h-12" />
-            </div>
-          ))}
-        </div>
-      </Card>
-
-        {isAportesExtrasModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-3xl bg-card text-card-foreground rounded-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto border border-border">
-              <Button variant="ghost" size="icon" className="absolute top-4 right-4" onClick={() => setIsAportesExtrasModalOpen(false)}>
-                <X className="h-5 w-5" />
+        <Card className="p-6 border-border/50 flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Aporte mensal total</p>
+            <p className="font-display text-4xl num mt-2 leading-none">{brl(aporteTotal)}</p>
+          </div>
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Sugestão segura</span>
+              <Button size="sm" variant="outline" onClick={distribuirSugerido} className="h-8 text-xs px-3 bg-background">
+                Aplicar {brl(aporteSugerido)}
               </Button>
-              <h2 className="font-display text-2xl mb-1">Aportes extras</h2>
-              <p className="text-sm text-muted-foreground mb-4">FGTS, bônus, freelances, restituição — tudo que entra fora do mês.</p>
-
-              <div className="grid md:grid-cols-5 gap-3 items-end mb-4">
-                <div>
-                  <Label className="text-xs">Data</Label>
-                  <DateInput value={novoAporte.data} onChange={(v) => setNovoAporte({ ...novoAporte, data: v })} />
-                </div>
-                <div>
-                  <Label className="text-xs">Valor</Label>
-                  <MoneyInput variant="money" value={novoAporte.valor}
-                    onChange={(v) => setNovoAporte({ ...novoAporte, valor: v })} />
-                </div>
-                <div>
-                  <Label className="text-xs">Origem</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    value={novoAporte.origem}
-                    onChange={(e) => setNovoAporte({ ...novoAporte, origem: e.target.value })}
-                  >
-                    {ORIGENS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label className="text-xs">Pessoa</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    value={novoAporte.pessoa_id}
-                    onChange={(e) => setNovoAporte({ ...novoAporte, pessoa_id: e.target.value })}
-                  >
-                    <option value="">Conjunto</option>
-                    {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                  </select>
-                </div>
-                <Button onClick={adicionarAporte} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full md:w-auto">
-                  <Plus className="h-4 w-4 mr-1" /> Adicionar
-                </Button>
-              </div>
-
-
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Sugestão agressiva</span>
+              <Button size="sm" variant="outline" onClick={distribuirTudo} className="h-8 text-xs px-3 bg-background">
+                Aplicar {brl(totalSobras)}
+              </Button>
             </div>
           </div>
-        )}
+        </Card>
+      </div>
 
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="font-display text-2xl">Aportes extras</h2>
-          <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="bg-background text-foreground border-border hover:bg-muted">
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar aportes extras
-          </Button>
-        </div>
-        
-        {aportesExtras.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg">Nenhum aporte extra ainda.</p>
-        ) : (
-          <div className="divide-y divide-border border border-border rounded-lg overflow-hidden bg-card text-card-foreground shadow-sm">
-            {aportesExtras.map((a, index) => (
-              <div key={index} className="grid grid-cols-12 items-center gap-2 px-4 py-3 text-sm">
-                <span className="col-span-3 num">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
-                <span className="col-span-3">{a.origem}</span>
-                <span className="col-span-3 text-muted-foreground">{a.pessoaNome ?? "Conjunto"}</span>
-                <span className="col-span-2 num font-medium">{brl(Number(a.valor))}</span>
-                <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="col-span-1 justify-self-end">
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                </Button>
+      {/* Valor Já Guardado */}
+      <Card className="p-6 border-border/50">
+        <h2 className="font-display text-2xl mb-6 font-light">Valor já guardado</h2>
+        <div className="flex flex-col md:flex-row gap-8 items-center">
+          <div className="flex-1 w-full space-y-2 md:border-r md:border-border/50 md:pr-6">
+            <p className="text-sm text-muted-foreground">Total em caixa</p>
+            <p className="font-display text-4xl num">{brl(totalGuardado)}</p>
+          </div>
+          <div className="flex-[2] w-full space-y-5">
+            {pessoaGuardado.map(p => (
+              <div key={p.id} className="space-y-2">
+                <div className="flex justify-between text-sm items-end">
+                  <span className="font-medium text-base">{p.nome}</span>
+                  <span className="num">{brl(p.valor)} <span className="text-muted-foreground ml-1">({p.percent.toFixed(1)}%)</span></span>
+                </div>
+                <div className="h-2.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${p.percent}%` }} />
+                </div>
               </div>
             ))}
           </div>
-        )}
+        </div>
+      </Card>
+
+      {/* Aporte de cada pessoa */}
+      <div className="space-y-4">
+        <h2 className="font-display text-2xl font-light">Aporte de cada pessoa</h2>
+        <div className="grid sm:grid-cols-2 gap-6">
+          {pessoasComMinimo.map((p) => (
+            <Card key={p.id} className={`p-6 border transition-colors ${p.isAbaixo ? 'border-destructive/40 bg-destructive/5' : 'border-border/50'}`}>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <span className="font-medium text-lg">{p.nome}</span>
+                  <p className="text-xs text-muted-foreground mt-1">Sobra disponível: {brl(p.sobra)}</p>
+                </div>
+                {p.isAbaixo && (
+                  <div className="flex items-center text-xs text-destructive bg-destructive/10 px-2.5 py-1 rounded-md font-medium">
+                    <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                    Abaixo do ideal
+                  </div>
+                )}
+              </div>
+              
+              <div className="mb-3">
+                <MoneyInput variant="money" value={p.aporteAtual}
+                  onChange={(v) => atualizarPessoa(p.id, v)}
+                  className="font-display text-3xl num h-14 bg-background border-border/60" />
+              </div>
+
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Sugerido: <span className="num">{brl(p.minimoSugerido)}</span></span>
+                {p.isAbaixo && (
+                  <span className="text-destructive font-medium">Faltam {brl(p.falta)}</span>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
 
-      <div className="flex justify-end pt-4">
-        <Button onClick={prosseguir} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
-          Ver resultado <ArrowRight className="ml-2 h-4 w-4" />
+      {/* Modal Aportes Extras */}
+      {isAportesExtrasModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl bg-card text-card-foreground rounded-2xl shadow-xl p-8 relative max-h-[90vh] overflow-y-auto border border-border/50">
+            <Button variant="ghost" size="icon" className="absolute top-4 right-4 rounded-full" onClick={() => setIsAportesExtrasModalOpen(false)}>
+              <X className="h-5 w-5" />
+            </Button>
+            
+            <h2 className="font-display text-3xl mb-2 font-light">Novo aporte extra</h2>
+            <p className="text-muted-foreground mb-8 text-sm">Registre entradas como FGTS, bônus, freelances e restituições.</p>
+
+            <div className="space-y-8">
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Valor do aporte</Label>
+                  <MoneyInput variant="money" value={novoAporte.valor} onChange={(v) => setNovoAporte({ ...novoAporte, valor: v })} className="text-2xl h-14" />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Data do aporte</Label>
+                  <DateInput value={novoAporte.data} onChange={(v) => setNovoAporte({ ...novoAporte, data: v })} />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Origem do dinheiro</Label>
+                <div className="flex flex-wrap gap-2">
+                  {ORIGENS.map((o) => (
+                    <button
+                      key={o}
+                      type="button"
+                      onClick={() => setNovoAporte({ ...novoAporte, origem: o })}
+                      className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all border ${novoAporte.origem === o ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:bg-secondary/20'}`}
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Quem contribuiu?</Label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: "" })}
+                    className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all border ${novoAporte.pessoa_id === "" ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:bg-secondary/20'}`}
+                  >
+                    Conjunto
+                  </button>
+                  {pessoas.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: p.id })}
+                      className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all border ${novoAporte.pessoa_id === p.id ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:bg-secondary/20'}`}
+                    >
+                      {p.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-border/50 flex justify-end gap-3 mt-4">
+                <Button variant="ghost" onClick={() => setIsAportesExtrasModalOpen(false)}>Cancelar</Button>
+                <Button onClick={() => { adicionarAporte(); setIsAportesExtrasModalOpen(false); }} className="bg-primary text-primary-foreground px-6" disabled={novoAporte.valor <= 0}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Aporte
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de Aportes Extras */}
+      <div className="space-y-4 pt-4">
+        <div className="flex justify-between items-end mb-4">
+          <div>
+            <h2 className="font-display text-2xl font-light">Aportes extras programados</h2>
+            <p className="text-sm text-muted-foreground mt-1">Valores adicionais que ajudam a acelerar a meta.</p>
+          </div>
+          <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="bg-background">
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar
+          </Button>
+        </div>
+        
+        <div className="border border-border/50 rounded-xl bg-card overflow-hidden shadow-sm">
+          {/* Header Row */}
+          <div className="grid grid-cols-12 gap-4 p-4 border-b border-border/50 bg-secondary/30 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="col-span-3 md:col-span-2">Data</div>
+            <div className="col-span-4 md:col-span-4">Origem</div>
+            <div className="col-span-3 md:col-span-3">Pessoa</div>
+            <div className="col-span-2 md:col-span-2 text-right">Valor</div>
+            <div className="hidden md:block col-span-1"></div>
+          </div>
+          
+          {/* Body */}
+          {aportesExtras.length === 0 ? (
+            <div className="p-10 text-center text-muted-foreground">
+              <p className="text-sm">Nenhum aporte extra adicionado.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/40">
+              {aportesExtras.map((a, index) => (
+                <div key={index} className="grid grid-cols-12 gap-4 p-4 items-center text-sm transition-colors hover:bg-secondary/10">
+                  <div className="col-span-3 md:col-span-2 num">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</div>
+                  <div className="col-span-4 md:col-span-4 font-medium flex items-center gap-2.5">
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] hidden sm:flex">
+                      {a.origem.substring(0, 2).toUpperCase()}
+                    </div>
+                    {a.origem}
+                  </div>
+                  <div className="col-span-3 md:col-span-3 text-muted-foreground truncate">{a.pessoaNome ?? "Conjunto"}</div>
+                  <div className="col-span-2 md:col-span-2 text-right num font-medium">{brl(Number(a.valor))}</div>
+                  <div className="col-span-12 md:col-span-1 flex justify-end mt-2 md:mt-0">
+                    <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Botão Prosseguir */}
+      <div className="flex justify-end pt-8">
+        <Button onClick={prosseguir} size="lg" className="bg-primary text-primary-foreground px-8 h-12 text-base">
+          Ver resultado <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </div>

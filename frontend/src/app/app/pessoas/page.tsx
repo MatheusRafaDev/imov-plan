@@ -12,7 +12,7 @@ import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
-import { Plus, Trash2, ArrowRight, User, Calculator, ListTodo, Briefcase, Pencil, X, Check } from "lucide-react";
+import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check } from "lucide-react";
 
 const calcularGastos = (p: Partial<Pessoa>) => {
   return p.usar_gastos_detalhados 
@@ -21,20 +21,18 @@ const calcularGastos = (p: Partial<Pessoa>) => {
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas, saveDraft, objetivo, cenario, planoId } = usePlanContext();
-  // Valor já guardado calculations
-  const totalGuardado = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
-  const pessoaGuardado = pessoas.map(p => ({
-    id: p.id,
-    nome: p.nome,
-    valor: p.valorInicial ?? 0,
-    percent: totalGuardado ? ((p.valorInicial ?? 0) / totalGuardado) * 100 : 0,
-  }));
+  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId } = usePlanContext();
+  
+  const [isEditingTotal, setIsEditingTotal] = useState(false);
+  const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
+  const sumValores = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
+  const diffTotal = totalObjetivo - sumValores;
+  
   const { user } = useAuth();
   const router = useRouter();
 
+  // Redirect if missing step 1
   useEffect(() => {
-    // Só pode ir para a parte de perfil (pessoas) se preencher o que foi colocado no imóvel (objetivo)
     if (planoId && (!objetivo || !objetivo.valorImovel || objetivo.valorImovel === 0)) {
       toast.warning("Por favor, preencha as informações do imóvel primeiro.");
       const paths: Record<string, string> = {
@@ -46,6 +44,17 @@ export default function PessoasPage() {
     }
   }, [planoId, objetivo, cenario, router]);
 
+  // Pre-load distribution (50/50) if values are 0 (e.g., old drafts)
+  useEffect(() => {
+    if (pessoas.length > 0 && totalObjetivo > 0) {
+      const sum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
+      if (sum === 0) {
+        const perPerson = totalObjetivo / pessoas.length;
+        setPessoas(prev => prev.map(p => ({ ...p, valorInicial: perPerson })));
+      }
+    }
+  }, [pessoas.length, totalObjetivo, setPessoas]);
+
   useEffect(() => {
     if (pessoas.length === 0 && user) {
       const defaultPessoa: Pessoa = {
@@ -54,11 +63,10 @@ export default function PessoasPage() {
         renda_mensal: 0,
         renda_complementar: 0,
         gastos_mensais: 0,
-        usar_gustos_detalhados: false,
+        usar_gastos_detalhados: false,
         gastos_detalhados: [],
         aporte_mensal: 0,
-        // Split the already saved amount (valorJaGuardado) equally; if only one person, give all
-        valorInicial: objetivo?.valorJaGuardado ? Number(objetivo.valorJaGuardado) / 2 : 0,
+        valorInicial: totalObjetivo,
       };
       setPessoas([defaultPessoa]);
       saveDraft({ pessoas: [defaultPessoa] });
@@ -84,7 +92,6 @@ export default function PessoasPage() {
     gastos_detalhados: [] as GastoDetalhado[]
   });
   const [novoGastoForm, setNovoGastoForm] = useState({ nome: "", valor: 0 });
-  const [isEditing, setIsEditing] = useState(false);
   const [pessoaParaRemover, setPessoaParaRemover] = useState<string | null>(null);
 
   const sobraTotal = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0) - calcularGastos(p)), 0);
@@ -117,19 +124,21 @@ export default function PessoasPage() {
     if (!form.nome) return;
     const gastosTotais = calcularGastos(form);
     const sobra = Math.max(0, form.renda_mensal + form.renda_complementar - gastosTotais);
+    
+    const allPeople = [...pessoas];
+    const perPerson = (allPeople.length + 1) > 0 ? totalObjetivo / (allPeople.length + 1) : 0;
+    
+    const updatedPeople = allPeople.map(p => ({ ...p, valorInicial: perPerson }));
+    
     const novaPessoa: Pessoa = {
       id: Math.random().toString(),
       ...form,
       gastos_mensais: form.usar_gastos_detalhados ? gastosTotais : form.gastos_mensais,
       aporte_mensal: Math.round(sobra * 0.5),
-      valorInicial: 0,
+      valorInicial: perPerson,
     };
-    // Distribute the already saved amount (valorJaGuardado) equally among all participants
-    const totalSaved = objetivo?.valorJaGuardado ? Number(objetivo.valorJaGuardado) : 0;
-    const allPeople = [...pessoas, novaPessoa];
-    const perPerson = allPeople.length > 0 ? totalSaved / allPeople.length : 0;
-    const updatedPeople = allPeople.map(p => ({ ...p, valorInicial: perPerson }));
-    setPessoas(updatedPeople);
+    
+    setPessoas([...updatedPeople, novaPessoa]);
     setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
     setNovoGastoForm({ nome: "", valor: 0 });
     setShowAddForm(false);
@@ -141,98 +150,141 @@ export default function PessoasPage() {
 
   const efetivarRemocao = () => {
     if (pessoaParaRemover) {
-      setPessoas(pessoas.filter((p) => p.id !== pessoaParaRemover));
+      const remainingPeople = pessoas.filter((p) => p.id !== pessoaParaRemover);
+      const perPerson = remainingPeople.length > 0 ? totalObjetivo / remainingPeople.length : 0;
+      
+      setPessoas(remainingPeople.map(p => ({ ...p, valorInicial: perPerson })));
       setPessoaParaRemover(null);
     }
   };
 
   const atualizarPessoa = (pId: string, patch: Partial<Pessoa>) => {
-    setPessoas(pessoas.map((p) => {
-      if (p.id === pId) {
-        const updated = { ...p, ...patch };
-        // Sync gastos_mensais if using detailed expenses
-        if (updated.usar_gastos_detalhados) {
-          updated.gastos_mensais = calcularGastos(updated);
-        }
-        return updated;
+    setPessoas((prev) => {
+      const arr = [...prev];
+      const idx = arr.findIndex(p => p.id === pId);
+      if (idx === -1) return prev;
+      
+      const updated = { ...arr[idx], ...patch };
+      
+      if (updated.usar_gastos_detalhados && patch.gastos_detalhados !== undefined) {
+        updated.gastos_mensais = calcularGastos(updated);
+      } else if (patch.usar_gastos_detalhados !== undefined) {
+        updated.gastos_mensais = calcularGastos(updated);
       }
-      return p;
+      
+      if (patch.valorInicial !== undefined) {
+         updated.valorInicial = patch.valorInicial;
+         const newSum = arr.reduce((s, p, i) => s + (i === idx ? patch.valorInicial! : (p.valorInicial || 0)), 0);
+         setObjetivo(prev => prev ? { ...prev, valorJaGuardado: newSum } : null);
+      }
+      
+      arr[idx] = updated;
+      return arr;
+    });
+  };
+
+  const handleUpdateTotal = (novoTotal: number) => {
+    setObjetivo(prev => prev ? { ...prev, valorJaGuardado: novoTotal } : null);
+    
+    const currentTotal = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0) || 1;
+    setPessoas(pessoas.map(p => {
+       const perc = (p.valorInicial ?? 0) / currentTotal;
+       return { ...p, valorInicial: novoTotal * perc };
     }));
-  };
-
-  // Handlers for editing a person's detailed expenses
-  const handleUpdateGasto = (gId: string, patch: Partial<GastoDetalhado>) => {
-    const updated = (p?.gastos_detalhados || []).map(g => g.id === gId ? { ...g, ...patch } : g);
-    atualizarPessoa(p.id, { gastos_detalhados: updated });
-  };
-
-  const handleRemoveGasto = (gId: string) => {
-    const updated = (p?.gastos_detalhados || []).filter(g => g.id !== gId);
-    atualizarPessoa(p.id, { gastos_detalhados: updated });
-  };
-
-  const handleAddGasto = () => {
-    if (!novoGasto.nome || !novoGasto.valor) return;
-    const newGasto = { id: Math.random().toString(), ...novoGasto };
-    const updated = [...(p?.gastos_detalhados || []), newGasto];
-    atualizarPessoa(p.id, { gastos_detalhados: updated });
-    setNovoGasto({ nome: "", valor: 0 });
   };
 
   const gastosTotaisForm = calcularGastos(form);
   const sobraForm = (form.renda_mensal + form.renda_complementar) - gastosTotaisForm;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">
       <div>
         <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 2 de 4</p>
         <h1 className="font-display text-4xl md:text-5xl mb-2">Quem está nessa?</h1>
-        <p className="text-muted-foreground">Cadastre você e seu par. Peça mais informações e detalhe os gastos para maior precisão.</p>
+        <p className="text-muted-foreground text-lg">Cadastre você e seu par. Peça mais informações e detalhe os gastos para maior precisão.</p>
       </div>
 
-      {/* Valor já guardado */}
-      <Card className="p-6 shadow-soft mb-6">
-        <h2 className="font-display text-2xl mb-2">Valor já guardado</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex justify-between items-center">
-            <span className="font-medium">Total</span>
-            <MoneyInput variant="money" min={0} value={totalGuardado} onChange={(v) => {
-              // distribute proportionally based on current percentages
-              const newTotal = v;
-              const updatedPeople = pessoaGuardado.map(p => ({
-                ...p,
-                valor: totalGuardado ? (p.percent / 100) * newTotal : 0,
-              }));
-              setPessoas(pessoas.map(p => {
-                const upd = updatedPeople.find(up => up.id === p.id);
-                return upd ? { ...p, valorInicial: upd.valor } : p;
-              }));
-            }} className="font-display text-2xl num" />
+      {/* Nova Barra de Resumo de Valor Guardado */}
+      <Card className="p-5 shadow-soft border-border/60 bg-secondary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden relative group">
+        <div className="absolute -left-10 -bottom-10 h-32 w-32 bg-accent/10 rounded-full blur-2xl group-hover:bg-accent/20 transition-colors duration-700" />
+        
+        <div className="relative z-10 flex flex-col">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Total Já Guardado (Vindo da Etapa 1)
+            </span>
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" onClick={() => setIsEditingTotal(!isEditingTotal)}>
+              <Pencil className="h-3 w-3" />
+            </Button>
           </div>
-          {pessoaGuardado.map(p => (
-            <div key={p.id} className="flex justify-between items-center">
-              <span className="font-medium">{p.nome}</span>
-              <MoneyInput variant="money" min={0} value={p.valor} onChange={(v) => atualizarPessoa(p.id, { valorInicial: v })} className="font-display text-lg" />
-              <span>({p.percent.toFixed(1)}%)</span>
+          {isEditingTotal ? (
+            <div className="flex items-center gap-2 mt-1">
+              <MoneyInput 
+                variant="money" 
+                min={0} 
+                value={totalObjetivo} 
+                onChange={handleUpdateTotal} 
+                className="font-display text-3xl font-semibold h-10 w-48"
+              />
+              <Button onClick={() => setIsEditingTotal(false)} size="sm" className="bg-primary text-primary-foreground">
+                <Check className="h-4 w-4" />
+              </Button>
             </div>
-          ))}
+          ) : (
+            <span className="font-display text-3xl text-foreground font-semibold">
+              {brl(totalObjetivo)}
+            </span>
+          )}
+          {Math.abs(diffTotal) > 0.01 && !isEditingTotal && pessoas.length > 2 && (
+            <span className="text-xs text-destructive mt-2 font-medium bg-destructive/10 px-2 py-0.5 rounded-full inline-flex w-fit">
+              A soma difere do total em {brl(Math.abs(diffTotal))}
+            </span>
+          )}
+        </div>
+
+        <div className="relative z-10 flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {pessoas.map((p, idx) => {
+            const perc = totalObjetivo > 0 ? ((p.valorInicial ?? 0) / totalObjetivo) * 100 : 0;
+            return (
+              <div key={p.id} className="flex items-center gap-2 bg-background/80 border border-border/50 px-4 py-2.5 rounded-xl shadow-sm backdrop-blur-md transition-all hover:border-accent/40 hover:shadow-md">
+                <div className="h-7 w-7 rounded-full bg-secondary grid place-items-center">
+                  <span className="font-display text-xs font-bold">{p.nome.charAt(0).toUpperCase()}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-muted-foreground leading-tight">{p.nome}</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-semibold text-sm num">{brl(p.valorInicial ?? 0)}</span>
+                    <span className="text-[10px] text-accent font-medium">({perc.toFixed(1)}%)</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Card>
-      <div className="grid lg:grid-cols-2 gap-4">
-        {pessoas.map((p) => (
-          <PessoaCard key={p.id} p={p} remover={confirmarRemocao} atualizarPessoa={atualizarPessoa} />
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {pessoas.map((p, index) => (
+          <PessoaCard 
+            key={p.id} 
+            p={p} 
+            index={index}
+            totalGuardadoObjetivo={totalObjetivo}
+            remover={confirmarRemocao} 
+            atualizarPessoa={atualizarPessoa} 
+          />
         ))}
 
         {!showAddForm ? (
           <Card 
             onClick={() => setShowAddForm(true)}
-            className="glass p-6 border-2 border-dashed hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[300px] text-muted-foreground hover:text-foreground group"
+            className="glass p-8 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[360px] text-muted-foreground hover:text-foreground group rounded-xl"
           >
-            <div className="h-12 w-12 rounded-full bg-secondary group-hover:bg-accent/10 grid place-items-center mb-3 transition-colors">
-              <Plus className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors" />
+            <div className="h-14 w-14 rounded-full bg-secondary/80 group-hover:bg-accent/10 grid place-items-center mb-4 transition-colors">
+              <Plus className="h-6 w-6 text-muted-foreground group-hover:text-accent transition-colors" />
             </div>
-            <h3 className="font-display text-lg font-semibold text-foreground">Adicionar participante</h3>
-            <p className="text-xs text-center mt-1 max-w-[240px] text-muted-foreground">
+            <h3 className="font-display text-xl font-semibold text-foreground">Adicionar participante</h3>
+            <p className="text-sm text-center mt-2 max-w-[260px] text-muted-foreground">
               Adicione outra pessoa para somar renda e planejar juntos a entrada do imóvel.
             </p>
           </Card>

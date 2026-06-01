@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl, calcularEntrada, calcularCustosExtras, calcularMeta, mesesEntre } from "@/lib/finance";
 import { DateInput } from "@/components/DateInput";
-import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 
 const todayISO = () => {
   if (typeof window !== "undefined") {
@@ -187,8 +187,19 @@ export default function ObjetivoPage() {
                     <MoneyInput variant="money" min={0} max={form.valor_imovel} value={form.valor_ja_guardado} onChange={(v) => setForm({ ...form, valor_ja_guardado: v })} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Custos extras (ITBI/Cartório) %</Label>
+                    <div className="flex justify-between items-center">
+                      <Label className="text-muted-foreground">Custos extras (ITBI/Cartório) %</Label>
+                      <button 
+                        type="button" 
+                        onClick={() => setForm({ ...form, percentual_custos_extras: 5 })}
+                        className="group flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-accent transition-all duration-300 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-full border border-accent/20 hover:border-accent/40 hover:shadow-[0_0_12px_var(--accent-glow,rgba(255,165,0,0.2))] active:scale-95"
+                      >
+                        <Sparkles className="h-3 w-3 text-accent group-hover:animate-pulse" />
+                        Sugerir 5%
+                      </button>
+                    </div>
                     <MoneyInput variant="percent" min={0} max={20} value={form.percentual_custos_extras} onChange={(v) => setForm({ ...form, percentual_custos_extras: v })} />
+                    <p className="text-[11px] text-muted-foreground leading-tight">A média do mercado é de 4% a 5% do valor do imóvel.</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">CDI anual (%)</Label>

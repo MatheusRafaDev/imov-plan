@@ -39,6 +39,7 @@ namespace ImovPlan.Application.DTOs
         public bool Usar_gastos_detalhados { get; set; }
         public List<GastoDetalhadoDraftDto> Gastos_detalhados { get; set; } = new();
         public decimal Aporte_mensal { get; set; }
+        public decimal ValorInicial { get; set; }
     }
 
     public class GastoDetalhadoDraftDto

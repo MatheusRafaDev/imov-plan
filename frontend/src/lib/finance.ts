@@ -15,6 +15,7 @@ export type SimInput = {
   percentualCustosExtras: number; // ex 5 (ITBI+escritura+registro estimado)
   valorJaGuardado: number;
   aporteMensalTotal: number; // soma dos aportes do casal
+  aportesRegularesEditados?: Record<number, number>; // mes -> novo aporte
   taxaCdiAnual: number; // ex 13.65 (%)
   percentualCdi: number; // ex 100 (% do CDI que o investimento rende)
   aportesExtras: Aporte[]; // datados
@@ -78,8 +79,6 @@ export function taxaMensalEfetiva(taxaCdiAnual: number, percentualCdi: number) {
 }
 
 export function simular(input: SimInput): SimResult {
-  // existing implementation (break on meta)
-
   const meta = calcularMeta(input);
   const custosExtras = calcularCustosExtras(input.valorImovel, input.percentualCustosExtras);
   const valorEntrada = calcularEntrada(input.valorImovel, input.percentualEntrada);
@@ -103,7 +102,8 @@ export function simular(input: SimInput): SimResult {
   let dataAtingiu: string | undefined;
 
   for (let mes = 1; mes <= prazoMax; mes++) {
-    const aporteRegular = input.aporteMensalTotal;
+    const defaultAporte = mes === 1 ? 0 : input.aporteMensalTotal;
+    const aporteRegular = input.aportesRegularesEditados?.[mes] ?? defaultAporte;
     const aportesExtras = extrasPorMes.get(mes) ?? 0;
     saldo += aporteRegular + aportesExtras;
     totalInvestido += aporteRegular + aportesExtras;
@@ -129,14 +129,14 @@ export function simular(input: SimInput): SimResult {
       totalInvestido,
     });
 
+    // Registra quando a meta foi atingida, mas continua o loop até o fim do prazo
     if (!atingiuMeta && saldo >= meta) {
       atingiuMeta = true;
       mesAtingiu = mes;
       dataAtingiu = dataRef.toISOString();
-      // Para a simulação assim que atinge a meta da entrada
-      break;
     }
   }
+
 
   return {
     meta,

@@ -118,6 +118,7 @@ namespace ImovPlan.Application.Services
                         }).ToList() ?? new List<GastoDetalhado>(),
                         SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais,
                         AporteMensal = pDto.Aporte_mensal,
+                        ValorInicial = pDto.ValorInicial,
                     };
                     await _pessoaRepo.CreateAsync(pessoa);
                     newPessoaIds.Add(pessoa.Id);
@@ -173,6 +174,7 @@ namespace ImovPlan.Application.Services
                         Valor = g.Valor
                     }).ToList() ?? new List<GastoDetalhadoDraftDto>(),
                     Aporte_mensal = p.AporteMensal,
+                    ValorInicial = p.ValorInicial,
                 }).ToList(),
                 BancoEscolhido = !string.IsNullOrEmpty(objetivo.BancoEscolhidoId)
                     ? new BancoDraftDto
