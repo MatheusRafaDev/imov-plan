@@ -85,13 +85,27 @@ export function simular(input: SimInput): SimResult {
   const faltava = Math.max(0, meta - input.valorJaGuardado);
   const taxaMes = taxaMensalEfetiva(input.taxaCdiAnual, input.percentualCdi);
   const prazoMax = input.prazoMaxMeses ?? 600;
-  const inicio = typeof input.dataInicio === 'string' ? new Date(input.dataInicio) : (input.dataInicio ?? new Date());
+  let inicio: Date;
+  if (typeof input.dataInicio === 'string' && input.dataInicio) {
+    inicio = new Date(input.dataInicio + 'T12:00:00');
+  } else if (input.dataInicio instanceof Date) {
+    inicio = input.dataInicio;
+  } else {
+    inicio = new Date();
+  }
+  if (isNaN(inicio.getTime())) {
+    console.warn('Invalid dataInicio, using current date:', input.dataInicio);
+    inicio = new Date();
+  }
 
   const extrasPorMes = new Map<number, number>();
   for (const a of input.aportesExtras) {
-    const d = new Date(a.data);
+    const d = new Date(a.data + 'T12:00:00');
     const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
-    if (mesOffset >= 1) extrasPorMes.set(mesOffset, (extrasPorMes.get(mesOffset) ?? 0) + a.valor);
+    if (mesOffset >= 1) {
+      const existing = extrasPorMes.get(mesOffset) ?? 0;
+      extrasPorMes.set(mesOffset, existing + a.valor);
+    }
   }
 
   let saldo = input.valorJaGuardado;

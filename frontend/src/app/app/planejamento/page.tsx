@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl, calcularMeta, mesesParaMeta, aporteNecessarioParaPrazo, mesesEntre } from "@/lib/finance";
 import { DateInput } from "@/components/DateInput";
-import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil } from "lucide-react";
 
-const ORIGENS = ["FGTS", "Bônus / 13º", "Férias", "Freelance", "Restituição IR", "Presente", "Outro"];
+const ORIGENS = ["FGTS", "Bônus / 13º", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
   const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft } = usePlanContext();
@@ -30,10 +30,11 @@ export default function PlanejamentoPage() {
   };
   
   const [isAportesExtrasModalOpen, setIsAportesExtrasModalOpen] = useState(false);
+  const [editingAporteIndex, setEditingAporteIndex] = useState<number | null>(null);
   
   const [novoAporte, setNovoAporte] = useState({
     data: new Date().toISOString().slice(0, 10),
-    valor: 0,
+    valor: 0 as number | "",
     origem: "Bônus / 13º",
     pessoa_id: "",
   });
@@ -55,7 +56,7 @@ export default function PlanejamentoPage() {
     valorJaGuardado: totalGuardado,
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
     percentualCdi: Number(objetivo?.percentualCdi ?? 100),
-    dataInicio: objetivo?.dataInicio ?? new Date(),
+    dataInicio: objetivo?.dataInicio ? new Date(objetivo.dataInicio + 'T12:00:00') : new Date(),
     aportesExtras,
   }), [objetivo, aportesExtras, totalGuardado]);
   
@@ -116,8 +117,28 @@ export default function PlanejamentoPage() {
       origem: novoAporte.origem,
       pessoaNome: pessoa ? pessoa.nome : undefined,
     };
-    setAportesExtras([...aportesExtras, aporte]);
+    
+    if (editingAporteIndex !== null) {
+      const updated = [...aportesExtras];
+      updated[editingAporteIndex] = aporte;
+      setAportesExtras(updated);
+      setEditingAporteIndex(null);
+    } else {
+      setAportesExtras([...aportesExtras, aporte]);
+    }
     setNovoAporte({ ...novoAporte, valor: 0 });
+  };
+
+  const editarAporte = (index: number) => {
+    const aporte = aportesExtras[index];
+    setNovoAporte({
+      data: aporte.data,
+      valor: Number(aporte.valor),
+      origem: aporte.origem,
+      pessoa_id: "",
+    });
+    setEditingAporteIndex(index);
+    setIsAportesExtrasModalOpen(true);
   };
 
   const removerAporte = (index: number) => {
@@ -179,29 +200,6 @@ export default function PlanejamentoPage() {
         </Card>
       </div>
 
-      {/* Valor Já Guardado */}
-      <Card className="p-6 border-border/50">
-        <h2 className="font-display text-2xl mb-6 font-light">Valor já guardado</h2>
-        <div className="flex flex-col md:flex-row gap-8 items-center">
-          <div className="flex-1 w-full space-y-2 md:border-r md:border-border/50 md:pr-6">
-            <p className="text-sm text-muted-foreground">Total em caixa</p>
-            <p className="font-display text-4xl num">{brl(totalGuardado)}</p>
-          </div>
-          <div className="flex-[2] w-full space-y-5">
-            {pessoaGuardado.map(p => (
-              <div key={p.id} className="space-y-2">
-                <div className="flex justify-between text-sm items-end">
-                  <span className="font-medium text-base">{p.nome}</span>
-                  <span className="num">{brl(p.valor)} <span className="text-muted-foreground ml-1">({p.percent.toFixed(1)}%)</span></span>
-                </div>
-                <div className="h-2.5 w-full bg-secondary/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${p.percent}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
 
       {/* Aporte de cada pessoa */}
       <div className="space-y-4">
@@ -247,7 +245,7 @@ export default function PlanejamentoPage() {
               <X className="h-5 w-5" />
             </Button>
             
-            <h2 className="font-display text-3xl mb-2 font-light">Novo aporte extra</h2>
+            <h2 className="font-display text-3xl mb-2 font-light">{editingAporteIndex !== null ? "Editar aporte extra" : "Novo aporte extra"}</h2>
             <p className="text-muted-foreground mb-8 text-sm">Registre entradas como FGTS, bônus, freelances e restituições.</p>
 
             <div className="space-y-8">
@@ -302,9 +300,9 @@ export default function PlanejamentoPage() {
               </div>
 
               <div className="pt-6 border-t border-border/50 flex justify-end gap-3 mt-4">
-                <Button variant="ghost" onClick={() => setIsAportesExtrasModalOpen(false)}>Cancelar</Button>
-                <Button onClick={() => { adicionarAporte(); setIsAportesExtrasModalOpen(false); }} className="bg-primary text-primary-foreground px-6" disabled={novoAporte.valor <= 0}>
-                  <Plus className="h-4 w-4 mr-2" /> Adicionar Aporte
+                <Button variant="ghost" onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}>Cancelar</Button>
+                <Button onClick={() => { adicionarAporte(); setIsAportesExtrasModalOpen(false); }} className="bg-primary text-primary-foreground px-6" disabled={novoAporte.valor === "" || novoAporte.valor <= 0}>
+                  <Plus className="h-4 w-4 mr-2" /> {editingAporteIndex !== null ? "Salvar" : "Adicionar Aporte"}
                 </Button>
               </div>
             </div>
@@ -353,7 +351,10 @@ export default function PlanejamentoPage() {
                   </div>
                   <div className="col-span-3 md:col-span-3 text-muted-foreground truncate">{a.pessoaNome ?? "Conjunto"}</div>
                   <div className="col-span-2 md:col-span-2 text-right num font-medium">{brl(Number(a.valor))}</div>
-                  <div className="col-span-12 md:col-span-1 flex justify-end mt-2 md:mt-0">
+                  <div className="col-span-12 md:col-span-1 flex justify-end gap-1 mt-2 md:mt-0">
+                    <Button size="icon" variant="ghost" onClick={() => editarAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary/80">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
                       <Trash2 className="h-4 w-4" />
                     </Button>

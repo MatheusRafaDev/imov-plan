@@ -66,15 +66,22 @@ export function MonthYearInput({ value, onChange, className }: MonthYearInputPro
           <option key={i + 1} value={String(i + 1)}>{nome}</option>
         ))}
       </select>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={year}
-        onChange={e => handleYearChange(e.target.value)}
-        placeholder="Ano"
-        maxLength={4}
-        className="w-20 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      />
+      <div className="relative w-20">
+        <input
+          type="text"
+          inputMode="numeric"
+          value={year}
+          onChange={e => handleYearChange(e.target.value)}
+          placeholder="Ano"
+          maxLength={4}
+          className={`w-20 h-10 rounded-md border px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${year.length === 4 && !month ? "border-amber-500 bg-amber-50 dark:bg-amber-950/20" : "border-input bg-background"}`}
+        />
+        {year.length === 4 && !month && (
+          <div className="absolute -bottom-5 left-0 right-0 text-[9px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
+            Selecione o mês
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -51,11 +51,6 @@ export function DateInput({ value, onChange, className, placeholder = "DD/MM/AAA
       if (!isNaN(d.getTime())) {
         onChange(iso);
       }
-    } else {
-      // If incomplete, don't update the parent state yet, or pass empty to clear it
-      if (value) {
-        onChange("");
-      }
     }
   };
 

@@ -143,6 +143,16 @@ export default function PessoaCard({
             </span>
           </div>
 
+          {/* Aporte mensal */}
+          <div className="bg-primary/5 rounded-xl p-3 border border-primary/15">
+            <span className="text-sm font-medium flex items-center gap-1.5 text-primary">
+              <Wallet className="h-3.5 w-3.5" /> Aporte mensal
+            </span>
+            <span className="font-display text-xl num font-semibold text-primary">
+              {brl(Number(p.aporte_mensal || 0))}
+            </span>
+          </div>
+
           {/* Valor guardado */}
           <div className="bg-secondary/50 rounded-xl p-3 border border-border/50">
             <div className="flex items-center justify-between mb-2">
@@ -193,6 +203,15 @@ export default function PessoaCard({
             min={0}
             value={valorInicial}
             onChange={v => atualizarPessoa(p.id, { valorInicial: v })}
+          />
+        </div>
+        <div className="col-span-2">
+          <Label className="text-xs text-primary font-medium">Aporte Mensal Programado</Label>
+          <MoneyInput
+            variant="money"
+            min={0}
+            value={Number(p.aporte_mensal || 0)}
+            onChange={v => atualizarPessoa(p.id, { aporte_mensal: v })}
           />
         </div>
         <div className="col-span-2 pt-2">

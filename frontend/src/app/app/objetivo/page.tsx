@@ -40,9 +40,10 @@ export default function ObjetivoPage() {
     data_inicio: todayISO(),
     data_fim: "",
     valor_ja_guardado: "" as number | "",
-    taxa_cdi_anual: "" as number | "",
-    percentual_cdi: "" as number | "",
+    taxa_cdi_anual: 10.5 as number | "",
+    percentual_cdi: 100 as number | "",
     percentual_custos_extras: 0 as number | "",
+    tipo_investimento: "" as string,
   });
 
   useEffect(() => {
@@ -190,8 +191,8 @@ export default function ObjetivoPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <Label className="text-muted-foreground">Custos extras (ITBI/Cartório) %</Label>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setForm({ ...form, percentual_custos_extras: 5 })}
                         className="group flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-accent transition-all duration-300 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-full border border-accent/20 hover:border-accent/40 hover:shadow-[0_0_12px_var(--accent-glow,rgba(255,165,0,0.2))] active:scale-95"
                       >
@@ -202,13 +203,45 @@ export default function ObjetivoPage() {
                     <MoneyInput variant="percent" min={0} max={20} value={form.percentual_custos_extras} onChange={(v) => setForm({ ...form, percentual_custos_extras: v })} />
                     <p className="text-[11px] text-muted-foreground leading-tight">A média do mercado é de 4% a 5% do valor do imóvel.</p>
                   </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label className="text-muted-foreground">Tipo de investimento</Label>
+                    <select
+                      value={form.tipo_investimento || ""}
+                      onChange={(e) => {
+                        const tipo = e.target.value;
+                        const presets: Record<string, { cdi: number; percentual: number }> = {
+                          poupanca: { cdi: 10.5, percentual: 70 },
+                          cdb_100: { cdi: 10.5, percentual: 100 },
+                          cdb_120: { cdi: 10.5, percentual: 120 },
+                          tesouro_selic: { cdi: 10.5, percentual: 100 },
+                          lci_lca: { cdi: 10.5, percentual: 90 },
+                          fundo_di: { cdi: 10.5, percentual: 100 },
+                        };
+                        if (presets[tipo]) {
+                          setForm({ ...form, tipo_investimento: tipo, taxa_cdi_anual: presets[tipo].cdi, percentual_cdi: presets[tipo].percentual });
+                        } else {
+                          setForm({ ...form, tipo_investimento: tipo });
+                        }
+                      }}
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Selecione o tipo</option>
+                      <option value="poupanca">Poupança (70% CDI)</option>
+                      <option value="cdb_100">CDB 100% CDI</option>
+                      <option value="cdb_120">CDB 120% CDI</option>
+                      <option value="tesouro_selic">Tesouro Selic (100% CDI)</option>
+                      <option value="lci_lca">LCI/LCA (90% CDI)</option>
+                      <option value="fundo_di">Fundo DI (100% CDI)</option>
+                      <option value="manual">Personalizado</option>
+                    </select>
+                  </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">CDI anual (%)</Label>
-                    <MoneyInput variant="percent" min={0} max={30} value={form.taxa_cdi_anual} onChange={(v) => setForm({ ...form, taxa_cdi_anual: v })} />
+                    <MoneyInput variant="percent" min={0} max={30} value={form.taxa_cdi_anual} onChange={(v) => setForm({ ...form, taxa_cdi_anual: v })} disabled={!!form.tipo_investimento && form.tipo_investimento !== "manual"} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">% do CDI do investimento</Label>
-                    <MoneyInput variant="percent" min={50} max={200} value={form.percentual_cdi} onChange={(v) => setForm({ ...form, percentual_cdi: v })} />
+                    <MoneyInput variant="percent" min={50} max={200} value={form.percentual_cdi} onChange={(v) => setForm({ ...form, percentual_cdi: v })} disabled={!!form.tipo_investimento && form.tipo_investimento !== "manual"} />
                   </div>
                 </div>
               )}

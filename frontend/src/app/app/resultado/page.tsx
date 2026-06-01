@@ -114,12 +114,30 @@ function ExtrasCell({ contextItems, total }: {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
-  const { objetivo, pessoas, aportesExtras } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft } = usePlanContext();
   const router = useRouter();
 
-  const [aportesEditados, setAportesEditados] = useState<Record<number, number>>({});
   // mesesConcluidos: set of month numbers manually checked
-  const [mesesConcluidos, setMesesConcluidos] = useState<Set<number>>(new Set());
+  const [mesesConcluidos, setMesesConcluidos] = useState<Set<number>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('imovplan_mesesConcluidos');
+      if (saved) {
+        try {
+          return new Set(JSON.parse(saved));
+        } catch {
+          return new Set();
+        }
+      }
+    }
+    return new Set();
+  });
+
+  // Persist mesesConcluidos to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('imovplan_mesesConcluidos', JSON.stringify([...mesesConcluidos]));
+    }
+  }, [mesesConcluidos]);
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
 
@@ -127,7 +145,7 @@ export default function ResultadoPage() {
   const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
 
   // Build combined extras: aportesExtras (from context) + extrasInline
-  const inicio = objetivo?.dataInicio ? new Date(objetivo.dataInicio) : new Date();
+  const inicio = objetivo?.dataInicio ? new Date(objetivo.dataInicio + 'T12:00:00') : new Date();
 
   const combinedExtras = useMemo(() => {
     return aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
@@ -141,11 +159,11 @@ export default function ResultadoPage() {
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
     percentualCdi: Number(objetivo?.percentualCdi ?? 100),
     aporteMensalTotal: aporteTotal,
-    aportesRegularesEditados: aportesEditados,
+    aportesRegularesEditados: aportesRegularesEditados,
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras: combinedExtras,
     prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, aportesEditados]);
+  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, aportesRegularesEditados]);
 
   const chartData = sim.rows.map(r => ({
     mes: r.mes,
@@ -164,13 +182,14 @@ export default function ResultadoPage() {
     const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
     let saldoConjunto = 0;
     let rentabilidadeAcumulada = 0;
+    let saldoAnterior = totalGuardado; // Track saldoAnterior explicitly as mutable variable
 
     return sim.rows.map(r => {
       const isExtra = r.aportesExtras > 0;
       const atingiu = sim.mesAtingiuMeta === r.mes;
 
       const extrasMes = combinedExtras.filter(a => {
-        const d = new Date(a.data);
+        const d = new Date(a.data + 'T12:00:00');
         const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
         return mesOffset === r.mes;
       });
@@ -182,7 +201,7 @@ export default function ResultadoPage() {
         else extrasConjunto += Number(a.valor);
       });
 
-      const saldoTotalAnterior = r.saldoAcumulado - r.rendimentoLiquido - r.aporteRegular - r.aportesExtras;
+      const saldoTotalAnterior = saldoAnterior; // Use tracked saldoAnterior instead of reverse calculation
       const novosSaldos: Record<string, number> = {};
       const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
       const isEdited = r.aporteRegular !== defaultAporte;
@@ -200,11 +219,16 @@ export default function ResultadoPage() {
 
       const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
       const rendimentoConjunto = proporcaoConjunto * r.rendimentoLiquido;
+      // Edge case: when defaultAporte === 0 (month 1), edited aportes go to saldoConjunto
+      // instead of being distributed proportionally to individuals. This is intentional
+      // since month 1 has no regular aporte by default, so any edited value is treated
+      // as an extra contribution to the joint balance.
       const diffConjunto = isEdited && defaultAporte === 0 ? r.aporteRegular : 0;
       const novoSaldoConjunto = saldoConjunto + extrasConjunto + rendimentoConjunto + diffConjunto;
 
       pessoas.forEach(p => { saldos[p.nome] = novosSaldos[p.nome]; });
       saldoConjunto = novoSaldoConjunto;
+      saldoAnterior = r.saldoAcumulado; // Update saldoAnterior for next iteration
 
       const percentRendimento = saldoTotalAnterior > 0 ? (r.rendimentoLiquido / saldoTotalAnterior) * 100 : 0;
       rentabilidadeAcumulada += r.rendimentoLiquido;
@@ -219,9 +243,10 @@ export default function ResultadoPage() {
         saldoConjunto: novoSaldoConjunto,
         rentabilidadeAcumulada,
         percentRentabilidade,
+        extrasPorPessoa,
       };
     });
-  }, [sim.rows, pessoas, combinedExtras, inicio, sim.mesAtingiuMeta, aporteTotal]);
+  }, [sim.rows, pessoas, combinedExtras, inicio, sim.mesAtingiuMeta, aporteTotal, totalGuardado]);
 
   const targetMonthIndex = sim.mesAtingiuMeta ? sim.mesAtingiuMeta - 1 : sim.rows.length - 1;
   const targetRow = tableRows[targetMonthIndex];
@@ -293,7 +318,7 @@ export default function ResultadoPage() {
       <Card className="p-4 border-border/50">
         <h2 className="font-display text-xl font-light mb-4">Evolução do patrimônio</h2>
         <div className="h-[320px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={320} minWidth={0}>
             <AreaChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="gSaldo" x1="0" y1="0" x2="0" y2="1">
@@ -361,7 +386,7 @@ export default function ResultadoPage() {
                 const extrasMap: Record<string, number> = {};
                 let conjuntoExtra = 0;
                 aportesExtras.forEach(a => {
-                  const d = new Date(a.data);
+                  const d = new Date(a.data + 'T12:00:00');
                   const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
                   if (mesOffset <= meses) {
                     if (a.pessoaNome) extrasMap[a.pessoaNome] = (extrasMap[a.pessoaNome] || 0) + Number(a.valor);
@@ -371,7 +396,21 @@ export default function ResultadoPage() {
                 const totalMonths = Math.max(0, meses - 1);
                 const totalAportadoGeral = targetRow ? targetRow.totalInvestido - totalGuardado : 0;
                 const lista = pessoas.map(p => {
-                  const v = (Number(p.aporte_mensal) || 0) * totalMonths + (extrasMap[p.nome] || 0);
+                  // Sum actual aporteRegular values from SimRow (including edits) instead of using fixed calculation
+                  const aportesRegularesSum = sim.rows.slice(0, meses).reduce((sum, row) => {
+                    if (row.mes === 1) return sum; // Month 1 has no regular contribution
+                    const defaultAporte = row.mes === 1 ? 0 : aporteTotal;
+                    const isEdited = row.aporteRegular !== defaultAporte;
+                    if (isEdited) {
+                      // If edited, distribute proportionally based on person's share of default aporte
+                      const baseAporte = Number(p.aporte_mensal) || 0;
+                      const proporcao = defaultAporte > 0 ? baseAporte / defaultAporte : 0;
+                      return sum + (proporcao * row.aporteRegular);
+                    } else {
+                      return sum + (Number(p.aporte_mensal) || 0);
+                    }
+                  }, 0);
+                  const v = aportesRegularesSum + (extrasMap[p.nome] || 0);
                   return { nome: p.nome, valor: v, percent: totalAportadoGeral > 0 ? (v / totalAportadoGeral) * 100 : 0 };
                 });
                 if (conjuntoExtra > 0) lista.push({ nome: "Conjunto", valor: conjuntoExtra, percent: totalAportadoGeral > 0 ? (conjuntoExtra / totalAportadoGeral) * 100 : 0 });
@@ -435,10 +474,7 @@ export default function ResultadoPage() {
                 <Th>Data</Th>
                 <Th right>Aporte</Th>
                 <Th right>Extras</Th>
-                <Th right>Rend.%</Th>
-                <Th right>Rend. R$</Th>
-                <Th right>IR</Th>
-                <Th right>Rent. Acum.</Th>
+                <Th right>Rend. Líquido</Th>
                 {pessoas.map(p => <Th right key={p.id}>{p.nome.split(" ")[0]}</Th>)}
                 <Th right>Total</Th>
               </tr>
@@ -480,12 +516,16 @@ export default function ResultadoPage() {
                         value={r.aporteRegular}
                         isEdited={isEdited}
                         onSave={v => {
-                          setAportesEditados(prev => {
+                          setAportesRegularesEditados((prev: Record<number, number>) => {
                             const copy = { ...prev };
                             if (v === defaultAporte) delete copy[r.mes];
                             else copy[r.mes] = v;
                             return copy;
                           });
+                          const updated = { ...aportesRegularesEditados };
+                          if (v === defaultAporte) delete updated[r.mes];
+                          else updated[r.mes] = v;
+                          saveDraft({ aportesRegularesEditados: updated });
                         }}
                       />
                     </Td>
@@ -495,7 +535,7 @@ export default function ResultadoPage() {
                       {(() => {
                         const ctxItems: ContextExtra[] = aportesExtras
                           .filter(a => {
-                            const d = new Date(a.data);
+                            const d = new Date(a.data + 'T12:00:00');
                             const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
                             return mesOffset === r.mes;
                           })
@@ -509,24 +549,23 @@ export default function ResultadoPage() {
                       })()}
                     </Td>
 
-                    <Td right className="text-[#3B6D11] dark:text-[#80B551]">
-                      {r.percentRendimento > 0 ? `+${r.percentRendimento.toFixed(3)}%` : "0,000%"}
-                    </Td>
                     <Td right className="text-[#3B6D11] dark:text-[#80B551] font-medium">
                       {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
                     </Td>
-                    <Td right className="text-rose-500/80 dark:text-rose-400/80">
-                      {r.imposto > 0 ? `-${brl(r.imposto)}` : brl(r.imposto)}
-                    </Td>
-                    <Td right>
-                      <div className="flex flex-col items-end leading-tight">
-                        <span className="text-[#3B6D11] dark:text-[#80B551] font-medium">+{brl(r.rentabilidadeAcumulada)}</span>
-                        <span className="text-[9px] text-[#3B6D11]/70 dark:text-[#80B551]/70">+{r.percentRentabilidade.toFixed(2)}%</span>
-                      </div>
-                    </Td>
-                    {pessoas.map(p => (
-                      <Td right key={p.id} className="font-medium text-muted-foreground">{brl(r.saldosIndividuais[p.nome])}</Td>
-                    ))}
+                    {pessoas.map(p => {
+                      const baseAporte = r.mes === 1 ? 0 : (Number(p.aporte_mensal) || 0);
+                      const isEdited = r.aporteRegular !== (r.mes === 1 ? 0 : aporteTotal);
+                      let aporteFinal = baseAporte;
+                      if (isEdited && aporteTotal > 0) {
+                        aporteFinal = (baseAporte / aporteTotal) * r.aporteRegular;
+                      } else if (isEdited) {
+                        aporteFinal = 0;
+                      }
+                      const extra = r.extrasPorPessoa?.[p.nome] || 0;
+                      return (
+                        <Td right key={p.id} className="font-medium text-muted-foreground">{brl(aporteFinal + extra)}</Td>
+                      );
+                    })}
                     <Td right className="font-bold text-sm text-foreground">{brl(r.saldoAcumulado)}</Td>
                   </tr>
                 );
