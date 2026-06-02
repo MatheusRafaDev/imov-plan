@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -81,6 +82,13 @@ namespace ImovPlan.Domain.Entities
 
         [BsonElement("aportesExtras")]
         public List<AporteExtra> AportesExtras { get; set; } = new();
+
+        [BsonElement("aportesRegularesEditados")]
+        [NotMapped]
+        public Dictionary<int, decimal> AportesRegularesEditados { get; set; } = new();
+
+        [BsonElement("mesesConcluidos")]
+        public List<int> MesesConcluidos { get; set; } = new();
 
         [BsonElement("usuarioId")]
         [BsonRepresentation(BsonType.ObjectId)]
