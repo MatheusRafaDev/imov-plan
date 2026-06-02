@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ImovPlan.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+521f9515730f26ce7d3233435497fb0f55ef60dc")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+255b43770d220969345d8da6e75460a555a435e3")]
 [assembly: System.Reflection.AssemblyProductAttribute("ImovPlan.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ImovPlan.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

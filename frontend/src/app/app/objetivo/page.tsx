@@ -100,7 +100,7 @@ export default function ObjetivoPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up">
       <div>
         <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
@@ -201,7 +201,7 @@ export default function ObjetivoPage() {
                       </button>
                     </div>
                     <MoneyInput variant="percent" min={0} max={20} value={form.percentual_custos_extras} onChange={(v) => setForm({ ...form, percentual_custos_extras: v })} />
-                    <p className="text-[11px] text-muted-foreground leading-tight">A média do mercado é de 4% a 5% do valor do imóvel.</p>
+                  
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label className="text-muted-foreground">Tipo de investimento</Label>

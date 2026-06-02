@@ -84,6 +84,17 @@ namespace ImovPlan.Application.Services
                 }).ToList();
             }
 
+            // ── Map Monthly Tracking Data ──
+            if (draftDto.AportesRegularesEditados != null)
+            {
+                existingObjetivo.AportesRegularesEditados = draftDto.AportesRegularesEditados;
+            }
+
+            if (draftDto.MesesConcluidos != null)
+            {
+                existingObjetivo.MesesConcluidos = draftDto.MesesConcluidos;
+            }
+
             await _objetivoRepo.UpdateAsync(id, existingObjetivo);
 
             // ── Upsert Pessoas ──
@@ -191,6 +202,8 @@ namespace ImovPlan.Application.Services
                     Origem = a.Origem,
                     PessoaNome = a.PessoaNome,
                 }).ToList() ?? new List<AporteExtraDraftDto>(),
+                AportesRegularesEditados = objetivo.AportesRegularesEditados ?? new Dictionary<int, decimal>(),
+                MesesConcluidos = objetivo.MesesConcluidos ?? new List<int>(),
             };
         }
     }

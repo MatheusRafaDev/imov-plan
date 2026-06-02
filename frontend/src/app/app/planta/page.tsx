@@ -159,7 +159,7 @@ export default function PlantaPage() {
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Valor</Label>
                 <MoneyInput variant="money" min={0} value={form.valor}
-                  onChange={(v) => setForm({ ...form, valor: v })} placeholder="R$ 0" />
+                  onChange={(v) => setForm({ ...form, valor: v === "" ? 0 : v })} placeholder="R$ 0" />
               </div>
               {form.tipo !== "unico" && (
                 <div className="space-y-2">

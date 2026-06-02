@@ -46,6 +46,7 @@ type PlanContextType = {
     bancoEscolhido?: Banco | null;
     aportesExtras?: Aporte[];
     aportesRegularesEditados?: Record<number, number>;
+    mesesConcluidos?: number[];
   }) => Promise<boolean>;
   bancoEscolhido: Banco | null;
   setBancoEscolhido: React.Dispatch<React.SetStateAction<Banco | null>>;
@@ -53,6 +54,8 @@ type PlanContextType = {
   setCenario: React.Dispatch<React.SetStateAction<CenarioCompra>>;
   aportesRegularesEditados: Record<number, number>;
   setAportesRegularesEditados: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+  mesesConcluidos: number[];
+  setMesesConcluidos: React.Dispatch<React.SetStateAction<number[]>>;
 };
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
@@ -67,6 +70,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     (Cookies.get("imovplan_cenario") as CenarioCompra) || "entrada"
   );
   const [aportesRegularesEditados, setAportesRegularesEditados] = useState<Record<number, number>>({});
+  const [mesesConcluidos, setMesesConcluidos] = useState<number[]>([]);
   
   const [planoId, setPlanoId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -99,6 +103,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
               if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
               if (data.aportesExtras) setAportesExtras(data.aportesExtras);
               if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
+              if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
               setPlanoId(localPlanoId);
               return;
             }
@@ -127,6 +132,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     bancoEscolhido?: Banco | null;
     aportesExtras?: Aporte[];
     aportesRegularesEditados?: Record<number, number>;
+    mesesConcluidos?: number[];
   }): Promise<boolean> => {
     if (!planoId || !sessionId) return false;
     try {
@@ -135,6 +141,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       const payloadBanco = overrideData && overrideData.bancoEscolhido !== undefined ? overrideData.bancoEscolhido : bancoEscolhido;
       const payloadAportes = overrideData && overrideData.aportesExtras !== undefined ? overrideData.aportesExtras : aportesExtras;
       const payloadAportesRegulares = overrideData && overrideData.aportesRegularesEditados !== undefined ? overrideData.aportesRegularesEditados : aportesRegularesEditados;
+      const payloadMesesConcluidos = overrideData && overrideData.mesesConcluidos !== undefined ? overrideData.mesesConcluidos : mesesConcluidos;
 
       await PlanoService.updateDraft(planoId, {
         sessionId,
@@ -145,7 +152,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         pessoas: payloadPessoas,
         bancoEscolhido: payloadBanco,
         aportesExtras: payloadAportes,
-        aportesRegularesEditados: payloadAportesRegulares
+        aportesRegularesEditados: payloadAportesRegulares,
+        mesesConcluidos: payloadMesesConcluidos
       });
       return true;
     } catch (err) {
@@ -155,14 +163,15 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <PlanContext.Provider value={{ 
-      objetivo, setObjetivo, 
-      pessoas, setPessoas, 
+    <PlanContext.Provider value={{
+      objetivo, setObjetivo,
+      pessoas, setPessoas,
       aportesExtras, setAportesExtras,
       planoId, sessionId, saveDraft,
       bancoEscolhido, setBancoEscolhido,
       cenario, setCenario,
-      aportesRegularesEditados, setAportesRegularesEditados
+      aportesRegularesEditados, setAportesRegularesEditados,
+      mesesConcluidos, setMesesConcluidos
     }}>
       {children}
     </PlanContext.Provider>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import React from "react";
+import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
 import { brl, simular } from "@/lib/finance";
@@ -51,42 +52,78 @@ function EditableAporte({ value, onSave, isEdited }: { value: number; onSave: (v
 
 // ─── Extras Cell (context aportes) ────────────────────────
 type ContextExtra = { origem: string; valor: number; pessoaNome?: string };
+type PessoaAporte = { nome: string; aporte: number };
 
-function ExtrasCell({ contextItems, total }: {
+function ExtrasCell({ contextItems, total, aporteRegular, pessoasAportes }: {
   contextItems: ContextExtra[];
   total: number;
+  aporteRegular: number;
+  pessoasAportes: PessoaAporte[];
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [portalPos, setPortalPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPortalPos({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + rect.width - 288 + window.scrollX,
+      });
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const hasItems = (contextItems ?? []).length > 0;
+  const hasExtras = (contextItems ?? []).length > 0;
+  const hasAporte = aporteRegular > 0;
+  const canOpen = hasExtras || hasAporte;
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={triggerRef}>
       <div
-        onClick={() => { if (total > 0) setOpen(o => !o); }}
+        onClick={() => { if (canOpen) setOpen(o => !o); }}
         className={`flex items-center justify-end gap-1 px-1.5 py-0.5 rounded transition-colors border border-transparent ${total > 0 ? "cursor-pointer hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" : "text-muted-foreground/40"}`}
-        title={total > 0 ? "Clique para ver detalhes" : undefined}
+        title={canOpen ? "Clique para ver detalhes" : undefined}
       >
         {total > 0 ? `+${brl(total)}` : "—"}
         {total > 0 && (open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)}
       </div>
 
-      {open && total > 0 && (
-        <div className="absolute right-0 z-30 mt-1 w-72 bg-card border border-border rounded-xl shadow-xl p-3 space-y-2">
-          {/* Aportes do contexto (Etapa 3) */}
-          {contextItems.length > 0 && (
+      {open && canOpen && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed z-50 w-72 bg-card border border-border rounded-xl shadow-xl p-3 space-y-3"
+          style={{ top: `${portalPos.top + 4}px`, left: `${Math.max(8, portalPos.left)}px` }}
+        >
+          {/* Aporte regular por pessoa */}
+          {hasAporte && pessoasAportes.length > 0 && (
             <div className="space-y-1">
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Detalhamento dos Extras</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Aporte regular</p>
+              {pessoasAportes.map((p, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px] gap-2 py-0.5">
+                  <span className="text-foreground font-medium truncate">{p.nome}</span>
+                  <span className="num text-foreground shrink-0">{brl(p.aporte)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-[11px] font-semibold pt-1 border-t border-border/50">
+                <span className="text-muted-foreground">Total aporte</span>
+                <span className="num">{brl(aporteRegular)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Extras */}
+          {hasExtras && (
+            <div className="space-y-1">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Extras do mês</p>
               {contextItems.map((item, i) => (
                 <div key={i} className="flex items-center justify-between text-[11px] gap-2 py-0.5">
                   <div className="flex flex-col min-w-0">
@@ -96,17 +133,14 @@ function ExtrasCell({ contextItems, total }: {
                   <span className="num text-accent shrink-0 font-semibold">+{brl(item.valor)}</span>
                 </div>
               ))}
+              <div className="flex justify-between text-[11px] font-semibold pt-1 border-t border-border/50">
+                <span className="text-muted-foreground">Total extras</span>
+                <span className="num text-accent">+{brl(total)}</span>
+              </div>
             </div>
           )}
-
-          {/* Total */}
-          {hasItems && (
-            <div className="flex justify-between text-[11px] font-semibold pt-1.5 border-t border-border/50">
-              <span className="text-muted-foreground">Total extras</span>
-              <span className="num text-accent">+{brl(total)}</span>
-            </div>
-          )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -114,30 +148,19 @@ function ExtrasCell({ contextItems, total }: {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos } = usePlanContext();
   const router = useRouter();
 
-  // mesesConcluidos: set of month numbers manually checked
-  const [mesesConcluidos, setMesesConcluidos] = useState<Set<number>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('imovplan_mesesConcluidos');
-      if (saved) {
-        try {
-          return new Set(JSON.parse(saved));
-        } catch {
-          return new Set();
-        }
-      }
-    }
-    return new Set();
-  });
+  // Convert mesesConcluidos array to Set for easier manipulation
+  const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
 
-  // Persist mesesConcluidos to localStorage
+  // Save mesesConcluidos to database when it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('imovplan_mesesConcluidos', JSON.stringify([...mesesConcluidos]));
-    }
-  }, [mesesConcluidos]);
+    const saveMesesConcluidos = async () => {
+      await saveDraft({ mesesConcluidos: [...mesesConcluidosSet] });
+    };
+    saveMesesConcluidos();
+  }, [mesesConcluidosSet]);
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
 
@@ -253,9 +276,11 @@ export default function ResultadoPage() {
 
   const toggleConcluido = (mes: number) => {
     setMesesConcluidos(prev => {
-      const next = new Set(prev);
-      if (next.has(mes)) next.delete(mes); else next.add(mes);
-      return next;
+      if (prev.includes(mes)) {
+        return prev.filter(m => m !== mes);
+      } else {
+        return [...prev, mes];
+      }
     });
   };
 
@@ -298,19 +323,19 @@ export default function ResultadoPage() {
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-medium">
             <Wallet className="h-3.5 w-3.5" /> Total acumulado
           </div>
-          <p className="font-display text-2xl num">{brl(sim.atingiuMeta ? sim.meta : sim.saldoFinal)}</p>
+          <p className="font-display text-2xl num">{brl(targetRow ? targetRow.saldoAcumulado : sim.saldoFinal)}</p>
         </Card>
         <Card className="p-4 border-border/50 flex flex-col justify-center">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-medium">
             <Coins className="h-3.5 w-3.5" /> Total investido
           </div>
-          <p className="font-display text-2xl num">{brl(sim.totalInvestido)}</p>
+          <p className="font-display text-2xl num">{brl(targetRow ? targetRow.totalInvestido : sim.totalInvestido)}</p>
         </Card>
         <Card className="p-4 border-border/50 flex flex-col justify-center bg-[#3B6D11]/5">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#3B6D11] dark:text-[#80B551] mb-2 font-medium">
             <TrendingUp className="h-3.5 w-3.5" /> Lucro líquido
           </div>
-          <p className="font-display text-2xl num text-[#3B6D11] dark:text-[#80B551]">+{brl(sim.lucroLiquido)}</p>
+          <p className="font-display text-2xl num text-[#3B6D11] dark:text-[#80B551]">+{brl(targetRow ? (targetRow.saldoAcumulado - targetRow.totalInvestido) : sim.lucroLiquido)}</p>
         </Card>
       </div>
 
@@ -335,7 +360,7 @@ export default function ResultadoPage() {
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} width={52} tickMargin={8} />
               <Tooltip
                 contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(value: number, name: string) => [brl(value), name]}
+                formatter={(value: any, name: any) => [brl(Number(value)), name]}
                 labelFormatter={label => `Período: ${label}`}
               />
               <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }} />
@@ -348,113 +373,141 @@ export default function ResultadoPage() {
         </div>
       </Card>
 
-      {/* Tabela mês a mês — seção direta */}
-      <div className="hidden">
-        <h2 className="font-display text-xl mb-4 font-light">Resumo Financeiro</h2>
-        <div className="grid md:grid-cols-3 gap-4">
+      {/* Resumo Financeiro & Aportes Extras */}
+      <div className="grid lg:grid-cols-3 gap-6 pt-4 border-t border-border/40">
+        {/* Resumo Financeiro (left side: 2 columns) */}
+        <div className="lg:col-span-2 space-y-4">
+          <h2 className="font-display text-xl font-light">Resumo Financeiro</h2>
+          <div className="grid md:grid-cols-3 gap-4">
 
-          {/* Valor Inicial */}
-          <Card className="p-4 border-border/50">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Wallet className="h-3.5 w-3.5" /> Valor inicial</p>
-            <p className="font-display text-2xl num mb-3">{brl(totalGuardado)}</p>
-            <div className="space-y-2">
-              {pessoas.map(p => {
-                const valor = p.valorInicial ?? 0;
-                const percent = totalGuardado > 0 ? (valor / totalGuardado) * 100 : 0;
-                return (
-                  <div key={p.id} className="space-y-1">
-                    <div className="flex justify-between text-xs items-end">
-                      <span className="flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> {p.nome}</span>
-                      <span className="num font-medium">{brl(valor)} <span className="text-muted-foreground">({percent.toFixed(0)}%)</span></span>
+            {/* Valor Inicial */}
+            <Card className="p-4 border-border/50 bg-card shadow-soft">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Wallet className="h-3.5 w-3.5" /> Valor inicial</p>
+              <p className="font-display text-2xl num mb-3">{brl(totalGuardado)}</p>
+              <div className="space-y-2">
+                {pessoas.map(p => {
+                  const valor = p.valorInicial ?? 0;
+                  const percent = totalGuardado > 0 ? (valor / totalGuardado) * 100 : 0;
+                  return (
+                    <div key={p.id} className="space-y-1">
+                      <div className="flex justify-between text-xs items-end">
+                        <span className="flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> {p.nome}</span>
+                        <span className="num font-medium">{brl(valor)} <span className="text-muted-foreground">({percent.toFixed(0)}%)</span></span>
+                      </div>
+                      <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${percent}%` }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${percent}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+                  );
+                })}
+              </div>
+            </Card>
 
-          {/* Valor Aportado */}
-          <Card className="p-4 border-border/50">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Coins className="h-3.5 w-3.5" /> Valor aportado</p>
-            <p className="font-display text-2xl num mb-3">{brl(targetRow ? targetRow.totalInvestido - totalGuardado : 0)}</p>
-            <div className="space-y-2">
-              {(() => {
-                const meses = sim.mesAtingiuMeta ?? sim.rows.length;
-                const extrasMap: Record<string, number> = {};
-                let conjuntoExtra = 0;
-                aportesExtras.forEach(a => {
-                  const d = new Date(a.data + 'T12:00:00');
-                  const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
-                  if (mesOffset <= meses) {
-                    if (a.pessoaNome) extrasMap[a.pessoaNome] = (extrasMap[a.pessoaNome] || 0) + Number(a.valor);
-                    else conjuntoExtra += Number(a.valor);
-                  }
-                });
-                const totalMonths = Math.max(0, meses - 1);
-                const totalAportadoGeral = targetRow ? targetRow.totalInvestido - totalGuardado : 0;
-                const lista = pessoas.map(p => {
-                  // Sum actual aporteRegular values from SimRow (including edits) instead of using fixed calculation
-                  const aportesRegularesSum = sim.rows.slice(0, meses).reduce((sum, row) => {
-                    if (row.mes === 1) return sum; // Month 1 has no regular contribution
-                    const defaultAporte = row.mes === 1 ? 0 : aporteTotal;
-                    const isEdited = row.aporteRegular !== defaultAporte;
-                    if (isEdited) {
-                      // If edited, distribute proportionally based on person's share of default aporte
-                      const baseAporte = Number(p.aporte_mensal) || 0;
-                      const proporcao = defaultAporte > 0 ? baseAporte / defaultAporte : 0;
-                      return sum + (proporcao * row.aporteRegular);
-                    } else {
-                      return sum + (Number(p.aporte_mensal) || 0);
+            {/* Valor Aportado */}
+            <Card className="p-4 border-border/50 bg-card shadow-soft">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Coins className="h-3.5 w-3.5" /> Valor aportado</p>
+              <p className="font-display text-2xl num mb-3">{brl(targetRow ? targetRow.totalInvestido - totalGuardado : 0)}</p>
+              <div className="space-y-2">
+                {(() => {
+                  const meses = sim.mesAtingiuMeta ?? sim.rows.length;
+                  const extrasMap: Record<string, number> = {};
+                  let conjuntoExtra = 0;
+                  aportesExtras.forEach(a => {
+                    const d = new Date(a.data + 'T12:00:00');
+                    const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+                    if (mesOffset <= meses) {
+                      if (a.pessoaNome) extrasMap[a.pessoaNome] = (extrasMap[a.pessoaNome] || 0) + Number(a.valor);
+                      else conjuntoExtra += Number(a.valor);
                     }
-                  }, 0);
-                  const v = aportesRegularesSum + (extrasMap[p.nome] || 0);
-                  return { nome: p.nome, valor: v, percent: totalAportadoGeral > 0 ? (v / totalAportadoGeral) * 100 : 0 };
-                });
-                if (conjuntoExtra > 0) lista.push({ nome: "Conjunto", valor: conjuntoExtra, percent: totalAportadoGeral > 0 ? (conjuntoExtra / totalAportadoGeral) * 100 : 0 });
-                return lista.map((item, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-xs items-end">
-                      <span className="flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> {item.nome}</span>
-                      <span className="num font-medium">{brl(item.valor)} <span className="text-muted-foreground">({item.percent.toFixed(0)}%)</span></span>
+                  });
+                  const totalAportadoGeral = targetRow ? targetRow.totalInvestido - totalGuardado : 0;
+                  const lista = pessoas.map(p => {
+                    const aportesRegularesSum = sim.rows.slice(0, meses).reduce((sum, row) => {
+                      if (row.mes === 1) return sum;
+                      const defaultAporte = row.mes === 1 ? 0 : aporteTotal;
+                      const isEdited = row.aporteRegular !== defaultAporte;
+                      if (isEdited) {
+                         const baseAporte = Number(p.aporte_mensal) || 0;
+                         const proporcao = defaultAporte > 0 ? baseAporte / defaultAporte : 0;
+                         return sum + (proporcao * row.aporteRegular);
+                      } else {
+                         return sum + (Number(p.aporte_mensal) || 0);
+                      }
+                    }, 0);
+                    const v = aportesRegularesSum + (extrasMap[p.nome] || 0);
+                    return { nome: p.nome, valor: v, percent: totalAportadoGeral > 0 ? (v / totalAportadoGeral) * 100 : 0 };
+                  });
+                  if (conjuntoExtra > 0) lista.push({ nome: "Conjunto", valor: conjuntoExtra, percent: totalAportadoGeral > 0 ? (conjuntoExtra / totalAportadoGeral) * 100 : 0 });
+                  return lista.map((item, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex justify-between text-xs items-end">
+                        <span className="flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> {item.nome}</span>
+                        <span className="num font-medium">{brl(item.valor)} <span className="text-muted-foreground">({item.percent.toFixed(0)}%)</span></span>
+                      </div>
+                      <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${item.percent}%` }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${item.percent}%` }} />
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-          </Card>
+                  ));
+                })()}
+              </div>
+            </Card>
 
-          {/* Total Acumulado */}
-          <Card className="p-4 border-border/50 bg-[#3B6D11]/5">
-            <p className="text-[10px] uppercase tracking-wider text-[#3B6D11] dark:text-[#80B551] font-medium flex items-center gap-1.5 mb-2"><TrendingUp className="h-3.5 w-3.5" /> Total acumulado</p>
-            <p className="font-display text-2xl num text-[#3B6D11] dark:text-[#80B551] mb-3">{brl(targetRow ? targetRow.saldoAcumulado : 0)}</p>
-            <div className="space-y-2">
-              {(() => {
-                if (!targetRow) return null;
-                const total = targetRow.saldoAcumulado;
-                const lista = pessoas.map(p => {
-                  const v = targetRow.saldosIndividuais[p.nome] || 0;
-                  return { nome: p.nome, valor: v, percent: total > 0 ? (v / total) * 100 : 0 };
-                });
-                if (targetRow.saldoConjunto > 0) lista.push({ nome: "Conjunto", valor: targetRow.saldoConjunto, percent: total > 0 ? (targetRow.saldoConjunto / total) * 100 : 0 });
-                return lista.map((item, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-xs items-end">
-                      <span className="flex items-center gap-1 text-[#3B6D11]/70 dark:text-[#80B551]/70"><User className="h-3 w-3" /> {item.nome}</span>
-                      <span className="num font-medium">{brl(item.valor)} <span className="text-muted-foreground">({item.percent.toFixed(0)}%)</span></span>
+            {/* Total Acumulado */}
+            <Card className="p-4 border-border/50 bg-[#3B6D11]/5 shadow-soft">
+              <p className="text-[10px] uppercase tracking-wider text-[#3B6D11] dark:text-[#80B551] font-medium flex items-center gap-1.5 mb-2"><TrendingUp className="h-3.5 w-3.5" /> Total acumulado</p>
+              <p className="font-display text-2xl num text-[#3B6D11] dark:text-[#80B551] mb-3">{brl(targetRow ? targetRow.saldoAcumulado : sim.saldoFinal)}</p>
+              <div className="space-y-2">
+                {(() => {
+                  const rRow = targetRow || sim.rows[sim.rows.length - 1];
+                  if (!rRow) return null;
+                  const total = rRow.saldoAcumulado;
+                  const lista = pessoas.map(p => {
+                    const v = rRow.saldosIndividuais[p.nome] || 0;
+                    return { nome: p.nome, valor: v, percent: total > 0 ? (v / total) * 100 : 0 };
+                  });
+                  if (rRow.saldoConjunto > 0) lista.push({ nome: "Conjunto", valor: rRow.saldoConjunto, percent: total > 0 ? (rRow.saldoConjunto / total) * 100 : 0 });
+                  return lista.map((item, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex justify-between text-xs items-end">
+                        <span className="flex items-center gap-1 text-[#3B6D11]/70 dark:text-[#80B551]/70"><User className="h-3 w-3" /> {item.nome}</span>
+                        <span className="num font-medium">{brl(item.valor)} <span className="text-muted-foreground">({item.percent.toFixed(0)}%)</span></span>
+                      </div>
+                      <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#3B6D11] dark:bg-[#80B551] transition-all duration-500" style={{ width: `${item.percent}%` }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#3B6D11] dark:bg-[#80B551] transition-all duration-500" style={{ width: `${item.percent}%` }} />
+                  ));
+                })()}
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Aportes Extras Cadastrados (right side: 1 column) */}
+        <div className="space-y-4">
+          <h2 className="font-display text-xl font-light">Aportes Extras Cadastrados</h2>
+          <Card className="p-4 border-border/50 shadow-soft bg-card h-[286px] overflow-y-auto">
+            {aportesExtras.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12 flex flex-col items-center justify-center h-full">
+                <Coins className="h-8 w-8 opacity-20 mb-2" />
+                <p className="text-xs">Nenhum aporte extra programado.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {aportesExtras.map((a, i) => (
+                  <div key={i} className={`flex items-center justify-between text-xs ${i > 0 ? "pt-3 border-t border-border/40" : ""}`}>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate text-foreground">{a.origem}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")} · {a.pessoaNome ?? "Conjunto"}
+                      </p>
                     </div>
+                    <span className="num font-semibold text-accent text-sm shrink-0 ml-2">+{brl(Number(a.valor))}</span>
                   </div>
-                ));
-              })()}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
       </div>
@@ -474,17 +527,22 @@ export default function ResultadoPage() {
                 <Th>Data</Th>
                 <Th right>Aporte</Th>
                 <Th right>Extras</Th>
+                <Th right>Total Aporte</Th>
+                <Th right>Rend. Bruto</Th>
+                <Th right>IR</Th>
                 <Th right>Rend. Líquido</Th>
-                {pessoas.map(p => <Th right key={p.id}>{p.nome.split(" ")[0]}</Th>)}
-                <Th right>Total</Th>
+                <Th right>Saldo Acumulado</Th>
+                <Th right>% Meta</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {tableRows.map(r => {
                 const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
                 const isEdited = r.aporteRegular !== defaultAporte;
-                const isConcluido = mesesConcluidos.has(r.mes);
+                const isConcluido = mesesConcluidosSet.has(r.mes);
                 const totalExtras = r.aportesExtras;
+                const totalAporteMes = r.aporteRegular + totalExtras;
+                const progressoMeta = sim.meta > 0 ? (r.saldoAcumulado / sim.meta) * 100 : 0;
 
                 return (
                   <tr
@@ -540,33 +598,55 @@ export default function ResultadoPage() {
                             return mesOffset === r.mes;
                           })
                           .map(a => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome }));
+
+                        const pessoasAportes: PessoaAporte[] = pessoas.map(p => {
+                          const baseAporte = r.mes === 1 ? 0 : (Number(p.aporte_mensal) || 0);
+                          let aporteFinal = baseAporte;
+                          if (isEdited && aporteTotal > 0) aporteFinal = (baseAporte / aporteTotal) * r.aporteRegular;
+                          else if (isEdited) aporteFinal = 0;
+                          return { nome: p.nome, aporte: aporteFinal };
+                        }).filter(p => p.aporte > 0);
+
                         return (
                           <ExtrasCell
                             contextItems={ctxItems}
                             total={totalExtras}
+                            aporteRegular={r.aporteRegular}
+                            pessoasAportes={pessoasAportes}
                           />
                         );
                       })()}
                     </Td>
 
+                    {/* Total Aporte do Mês */}
+                    <Td right className="font-medium text-foreground">
+                      {brl(totalAporteMes)}
+                    </Td>
+
+                    {/* Rendimento Bruto */}
+                    <Td right className="text-muted-foreground">
+                      {brl(r.rendimentoBruto)}
+                    </Td>
+
+                    {/* IR */}
+                    <Td right className="text-muted-foreground/70">
+                      {brl(r.imposto)}
+                    </Td>
+
+                    {/* Rendimento Líquido */}
                     <Td right className="text-[#3B6D11] dark:text-[#80B551] font-medium">
                       {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
                     </Td>
-                    {pessoas.map(p => {
-                      const baseAporte = r.mes === 1 ? 0 : (Number(p.aporte_mensal) || 0);
-                      const isEdited = r.aporteRegular !== (r.mes === 1 ? 0 : aporteTotal);
-                      let aporteFinal = baseAporte;
-                      if (isEdited && aporteTotal > 0) {
-                        aporteFinal = (baseAporte / aporteTotal) * r.aporteRegular;
-                      } else if (isEdited) {
-                        aporteFinal = 0;
-                      }
-                      const extra = r.extrasPorPessoa?.[p.nome] || 0;
-                      return (
-                        <Td right key={p.id} className="font-medium text-muted-foreground">{brl(aporteFinal + extra)}</Td>
-                      );
-                    })}
+
+                    {/* Saldo Acumulado */}
                     <Td right className="font-bold text-sm text-foreground">{brl(r.saldoAcumulado)}</Td>
+
+                    {/* Progresso % */}
+                    <Td right className="font-medium">
+                      <span className={progressoMeta >= 100 ? "text-primary" : "text-muted-foreground"}>
+                        {progressoMeta.toFixed(1)}%
+                      </span>
+                    </Td>
                   </tr>
                 );
               })}

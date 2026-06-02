@@ -190,11 +190,11 @@ export default function PessoaCard({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Renda Principal</Label>
-          <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => atualizarPessoa(p.id, { renda_mensal: v })} />
+          <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => atualizarPessoa(p.id, { renda_mensal: v === "" ? 0 : v })} />
         </div>
         <div>
           <Label className="text-xs">Renda Extra</Label>
-          <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)} onChange={v => atualizarPessoa(p.id, { renda_complementar: v })} />
+          <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)} onChange={v => atualizarPessoa(p.id, { renda_complementar: v === "" ? 0 : v })} />
         </div>
         <div className="col-span-2">
           <Label className="text-xs text-accent">Valor Já Guardado</Label>
@@ -202,7 +202,7 @@ export default function PessoaCard({
             variant="money"
             min={0}
             value={valorInicial}
-            onChange={v => atualizarPessoa(p.id, { valorInicial: v })}
+            onChange={v => atualizarPessoa(p.id, { valorInicial: v === "" ? 0 : v })}
           />
         </div>
         <div className="col-span-2">
@@ -211,7 +211,7 @@ export default function PessoaCard({
             variant="money"
             min={0}
             value={Number(p.aporte_mensal || 0)}
-            onChange={v => atualizarPessoa(p.id, { aporte_mensal: v })}
+            onChange={v => atualizarPessoa(p.id, { aporte_mensal: v === "" ? 0 : v })}
           />
         </div>
         <div className="col-span-2 pt-2">
@@ -222,14 +222,14 @@ export default function PessoaCard({
             </Button>
           </div>
           {!p.usar_gastos_detalhados ? (
-            <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)} onChange={v => atualizarPessoa(p.id, { gastos_mensais: v })} />
+            <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)} onChange={v => atualizarPessoa(p.id, { gastos_mensais: v === "" ? 0 : v })} />
           ) : (
             <div className="space-y-2 bg-secondary/20 p-3 rounded-lg border border-border/40">
               {(p.gastos_detalhados || []).map(g => (
                 <div key={g.id} className="flex items-center gap-2 bg-background p-1.5 rounded-md border border-border/40">
                   <Input value={g.nome} onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} className="h-8 text-xs flex-1 bg-transparent" placeholder="Nome do gasto" />
                   <div className="w-24">
-                    <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v })} className="h-8 text-xs" />
+                    <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="h-8 text-xs" />
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveGasto(g.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
@@ -241,7 +241,7 @@ export default function PessoaCard({
                   <Input placeholder="Ex: Mercado" className="h-8 text-xs" value={novoGasto.nome} onChange={e => setNovoGasto({ ...novoGasto, nome: e.target.value })} />
                 </div>
                 <div className="w-24">
-                  <MoneyInput variant="money" min={0} placeholder="R$" className="h-8 text-xs" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v })} />
+                  <MoneyInput variant="money" min={0} placeholder="R$" className="h-8 text-xs" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} />
                 </div>
                 <Button size="icon" className="h-8 w-8 bg-primary text-primary-foreground" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
                   <Plus className="h-3 w-3" />
