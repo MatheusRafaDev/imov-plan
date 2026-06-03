@@ -51,6 +51,8 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.BancoEscolhidoTaxa = objetivo.BancoEscolhidoTaxa;
                 existing.PessoasIds = objetivo.PessoasIds;
                 existing.AportesExtras = objetivo.AportesExtras;
+                existing.AportesRegularesEditados = objetivo.AportesRegularesEditados;
+                existing.MesesConcluidos = objetivo.MesesConcluidos;
 
                 _context.Objetivos.Update(existing);
                 await _context.SaveChangesAsync();

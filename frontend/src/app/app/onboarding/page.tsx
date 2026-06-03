@@ -47,7 +47,7 @@ export default function OnboardingPage() {
   const { user, updateUser } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"financeiro" | "cenario">("financeiro");
+  const [step, setStep] = useState<"financeiro" | "cenario">("cenario");
   const [cenarioSelecionado, setCenarioSelecionado] = useState<Cenario>("entrada");
 
   const [form, setForm] = useState({
@@ -212,9 +212,7 @@ export default function OnboardingPage() {
             })}
 
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="h-12 px-6" onClick={() => setStep("financeiro")}>
-                Voltar
-              </Button>
+
               <Button
                 className="flex-1 h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow"
                 onClick={handleSubmit}

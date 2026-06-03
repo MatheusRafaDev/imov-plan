@@ -162,7 +162,7 @@ export default function ObjetivoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Data limite (comprar até)</Label>
-                  <DateInput 
+                  <MonthYearInput 
                     value={form.data_fim} 
                     onChange={(v) => setForm({ ...form, data_fim: v })} 
                   />

@@ -134,7 +134,11 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     aportesRegularesEditados?: Record<number, number>;
     mesesConcluidos?: number[];
   }): Promise<boolean> => {
-    if (!planoId || !sessionId) return false;
+    if (!planoId || !sessionId) {
+      console.warn("saveDraft chamado antes do planoId/sessionId estar pronto — ignorando.");
+      return false;
+    }
+
     try {
       const payloadObjetivo = overrideData && overrideData.objetivo !== undefined ? overrideData.objetivo : objetivo;
       const payloadPessoas = overrideData && overrideData.pessoas !== undefined ? overrideData.pessoas : pessoas;

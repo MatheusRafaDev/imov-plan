@@ -155,11 +155,13 @@ export default function ResultadoPage() {
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
 
   // Save mesesConcluidos to database when it changes
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    const saveMesesConcluidos = async () => {
-      await saveDraft({ mesesConcluidos: [...mesesConcluidosSet] });
-    };
-    saveMesesConcluidos();
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    saveDraft({ mesesConcluidos: [...mesesConcluidosSet] });
   }, [mesesConcluidosSet]);
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);

@@ -84,8 +84,17 @@ namespace ImovPlan.Domain.Entities
         public List<AporteExtra> AportesExtras { get; set; } = new();
 
         [BsonElement("aportesRegularesEditados")]
+        public string AportesRegularesEditadosJson { get; set; } = "{}";
+
         [NotMapped]
-        public Dictionary<int, decimal> AportesRegularesEditados { get; set; } = new();
+        [BsonIgnore]
+        public Dictionary<int, decimal> AportesRegularesEditados
+        {
+            get => string.IsNullOrEmpty(AportesRegularesEditadosJson)
+                ? new()
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<int, decimal>>(AportesRegularesEditadosJson) ?? new();
+            set => AportesRegularesEditadosJson = System.Text.Json.JsonSerializer.Serialize(value);
+        }
 
         [BsonElement("mesesConcluidos")]
         public List<int> MesesConcluidos { get; set; } = new();
