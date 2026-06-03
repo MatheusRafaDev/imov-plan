@@ -1,9 +1,22 @@
-# Build / output
+# ── Build output ────────────────────────────────────
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
 [Pp]ackages/
+[Bb]inaries/
+[Oo]bjects/
+[Ll]ocal[Rr]esults/
 [Tt]est[Rr]esults/
+publish/
+
+# ── .NET artifacts ──────────────────────────────────
+*.dll
+*.pdb
+*.nupkg
+*.snupkg
+.nuget/
+
+# ── Debug / Release configs ──────────────────────────
 [Dd]ebug/
 [Rr]elease/
 x64/
@@ -11,58 +24,22 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-[Bb]inaries/
-[Oo]bjects/
-[Ll]ocal[Rr]esults/
 
-# IDEs / Editors
+# ── IDE ─────────────────────────────────────────────
 .vs/
-.vscode/
-.idea/
 *.sln.iml
-
-# Rider / ReSharper
 *.[Rr]e[Ss]harper
 *.DotSettings.user
-
-# User-specific files
 *.rsuser
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
 
-# OS files
-.DS_Store
-Thumbs.db
+# ── Configurações com secrets ────────────────────────
+# NÃO ignore appsettings.json (connection string padrão local, sem secrets)
+# NÃO ignore appsettings.Development.json (config de dev, sem secrets reais)
+appsettings.Production.json
+appsettings.Staging.json
 
-# Logs
-*.log
-
-# Environment / secrets
-appsettings.Development.json
-appsettings.*.json
-.env
-.env.*
-*.env
-*.env.local
-
-# NuGet
-*.nupkg
-.nuget/
-
-# Node
-node_modules/
-
-# Coverage
-coverage/
-coverage.xml
-
-# Publish
-publish/
-
-# Temporary files
+# ── Temporários ──────────────────────────────────────
 *.tmp
 *.temp
-
-*.dll
+coverage/
+coverage.xml
