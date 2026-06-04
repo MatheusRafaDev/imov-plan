@@ -120,7 +120,7 @@ namespace ImovPlan.Application.Services
                     await _aporteExtraRepo.AddAsync(new AporteExtra
                     {
                         ObjetivoImovelId = id,
-                        PessoaId = a.PessoaId ?? string.Empty,
+                        PessoaId = string.IsNullOrEmpty(a.PessoaId) ? "" : a.PessoaId,
                         PessoaNome = a.PessoaNome ?? string.Empty,
                         Data = !string.IsNullOrEmpty(a.Data) && DateTime.TryParse(a.Data, out var d) ? d : DateTime.UtcNow,
                         Valor = a.Valor,

@@ -598,9 +598,9 @@ export default function ResultadoPage() {
                         <button
                           onClick={() => toggleConcluido(r.mes)}
                           title={isConcluido ? "Desmarcar" : "Marcar como concluído"}
-                          className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400" : "border-border/50 hover:border-teal-500/50 hover:bg-teal-500/10"}`}
+                          className={`w-6 h-6 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400" : "border-border/50 hover:border-teal-500/50 hover:bg-teal-500/10"}`}
                         >
-                          {isConcluido && <Check className="h-2.5 w-2.5" />}
+                          {isConcluido && <Check className="h-4 w-4" />}
                         </button>
                         <span className={isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
                         {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] uppercase font-bold tracking-wider">Meta</span>}

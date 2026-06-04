@@ -44,12 +44,14 @@ namespace ImovPlan.Application.Services
                     .Where(a => a.Data.Year == dataReferencia.Year && a.Data.Month == dataReferencia.Month)
                     .Sum(a => a.Valor);
 
-                totalInvestido += totalAporteMensal + aporteExtraMes;
+                var aporteMes = totalAporteMensal + aporteExtraMes;
+                totalInvestido += aporteMes;
 
-                var novoSaldo = (saldo + totalAporteMensal + aporteExtraMes) * (1 + taxaMensal);
-                var rendimentoBruto = novoSaldo - totalInvestido;
-                var imposto = CalcularIR(meses, rendimentoBruto);
-                var saldoLiquido = novoSaldo - imposto;
+                // Mirrors finance.ts: yield is calculated on (saldo + contributions) before compounding
+                var rendimentoMes = (saldo + aporteMes) * taxaMensal;
+                var imposto = CalcularIR(meses, rendimentoMes);
+                var rendimentoLiquido = rendimentoMes - imposto;
+                var novoSaldo = saldo + aporteMes + rendimentoLiquido;
 
                 resultado.DetalhesMensais.Add(new DetalheMensal
                 {
@@ -57,13 +59,13 @@ namespace ImovPlan.Application.Services
                     DataReferencia = dataReferencia,
                     AporteMensal = totalAporteMensal,
                     AportesExtras = aporteExtraMes,
-                    RendimentoBruto = rendimentoBruto,
+                    RendimentoBruto = rendimentoMes,
                     Imposto = imposto,
-                    RendimentoLiquido = rendimentoBruto - imposto,
-                    TotalAcumulado = saldoLiquido
+                    RendimentoLiquido = rendimentoLiquido,
+                    TotalAcumulado = novoSaldo
                 });
 
-                saldo = saldoLiquido;
+                saldo = novoSaldo;
             }
 
             resultado.MesesParaAtingir = meses;

@@ -27,7 +27,7 @@ namespace ImovPlan.Infrastructure.Repositories
         public async Task<IEnumerable<AporteExtra>> GetByPessoaIdAsync(string pessoaId)
         {
             return await _context.AportesExtras
-                .Where(a => a.PessoaId == pessoaId)
+                .Where(a => a.PessoaId != null && a.PessoaId == pessoaId)
                 .ToListAsync();
         }
 

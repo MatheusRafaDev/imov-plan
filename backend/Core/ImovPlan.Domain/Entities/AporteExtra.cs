@@ -15,8 +15,7 @@ namespace ImovPlan.Domain.Entities
         public string ObjetivoImovelId { get; set; } = string.Empty;
 
         [BsonElement("pessoaId")]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string PessoaId { get; set; } = string.Empty;
+        public string? PessoaId { get; set; } = null;
 
         [BsonElement("pessoaNome")]
         public string PessoaNome { get; set; } = string.Empty;

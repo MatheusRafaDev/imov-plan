@@ -95,7 +95,6 @@ export function simular(input: SimInput): SimResult {
     inicio = new Date();
   }
   if (isNaN(inicio.getTime())) {
-    console.warn('Invalid dataInicio, using current date:', input.dataInicio);
     inicio = new Date();
   }
 
@@ -116,10 +115,14 @@ export function simular(input: SimInput): SimResult {
   let mesAtingiu: number | undefined;
   let dataAtingiu: string | undefined;
 
-  // Registro inicial (Mês 0)
+
+
+  // Registro inicial (Mês 0) – exibe o saldo ao início do plano
+  const startOfMonth = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+  const safeStartIso = isNaN(startOfMonth.getTime()) ? new Date().toISOString() : startOfMonth.toISOString();
   rows.push({
     mes: 0,
-    data: new Date(inicio.getFullYear(), inicio.getMonth(), 1).toISOString(),
+    data: safeStartIso,
     aporteRegular: 0,
     aportesExtras: 0,
     rendimentoBruto: 0,
