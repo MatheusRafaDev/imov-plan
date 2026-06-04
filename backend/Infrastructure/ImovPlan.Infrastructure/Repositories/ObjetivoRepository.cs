@@ -20,6 +20,11 @@ namespace ImovPlan.Infrastructure.Repositories
             return await _context.Objetivos.FirstOrDefaultAsync(o => o.Id == id);
         }
 
+        public async Task<ObjetivoImovel?> GetBySessionIdAsync(string sessionId)
+        {
+            return await _context.Objetivos.FirstOrDefaultAsync(o => o.SessionId == sessionId && o.Status == "Draft");
+        }
+
         public async Task<ObjetivoImovel> CreateAsync(ObjetivoImovel objetivo)
         {
             _context.Objetivos.Add(objetivo);

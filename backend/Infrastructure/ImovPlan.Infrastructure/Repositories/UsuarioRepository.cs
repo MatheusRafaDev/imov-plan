@@ -42,10 +42,6 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.Email = usuario.Email;
                 existing.PasswordHash = usuario.PasswordHash;
                 existing.DataNascimento = usuario.DataNascimento;
-                existing.EstadoCivil = usuario.EstadoCivil;
-                existing.RendaMensal = usuario.RendaMensal;
-                existing.RegimeTrabalho = usuario.RegimeTrabalho;
-                existing.SaldoFgts = usuario.SaldoFgts;
                 _context.Usuarios.Update(existing);
                 await _context.SaveChangesAsync();
             }

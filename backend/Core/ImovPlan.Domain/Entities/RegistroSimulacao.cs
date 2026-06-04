@@ -6,9 +6,10 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace ImovPlan.Domain.Entities
 {
     /// <summary>
-    /// Snapshot imutável de uma simulação, persistido ao final de cada cálculo.
+    /// Registro imutável de uma simulação executada, persistido ao final de cada cálculo.
+    /// Armazena inputs e outputs para histórico e recuperação.
     /// </summary>
-    public class SnapshotSimulacao
+    public class RegistroSimulacao
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]

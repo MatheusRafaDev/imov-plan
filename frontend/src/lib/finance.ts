@@ -6,6 +6,7 @@ export type Aporte = {
   valor: number;
   origem: string;
   pessoaNome?: string;
+  pessoaId?: string;
   checked?: boolean;
 };
 

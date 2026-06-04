@@ -34,7 +34,6 @@ export default function PessoasPage() {
   // Redirect if missing step 1
   useEffect(() => {
     if (planoId && (!objetivo || !objetivo.valorImovel || objetivo.valorImovel === 0)) {
-      toast.warning("Por favor, preencha as informações do imóvel primeiro.");
       const paths: Record<string, string> = {
         entrada: "/app/objetivo",
         pronto: "/app/pronto",
@@ -56,7 +55,7 @@ export default function PessoasPage() {
   }, [pessoas.length, totalObjetivo, setPessoas]);
 
   useEffect(() => {
-    if (pessoas.length === 0 && user) {
+    if (pessoas.length === 0 && user && planoId) {
       const defaultPessoa: Pessoa = {
         id: "user-" + user.id,
         nome: user.name || "Eu",
@@ -71,7 +70,7 @@ export default function PessoasPage() {
       setPessoas([defaultPessoa]);
       saveDraft({ pessoas: [defaultPessoa] });
     }
-  }, [user, pessoas.length, setPessoas]);
+  }, [user, pessoas.length, setPessoas, planoId, saveDraft]);
 
   const prosseguir = async () => {
     const success = await saveDraft();

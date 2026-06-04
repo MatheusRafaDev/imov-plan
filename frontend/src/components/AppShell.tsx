@@ -30,10 +30,11 @@ const navPorCenario = {
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const { logout, user } = useAuth();
-  const { cenario } = usePlanContext();
+  const { cenario, objetivo } = usePlanContext();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
   const homeHref = nav[0]?.to ?? "/app/objetivo";
+  const isStep1Filled = !!(objetivo && objetivo.valorImovel && objetivo.valorImovel > 0);
 
   return (
     <div className="min-h-screen bg-gradient-cream">
@@ -50,26 +51,38 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               const activeIndex = nav.findIndex(item => pathname?.startsWith(item.to));
               const isActive = index === activeIndex;
               const isPast = activeIndex !== -1 && index < activeIndex;
+              const isDisabled = index > 0 && !isStep1Filled;
 
               return (
                 <div key={n.to} className="flex items-center">
-                  <Link
-                    href={n.to}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      isActive 
-                        ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" 
-                        : isPast 
-                          ? "text-accent hover:bg-secondary/60" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    }`}
-                  >
-                    <div className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${
-                      isActive ? "bg-accent text-accent-foreground" : isPast ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"
-                    }`}>
-                      {index + 1}
+                  {isDisabled ? (
+                    <div
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-muted-foreground/40 cursor-not-allowed opacity-50 select-none"
+                    >
+                      <div className="grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground/30">
+                        {index + 1}
+                      </div>
+                      <span className="hidden xl:inline">{n.label}</span>
                     </div>
-                    <span className="hidden xl:inline">{n.label}</span>
-                  </Link>
+                  ) : (
+                    <Link
+                      href={n.to}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        isActive 
+                          ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" 
+                          : isPast 
+                            ? "text-accent hover:bg-secondary/60" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      }`}
+                    >
+                      <div className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${
+                        isActive ? "bg-accent text-accent-foreground" : isPast ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <span className="hidden xl:inline">{n.label}</span>
+                    </Link>
+                  )}
                   {index < nav.length - 1 && (
                     <div className="w-4 h-[1px] bg-border/60 mx-1" />
                   )}
@@ -92,9 +105,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </div>
         <nav className="md:hidden border-t border-border/60 bg-background/70">
           <div className="container flex">
-            {nav.map((n) => {
+            {nav.map((n, index) => {
               const active = pathname?.startsWith(n.to) || false;
-              return (
+              const isDisabled = index > 0 && !isStep1Filled;
+              return isDisabled ? (
+                <div key={n.to} className="flex-1 py-2 grid place-items-center text-xs gap-0.5 text-muted-foreground/40 cursor-not-allowed opacity-50 select-none">
+                  <n.icon className="h-4 w-4" />
+                  {n.label}
+                </div>
+              ) : (
                 <Link key={n.to} href={n.to} className={`flex-1 py-2 grid place-items-center text-xs gap-0.5 ${active ? "text-accent" : "text-muted-foreground"}`}>
                   <n.icon className="h-4 w-4" />
                   {n.label}

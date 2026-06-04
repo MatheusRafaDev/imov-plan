@@ -72,7 +72,15 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [mesesConcluidos, setMesesConcluidos] = useState<number[]>([]);
   
   const [planoId, setPlanoId] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    let existing = Cookies.get("imovplan_sessionId");
+    if (!existing) {
+      existing = Math.random().toString(36).substring(2, 15);
+      Cookies.set("imovplan_sessionId", existing, { expires: 30 });
+    }
+    return existing;
+  });
 
   const isInitializing = React.useRef(false);
 
@@ -82,13 +90,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     isInitializing.current = true;
 
     // Check local storage for existing session/draft
-    let localSessionId = Cookies.get("imovplan_sessionId");
-
-    if (!localSessionId) {
-      localSessionId = Math.random().toString(36).substring(2, 15);
-      Cookies.set("imovplan_sessionId", localSessionId, { expires: 30 });
-    }
-    setSessionId(localSessionId);
+    const localSessionId = sessionId;
+    if (!localSessionId) return;
     
     // Draft can be local but we also sync to backend
     const initDraft = async () => {
@@ -101,9 +104,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           if (res.ok) {
             const data = await res.json();
             if (data.objetivo) {
+              const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
               setObjetivo({
                 ...data.objetivo,
-                dataInicio: data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date()
+                dataInicio: isNaN(d.getTime()) ? new Date() : d
               });
             }
             if (data.pessoas) setPessoas(data.pessoas);
@@ -122,9 +126,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         if (savedDraft) {
           const data = JSON.parse(savedDraft);
           if (data.objetivo) {
+            const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
             setObjetivo({
               ...data.objetivo,
-              dataInicio: data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date()
+              dataInicio: isNaN(d.getTime()) ? new Date() : d
             });
           }
           if (data.pessoas) setPessoas(data.pessoas);
@@ -205,11 +210,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
       // Sync to backend if we have a valid planoId
       if (planoId && !planoId.startsWith("local-draft-")) {
-        await fetch(`http://localhost:5179/api/plano/draft/${planoId}`, {
+        const res = await fetch(`http://localhost:5179/api/plano/draft/${planoId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(draftToSave)
         });
+        if (!res.ok) {
+          console.error(`Erro ao sincronizar draft com backend: ${res.status} ${res.statusText}`);
+        }
       }
 
       return true;

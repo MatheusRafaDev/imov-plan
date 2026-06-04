@@ -42,14 +42,21 @@ namespace ImovPlan.API.Controllers
         [HttpPut("draft/{id}")]
         public async Task<IActionResult> UpdateDraft(string id, [FromBody] PlanoDraftDto draftDto)
         {
-            if (string.IsNullOrEmpty(draftDto.SessionId))
-                return BadRequest("SessionId is required in the payload.");
+            try
+            {
+                if (string.IsNullOrEmpty(draftDto.SessionId))
+                    return BadRequest("SessionId is required in the payload.");
 
-            var success = await _planoService.UpdateDraftAsync(id, draftDto);
-            if (!success)
-                return NotFound("Plano não encontrado ou não autorizado para atualização.");
+                var success = await _planoService.UpdateDraftAsync(id, draftDto);
+                if (!success)
+                    return NotFound("Plano não encontrado ou não autorizado para atualização.");
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, ex.ToString());
+            }
         }
 
         [HttpPost("{id}/concluir")]

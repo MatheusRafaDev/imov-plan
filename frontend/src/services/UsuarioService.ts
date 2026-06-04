@@ -5,20 +5,12 @@ export type UserProfile = {
   email: string;
   name: string;
   dataNascimento: string | null;
-  estadoCivil: string;
-  rendaMensal: number;
-  regimeTrabalho: string;
-  saldoFgts: number;
   createdAt?: string;
 };
 
 export type UpdateProfilePayload = {
   name?: string;
   dataNascimento?: string;
-  estadoCivil?: string;
-  rendaMensal?: number;
-  regimeTrabalho?: string;
-  saldoFgts?: number;
 };
 
 export class UsuarioService {

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext } from "@/context/PlanContext";
-import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -15,8 +14,7 @@ import { PlanoService } from "@/services/PlanoService";
 import { Calculator, ArrowRight, Info, TrendingDown, Wallet, Key } from "lucide-react";
 
 export default function ProntoPage() {
-  const { objetivo, planoId } = usePlanContext();
-  const { user } = useAuth();
+  const { objetivo, planoId, pessoas: pessoasPlan } = usePlanContext();
   const router = useRouter();
 
   const valorImovel = Number(objetivo?.valorImovel) || 0;
@@ -81,7 +79,7 @@ export default function ProntoPage() {
   const totalJuros = totalPago - valorFinanciado;
 
   // Max parcel rule (30% of income)
-  const rendaMensal = user?.rendaMensal || 0;
+  const rendaMensal = (pessoasPlan || []).reduce((acc, p) => acc + (Number(p.renda_mensal) || 0) + (Number(p.renda_complementar) || 0), 0);
   const parcelaMaxima = rendaMensal * 0.3;
   const parcelaCompativel = primeiraParcela <= parcelaMaxima || parcelaMaxima === 0;
 

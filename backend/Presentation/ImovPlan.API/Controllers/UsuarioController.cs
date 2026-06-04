@@ -30,10 +30,6 @@ namespace ImovPlan.API.Controllers
                 email = user.Email,
                 name = user.Nome,
                 dataNascimento = user.DataNascimento?.ToString("yyyy-MM-dd"),
-                estadoCivil = user.EstadoCivil,
-                rendaMensal = user.RendaMensal,
-                regimeTrabalho = user.RegimeTrabalho,
-                saldoFgts = user.SaldoFgts ?? 0,
                 createdAt = user.CreatedAt
             });
         }
@@ -46,10 +42,6 @@ namespace ImovPlan.API.Controllers
                 return NotFound(new { message = "Usuário não encontrado." });
 
             existing.Nome = request.Name ?? existing.Nome;
-            existing.EstadoCivil = request.EstadoCivil ?? existing.EstadoCivil;
-            existing.RendaMensal = request.RendaMensal ?? existing.RendaMensal;
-            existing.RegimeTrabalho = request.RegimeTrabalho ?? existing.RegimeTrabalho;
-            existing.SaldoFgts = request.SaldoFgts ?? existing.SaldoFgts;
 
             if (!string.IsNullOrWhiteSpace(request.DataNascimento))
             {
@@ -65,10 +57,6 @@ namespace ImovPlan.API.Controllers
                 email = existing.Email,
                 name = existing.Nome,
                 dataNascimento = existing.DataNascimento?.ToString("yyyy-MM-dd"),
-                estadoCivil = existing.EstadoCivil,
-                rendaMensal = existing.RendaMensal,
-                regimeTrabalho = existing.RegimeTrabalho,
-                saldoFgts = existing.SaldoFgts ?? 0,
                 createdAt = existing.CreatedAt
             });
         }
@@ -78,9 +66,5 @@ namespace ImovPlan.API.Controllers
     {
         public string? Name { get; set; }
         public string? DataNascimento { get; set; }
-        public string? EstadoCivil { get; set; }
-        public decimal? RendaMensal { get; set; }
-        public string? RegimeTrabalho { get; set; }
-        public decimal? SaldoFgts { get; set; }
     }
 }

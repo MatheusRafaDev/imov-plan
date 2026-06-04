@@ -17,10 +17,11 @@ namespace ImovPlan.Infrastructure.Data
         public DbSet<AporteRegularEdit> AportesRegularesEdits { get; init; }
         public DbSet<AporteExtra> AportesExtras { get; init; }
         public DbSet<GastoDetalhado> GastosDetalhados { get; init; }
-        public DbSet<SnapshotSimulacao> SnapshotsSimulacao { get; init; }
+        public DbSet<RegistroSimulacao> RegistrosSimulacao { get; init; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
+            Database.AutoTransactionBehavior = AutoTransactionBehavior.Never;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -38,7 +39,7 @@ namespace ImovPlan.Infrastructure.Data
             modelBuilder.Entity<AporteRegularEdit>().ToCollection("aportesRegularesEdits");
             modelBuilder.Entity<AporteExtra>().ToCollection("aportesExtras");
             modelBuilder.Entity<GastoDetalhado>().ToCollection("gastosDetalhados");
-            modelBuilder.Entity<SnapshotSimulacao>().ToCollection("snapshotsSimulacao");
+            modelBuilder.Entity<RegistroSimulacao>().ToCollection("registrosSimulacao");
         }
     }
 }

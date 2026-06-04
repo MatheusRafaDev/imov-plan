@@ -11,11 +11,11 @@ namespace ImovPlan.Application.Services
 {
     public class SimulacaoService : ISimulacaoService
     {
-        private readonly ISnapshotSimulacaoRepository _snapshotRepo;
+        private readonly IRegistroSimulacaoRepository _registroRepo;
 
-        public SimulacaoService(ISnapshotSimulacaoRepository snapshotRepo)
+        public SimulacaoService(IRegistroSimulacaoRepository registroRepo)
         {
-            _snapshotRepo = snapshotRepo;
+            _registroRepo = registroRepo;
         }
 
         public async Task<SimulacaoResultado> ExecutarSimulacaoAsync(
@@ -73,17 +73,17 @@ namespace ImovPlan.Application.Services
             resultado.LucroLiquido = saldo - totalInvestido;
 
             // Determinar a próxima versão do snapshot
-            var allSnapshots = await _snapshotRepo.GetAllByObjetivoIdAsync(objetivo.Id);
-            var versao = allSnapshots.Count() + 1;
+            var allRegistros = await _registroRepo.GetAllByObjetivoIdAsync(objetivo.Id);
+            var versao = allRegistros.Count() + 1;
 
-            // Persistir snapshot automático
+            // Persistir registro da simulação
             var pessoasSnapshot = request.AportesMensais.Select(a => new PessoaSnapshot
             {
                 PessoaId = a.PessoaId,
                 AporteMensal = a.Valor,
             }).ToList();
 
-            var snapshot = new SnapshotSimulacao
+            var registro = new RegistroSimulacao
             {
                 ObjetivoImovelId = objetivo.Id,
                 GeradoEm = DateTime.UtcNow,
@@ -109,7 +109,8 @@ namespace ImovPlan.Application.Services
                 DetalhesMensais = resultado.DetalhesMensais,
             };
 
-            await _snapshotRepo.AddAsync(snapshot);
+
+            await _registroRepo.AddAsync(registro);
 
             return resultado;
         }

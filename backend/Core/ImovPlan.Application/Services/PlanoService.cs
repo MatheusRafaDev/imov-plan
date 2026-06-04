@@ -39,6 +39,12 @@ namespace ImovPlan.Application.Services
 
         public async Task<string> CreateDraftAsync(string sessionId)
         {
+            var existing = await _objetivoRepo.GetBySessionIdAsync(sessionId);
+            if (existing != null)
+            {
+                return existing.Id;
+            }
+
             var objetivo = new ObjetivoImovel
             {
                 SessionId = sessionId,

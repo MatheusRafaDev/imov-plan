@@ -22,17 +22,6 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("dataNascimento")]
         public DateTime? DataNascimento { get; set; }
 
-        [BsonElement("estadoCivil")]
-        public string EstadoCivil { get; set; } = string.Empty;
-
-        [BsonElement("rendaMensal")]
-        public decimal RendaMensal { get; set; } = 0;
-
-        [BsonElement("regimeTrabalho")]
-        public string RegimeTrabalho { get; set; } = string.Empty;
-
-        [BsonElement("saldoFgts")]
-        public decimal? SaldoFgts { get; set; }
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

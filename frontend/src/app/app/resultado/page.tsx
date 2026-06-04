@@ -152,12 +152,12 @@ export default function ResultadoPage() {
   const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId } = usePlanContext();
   const router = useRouter();
 
-  // Salvar snapshot no backend ao carregar a página
-  const snapshotSaved = useRef(false);
+  // Salvar registro de simulação no backend ao carregar a página
+  const registroSalvo = useRef(false);
   useEffect(() => {
     if (!planoId || planoId.startsWith("local-draft-")) return;
-    if (snapshotSaved.current) return;
-    snapshotSaved.current = true;
+    if (registroSalvo.current) return;
+    registroSalvo.current = true;
 
     const payload = {
       objetivoId: planoId,
@@ -174,8 +174,8 @@ export default function ResultadoPage() {
       }))
     };
 
-    SimulacaoService.salvarSnapshot(payload).catch(err => {
-      console.error("Erro ao salvar snapshot:", err);
+    SimulacaoService.salvarRegistroSimulacao(payload).catch(err => {
+      console.error("Erro ao salvar registro de simulação:", err);
     });
   }, [planoId, objetivo, pessoas, aportesExtras]);
 
@@ -184,13 +184,26 @@ export default function ResultadoPage() {
 
   // Save mesesConcluidos to database when it changes
   const isFirstRender = useRef(true);
+  const prevMesesRef = useRef<number[]>(mesesConcluidos);
+  
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
+      prevMesesRef.current = mesesConcluidos;
       return;
     }
-    saveDraft({ mesesConcluidos: [...mesesConcluidosSet] });
-  }, [mesesConcluidosSet]);
+    
+    const prev = prevMesesRef.current;
+    const curr = mesesConcluidos;
+    
+    // Evitar save se o conteúdo não mudou
+    if (prev.length === curr.length && prev.every((v, i) => v === curr[i])) {
+      return;
+    }
+    
+    prevMesesRef.current = curr;
+    saveDraft({ mesesConcluidos: curr });
+  }, [mesesConcluidos, saveDraft]);
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
 

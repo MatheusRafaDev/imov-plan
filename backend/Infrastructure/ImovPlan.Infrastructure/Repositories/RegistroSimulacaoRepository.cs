@@ -8,36 +8,36 @@ using ImovPlan.Infrastructure.Data;
 
 namespace ImovPlan.Infrastructure.Repositories
 {
-    public class SnapshotSimulacaoRepository : ISnapshotSimulacaoRepository
+    public class RegistroSimulacaoRepository : IRegistroSimulacaoRepository
     {
         private readonly AppDbContext _context;
 
-        public SnapshotSimulacaoRepository(AppDbContext context)
+        public RegistroSimulacaoRepository(AppDbContext context)
         {
             _context = context;
         }
 
-        public async Task<SnapshotSimulacao?> GetUltimoByObjetivoIdAsync(string objetivoId)
+        public async Task<RegistroSimulacao?> GetUltimoByObjetivoIdAsync(string objetivoId)
         {
-            return await _context.SnapshotsSimulacao
+            return await _context.RegistrosSimulacao
                 .Where(s => s.ObjetivoImovelId == objetivoId)
                 .OrderByDescending(s => s.GeradoEm)
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<SnapshotSimulacao>> GetAllByObjetivoIdAsync(string objetivoId)
+        public async Task<IEnumerable<RegistroSimulacao>> GetAllByObjetivoIdAsync(string objetivoId)
         {
-            return await _context.SnapshotsSimulacao
+            return await _context.RegistrosSimulacao
                 .Where(s => s.ObjetivoImovelId == objetivoId)
                 .OrderByDescending(s => s.GeradoEm)
                 .ToListAsync();
         }
 
-        public async Task<SnapshotSimulacao> AddAsync(SnapshotSimulacao snapshot)
+        public async Task<RegistroSimulacao> AddAsync(RegistroSimulacao registro)
         {
-            _context.SnapshotsSimulacao.Add(snapshot);
+            _context.RegistrosSimulacao.Add(registro);
             await _context.SaveChangesAsync();
-            return snapshot;
+            return registro;
         }
     }
 }

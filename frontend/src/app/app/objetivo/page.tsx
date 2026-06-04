@@ -35,14 +35,14 @@ export default function ObjetivoPage() {
 
   const [form, setForm] = useState({
     nome: "Imóvel",
-    valor_imovel: 0,
-    percentual_entrada: 0,
+    valor_imovel: 0 as number | "",
+    percentual_entrada: 20 as number | "",
     data_inicio: todayISO(),
     data_fim: "",
-    valor_ja_guardado: 0,
-    taxa_cdi_anual: 10.5,
-    percentual_cdi: 100,
-    percentual_custos_extras: 0,
+    valor_ja_guardado: 0 as number | "",
+    taxa_cdi_anual: 10.5 as number | "",
+    percentual_cdi: 100 as number | "",
+    percentual_custos_extras: 0 as number | "",
     tipo_investimento: "",
   });
 
@@ -52,7 +52,7 @@ export default function ObjetivoPage() {
         ...prev,
         nome: (objetivo as any).nomePlano || "Imóvel",
         valor_imovel: objetivo.valorImovel || 0,
-        percentual_entrada: objetivo.percentualEntrada || 0,
+        percentual_entrada: objetivo.percentualEntrada || 20,
         data_inicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : prev.data_inicio,
         valor_ja_guardado: objetivo.valorJaGuardado || 0,
         taxa_cdi_anual: objetivo.taxaCdiAnual || prev.taxa_cdi_anual,
@@ -88,7 +88,7 @@ export default function ObjetivoPage() {
     fetchCdi();
   }, [objetivo?.taxaCdiAnual]);
 
-  const isFormValid = form.valor_imovel > 0 && form.data_inicio !== "" && form.data_fim !== "";
+  const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "";
 
   const prazoMeses = form.data_fim ? mesesEntre(form.data_inicio, form.data_fim) : 0;
   const meta = calcularMeta({ valorImovel: Number(form.valor_imovel) || 0, percentualEntrada: Number(form.percentual_entrada) || 0, percentualCustosExtras: Number(form.percentual_custos_extras) || 0 });

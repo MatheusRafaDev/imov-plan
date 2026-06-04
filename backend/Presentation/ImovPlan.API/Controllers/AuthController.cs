@@ -102,9 +102,7 @@ namespace ImovPlan.API.Controllers
                 id = user.Id,
                 email = user.Email,
                 name = user.Nome,
-                dataNascimento = user.DataNascimento?.ToString("yyyy-MM-dd"),
-                estadoCivil = user.EstadoCivil,
-                rendaMensal = user.RendaMensal
+                dataNascimento = user.DataNascimento?.ToString("yyyy-MM-dd")
             };
         }
 

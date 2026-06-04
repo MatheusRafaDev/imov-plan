@@ -58,7 +58,7 @@ Sugerimos priorizar o financiamento pela **Caixa Econômica Federal**.
             }
 
             // Realizar simulação financeira real no backend para passar para a IA
-            object simulacoes = null;
+            object? simulacoes = null;
             decimal limiteParcela = request.Renda_Total_Bruta * 0.30m;
             decimal taxaMCMV = 8.16m;
             decimal taxaSBPE = 10.5m;

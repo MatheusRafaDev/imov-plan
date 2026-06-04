@@ -66,7 +66,7 @@ while (true)
     builder.Services.AddScoped<IAporteRegularEditRepository, AporteRegularEditRepository>();
     builder.Services.AddScoped<IAporteExtraRepository, AporteExtraRepository>();
     builder.Services.AddScoped<IGastoDetalhadoRepository, GastoDetalhadoRepository>();
-    builder.Services.AddScoped<ISnapshotSimulacaoRepository, SnapshotSimulacaoRepository>();
+    builder.Services.AddScoped<IRegistroSimulacaoRepository, RegistroSimulacaoRepository>();
 
     // Register Services
     builder.Services.AddScoped<ICalculoFinanceiroService, CalculoFinanceiroService>();

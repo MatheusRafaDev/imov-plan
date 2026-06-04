@@ -9,10 +9,6 @@ type User = {
   email: string;
   name: string;
   dataNascimento: string | null;
-  estadoCivil: string;
-  rendaMensal: number;
-  regimeTrabalho: string;
-  saldoFgts: number;
 };
 
 type AuthContextType = {
@@ -36,16 +32,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedToken = Cookies.get("token");
-      const storedUser = Cookies.get("user");
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        api.defaults.headers.Authorization = `Bearer ${storedToken}`;
+    async function initAuth() {
+      if (typeof window !== "undefined") {
+        const storedToken = Cookies.get("token");
+        const storedUser = Cookies.get("user");
+        if (storedToken && storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            api.defaults.headers.Authorization = `Bearer ${storedToken}`;
+            
+            // Verifica se o usuário existe no banco de dados
+            const response = await api.get(`/usuario/${parsedUser.id}`);
+            const dbUser = response.data;
+            const updatedUser = {
+              id: dbUser.id,
+              email: dbUser.email,
+              name: dbUser.name,
+              dataNascimento: dbUser.dataNascimento
+            };
+            setToken(storedToken);
+            setUser(updatedUser);
+            Cookies.set("user", JSON.stringify(updatedUser), { expires: 7 });
+          } catch (err) {
+            console.error("Erro ao verificar usuário no banco de dados:", err);
+            setUser(null);
+            setToken(null);
+            Cookies.remove("token");
+            Cookies.remove("user");
+            delete api.defaults.headers.Authorization;
+          }
+        }
+        setLoading(false);
       }
-      setLoading(false);
     }
+    initAuth();
   }, []);
 
   const register = async (email: string, password: string, name: string, dataNascimento?: string) => {
@@ -93,9 +113,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     setToken(null);
-    Cookies.remove("token");
-    Cookies.remove("user");
+    
+    // Remove all cookies
+    const allCookies = Cookies.get();
+    for (const cookieName in allCookies) {
+      Cookies.remove(cookieName);
+    }
+    
+    // Clear all localStorage
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
+    
     delete api.defaults.headers.Authorization;
+    
     if (typeof window !== "undefined") {
       window.location.href = "/auth";
     }

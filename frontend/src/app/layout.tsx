@@ -4,7 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "Imov.Plan — Planeje a entrada do seu imóvel",
+  title: "Imov.Plan - Planeje a entrada do seu imóvel",
   description: "Planeje a entrada do seu imóvel dos sonhos com simulação de CDI, IR regressivo e aportes extras. Sem planilhas, sem complicação.",
 };
 
