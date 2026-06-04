@@ -8,6 +8,9 @@ namespace ImovPlan.Application.Services.Interfaces
         Task<string> CreateDraftAsync(string sessionId);
         Task<bool> UpdateDraftAsync(string id, PlanoDraftDto draftDto);
         Task<PlanoDraftDto?> GetDraftAsync(string id, string sessionId);
+        Task<PlanoDraftDto?> GetDraftBySessionIdAsync(string sessionId);
+        Task<PlanoDraftDto?> GetDraftByUsuarioIdAsync(string usuarioId);
+        Task<bool> LinkPlanToUserAsync(string id, string usuarioId);
         Task ConcluirPlanoAsync(string id);
     }
 }

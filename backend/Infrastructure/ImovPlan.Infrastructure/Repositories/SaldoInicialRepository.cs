@@ -36,5 +36,18 @@ namespace ImovPlan.Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return saldo;
         }
+
+        public async Task DeleteByPessoaIdAsync(string pessoaId)
+        {
+            var saldos = await _context.SaldosIniciais
+                .Where(s => s.PessoaId == pessoaId)
+                .ToListAsync();
+
+            if (saldos.Any())
+            {
+                _context.SaldosIniciais.RemoveRange(saldos);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

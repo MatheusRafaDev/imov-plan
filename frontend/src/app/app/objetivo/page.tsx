@@ -40,7 +40,10 @@ export default function ObjetivoPage() {
     data_inicio: todayISO(),
     data_fim: "",
     valor_ja_guardado: 0 as number | "",
-// Add titular to form state
+    taxa_cdi_anual: 10.5 as number | "",
+    percentual_cdi: 100 as number | "",
+    percentual_custos_extras: 0 as number | "",
+    tipo_investimento: "",
     titular: "" as string | "",
   });
 

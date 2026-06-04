@@ -79,6 +79,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Cookies.set("token", newToken, { expires: 7 }); // 7 days
       Cookies.set("user", JSON.stringify(userData), { expires: 7 });
       api.defaults.headers.Authorization = `Bearer ${newToken}`;
+
+      // If they had a local guest plan, link it to their new account
+      const localPlanoId = Cookies.get("imovplan_planoId");
+      if (localPlanoId && !localPlanoId.startsWith("local-draft-")) {
+        try {
+          await api.post(`/plano/${localPlanoId}/link-user?usuarioId=${userData.id}`);
+        } catch (e: any) {
+          // If the plan does not exist (404), it's likely a new user without a prior draft.
+          // Treat this as non-fatal and continue the registration flow.
+          if (e?.response?.status === 404) {
+            console.warn('Plano não encontrado ao vincular ao usuário; continuará sem vínculo.');
+          } else {
+            console.error('Falha ao vincular plano à conta', e);
+          }
+        }
+      }
+
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Erro ao registrar";
@@ -118,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const allCookies = Cookies.get();
     for (const cookieName in allCookies) {
       Cookies.remove(cookieName);
+      Cookies.remove(cookieName, { path: '/' });
     }
     
     // Clear all localStorage

@@ -37,6 +37,32 @@ namespace ImovPlan.Application.Services
             _gastoDetalhadoRepo = gastoDetalhadoRepo;
         }
 
+        public async Task<PlanoDraftDto?> GetDraftBySessionIdAsync(string sessionId)
+        {
+            var objetivo = await _objetivoRepo.GetBySessionIdAsync(sessionId);
+            if (objetivo == null) return null;
+
+            return await GetDraftAsync(objetivo.Id, sessionId);
+        }
+
+        public async Task<PlanoDraftDto?> GetDraftByUsuarioIdAsync(string usuarioId)
+        {
+            var objetivo = await _objetivoRepo.GetByUsuarioIdAsync(usuarioId);
+            if (objetivo == null) return null;
+
+            return await GetDraftAsync(objetivo.Id, objetivo.SessionId ?? string.Empty);
+        }
+
+        public async Task<bool> LinkPlanToUserAsync(string id, string usuarioId)
+        {
+            var objetivo = await _objetivoRepo.GetByIdAsync(id);
+            if (objetivo == null) return false;
+
+            objetivo.UsuarioId = usuarioId;
+            await _objetivoRepo.UpdateAsync(id, objetivo);
+            return true;
+        }
+
         public async Task<string> CreateDraftAsync(string sessionId)
         {
             var existing = await _objetivoRepo.GetBySessionIdAsync(sessionId);
@@ -151,56 +177,91 @@ namespace ImovPlan.Application.Services
                 existingObjetivo.MesesConcluidos = draftDto.MesesConcluidos;
             }
 
-            await _objetivoRepo.UpdateAsync(id, existingObjetivo);
-
             // ── Upsert Pessoas ──
             if (draftDto.Pessoas != null && draftDto.Pessoas.Count > 0)
             {
-                // Delete existing pessoas and their related data, then recreate
+                // Load existing people for this plan
                 var allPessoas = await _pessoaRepo.GetAllAsync();
-                var planPessoas = allPessoas.Where(p => p.ObjetivoImovelId == id).ToList();
-                foreach (var old in planPessoas)
-                {
-                    // Delete related gastos detalhados
-                    var gastos = await _gastoDetalhadoRepo.GetByPessoaIdAsync(old.Id);
-                    foreach (var g in gastos)
-                        await _gastoDetalhadoRepo.DeleteAsync(g.Id);
+                var existingPlanPessoas = allPessoas.Where(p => p.ObjetivoImovelId == id).ToList();
 
-                    await _pessoaRepo.DeleteAsync(old.Id);
-                }
+                var keptPessoaIds = new List<string>();
 
-                var newPessoaIds = new List<string>();
                 foreach (var pDto in draftDto.Pessoas)
                 {
-                    var pessoa = new Pessoa
-                    {
-                        Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
-                        ObjetivoImovelId = id,
-                        Nome = pDto.Nome,
-                        RendaMensal = pDto.Renda_mensal,
-                        RendaComplementar = pDto.Renda_complementar,
-                        GastosMensais = pDto.Gastos_mensais,
-                        UsarGastosDetalhados = pDto.Usar_gastos_detalhados,
-                        SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais,
-                        AporteMensal = pDto.Aporte_mensal,
-                    };
-                    await _pessoaRepo.CreateAsync(pessoa);
-                    newPessoaIds.Add(pessoa.Id);
+                    // Try to find existing pessoa by Id or Name
+                    Pessoa pessoa = null;
+                    if (!string.IsNullOrEmpty(pDto.Id))
+                        pessoa = existingPlanPessoas.FirstOrDefault(p => p.Id == pDto.Id);
+                    if (pessoa == null)
+                        pessoa = existingPlanPessoas.FirstOrDefault(p => p.Nome == pDto.Nome);
 
-                    // Persist SaldoInicial
-                    if (pDto.ValorInicial > 0)
+                    if (pessoa != null)
                     {
-                        await _saldoRepo.AddAsync(new SaldoInicial
+                        // Update existing pessoa fields
+                        pessoa.Nome = pDto.Nome;
+                        pessoa.RendaMensal = pDto.Renda_mensal;
+                        pessoa.RendaComplementar = pDto.Renda_complementar;
+                        pessoa.GastosMensais = pDto.Gastos_mensais;
+                        pessoa.UsarGastosDetalhados = pDto.Usar_gastos_detalhados;
+                        pessoa.SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais;
+                        pessoa.AporteMensal = pDto.Aporte_mensal;
+                        await _pessoaRepo.UpdateAsync(pessoa.Id, pessoa);
+                        keptPessoaIds.Add(pessoa.Id);
+                    }
+                    else
+                    {
+                        // Create new pessoa
+                        pessoa = new Pessoa
                         {
-                            PessoaId = pessoa.Id,
+                            Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
                             ObjetivoImovelId = id,
-                            Valor = pDto.ValorInicial,
-                            Fonte = "Poupança", // Default source; can be expanded later
-                            RegistradoEm = DateTime.UtcNow,
-                        });
+                            Nome = pDto.Nome,
+                            RendaMensal = pDto.Renda_mensual,
+                            RendaComplementar = pDto.Renda_complementar,
+                            GastosMensais = pDto.Gastos_mensais,
+                            UsarGastosDetalhados = pDto.Usar_gastos_detalhados,
+                            SobraMensal = pDto.Renda_mensual + pDto.Renda_complementar - pDto.Gastos_mensais,
+                            AporteMensal = pDto.Aporte_mensal,
+                        };
+                        await _pessoaRepo.CreateAsync(pessoa);
+                        keptPessoaIds.Add(pessoa.Id);
                     }
 
-                    // Persist GastosDetalhados
+                    // Upsert SaldoInicial for this pessoa
+                    var existingSaldos = await _saldoRepo.GetByPessoaIdAsync(pessoa.Id);
+                    var existingSaldo = existingSaldos.FirstOrDefault();
+                    if (pDto.ValorInicial > 0)
+                    {
+                        if (existingSaldo != null)
+                        {
+                            existingSaldo.Valor = pDto.ValorInicial;
+                            existingSaldo.Fonte = "Poupança";
+                            existingSaldo.RegistradoEm = DateTime.UtcNow;
+                            await _saldoRepo.DeleteByPessoaIdAsync(pessoa.Id);
+                            await _saldoRepo.AddAsync(existingSaldo);
+                        }
+                        else
+                        {
+                            await _saldoRepo.AddAsync(new SaldoInicial
+                            {
+                                PessoaId = pessoa.Id,
+                                ObjetivoImovelId = id,
+                                Valor = pDto.ValorInicial,
+                                Fonte = "Poupança",
+                                RegistradoEm = DateTime.UtcNow,
+                            });
+                        }
+                    }
+                    else
+                    {
+                        // Ensure no SaldoInicial remains when ValorInicial is zero
+                        await _saldoRepo.DeleteByPessoaIdAsync(pessoa.Id);
+                    }
+
+                    // Replace GastosDetalhados for this pessoa
+                    var existingGastos = await _gastoDetalhadoRepo.GetByPessoaIdAsync(pessoa.Id);
+                    foreach (var g in existingGastos)
+                        await _gastoDetalhadoRepo.DeleteAsync(g.Id);
                     if (pDto.Gastos_detalhados != null)
                     {
                         foreach (var gDto in pDto.Gastos_detalhados)
@@ -216,11 +277,22 @@ namespace ImovPlan.Application.Services
                     }
                 }
 
-                // Update pessoasIds reference on the objetivo
-                existingObjetivo.PessoasIds = newPessoaIds;
-                await _objetivoRepo.UpdateAsync(id, existingObjetivo);
+                // Delete any pessoas that were removed from the draft
+                var toDelete = existingPlanPessoas.Where(p => !keptPessoaIds.Contains(p.Id)).ToList();
+                foreach (var old in toDelete)
+                {
+                    var gastos = await _gastoDetalhadoRepo.GetByPessoaIdAsync(old.Id);
+                    foreach (var g in gastos)
+                        await _gastoDetalhadoRepo.DeleteAsync(g.Id);
+                    await _saldoRepo.DeleteByPessoaIdAsync(old.Id);
+                    await _pessoaRepo.DeleteAsync(old.Id);
+                }
+
+                // Update objetivo reference list
+                existingObjetivo.PessoasIds = keptPessoaIds;
             }
 
+            await _objetivoRepo.UpdateAsync(id, existingObjetivo);
             return true;
         }
 

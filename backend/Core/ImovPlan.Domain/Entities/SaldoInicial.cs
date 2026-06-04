@@ -23,10 +23,11 @@ namespace ImovPlan.Domain.Entities
         public decimal Valor { get; set; }
 
         /// <summary>
-        /// Fonte do saldo inicial. Ex: "Poupança", "FGTS", "Investimento".
+        /// Fonte do saldo inicial – usa enum `FonteSaldo`.
         /// </summary>
         [BsonElement("fonte")]
-        public string Fonte { get; set; } = string.Empty;
+        [BsonRepresentation(BsonType.String)]
+        public ImovPlan.Domain.Enums.FonteSaldo Fonte { get; set; } = ImovPlan.Domain.Enums.FonteSaldo.Poupanca;
 
         [BsonElement("registradoEm")]
         public DateTime RegistradoEm { get; set; } = DateTime.UtcNow;

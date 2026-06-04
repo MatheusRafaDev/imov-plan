@@ -29,11 +29,20 @@ namespace ImovPlan.Infrastructure.Repositories
 
             if (existing != null)
             {
-                _context.CustosImoveis.Remove(existing);
-                await _context.SaveChangesAsync();
+                existing.ValorEntrada = custos.ValorEntrada;
+                existing.TotalNecessario = custos.TotalNecessario;
+                existing.PercentualCustosExtras = custos.PercentualCustosExtras;
+                existing.CustoITBI = custos.CustoITBI;
+                existing.CustoEscritura = custos.CustoEscritura;
+                existing.CustoRegistro = custos.CustoRegistro;
+                existing.CalculadoEm = custos.CalculadoEm;
+                _context.CustosImoveis.Update(existing);
+            }
+            else
+            {
+                _context.CustosImoveis.Add(custos);
             }
 
-            _context.CustosImoveis.Add(custos);
             await _context.SaveChangesAsync();
         }
     }

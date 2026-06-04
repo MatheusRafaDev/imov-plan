@@ -41,11 +41,15 @@ namespace ImovPlan.Infrastructure.Repositories
 
             if (existing != null)
             {
-                _context.AportesRegularesEdits.Remove(existing);
-                await _context.SaveChangesAsync();
+                existing.ValorEditado = aporte.ValorEditado;
+                existing.EditadoEm = aporte.EditadoEm;
+                _context.AportesRegularesEdits.Update(existing);
+            }
+            else
+            {
+                _context.AportesRegularesEdits.Add(aporte);
             }
 
-            _context.AportesRegularesEdits.Add(aporte);
             await _context.SaveChangesAsync();
         }
     }

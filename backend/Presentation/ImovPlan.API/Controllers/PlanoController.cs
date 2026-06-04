@@ -16,6 +16,45 @@ namespace ImovPlan.API.Controllers
             _planoService = planoService;
         }
 
+        [HttpGet("draft")]
+        public async Task<IActionResult> GetDraftBySession([FromQuery] string sessionId)
+        {
+            if (string.IsNullOrEmpty(sessionId))
+                return BadRequest("SessionId is required.");
+
+            var draft = await _planoService.GetDraftBySessionIdAsync(sessionId);
+            if (draft == null)
+                return NotFound();
+
+            return Ok(draft);
+        }
+
+        [HttpGet("user/{usuarioId}")]
+        public async Task<IActionResult> GetDraftByUsuario(string usuarioId)
+        {
+            if (string.IsNullOrEmpty(usuarioId))
+                return BadRequest("UsuarioId is required.");
+
+            var draft = await _planoService.GetDraftByUsuarioIdAsync(usuarioId);
+            if (draft == null)
+                return NotFound();
+
+            return Ok(draft);
+        }
+
+        [HttpPost("{id}/link-user")]
+        public async Task<IActionResult> LinkPlanToUser(string id, [FromQuery] string usuarioId)
+        {
+            if (string.IsNullOrEmpty(usuarioId))
+                return BadRequest("UsuarioId is required.");
+
+            var success = await _planoService.LinkPlanToUserAsync(id, usuarioId);
+            if (!success)
+                return NotFound("Plano não encontrado.");
+
+            return Ok();
+        }
+
         [HttpPost("draft")]
         public async Task<IActionResult> CreateDraft([FromQuery] string sessionId)
         {

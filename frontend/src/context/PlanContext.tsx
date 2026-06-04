@@ -47,6 +47,7 @@ type PlanContextType = {
     aportesRegularesEditados?: Record<number, number>;
     mesesConcluidos?: number[];
   }) => Promise<boolean>;
+  reloadDraft: () => Promise<void>;
   bancoEscolhido: Banco | null;
   setBancoEscolhido: React.Dispatch<React.SetStateAction<Banco | null>>;
   cenario: CenarioCompra;
@@ -97,8 +98,39 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const initDraft = async () => {
       let localPlanoId = Cookies.get("imovplan_planoId");
 
+      const userCookie = Cookies.get("user");
+      let userId = null;
+      if (userCookie) {
+        try {
+          userId = JSON.parse(userCookie).id;
+        } catch (e) {}
+      }
+
       try {
-        if (localPlanoId) {
+        if (userId) {
+          const res = await fetch(`http://localhost:5179/api/plano/user/${userId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.objetivo) {
+              const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
+              setObjetivo({ ...data.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+            }
+            if (data.pessoas) setPessoas(data.pessoas);
+            if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
+            if (data.aportesExtras) setAportesExtras(data.aportesExtras);
+            if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
+            if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+            
+            setPlanoId(data.id);
+            Cookies.set("imovplan_planoId", data.id, { expires: 30 });
+            if (data.sessionId) {
+              Cookies.set("imovplan_sessionId", data.sessionId, { expires: 30 });
+            }
+            return;
+          }
+        }
+
+        if (localPlanoId && !userId) {
           // Fetch existing draft from backend
           const res = await fetch(`http://localhost:5179/api/plano/draft/${localPlanoId}?sessionId=${localSessionId}`);
           if (res.ok) {
@@ -121,9 +153,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           }
         }
         
-        // Load fallback from localStorage if backend fails or doesn't have it
+        // Load fallback from localStorage ONLY if we are not logged in, to avoid carrying over old sessions to new accounts
         const savedDraft = localStorage.getItem("imovplan_draft");
-        if (savedDraft) {
+        if (savedDraft && !userId) {
           const data = JSON.parse(savedDraft);
           if (data.objetivo) {
             const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
@@ -140,14 +172,33 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         }
 
         // Create new draft in backend ONLY IF we didn't just load a valid one
+        const resBySession = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`);
+
+        if (resBySession.ok && !userId) {
+          const existingDraft = await resBySession.json();
+          if (existingDraft.objetivo) {
+            const d = existingDraft.objetivo.dataInicio ? new Date(existingDraft.objetivo.dataInicio) : new Date();
+            setObjetivo({ ...existingDraft.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+          }
+          if (existingDraft.pessoas) setPessoas(existingDraft.pessoas);
+          if (existingDraft.bancoEscolhido) setBancoEscolhido(existingDraft.bancoEscolhido);
+          if (existingDraft.aportesExtras) setAportesExtras(existingDraft.aportesExtras);
+          if (existingDraft.aportesRegularesEditados) setAportesRegularesEditados(existingDraft.aportesRegularesEditados);
+          if (existingDraft.mesesConcluidos) setMesesConcluidos(existingDraft.mesesConcluidos);
+          setPlanoId(existingDraft.id);
+          Cookies.set("imovplan_planoId", existingDraft.id, { expires: 30 });
+          return;
+        }
+
         const resPost = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`, { method: "POST" });
         if (resPost.ok) {
           const dataPost = await resPost.json();
           setPlanoId(dataPost.id);
           Cookies.set("imovplan_planoId", dataPost.id, { expires: 30 });
           
-          // Force a sync to save the localStorage data to the new draft immediately
-          if (savedDraft) {
+          if (userId) {
+            await fetch(`http://localhost:5179/api/plano/${dataPost.id}/link-user?usuarioId=${userId}`, { method: "POST" });
+          } else if (savedDraft) {
              try {
                 await fetch(`http://localhost:5179/api/plano/draft/${dataPost.id}`, {
                    method: "PUT",
@@ -171,6 +222,30 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     initDraft();
   }, []);
 
+  const reloadDraft = async () => {
+    if (!planoId) return;
+    try {
+      const res = await fetch(`http://localhost:5179/api/plano/draft/${planoId}?sessionId=${sessionId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.objetivo) {
+          const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
+          setObjetivo({
+            ...data.objetivo,
+            dataInicio: isNaN(d.getTime()) ? new Date() : d
+          });
+        }
+        if (data.pessoas) setPessoas(data.pessoas);
+        if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
+        if (data.aportesExtras) setAportesExtras(data.aportesExtras);
+        if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
+        if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+      }
+    } catch (e) {
+      console.error("Failed to reload draft", e);
+    }
+  };
+
   const saveDraft = async (overrideData?: {
     objetivo?: Partial<SimInput> | null;
     pessoas?: Pessoa[];
@@ -180,7 +255,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     mesesConcluidos?: number[];
   }): Promise<boolean> => {
     if (!sessionId) {
-      console.warn("saveDraft chamado antes do sessionId estar pronto — ignorando.");
+      console.warn("saveDraft called before sessionId ready — ignoring.");
       return false;
     }
 
@@ -208,21 +283,45 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       // Save local fallback
       localStorage.setItem("imovplan_draft", JSON.stringify(draftToSave));
 
-      // Sync to backend if we have a valid planoId
+      // Sync to backend with retry on server errors (5xx)
       if (planoId && !planoId.startsWith("local-draft-")) {
-        const res = await fetch(`http://localhost:5179/api/plano/draft/${planoId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(draftToSave)
-        });
-        if (!res.ok) {
-          console.error(`Erro ao sincronizar draft com backend: ${res.status} ${res.statusText}`);
+        const maxRetries = 3;
+        const retryDelay = (attempt: number) => new Promise(res => setTimeout(res, attempt * 500));
+        let attempt = 0;
+        let success = false;
+        while (attempt < maxRetries && !success) {
+          try {
+            const res = await fetch(`http://localhost:5179/api/plano/draft/${planoId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(draftToSave)
+            });
+            if (res.ok) {
+              success = true;
+            } else if (res.status >= 500) {
+              console.warn(`Tentativa ${attempt + 1} falhou ao sincronizar draft (status ${res.status}). Retentando...`);
+              await retryDelay(attempt + 1);
+            } else {
+              console.error(`Erro ao sincronizar draft com backend: ${res.status} ${res.statusText}`);
+              break;
+            }
+          } catch (e) {
+            console.error("Network error while syncing draft:", e);
+            await retryDelay(attempt + 1);
+          }
+          attempt++;
+        }
+        if (!success) {
+          console.error("Failed to sync draft after retries.");
+        } else {
+          // Refresh state from backend after successful save
+          await reloadDraft();
         }
       }
 
       return true;
     } catch (err) {
-      console.error("Falha ao salvar rascunho:", err);
+      console.error("Failed to save draft:", err);
       return false;
     }
   };
@@ -232,11 +331,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       objetivo, setObjetivo,
       pessoas, setPessoas,
       aportesExtras, setAportesExtras,
-      planoId, sessionId, saveDraft,
-      bancoEscolhido, setBancoEscolhido,
-      cenario, setCenario,
-      aportesRegularesEditados, setAportesRegularesEditados,
-      mesesConcluidos, setMesesConcluidos
+
     }}>
       {children}
     </PlanContext.Provider>
