@@ -9,5 +9,6 @@ namespace ImovPlan.Domain.Interfaces
         Task<IEnumerable<AporteExtra>> GetByObjetivoIdAsync(string objetivoId);
         Task<IEnumerable<AporteExtra>> GetByPessoaIdAsync(string pessoaId);
         Task<AporteExtra> AddAsync(AporteExtra aporte);
+        Task DeleteByObjetivoIdAsync(string objetivoId);
     }
 }

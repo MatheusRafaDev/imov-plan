@@ -74,8 +74,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [planoId, setPlanoId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  const isInitializing = React.useRef(false);
+
   // Initialize Session and Draft
   React.useEffect(() => {
+    if (isInitializing.current) return;
+    isInitializing.current = true;
+
     // Check local storage for existing session/draft
     let localSessionId = Cookies.get("imovplan_sessionId");
 
@@ -129,12 +134,25 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
         }
 
-        // Create new draft in backend
-        const res = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`, { method: "POST" });
-        if (res.ok) {
-          const data = await res.json();
-          setPlanoId(data.id);
-          Cookies.set("imovplan_planoId", data.id, { expires: 30 });
+        // Create new draft in backend ONLY IF we didn't just load a valid one
+        const resPost = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`, { method: "POST" });
+        if (resPost.ok) {
+          const dataPost = await resPost.json();
+          setPlanoId(dataPost.id);
+          Cookies.set("imovplan_planoId", dataPost.id, { expires: 30 });
+          
+          // Force a sync to save the localStorage data to the new draft immediately
+          if (savedDraft) {
+             try {
+                await fetch(`http://localhost:5179/api/plano/draft/${dataPost.id}`, {
+                   method: "PUT",
+                   headers: { "Content-Type": "application/json" },
+                   body: savedDraft // already a JSON string
+                });
+             } catch (e) {
+                console.error("Falha ao sincronizar draft local para o novo id", e);
+             }
+          }
         } else {
           setPlanoId("local-draft-" + localSessionId);
         }

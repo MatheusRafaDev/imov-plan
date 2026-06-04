@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
@@ -35,6 +36,22 @@ namespace ImovPlan.Infrastructure.Repositories
             _context.AportesExtras.Add(aporte);
             await _context.SaveChangesAsync();
             return aporte;
+        }
+
+        public async Task DeleteByObjetivoIdAsync(string objetivoId)
+        {
+            var aportes = await _context.AportesExtras
+                .Where(a => a.ObjetivoImovelId == objetivoId)
+                .ToListAsync();
+                
+            if (aportes.Any())
+            {
+                foreach (var a in aportes)
+                {
+                    _context.AportesExtras.Remove(a);
+                }
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

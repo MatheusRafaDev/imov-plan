@@ -11,10 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
 import { FinanciamentoService } from "@/services/FinanciamentoService";
+import { PlanoService } from "@/services/PlanoService";
 import { Calculator, ArrowRight, Info, TrendingDown, Wallet, Key } from "lucide-react";
 
 export default function ProntoPage() {
-  const { objetivo } = usePlanContext();
+  const { objetivo, planoId } = usePlanContext();
   const { user } = useAuth();
   const router = useRouter();
 
@@ -204,7 +205,16 @@ export default function ProntoPage() {
               </Card>
 
               <div className="flex justify-end">
-                <Button onClick={() => router.push("/app/planejamento")}
+                <Button onClick={async () => {
+                    if (planoId && !planoId.startsWith("local-draft-")) {
+                      try {
+                        await PlanoService.concluirPlano(planoId);
+                      } catch (e) {
+                        console.error("Erro ao concluir plano:", e);
+                      }
+                    }
+                    router.push("/app/planejamento");
+                  }}
                   className="h-12 px-8 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
                   Ir para o Plano <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>

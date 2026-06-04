@@ -106,6 +106,9 @@ namespace ImovPlan.Application.Services
             // ── Map Aportes Extras → AporteExtraRepository ──
             if (draftDto.AportesExtras != null)
             {
+                // Delete existing AportesExtras to prevent duplication on save
+                await _aporteExtraRepo.DeleteByObjetivoIdAsync(id);
+
                 foreach (var a in draftDto.AportesExtras)
                 {
                     await _aporteExtraRepo.AddAsync(new AporteExtra
@@ -303,6 +306,16 @@ namespace ImovPlan.Application.Services
                 AportesRegularesEditados = aportesRegularesEditados,
                 MesesConcluidos = objetivo.MesesConcluidos ?? new List<int>(),
             };
+        }
+
+        public async Task ConcluirPlanoAsync(string id)
+        {
+            var objetivo = await _objetivoRepo.GetByIdAsync(id);
+            if (objetivo != null)
+            {
+                objetivo.Status = "Completed";
+                await _objetivoRepo.UpdateAsync(id, objetivo);
+            }
         }
     }
 }

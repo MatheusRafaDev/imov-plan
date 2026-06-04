@@ -51,5 +51,12 @@ namespace ImovPlan.API.Controllers
 
             return NoContent();
         }
+
+        [HttpPost("{id}/concluir")]
+        public async Task<IActionResult> ConcluirPlano(string id)
+        {
+            await _planoService.ConcluirPlanoAsync(id);
+            return Ok();
+        }
     }
 }

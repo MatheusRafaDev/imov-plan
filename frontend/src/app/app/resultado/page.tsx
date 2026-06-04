@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, ReferenceDot, Legend } from "recharts";
 import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SimulacaoService } from "@/services/SimulacaoService";
 
 // ─── Editable Aporte Cell ────────────────────────────────────────────────────
 function EditableAporte({ value, onSave, isEdited }: { value: number; onSave: (v: number) => void; isEdited: boolean }) {
@@ -148,8 +149,35 @@ function ExtrasCell({ contextItems, total, aporteRegular, pessoasAportes }: {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId } = usePlanContext();
   const router = useRouter();
+
+  // Salvar snapshot no backend ao carregar a página
+  const snapshotSaved = useRef(false);
+  useEffect(() => {
+    if (!planoId || planoId.startsWith("local-draft-")) return;
+    if (snapshotSaved.current) return;
+    snapshotSaved.current = true;
+
+    const payload = {
+      objetivoId: planoId,
+      taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
+      aportesMensais: pessoas.map(p => ({
+        pessoaId: p.id || "",
+        valor: Number(p.aporte_mensal) || 0
+      })),
+      aportesExtras: aportesExtras.map(a => ({
+        pessoaId: a.pessoaId || "",
+        valor: Number(a.valor) || 0,
+        data: a.data || new Date().toISOString(),
+        origem: a.origem || "Extra"
+      }))
+    };
+
+    SimulacaoService.salvarSnapshot(payload).catch(err => {
+      console.error("Erro ao salvar snapshot:", err);
+    });
+  }, [planoId, objetivo, pessoas, aportesExtras]);
 
   // Convert mesesConcluidos array to Set for easier manipulation
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
