@@ -29,7 +29,10 @@ namespace ImovPlan.Application.Services
             return sobra > 0 ? sobra : 0;
         }
 
-        public DiagnosticoFinanceiroDto CalcularDiagnostico(List<Pessoa> pessoas, ObjetivoImovel objetivo)
+        public DiagnosticoFinanceiroDto CalcularDiagnostico(
+            List<Pessoa> pessoas,
+            decimal totalNecessario,
+            decimal aportesExtrasTotal)
         {
             var dto = new DiagnosticoFinanceiroDto();
 
@@ -37,10 +40,8 @@ namespace ImovPlan.Application.Services
             if (pessoas.Count > 1) dto.SobraPessoa2 = pessoas[1].SobraMensal;
 
             dto.SobraCasal = pessoas.Sum(p => p.SobraMensal);
-            
-            var aportesJaGuardados = objetivo.ValorJaGuardado + objetivo.AportesExtras.Sum(a => a.Valor);
-            var falta = objetivo.TotalNecessario - aportesJaGuardados;
 
+            var falta = totalNecessario - aportesExtrasTotal;
             dto.ValorFaltante = falta > 0 ? falta : 0;
 
             return dto;

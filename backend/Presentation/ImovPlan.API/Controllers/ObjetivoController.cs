@@ -14,15 +14,21 @@ namespace ImovPlan.API.Controllers
         private readonly IObjetivoRepository _objetivoRepository;
         private readonly ICalculoFinanceiroService _calculoService;
         private readonly IPessoaRepository _pessoaRepository;
+        private readonly ICustosImovelRepository _custosRepository;
+        private readonly IAporteExtraRepository _aporteExtraRepository;
 
         public ObjetivoController(
-            IObjetivoRepository objetivoRepository, 
+            IObjetivoRepository objetivoRepository,
             ICalculoFinanceiroService calculoService,
-            IPessoaRepository pessoaRepository)
+            IPessoaRepository pessoaRepository,
+            ICustosImovelRepository custosRepository,
+            IAporteExtraRepository aporteExtraRepository)
         {
             _objetivoRepository = objetivoRepository;
             _calculoService = calculoService;
             _pessoaRepository = pessoaRepository;
+            _custosRepository = custosRepository;
+            _aporteExtraRepository = aporteExtraRepository;
         }
 
         [HttpGet("{id}")]
@@ -36,30 +42,49 @@ namespace ImovPlan.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] ObjetivoImovel objetivo)
         {
-            // Auto-calculate properties
-            objetivo.ValorEntrada = _calculoService.CalcularEntrada(objetivo.ValorImovel, objetivo.PercentualEntrada);
-            var custos = _calculoService.CalcularCustosExtras(objetivo.ValorImovel);
-            objetivo.CustoITBI = custos.CustoITBI;
-            objetivo.CustoEscritura = custos.CustoEscritura;
-            objetivo.CustoRegistro = custos.CustoRegistro;
-            objetivo.TotalNecessario = objetivo.ValorEntrada + custos.CustoITBI + custos.CustoEscritura + custos.CustoRegistro;
-
             var created = await _objetivoRepository.CreateAsync(objetivo);
+
+            // Auto-calculate and persist CustosImovel
+            var valorEntrada = _calculoService.CalcularEntrada(objetivo.ValorImovel, objetivo.PercentualEntrada);
+            var custos = _calculoService.CalcularCustosExtras(objetivo.ValorImovel);
+            var totalNecessario = valorEntrada + custos.CustoITBI + custos.CustoEscritura + custos.CustoRegistro;
+
+            await _custosRepository.UpsertAsync(new CustosImovel
+            {
+                ObjetivoImovelId = created.Id,
+                ValorEntrada = valorEntrada,
+                TotalNecessario = totalNecessario,
+                PercentualCustosExtras = 0,
+                CustoITBI = custos.CustoITBI,
+                CustoEscritura = custos.CustoEscritura,
+                CustoRegistro = custos.CustoRegistro,
+            });
+
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] ObjetivoImovel objetivo)
         {
-            // Recalculate properties if needed
-            objetivo.ValorEntrada = _calculoService.CalcularEntrada(objetivo.ValorImovel, objetivo.PercentualEntrada);
-            var custos = _calculoService.CalcularCustosExtras(objetivo.ValorImovel);
-            objetivo.CustoITBI = custos.CustoITBI;
-            objetivo.CustoEscritura = custos.CustoEscritura;
-            objetivo.CustoRegistro = custos.CustoRegistro;
-            objetivo.TotalNecessario = objetivo.ValorEntrada + custos.CustoITBI + custos.CustoEscritura + custos.CustoRegistro;
-
             await _objetivoRepository.UpdateAsync(id, objetivo);
+
+            // Recalculate and persist CustosImovel
+            var valorEntrada = _calculoService.CalcularEntrada(objetivo.ValorImovel, objetivo.PercentualEntrada);
+            var custos = _calculoService.CalcularCustosExtras(objetivo.ValorImovel);
+            var totalNecessario = valorEntrada + custos.CustoITBI + custos.CustoEscritura + custos.CustoRegistro;
+
+            await _custosRepository.UpsertAsync(new CustosImovel
+            {
+                ObjetivoImovelId = id,
+                ValorEntrada = valorEntrada,
+                TotalNecessario = totalNecessario,
+                PercentualCustosExtras = 0,
+                CustoITBI = custos.CustoITBI,
+                CustoEscritura = custos.CustoEscritura,
+                CustoRegistro = custos.CustoRegistro,
+                CalculadoEm = System.DateTime.UtcNow,
+            });
+
             return NoContent();
         }
 
@@ -76,7 +101,15 @@ namespace ImovPlan.API.Controllers
                 if (pessoa != null) pessoas.Add(pessoa);
             }
 
-            var diagnostico = _calculoService.CalcularDiagnostico(pessoas, objetivo);
+            // Fetch CustosImovel for totalNecessario
+            var custosImovel = await _custosRepository.GetByObjetivoIdAsync(id);
+            var totalNecessario = custosImovel?.TotalNecessario ?? 0m;
+
+            // Fetch AportesExtras total
+            var aportesExtras = await _aporteExtraRepository.GetByObjetivoIdAsync(id);
+            var aportesExtrasTotal = objetivo.ValorJaGuardado + aportesExtras.Sum(a => a.Valor);
+
+            var diagnostico = _calculoService.CalcularDiagnostico(pessoas, totalNecessario, aportesExtrasTotal);
             return Ok(diagnostico);
         }
 
@@ -86,9 +119,9 @@ namespace ImovPlan.API.Controllers
             var objetivo = await _objetivoRepository.GetByIdAsync(id);
             if (objetivo == null) return NotFound();
 
-            objetivo.AportesExtras.Add(aporte);
-            await _objetivoRepository.UpdateAsync(id, objetivo);
-            return Ok(objetivo);
+            aporte.ObjetivoImovelId = id;
+            var created = await _aporteExtraRepository.AddAsync(aporte);
+            return Ok(created);
         }
     }
 }

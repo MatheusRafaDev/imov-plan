@@ -12,11 +12,16 @@ namespace ImovPlan.API.Controllers
     {
         private readonly ISimulacaoService _simulacaoService;
         private readonly IObjetivoRepository _objetivoRepository;
+        private readonly ICustosImovelRepository _custosRepository;
 
-        public SimulacaoController(ISimulacaoService simulacaoService, IObjetivoRepository objetivoRepository)
+        public SimulacaoController(
+            ISimulacaoService simulacaoService,
+            IObjetivoRepository objetivoRepository,
+            ICustosImovelRepository custosRepository)
         {
             _simulacaoService = simulacaoService;
             _objetivoRepository = objetivoRepository;
+            _custosRepository = custosRepository;
         }
 
         [HttpPost]
@@ -25,7 +30,15 @@ namespace ImovPlan.API.Controllers
             var objetivo = await _objetivoRepository.GetByIdAsync(request.ObjetivoId);
             if (objetivo == null) return NotFound("Objetivo não encontrado");
 
-            var resultado = _simulacaoService.ExecutarSimulacao(request, objetivo);
+            var custos = await _custosRepository.GetByObjetivoIdAsync(request.ObjetivoId);
+            var totalNecessario = custos?.TotalNecessario ?? 0m;
+
+            var resultado = await _simulacaoService.ExecutarSimulacaoAsync(
+                request,
+                objetivo,
+                totalNecessario,
+                origem: "manual");
+
             return Ok(resultado);
         }
     }

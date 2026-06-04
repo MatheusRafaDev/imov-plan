@@ -11,7 +11,7 @@ namespace ImovPlan.Application.DTOs
         public List<PessoaDraftDto> Pessoas { get; set; } = new();
         public BancoDraftDto? BancoEscolhido { get; set; }
         public List<AporteExtraDraftDto> AportesExtras { get; set; } = new();
-        
+
         // Monthly tracking data
         public Dictionary<int, decimal> AportesRegularesEditados { get; set; } = new();
         public List<int> MesesConcluidos { get; set; } = new();
@@ -43,6 +43,10 @@ namespace ImovPlan.Application.DTOs
         public bool Usar_gastos_detalhados { get; set; }
         public List<GastoDetalhadoDraftDto> Gastos_detalhados { get; set; } = new();
         public decimal Aporte_mensal { get; set; }
+
+        /// <summary>
+        /// Valor inicial da pessoa (saldo guardado). Mapeado para SaldoInicial no backend.
+        /// </summary>
         public decimal ValorInicial { get; set; }
     }
 
@@ -51,6 +55,11 @@ namespace ImovPlan.Application.DTOs
         public string? Id { get; set; }
         public string Nome { get; set; } = string.Empty;
         public decimal Valor { get; set; }
+
+        /// <summary>
+        /// Categoria do gasto. Ex: "Moradia", "Alimentação", "Transporte".
+        /// </summary>
+        public string Categoria { get; set; } = string.Empty;
     }
 
     public class BancoDraftDto
@@ -66,5 +75,6 @@ namespace ImovPlan.Application.DTOs
         public decimal Valor { get; set; }
         public string Origem { get; set; } = string.Empty;
         public string? PessoaNome { get; set; }
+        public string? PessoaId { get; set; }
     }
 }

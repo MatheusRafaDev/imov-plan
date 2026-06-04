@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -33,9 +32,6 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("usarGastosDetalhados")]
         public bool UsarGastosDetalhados { get; set; }
 
-        [BsonElement("gastosDetalhados")]
-        public List<GastoDetalhado> GastosDetalhados { get; set; } = new();
-
         [BsonElement("sobraMensal")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal SobraMensal { get; set; }
@@ -43,10 +39,6 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("aporteMensal")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal AporteMensal { get; set; }
-
-        [BsonElement("valorInicial")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal? ValorInicial { get; set; }
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

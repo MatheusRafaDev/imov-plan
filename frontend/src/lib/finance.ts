@@ -115,8 +115,21 @@ export function simular(input: SimInput): SimResult {
   let mesAtingiu: number | undefined;
   let dataAtingiu: string | undefined;
 
+  // Registro inicial (Mês 0)
+  rows.push({
+    mes: 0,
+    data: new Date(inicio.getFullYear(), inicio.getMonth(), 1).toISOString(),
+    aporteRegular: 0,
+    aportesExtras: 0,
+    rendimentoBruto: 0,
+    imposto: 0,
+    rendimentoLiquido: 0,
+    saldoAcumulado: saldo,
+    totalInvestido,
+  });
+
   for (let mes = 1; mes <= prazoMax; mes++) {
-    const defaultAporte = mes === 1 ? 0 : input.aporteMensalTotal;
+    const defaultAporte = input.aporteMensalTotal;
     const aporteRegular = input.aportesRegularesEditados?.[mes] ?? defaultAporte;
     const aportesExtras = extrasPorMes.get(mes) ?? 0;
     saldo += aporteRegular + aportesExtras;

@@ -173,94 +173,133 @@ export default function PessoaCard({
 
   // Edit Mode
   return (
-    <Card className="glass p-6 shadow-soft space-y-4 border-accent/40 animate-fade-in-up">
+    <Card className="glass p-6 shadow-soft border-accent/40 animate-fade-in-up flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 w-full">
-          <div className="h-10 w-10 shrink-0 rounded-full bg-secondary grid place-items-center">
-            <User className="h-4 w-4" />
+          <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-secondary to-secondary/50 grid place-items-center shadow-inner">
+            <User className="h-5 w-5 text-muted-foreground" />
           </div>
-          <Input value={p.nome} onChange={e => atualizarPessoa(p.id, { nome: e.target.value })} className="font-display text-lg border-none px-0 focus-visible:ring-0 h-auto bg-transparent" />
+          <Input 
+            value={p.nome} 
+            onChange={e => atualizarPessoa(p.id, { nome: e.target.value })} 
+            className="font-display text-2xl font-semibold border-none px-0 focus-visible:ring-0 h-auto bg-transparent" 
+            placeholder="Nome do participante"
+          />
         </div>
         {index > 0 && (
-          <Button variant="ghost" size="icon" onClick={() => remover(p.id)} className="shrink-0 hover:bg-destructive/10 hover:text-destructive">
-            <Trash2 className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={() => remover(p.id)} className="shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors">
+            <Trash2 className="h-5 w-5" />
           </Button>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Renda Principal</Label>
-          <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => atualizarPessoa(p.id, { renda_mensal: v === "" ? 0 : v })} />
+
+      <div className="space-y-5">
+        {/* Rendas */}
+        <div className="bg-secondary/20 rounded-xl p-4 border border-border/50">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex items-center gap-1.5 mb-3">
+            <Briefcase className="h-3 w-3" /> Receitas
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Principal</Label>
+              <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => atualizarPessoa(p.id, { renda_mensal: v === "" ? 0 : v })} className="bg-background" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Extra</Label>
+              <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)} onChange={v => atualizarPessoa(p.id, { renda_complementar: v === "" ? 0 : v })} className="bg-background" />
+            </div>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs">Renda Extra</Label>
-          <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)} onChange={v => atualizarPessoa(p.id, { renda_complementar: v === "" ? 0 : v })} />
-        </div>
-        <div className="col-span-2">
-          <Label className="text-xs text-accent">Valor Já Guardado</Label>
-          <MoneyInput
-            variant="money"
-            min={0}
-            value={valorInicial}
-            onChange={v => atualizarPessoa(p.id, { valorInicial: v === "" ? 0 : v })}
-          />
-        </div>
-        <div className="col-span-2">
-          <Label className="text-xs text-primary font-medium">Aporte Mensal Programado</Label>
-          <MoneyInput
-            variant="money"
-            min={0}
-            value={Number(p.aporte_mensal || 0)}
-            onChange={v => atualizarPessoa(p.id, { aporte_mensal: v === "" ? 0 : v })}
-          />
-        </div>
-        <div className="col-span-2 pt-2">
-          <div className="flex items-center justify-between mb-2">
-            <Label className="text-xs font-medium">Despesas Mensais</Label>
-            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => atualizarPessoa(p.id, { usar_gastos_detalhados: !p.usar_gastos_detalhados })}>
-              {p.usar_gastos_detalhados ? "Mudar para Valor Direto" : "Detalhar Gastos"}
+
+        {/* Despesas */}
+        <div className="bg-destructive/5 rounded-xl p-4 border border-destructive/10">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 mb-3">
+            <p className="text-[10px] uppercase tracking-widest text-destructive/80 font-medium flex items-center gap-1.5">
+              <TrendingDown className="h-3 w-3" /> Despesas
+            </p>
+            <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5 bg-background/50 hover:bg-background" onClick={() => atualizarPessoa(p.id, { usar_gastos_detalhados: !p.usar_gastos_detalhados })}>
+              {p.usar_gastos_detalhados ? "Usar Valor Direto" : "Detalhar Gastos"}
             </Button>
           </div>
+          
           {!p.usar_gastos_detalhados ? (
-            <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)} onChange={v => atualizarPessoa(p.id, { gastos_mensais: v === "" ? 0 : v })} />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Despesa Mensal Total</Label>
+              <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)} onChange={v => atualizarPessoa(p.id, { gastos_mensais: v === "" ? 0 : v })} className="bg-background" />
+            </div>
           ) : (
-            <div className="space-y-2 bg-secondary/20 p-3 rounded-lg border border-border/40">
+            <div className="space-y-3">
               {(p.gastos_detalhados || []).map(g => (
-                <div key={g.id} className="flex items-center gap-2 bg-background p-1.5 rounded-md border border-border/40">
-                  <Input value={g.nome} onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} className="h-8 text-xs flex-1 bg-transparent" placeholder="Nome do gasto" />
-                  <div className="w-24">
-                    <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="h-8 text-xs" />
+                <div key={g.id} className="flex items-center gap-2 bg-background p-1.5 rounded-lg border border-border/40 shadow-sm">
+                  <Input value={g.nome} onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} className="h-9 text-sm flex-1 bg-transparent border-none focus-visible:ring-0" placeholder="Ex: Aluguel" />
+                  <div className="w-28 shrink-0">
+                    <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="h-9 text-sm bg-transparent border-none focus-visible:ring-0 text-right" />
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveGasto(g.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleRemoveGasto(g.id)}>
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
-              <div className="flex gap-2 items-end pt-1">
-                <div className="flex-1">
-                  <Input placeholder="Ex: Mercado" className="h-8 text-xs" value={novoGasto.nome} onChange={e => setNovoGasto({ ...novoGasto, nome: e.target.value })} />
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 items-end pt-1">
+                <div className="flex-1 space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Novo Gasto</Label>
+                  <Input placeholder="Ex: Mercado" className="h-9 text-sm bg-background" value={novoGasto.nome} onChange={e => setNovoGasto({ ...novoGasto, nome: e.target.value })} />
                 </div>
-                <div className="w-24">
-                  <MoneyInput variant="money" min={0} placeholder="R$" className="h-8 text-xs" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} />
+                <div className="w-28 shrink-0 space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor</Label>
+                  <MoneyInput variant="money" min={0} placeholder="R$" className="h-9 text-sm bg-background" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} />
                 </div>
-                <Button size="icon" className="h-8 w-8 bg-primary text-primary-foreground" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
-                  <Plus className="h-3 w-3" />
+                <Button size="icon" className="h-9 w-9 bg-primary text-primary-foreground shrink-0 shadow-sm hover:shadow-md transition-all" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex justify-between items-center pt-2 px-1 border-t border-border/40 mt-2">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</span>
-                <span className="font-medium">{brl(gastosTotais)}</span>
-              </div>
+              {gastosTotais > 0 && (
+                <div className="flex justify-between items-center pt-3 px-1 border-t border-destructive/10 mt-3">
+                  <span className="text-[10px] uppercase tracking-widest text-destructive/80 font-medium">Total Despesas</span>
+                  <span className="font-semibold text-destructive">{brl(gastosTotais)}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        {/* Investimentos & Aportes */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-accent/5 rounded-xl p-4 border border-accent/10 space-y-2 flex flex-col justify-between">
+            <Label className="text-xs font-medium text-accent flex items-center gap-1.5">
+              <Wallet className="h-3 w-3" /> Já Guardado
+            </Label>
+            <MoneyInput
+              variant="money"
+              min={0}
+              value={valorInicial}
+              onChange={v => atualizarPessoa(p.id, { valorInicial: v === "" ? 0 : v })}
+              className="bg-background font-medium"
+            />
+          </div>
+          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-2 flex flex-col justify-between">
+            <Label className="text-xs font-medium text-primary flex items-center gap-1.5">
+              <TrendingDown className="h-3 w-3 rotate-180" /> Aporte Mensal
+            </Label>
+            <MoneyInput
+              variant="money"
+              min={0}
+              value={Number(p.aporte_mensal || 0)}
+              onChange={v => atualizarPessoa(p.id, { aporte_mensal: v === "" ? 0 : v })}
+              className="bg-background font-medium"
+            />
+          </div>
+        </div>
+
+        {/* Sobra */}
+        <div className={`rounded-xl p-4 flex items-center justify-between transition-colors border shadow-sm ${sobra >= 0 ? "bg-[#3B6D11]/10 border-[#3B6D11]/20 text-[#3B6D11] dark:text-[#80B551]" : "bg-destructive/10 border-destructive/20 text-destructive"}`}>
+          <span className="text-sm font-medium">Sobra Mensal Estimada</span>
+          <span className="font-display text-xl num font-bold">{brl(sobra)}</span>
+        </div>
       </div>
-      <div className={`rounded-lg p-3 flex items-center justify-between transition-colors border ${sobra >= 0 ? "bg-success/5 border-success/10 text-success" : "bg-destructive/5 border-destructive/10 text-destructive"}`}>
-        <span className="text-sm font-medium">Sobra mensal</span>
-        <span className="font-display text-xl num font-semibold">{brl(sobra)}</span>
-      </div>
-      <Button onClick={() => setIsEditing(false)} className="w-full bg-gradient-warm text-accent-foreground hover:opacity-90 mt-2 shadow-sm">
-        <Check className="h-4 w-4 mr-1.5" /> Concluir Edição
+
+      <Button onClick={() => setIsEditing(false)} className="w-full bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow h-12 text-base mt-2">
+        <Check className="h-5 w-5 mr-2" /> Salvar Alterações
       </Button>
     </Card>
   );

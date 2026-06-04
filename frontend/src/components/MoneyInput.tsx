@@ -15,8 +15,8 @@ type Props = Omit<React.ComponentProps<"input">, "value" | "onChange" | "type"> 
 };
 
 const fmt = (n: number | "", decimals: number) => {
-  if (n === "") return "";
-  return (isFinite(n) ? n : 0).toLocaleString("pt-BR", {
+  const val = n === "" ? 0 : (isFinite(n as number) ? n as number : 0);
+  return val.toLocaleString("pt-BR", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -79,8 +79,8 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
       }
       
       if (!digits) {
-        setText("");
-        onChange("");
+        setText(fmt(0, dec));
+        onChange(0);
         return;
       }
 
@@ -105,14 +105,12 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
       setFocused(false);
       setTouched(true);
       
-      let n = value;
-      if (n !== "") {
-        if (min !== undefined && n < min) n = min;
-        if (max !== undefined && n > max) n = max;
-        const clamped = Math.max(0, n);
-        onChange(clamped);
-        setText(fmt(clamped, dec));
-      }
+      let n = value === "" ? 0 : value;
+      if (min !== undefined && n < min) n = min;
+      if (max !== undefined && n > max) n = max;
+      const clamped = Math.max(0, n);
+      onChange(clamped);
+      setText(fmt(clamped, dec));
       
       onBlur?.(e);
     };

@@ -35,13 +35,7 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.NomePlano = objetivo.NomePlano;
                 existing.ValorImovel = objetivo.ValorImovel;
                 existing.PercentualEntrada = objetivo.PercentualEntrada;
-                existing.PercentualCustosExtras = objetivo.PercentualCustosExtras;
                 existing.PrazoMaxMeses = objetivo.PrazoMaxMeses;
-                existing.ValorEntrada = objetivo.ValorEntrada;
-                existing.CustoITBI = objetivo.CustoITBI;
-                existing.CustoEscritura = objetivo.CustoEscritura;
-                existing.CustoRegistro = objetivo.CustoRegistro;
-                existing.TotalNecessario = objetivo.TotalNecessario;
                 existing.ValorJaGuardado = objetivo.ValorJaGuardado;
                 existing.TaxaCdiAnual = objetivo.TaxaCdiAnual;
                 existing.PercentualCdi = objetivo.PercentualCdi;
@@ -50,9 +44,9 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.BancoEscolhidoNome = objetivo.BancoEscolhidoNome;
                 existing.BancoEscolhidoTaxa = objetivo.BancoEscolhidoTaxa;
                 existing.PessoasIds = objetivo.PessoasIds;
-                existing.AportesExtras = objetivo.AportesExtras;
-                existing.AportesRegularesEditados = objetivo.AportesRegularesEditados;
                 existing.MesesConcluidos = objetivo.MesesConcluidos;
+                existing.Status = objetivo.Status;
+                existing.UsuarioId = objetivo.UsuarioId;
 
                 _context.Objetivos.Update(existing);
                 await _context.SaveChangesAsync();

@@ -14,7 +14,7 @@ import { brl, calcularMeta, mesesParaMeta, aporteNecessarioParaPrazo, mesesEntre
 import { DateInput } from "@/components/DateInput";
 import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil } from "lucide-react";
 
-const ORIGENS = ["FGTS", "Bônus / 13º", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
+const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
   const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft } = usePlanContext();
@@ -35,7 +35,7 @@ export default function PlanejamentoPage() {
   const [novoAporte, setNovoAporte] = useState({
     data: new Date().toISOString().slice(0, 10),
     valor: 0 as number | "",
-    origem: "Bônus / 13º",
+    origem: "13º Salário",
     pessoa_id: "",
   });
 
@@ -69,44 +69,7 @@ export default function PlanejamentoPage() {
   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
   const mesesEstimados = mesesParaMeta({ ...baseSim, aporteMensalTotal: aporteTotal });
   
-  const rendaTotal = pessoas.reduce((acc, p) => acc + Number(p.renda_mensal) + Number(p.renda_complementar || 0), 0);
-  const aporteSugerido = rendaTotal * 0.4; // 40% da renda total
-
-  // Cálculo de sobras e limites individuais
-  const sobras = pessoas.map((p) => Math.max(1, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)));
-  const tSobras = sobras.reduce((a, b) => a + b, 0);
-
-  const pessoasComMinimo = pessoas.map((p, i) => {
-    const sobra = Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais));
-    const sobraProporcional = sobras[i];
-    const minimoSugerido = Math.round((sobraProporcional / tSobras) * aporteSugerido);
-    const aporteAtual = Number(p.aporte_mensal || 0);
-    const falta = Math.max(0, minimoSugerido - aporteAtual);
-    const isAbaixo = aporteAtual < minimoSugerido;
-    return { ...p, sobra, minimoSugerido, falta, isAbaixo, aporteAtual };
-  });
-
-  const totalSobras = pessoas.reduce((acc, p) => acc + Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)), 0);
   const progressoPercent = Math.min(100, (totalGuardado / meta) * 100);
-
-  const atualizarPessoa = (pId: string, valor: number | "") => {
-    const val = valor === "" ? 0 : valor;
-    setPessoas(pessoas.map((p) => p.id === pId ? { ...p, aporte_mensal: val } : p));
-  };
-
-  const distribuirSugerido = () => {
-    setPessoas(pessoas.map((p, i) => ({
-      ...p,
-      aporte_mensal: Math.round((sobras[i] / tSobras) * aporteSugerido),
-    })));
-  };
-
-  const distribuirTudo = () => {
-    setPessoas(pessoas.map((p) => ({
-      ...p,
-      aporte_mensal: Math.max(0, Number(p.renda_mensal) + Number(p.renda_complementar || 0) - Number(p.gastos_mensais)),
-    })));
-  };
 
   const adicionarAporte = () => {
     if (!novoAporte.valor) return;
@@ -149,20 +112,20 @@ export default function PlanejamentoPage() {
     <div className="max-w-6xl mx-auto space-y-10">
       <div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">Etapa 3 de 4</p>
-        <h1 className="font-display text-4xl md:text-5xl mb-3 font-light">Monte o plano mensal</h1>
-        <p className="text-muted-foreground text-lg">Defina quanto cada um aporta e adicione entradas extras.</p>
+        <h1 className="font-display text-4xl md:text-5xl mb-3 font-light">Acelere seu plano</h1>
+        <p className="text-muted-foreground text-lg">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
 
       {/* Top Cards */}
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="p-6 border-border/50 bg-primary/5 flex flex-col justify-center items-center text-center">
-          <p className="text-sm font-medium text-muted-foreground mb-2">Tempo para a meta</p>
+          <p className="text-sm font-medium text-muted-foreground mb-2">Tempo estimado</p>
           <p className="font-display text-6xl text-primary num">{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
           <p className="text-sm text-muted-foreground mt-2">{mesesEstimados ? "meses" : "Indefinido"}</p>
         </Card>
 
         <Card className="p-6 border-border/50 flex flex-col justify-center">
-          <p className="text-sm font-medium text-muted-foreground mb-4">Progresso da meta</p>
+          <p className="text-sm font-medium text-muted-foreground mb-4">Progresso inicial da meta</p>
           <div className="space-y-3">
             <div className="flex justify-between items-end">
               <span className="font-display text-3xl num leading-none">{brl(totalGuardado)}</span>
@@ -178,63 +141,19 @@ export default function PlanejamentoPage() {
           </div>
         </Card>
 
-        <Card className="p-6 border-border/50 flex flex-col justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Aporte mensal total</p>
-            <p className="font-display text-4xl num mt-2 leading-none">{brl(aporteTotal)}</p>
-          </div>
-          <div className="mt-6 space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Sugestão segura</span>
-              <Button size="sm" variant="outline" onClick={distribuirSugerido} className="h-8 text-xs px-3 bg-background">
-                Aplicar {brl(aporteSugerido)}
-              </Button>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Sugestão agressiva</span>
-              <Button size="sm" variant="outline" onClick={distribuirTudo} className="h-8 text-xs px-3 bg-background">
-                Aplicar {brl(totalSobras)}
-              </Button>
-            </div>
+        <Card className="p-6 border-border/50 flex flex-col justify-center">
+          <p className="text-sm font-medium text-muted-foreground">Aporte mensal total (Programado)</p>
+          <p className="font-display text-4xl num mt-2 leading-none text-accent">{brl(aporteTotal)}</p>
+          
+          <div className="mt-6 space-y-2">
+            {pessoas.map(p => (
+              <div key={p.id} className="flex justify-between text-sm items-center border-b border-border/40 pb-2 last:border-0 last:pb-0">
+                <span className="text-muted-foreground">{p.nome}</span>
+                <span className="num font-medium bg-background px-2 py-1 rounded-md border border-border/50">{brl(Number(p.aporte_mensal || 0))}</span>
+              </div>
+            ))}
           </div>
         </Card>
-      </div>
-
-
-      {/* Aporte de cada pessoa */}
-      <div className="space-y-4">
-        <h2 className="font-display text-2xl font-light">Aporte de cada pessoa</h2>
-        <div className="grid sm:grid-cols-2 gap-6">
-          {pessoasComMinimo.map((p) => (
-            <Card key={p.id} className={`p-6 border transition-colors ${p.isAbaixo ? 'border-destructive/40 bg-destructive/5' : 'border-border/50'}`}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <span className="font-medium text-lg">{p.nome}</span>
-                  <p className="text-xs text-muted-foreground mt-1">Sobra disponível: {brl(p.sobra)}</p>
-                </div>
-                {p.isAbaixo && (
-                  <div className="flex items-center text-xs text-destructive bg-destructive/10 px-2.5 py-1 rounded-md font-medium">
-                    <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-                    Abaixo do ideal
-                  </div>
-                )}
-              </div>
-              
-              <div className="mb-3">
-                <MoneyInput variant="money" value={p.aporteAtual}
-                  onChange={(v) => atualizarPessoa(p.id, v)}
-                  className="font-display text-3xl num h-14 bg-background border-border/60" />
-              </div>
-
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground">Sugerido: <span className="num">{brl(p.minimoSugerido)}</span></span>
-                {p.isAbaixo && (
-                  <span className="text-destructive font-medium">Faltam {brl(p.falta)}</span>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
       </div>
 
       {/* Modal Aportes Extras */}

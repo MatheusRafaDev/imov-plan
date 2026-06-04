@@ -2,7 +2,6 @@
 
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import type { SimInput, Aporte } from "@/lib/finance";
-import { PlanoService } from "@/services/PlanoService";
 import Cookies from "js-cookie";
 
 export type CenarioCompra = "entrada" | "pronto" | "planta";
@@ -79,47 +78,70 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   React.useEffect(() => {
     // Check local storage for existing session/draft
     let localSessionId = Cookies.get("imovplan_sessionId");
-    let localPlanoId = Cookies.get("imovplan_planoId");
 
     if (!localSessionId) {
       localSessionId = Math.random().toString(36).substring(2, 15);
       Cookies.set("imovplan_sessionId", localSessionId, { expires: 30 });
     }
     setSessionId(localSessionId);
-
+    
+    // Draft can be local but we also sync to backend
     const initDraft = async () => {
+      let localPlanoId = Cookies.get("imovplan_planoId");
+
       try {
         if (localPlanoId) {
-          try {
-            const data = await PlanoService.getDraft(localPlanoId, localSessionId);
-            if (data) {
-              if (data.objetivo) {
-                setObjetivo({
-                  ...data.objetivo,
-                  dataInicio: data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date()
-                });
-              }
-              if (data.pessoas) setPessoas(data.pessoas);
-              if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
-              if (data.aportesExtras) setAportesExtras(data.aportesExtras);
-              if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
-              if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
-              setPlanoId(localPlanoId);
-              return;
+          // Fetch existing draft from backend
+          const res = await fetch(`http://localhost:5179/api/plano/draft/${localPlanoId}?sessionId=${localSessionId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.objetivo) {
+              setObjetivo({
+                ...data.objetivo,
+                dataInicio: data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date()
+              });
             }
-          } catch (e) {
-            console.log("Draft não encontrado, criando novo...");
+            if (data.pessoas) setPessoas(data.pessoas);
+            if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
+            if (data.aportesExtras) setAportesExtras(data.aportesExtras);
+            if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
+            if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+            
+            setPlanoId(localPlanoId);
+            return;
           }
         }
         
-        // Create new draft if not found or no localPlanoId
-        const data = await PlanoService.createDraft(localSessionId);
-        if (data && data.id) {
+        // Load fallback from localStorage if backend fails or doesn't have it
+        const savedDraft = localStorage.getItem("imovplan_draft");
+        if (savedDraft) {
+          const data = JSON.parse(savedDraft);
+          if (data.objetivo) {
+            setObjetivo({
+              ...data.objetivo,
+              dataInicio: data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date()
+            });
+          }
+          if (data.pessoas) setPessoas(data.pessoas);
+          if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
+          if (data.aportesExtras) setAportesExtras(data.aportesExtras);
+          if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
+          if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+        }
+
+        // Create new draft in backend
+        const res = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`, { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
           setPlanoId(data.id);
           Cookies.set("imovplan_planoId", data.id, { expires: 30 });
+        } else {
+          setPlanoId("local-draft-" + localSessionId);
         }
+
       } catch (err) {
-        console.error("Erro ao gerenciar rascunho:", err);
+        console.error("Erro ao carregar rascunho do backend, usando local:", err);
+        setPlanoId("local-draft-" + localSessionId);
       }
     };
 
@@ -134,8 +156,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     aportesRegularesEditados?: Record<number, number>;
     mesesConcluidos?: number[];
   }): Promise<boolean> => {
-    if (!planoId || !sessionId) {
-      console.warn("saveDraft chamado antes do planoId/sessionId estar pronto — ignorando.");
+    if (!sessionId) {
+      console.warn("saveDraft chamado antes do sessionId estar pronto — ignorando.");
       return false;
     }
 
@@ -147,7 +169,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       const payloadAportesRegulares = overrideData && overrideData.aportesRegularesEditados !== undefined ? overrideData.aportesRegularesEditados : aportesRegularesEditados;
       const payloadMesesConcluidos = overrideData && overrideData.mesesConcluidos !== undefined ? overrideData.mesesConcluidos : mesesConcluidos;
 
-      await PlanoService.updateDraft(planoId, {
+      const draftToSave = {
         sessionId,
         objetivo: payloadObjetivo ? {
           ...payloadObjetivo,
@@ -158,7 +180,20 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         aportesExtras: payloadAportes,
         aportesRegularesEditados: payloadAportesRegulares,
         mesesConcluidos: payloadMesesConcluidos
-      });
+      };
+
+      // Save local fallback
+      localStorage.setItem("imovplan_draft", JSON.stringify(draftToSave));
+
+      // Sync to backend if we have a valid planoId
+      if (planoId && !planoId.startsWith("local-draft-")) {
+        await fetch(`http://localhost:5179/api/plano/draft/${planoId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draftToSave)
+        });
+      }
+
       return true;
     } catch (err) {
       console.error("Falha ao salvar rascunho:", err);

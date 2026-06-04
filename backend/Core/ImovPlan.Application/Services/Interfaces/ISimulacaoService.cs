@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Domain.Entities;
 
@@ -5,7 +6,13 @@ namespace ImovPlan.Application.Services.Interfaces
 {
     public interface ISimulacaoService
     {
-        SimulacaoResultado ExecutarSimulacao(SimulacaoRequestDto request, ObjetivoImovel objetivo);
+        Task<SimulacaoResultado> ExecutarSimulacaoAsync(
+            SimulacaoRequestDto request,
+            ObjetivoImovel objetivo,
+            decimal totalNecessario,
+            string origem = "auto",
+            int stepAtual = 0);
+
         decimal CalcularIR(int meses, decimal rendimento);
         decimal AplicarJurosCompostos(decimal capital, decimal taxaMensal, int meses);
     }

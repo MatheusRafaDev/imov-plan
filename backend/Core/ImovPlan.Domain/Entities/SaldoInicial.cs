@@ -4,7 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace ImovPlan.Domain.Entities
 {
-    public class GastoDetalhado
+    public class SaldoInicial
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
@@ -14,15 +14,22 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.ObjectId)]
         public string PessoaId { get; set; } = string.Empty;
 
-        [BsonElement("nome")]
-        public string Nome { get; set; } = string.Empty;
+        [BsonElement("objetivoImovelId")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string ObjetivoImovelId { get; set; } = string.Empty;
 
         [BsonElement("valor")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal Valor { get; set; }
 
-        [BsonElement("categoria")]
-        public string Categoria { get; set; } = string.Empty;
+        /// <summary>
+        /// Fonte do saldo inicial. Ex: "Poupança", "FGTS", "Investimento".
+        /// </summary>
+        [BsonElement("fonte")]
+        public string Fonte { get; set; } = string.Empty;
+
+        [BsonElement("registradoEm")]
+        public DateTime RegistradoEm { get; set; } = DateTime.UtcNow;
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

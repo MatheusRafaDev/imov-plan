@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -23,32 +22,8 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal PercentualEntrada { get; set; }
 
-        [BsonElement("percentualCustosExtras")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal PercentualCustosExtras { get; set; }
-
         [BsonElement("prazoMaxMeses")]
         public int PrazoMaxMeses { get; set; }
-
-        [BsonElement("valorEntrada")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal ValorEntrada { get; set; }
-
-        [BsonElement("custoITBI")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal CustoITBI { get; set; }
-
-        [BsonElement("custoEscritura")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal CustoEscritura { get; set; }
-
-        [BsonElement("custoRegistro")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal CustoRegistro { get; set; }
-
-        [BsonElement("totalNecessario")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal TotalNecessario { get; set; }
 
         [BsonElement("valorJaGuardado")]
         [BsonRepresentation(BsonType.Decimal128)]
@@ -79,22 +54,6 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("pessoasIds")]
         [BsonRepresentation(BsonType.ObjectId)]
         public List<string> PessoasIds { get; set; } = new();
-
-        [BsonElement("aportesExtras")]
-        public List<AporteExtra> AportesExtras { get; set; } = new();
-
-        [BsonElement("aportesRegularesEditados")]
-        public string AportesRegularesEditadosJson { get; set; } = "{}";
-
-        [NotMapped]
-        [BsonIgnore]
-        public Dictionary<int, decimal> AportesRegularesEditados
-        {
-            get => string.IsNullOrEmpty(AportesRegularesEditadosJson)
-                ? new()
-                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<int, decimal>>(AportesRegularesEditadosJson) ?? new();
-            set => AportesRegularesEditadosJson = System.Text.Json.JsonSerializer.Serialize(value);
-        }
 
         [BsonElement("mesesConcluidos")]
         public List<int> MesesConcluidos { get; set; } = new();

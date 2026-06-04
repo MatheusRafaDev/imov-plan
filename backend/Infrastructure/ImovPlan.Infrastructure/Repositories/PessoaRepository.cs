@@ -43,10 +43,9 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.RendaComplementar = pessoa.RendaComplementar;
                 existing.GastosMensais = pessoa.GastosMensais;
                 existing.UsarGastosDetalhados = pessoa.UsarGastosDetalhados;
-                existing.GastosDetalhados = pessoa.GastosDetalhados;
                 existing.SobraMensal = pessoa.SobraMensal;
                 existing.AporteMensal = pessoa.AporteMensal;
-                
+
                 _context.Pessoas.Update(existing);
                 await _context.SaveChangesAsync();
             }

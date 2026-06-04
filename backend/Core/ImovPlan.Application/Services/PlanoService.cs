@@ -13,11 +13,28 @@ namespace ImovPlan.Application.Services
     {
         private readonly IObjetivoRepository _objetivoRepo;
         private readonly IPessoaRepository _pessoaRepo;
+        private readonly ICustosImovelRepository _custosRepo;
+        private readonly ISaldoInicialRepository _saldoRepo;
+        private readonly IAporteExtraRepository _aporteExtraRepo;
+        private readonly IAporteRegularEditRepository _aporteRegularEditRepo;
+        private readonly IGastoDetalhadoRepository _gastoDetalhadoRepo;
 
-        public PlanoService(IObjetivoRepository objetivoRepo, IPessoaRepository pessoaRepo)
+        public PlanoService(
+            IObjetivoRepository objetivoRepo,
+            IPessoaRepository pessoaRepo,
+            ICustosImovelRepository custosRepo,
+            ISaldoInicialRepository saldoRepo,
+            IAporteExtraRepository aporteExtraRepo,
+            IAporteRegularEditRepository aporteRegularEditRepo,
+            IGastoDetalhadoRepository gastoDetalhadoRepo)
         {
             _objetivoRepo = objetivoRepo;
             _pessoaRepo = pessoaRepo;
+            _custosRepo = custosRepo;
+            _saldoRepo = saldoRepo;
+            _aporteExtraRepo = aporteExtraRepo;
+            _aporteRegularEditRepo = aporteRegularEditRepo;
+            _gastoDetalhadoRepo = gastoDetalhadoRepo;
         }
 
         public async Task<string> CreateDraftAsync(string sessionId)
@@ -46,7 +63,6 @@ namespace ImovPlan.Application.Services
                 var o = draftDto.Objetivo;
                 existingObjetivo.ValorImovel = o.ValorImovel;
                 existingObjetivo.PercentualEntrada = o.PercentualEntrada;
-                existingObjetivo.PercentualCustosExtras = o.PercentualCustosExtras;
                 existingObjetivo.ValorJaGuardado = o.ValorJaGuardado;
                 existingObjetivo.TaxaCdiAnual = o.TaxaCdiAnual;
                 existingObjetivo.PercentualCdi = o.PercentualCdi;
@@ -59,9 +75,24 @@ namespace ImovPlan.Application.Services
                         existingObjetivo.DataInicio = dt;
                 }
 
-                // Computed fields
-                existingObjetivo.ValorEntrada = o.ValorImovel * o.PercentualEntrada / 100m;
-                existingObjetivo.TotalNecessario = existingObjetivo.ValorEntrada + (o.ValorImovel * o.PercentualCustosExtras / 100m);
+                // Persist CustosImovel (computed from objetivo fields)
+                var valorEntrada = o.ValorImovel * o.PercentualEntrada / 100m;
+                var custoITBI = o.ValorImovel * 0.02m;
+                var custoEscritura = o.ValorImovel * 0.01m;
+                var custoRegistro = o.ValorImovel * 0.005m;
+                var totalNecessario = valorEntrada + (o.ValorImovel * o.PercentualCustosExtras / 100m);
+
+                await _custosRepo.UpsertAsync(new CustosImovel
+                {
+                    ObjetivoImovelId = id,
+                    ValorEntrada = valorEntrada,
+                    TotalNecessario = totalNecessario,
+                    PercentualCustosExtras = o.PercentualCustosExtras,
+                    CustoITBI = custoITBI,
+                    CustoEscritura = custoEscritura,
+                    CustoRegistro = custoRegistro,
+                    CalculadoEm = DateTime.UtcNow,
+                });
             }
 
             // ── Map Banco Escolhido ──
@@ -72,24 +103,40 @@ namespace ImovPlan.Application.Services
                 existingObjetivo.BancoEscolhidoTaxa = draftDto.BancoEscolhido.Taxa;
             }
 
-            // ── Map Aportes Extras ──
+            // ── Map Aportes Extras → AporteExtraRepository ──
             if (draftDto.AportesExtras != null)
             {
-                existingObjetivo.AportesExtras = draftDto.AportesExtras.Select(a => new AporteExtra
+                foreach (var a in draftDto.AportesExtras)
                 {
-                    Data = !string.IsNullOrEmpty(a.Data) && DateTime.TryParse(a.Data, out var d) ? d : DateTime.UtcNow,
-                    Valor = a.Valor,
-                    Origem = a.Origem,
-                    PessoaNome = a.PessoaNome ?? string.Empty
-                }).ToList();
+                    await _aporteExtraRepo.AddAsync(new AporteExtra
+                    {
+                        ObjetivoImovelId = id,
+                        PessoaId = a.PessoaId ?? string.Empty,
+                        PessoaNome = a.PessoaNome ?? string.Empty,
+                        Data = !string.IsNullOrEmpty(a.Data) && DateTime.TryParse(a.Data, out var d) ? d : DateTime.UtcNow,
+                        Valor = a.Valor,
+                        Origem = a.Origem,
+                    });
+                }
+            }
+
+            // ── Map AportesRegularesEditados → AporteRegularEditRepository ──
+            if (draftDto.AportesRegularesEditados != null)
+            {
+                foreach (var kvp in draftDto.AportesRegularesEditados)
+                {
+                    await _aporteRegularEditRepo.UpsertByMesAsync(new AporteRegularEdit
+                    {
+                        ObjetivoImovelId = id,
+                        PessoaId = string.Empty, // Plan-level edit, not person-specific
+                        Mes = kvp.Key,
+                        ValorEditado = kvp.Value,
+                        EditadoEm = DateTime.UtcNow,
+                    });
+                }
             }
 
             // ── Map Monthly Tracking Data ──
-            if (draftDto.AportesRegularesEditados != null)
-            {
-                existingObjetivo.AportesRegularesEditados = draftDto.AportesRegularesEditados;
-            }
-
             if (draftDto.MesesConcluidos != null)
             {
                 existingObjetivo.MesesConcluidos = draftDto.MesesConcluidos;
@@ -100,12 +147,16 @@ namespace ImovPlan.Application.Services
             // ── Upsert Pessoas ──
             if (draftDto.Pessoas != null && draftDto.Pessoas.Count > 0)
             {
-                // Delete existing pessoas for this plan and recreate
-                // This is simpler and avoids orphan records when people are removed
+                // Delete existing pessoas and their related data, then recreate
                 var allPessoas = await _pessoaRepo.GetAllAsync();
                 var planPessoas = allPessoas.Where(p => p.ObjetivoImovelId == id).ToList();
                 foreach (var old in planPessoas)
                 {
+                    // Delete related gastos detalhados
+                    var gastos = await _gastoDetalhadoRepo.GetByPessoaIdAsync(old.Id);
+                    foreach (var g in gastos)
+                        await _gastoDetalhadoRepo.DeleteAsync(g.Id);
+
                     await _pessoaRepo.DeleteAsync(old.Id);
                 }
 
@@ -121,18 +172,39 @@ namespace ImovPlan.Application.Services
                         RendaComplementar = pDto.Renda_complementar,
                         GastosMensais = pDto.Gastos_mensais,
                         UsarGastosDetalhados = pDto.Usar_gastos_detalhados,
-                        GastosDetalhados = pDto.Gastos_detalhados?.Select(g => new GastoDetalhado
-                        {
-                            Id = g.Id ?? Guid.NewGuid().ToString(),
-                            Nome = g.Nome,
-                            Valor = g.Valor
-                        }).ToList() ?? new List<GastoDetalhado>(),
                         SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais,
                         AporteMensal = pDto.Aporte_mensal,
-                        ValorInicial = pDto.ValorInicial,
                     };
                     await _pessoaRepo.CreateAsync(pessoa);
                     newPessoaIds.Add(pessoa.Id);
+
+                    // Persist SaldoInicial
+                    if (pDto.ValorInicial > 0)
+                    {
+                        await _saldoRepo.AddAsync(new SaldoInicial
+                        {
+                            PessoaId = pessoa.Id,
+                            ObjetivoImovelId = id,
+                            Valor = pDto.ValorInicial,
+                            Fonte = "Poupança", // Default source; can be expanded later
+                            RegistradoEm = DateTime.UtcNow,
+                        });
+                    }
+
+                    // Persist GastosDetalhados
+                    if (pDto.Gastos_detalhados != null)
+                    {
+                        foreach (var gDto in pDto.Gastos_detalhados)
+                        {
+                            await _gastoDetalhadoRepo.AddAsync(new GastoDetalhado
+                            {
+                                PessoaId = pessoa.Id,
+                                Nome = gDto.Nome,
+                                Valor = gDto.Valor,
+                                Categoria = gDto.Categoria,
+                            });
+                        }
+                    }
                 }
 
                 // Update pessoasIds reference on the objetivo
@@ -154,6 +226,47 @@ namespace ImovPlan.Application.Services
             var allPessoas = await _pessoaRepo.GetAllAsync();
             var pessoasDoPlano = allPessoas.Where(p => p.ObjetivoImovelId == id).ToList();
 
+            // Fetch CustosImovel
+            var custos = await _custosRepo.GetByObjetivoIdAsync(id);
+
+            // Fetch AportesExtras
+            var aportesExtras = await _aporteExtraRepo.GetByObjetivoIdAsync(id);
+
+            // Fetch AportesRegularesEditados → reconstruct Dictionary<int, decimal>
+            var aporteEdits = await _aporteRegularEditRepo.GetByObjetivoIdAsync(id);
+            var aportesRegularesEditados = aporteEdits
+                .Where(a => string.IsNullOrEmpty(a.PessoaId))
+                .ToDictionary(a => a.Mes, a => a.ValorEditado);
+
+            // Build pessoa DTOs with their nested data
+            var pessoaDtos = new List<PessoaDraftDto>();
+            foreach (var p in pessoasDoPlano)
+            {
+                var saldos = await _saldoRepo.GetByPessoaIdAsync(p.Id);
+                var valorInicial = saldos.Sum(s => s.Valor);
+
+                var gastos = await _gastoDetalhadoRepo.GetByPessoaIdAsync(p.Id);
+
+                pessoaDtos.Add(new PessoaDraftDto
+                {
+                    Id = p.Id,
+                    Nome = p.Nome,
+                    Renda_mensal = p.RendaMensal,
+                    Renda_complementar = p.RendaComplementar,
+                    Gastos_mensais = p.GastosMensais,
+                    Usar_gastos_detalhados = p.UsarGastosDetalhados,
+                    Gastos_detalhados = gastos.Select(g => new GastoDetalhadoDraftDto
+                    {
+                        Id = g.Id,
+                        Nome = g.Nome,
+                        Valor = g.Valor,
+                        Categoria = g.Categoria,
+                    }).ToList(),
+                    Aporte_mensal = p.AporteMensal,
+                    ValorInicial = valorInicial,
+                });
+            }
+
             return new PlanoDraftDto
             {
                 Id = objetivo.Id,
@@ -162,7 +275,7 @@ namespace ImovPlan.Application.Services
                 {
                     ValorImovel = objetivo.ValorImovel,
                     PercentualEntrada = objetivo.PercentualEntrada,
-                    PercentualCustosExtras = objetivo.PercentualCustosExtras,
+                    PercentualCustosExtras = custos?.PercentualCustosExtras ?? 0,
                     ValorJaGuardado = objetivo.ValorJaGuardado,
                     TaxaCdiAnual = objetivo.TaxaCdiAnual,
                     PercentualCdi = objetivo.PercentualCdi,
@@ -170,23 +283,7 @@ namespace ImovPlan.Application.Services
                     DataInicio = objetivo.DataInicio?.ToString("yyyy-MM-dd"),
                     NomePlano = objetivo.NomePlano,
                 },
-                Pessoas = pessoasDoPlano.Select(p => new PessoaDraftDto
-                {
-                    Id = p.Id,
-                    Nome = p.Nome,
-                    Renda_mensal = p.RendaMensal,
-                    Renda_complementar = p.RendaComplementar,
-                    Gastos_mensais = p.GastosMensais,
-                    Usar_gastos_detalhados = p.UsarGastosDetalhados,
-                    Gastos_detalhados = p.GastosDetalhados?.Select(g => new GastoDetalhadoDraftDto
-                    {
-                        Id = g.Id,
-                        Nome = g.Nome,
-                        Valor = g.Valor
-                    }).ToList() ?? new List<GastoDetalhadoDraftDto>(),
-                    Aporte_mensal = p.AporteMensal,
-                    ValorInicial = p.ValorInicial ?? 0,
-                }).ToList(),
+                Pessoas = pessoaDtos,
                 BancoEscolhido = !string.IsNullOrEmpty(objetivo.BancoEscolhidoId)
                     ? new BancoDraftDto
                     {
@@ -195,14 +292,15 @@ namespace ImovPlan.Application.Services
                         Taxa = objetivo.BancoEscolhidoTaxa ?? 0,
                     }
                     : null,
-                AportesExtras = objetivo.AportesExtras?.Select(a => new AporteExtraDraftDto
+                AportesExtras = aportesExtras.Select(a => new AporteExtraDraftDto
                 {
                     Data = a.Data.ToString("yyyy-MM-dd"),
                     Valor = a.Valor,
                     Origem = a.Origem,
                     PessoaNome = a.PessoaNome,
-                }).ToList() ?? new List<AporteExtraDraftDto>(),
-                AportesRegularesEditados = objetivo.AportesRegularesEditados ?? new Dictionary<int, decimal>(),
+                    PessoaId = a.PessoaId,
+                }).ToList(),
+                AportesRegularesEditados = aportesRegularesEditados,
                 MesesConcluidos = objetivo.MesesConcluidos ?? new List<int>(),
             };
         }

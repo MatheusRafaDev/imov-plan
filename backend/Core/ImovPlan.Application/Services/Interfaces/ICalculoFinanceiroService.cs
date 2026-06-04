@@ -9,6 +9,14 @@ namespace ImovPlan.Application.Services.Interfaces
         decimal CalcularEntrada(decimal valorImovel, decimal percentual);
         (decimal CustoITBI, decimal CustoEscritura, decimal CustoRegistro) CalcularCustosExtras(decimal valorImovel);
         decimal CalcularSobraMensal(decimal renda, decimal gastos);
-        DiagnosticoFinanceiroDto CalcularDiagnostico(List<Pessoa> pessoas, ObjetivoImovel objetivo);
+
+        /// <summary>
+        /// Calcula o diagnóstico financeiro. totalNecessario e aportesExtrasTotal
+        /// são passados diretamente pois não constam mais na entidade ObjetivoImovel.
+        /// </summary>
+        DiagnosticoFinanceiroDto CalcularDiagnostico(
+            List<Pessoa> pessoas,
+            decimal totalNecessario,
+            decimal aportesExtrasTotal);
     }
 }

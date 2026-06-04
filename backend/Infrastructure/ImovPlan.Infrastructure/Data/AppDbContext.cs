@@ -6,9 +6,18 @@ namespace ImovPlan.Infrastructure.Data
 {
     public class AppDbContext : DbContext
     {
+        // Existing collections
         public DbSet<Pessoa> Pessoas { get; init; }
         public DbSet<ObjetivoImovel> Objetivos { get; init; }
         public DbSet<Usuario> Usuarios { get; init; }
+
+        // New collections
+        public DbSet<CustosImovel> CustosImoveis { get; init; }
+        public DbSet<SaldoInicial> SaldosIniciais { get; init; }
+        public DbSet<AporteRegularEdit> AportesRegularesEdits { get; init; }
+        public DbSet<AporteExtra> AportesExtras { get; init; }
+        public DbSet<GastoDetalhado> GastosDetalhados { get; init; }
+        public DbSet<SnapshotSimulacao> SnapshotsSimulacao { get; init; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -18,9 +27,18 @@ namespace ImovPlan.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Existing mappings
             modelBuilder.Entity<Pessoa>().ToCollection("pessoas");
             modelBuilder.Entity<ObjetivoImovel>().ToCollection("objetivos");
             modelBuilder.Entity<Usuario>().ToCollection("usuarios");
+
+            // New collection mappings
+            modelBuilder.Entity<CustosImovel>().ToCollection("custosImoveis");
+            modelBuilder.Entity<SaldoInicial>().ToCollection("saldosIniciais");
+            modelBuilder.Entity<AporteRegularEdit>().ToCollection("aportesRegularesEdits");
+            modelBuilder.Entity<AporteExtra>().ToCollection("aportesExtras");
+            modelBuilder.Entity<GastoDetalhado>().ToCollection("gastosDetalhados");
+            modelBuilder.Entity<SnapshotSimulacao>().ToCollection("snapshotsSimulacao");
         }
     }
 }
