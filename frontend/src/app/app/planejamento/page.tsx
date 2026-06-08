@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { brl, calcularMeta, mesesParaMeta, aporteNecessarioParaPrazo, mesesEntre } from "@/lib/finance";
 import { DateInput } from "@/components/DateInput";
 import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil } from "lucide-react";
+import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
@@ -283,6 +284,11 @@ export default function PlanejamentoPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Tabela Mês a Mês */}
+      <div className="pt-4 border-t border-border/40">
+        <TabelaMesAMes showFinancials={false} />
       </div>
 
       {/* Botão Prosseguir */}

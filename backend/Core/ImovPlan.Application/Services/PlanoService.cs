@@ -5,6 +5,7 @@ using System.Linq;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Application.Services.Interfaces;
 using ImovPlan.Domain.Entities;
+using ImovPlan.Domain.Enums;
 using ImovPlan.Domain.Interfaces;
 
 namespace ImovPlan.Application.Services
@@ -42,7 +43,7 @@ namespace ImovPlan.Application.Services
             var objetivo = await _objetivoRepo.GetBySessionIdAsync(sessionId);
             if (objetivo == null) return null;
 
-            return await GetDraftAsync(objetivo.Id, sessionId);
+            return await BuildDraftDtoAsync(objetivo);
         }
 
         public async Task<PlanoDraftDto?> GetDraftByUsuarioIdAsync(string usuarioId)
@@ -50,7 +51,7 @@ namespace ImovPlan.Application.Services
             var objetivo = await _objetivoRepo.GetByUsuarioIdAsync(usuarioId);
             if (objetivo == null) return null;
 
-            return await GetDraftAsync(objetivo.Id, objetivo.SessionId ?? string.Empty);
+            return await BuildDraftDtoAsync(objetivo);
         }
 
         public async Task<bool> LinkPlanToUserAsync(string id, string usuarioId)
@@ -100,6 +101,7 @@ namespace ImovPlan.Application.Services
                 existingObjetivo.PercentualCdi = o.PercentualCdi;
                 existingObjetivo.PrazoMaxMeses = o.PrazoMaxMeses;
                 existingObjetivo.NomePlano = string.IsNullOrWhiteSpace(o.NomePlano) ? "Imóvel" : o.NomePlano.Trim();
+                existingObjetivo.TipoInvestimento = o.TipoInvestimento;
 
                 if (!string.IsNullOrEmpty(o.DataInicio))
                 {
@@ -171,6 +173,26 @@ namespace ImovPlan.Application.Services
                 }
             }
 
+            // ── Map AportesRegularesEditadosPorPessoa → AporteRegularEditRepository ──
+            if (draftDto.AportesRegularesEditadosPorPessoa != null)
+            {
+                foreach (var pessoaKvp in draftDto.AportesRegularesEditadosPorPessoa)
+                {
+                    var pessoaId = pessoaKvp.Key;
+                    foreach (var mesKvp in pessoaKvp.Value)
+                    {
+                        await _aporteRegularEditRepo.UpsertByMesAsync(new AporteRegularEdit
+                        {
+                            ObjetivoImovelId = id,
+                            PessoaId = pessoaId,
+                            Mes = mesKvp.Key,
+                            ValorEditado = mesKvp.Value,
+                            EditadoEm = DateTime.UtcNow,
+                        });
+                    }
+                }
+            }
+
             // ── Map Monthly Tracking Data ──
             if (draftDto.MesesConcluidos != null)
             {
@@ -216,11 +238,11 @@ namespace ImovPlan.Application.Services
                             Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
                             ObjetivoImovelId = id,
                             Nome = pDto.Nome,
-                            RendaMensal = pDto.Renda_mensual,
+                            RendaMensal = pDto.Renda_mensal,
                             RendaComplementar = pDto.Renda_complementar,
                             GastosMensais = pDto.Gastos_mensais,
                             UsarGastosDetalhados = pDto.Usar_gastos_detalhados,
-                            SobraMensal = pDto.Renda_mensual + pDto.Renda_complementar - pDto.Gastos_mensais,
+                            SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais,
                             AporteMensal = pDto.Aporte_mensal,
                         };
                         await _pessoaRepo.CreateAsync(pessoa);
@@ -228,34 +250,19 @@ namespace ImovPlan.Application.Services
                     }
 
                     // Upsert SaldoInicial for this pessoa
-                    var existingSaldos = await _saldoRepo.GetByPessoaIdAsync(pessoa.Id);
-                    var existingSaldo = existingSaldos.FirstOrDefault();
+                    // Always delete first to prevent duplicates, then re-create if needed
+                    await _saldoRepo.DeleteByPessoaIdAsync(pessoa.Id);
                     if (pDto.ValorInicial > 0)
                     {
-                        if (existingSaldo != null)
+                        var fonte = MapTipoInvestimentoToFonte(pDto.TipoInvestimento ?? draftDto.Objetivo?.TipoInvestimento);
+                        await _saldoRepo.AddAsync(new SaldoInicial
                         {
-                            existingSaldo.Valor = pDto.ValorInicial;
-                            existingSaldo.Fonte = "Poupança";
-                            existingSaldo.RegistradoEm = DateTime.UtcNow;
-                            await _saldoRepo.DeleteByPessoaIdAsync(pessoa.Id);
-                            await _saldoRepo.AddAsync(existingSaldo);
-                        }
-                        else
-                        {
-                            await _saldoRepo.AddAsync(new SaldoInicial
-                            {
-                                PessoaId = pessoa.Id,
-                                ObjetivoImovelId = id,
-                                Valor = pDto.ValorInicial,
-                                Fonte = "Poupança",
-                                RegistradoEm = DateTime.UtcNow,
-                            });
-                        }
-                    }
-                    else
-                    {
-                        // Ensure no SaldoInicial remains when ValorInicial is zero
-                        await _saldoRepo.DeleteByPessoaIdAsync(pessoa.Id);
+                            PessoaId = pessoa.Id,
+                            ObjetivoImovelId = id,
+                            Valor = pDto.ValorInicial,
+                            Fonte = fonte,
+                            RegistradoEm = DateTime.UtcNow,
+                        });
                     }
 
                     // Replace GastosDetalhados for this pessoa
@@ -299,10 +306,17 @@ namespace ImovPlan.Application.Services
         public async Task<PlanoDraftDto?> GetDraftAsync(string id, string sessionId)
         {
             var objetivo = await _objetivoRepo.GetByIdAsync(id);
-            if (objetivo == null || objetivo.SessionId != sessionId)
+            if (objetivo == null || (objetivo.SessionId ?? string.Empty) != (sessionId ?? string.Empty))
             {
                 return null;
             }
+
+            return await BuildDraftDtoAsync(objetivo);
+        }
+
+        private async Task<PlanoDraftDto> BuildDraftDtoAsync(ObjetivoImovel objetivo)
+        {
+            var id = objetivo.Id;
 
             var allPessoas = await _pessoaRepo.GetAllAsync();
             var pessoasDoPlano = allPessoas.Where(p => p.ObjetivoImovelId == id).ToList();
@@ -319,12 +333,23 @@ namespace ImovPlan.Application.Services
                 .Where(a => string.IsNullOrEmpty(a.PessoaId))
                 .ToDictionary(a => a.Mes, a => a.ValorEditado);
 
+            // Fetch per-person aporte edits → reconstruct Dictionary<string, Dictionary<int, decimal>>
+            var aportesRegularesEditadosPorPessoa = aporteEdits
+                .Where(a => !string.IsNullOrEmpty(a.PessoaId))
+                .GroupBy(a => a.PessoaId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.ToDictionary(a => a.Mes, a => a.ValorEditado)
+                );
+
             // Build pessoa DTOs with their nested data
             var pessoaDtos = new List<PessoaDraftDto>();
             foreach (var p in pessoasDoPlano)
             {
                 var saldos = await _saldoRepo.GetByPessoaIdAsync(p.Id);
                 var valorInicial = saldos.Sum(s => s.Valor);
+                var firstSaldo = saldos.FirstOrDefault();
+                var tipoInvPessoa = firstSaldo != null ? MapFonteToTipoInvestimento(firstSaldo.Fonte) : null;
 
                 var gastos = await _gastoDetalhadoRepo.GetByPessoaIdAsync(p.Id);
 
@@ -345,6 +370,7 @@ namespace ImovPlan.Application.Services
                     }).ToList(),
                     Aporte_mensal = p.AporteMensal,
                     ValorInicial = valorInicial,
+                    TipoInvestimento = tipoInvPessoa,
                 });
             }
 
@@ -363,6 +389,7 @@ namespace ImovPlan.Application.Services
                     PrazoMaxMeses = objetivo.PrazoMaxMeses,
                     DataInicio = objetivo.DataInicio?.ToString("yyyy-MM-dd"),
                     NomePlano = objetivo.NomePlano,
+                    TipoInvestimento = objetivo.TipoInvestimento,
                 },
                 Pessoas = pessoaDtos,
                 BancoEscolhido = !string.IsNullOrEmpty(objetivo.BancoEscolhidoId)
@@ -382,6 +409,7 @@ namespace ImovPlan.Application.Services
                     PessoaId = a.PessoaId,
                 }).ToList(),
                 AportesRegularesEditados = aportesRegularesEditados,
+                AportesRegularesEditadosPorPessoa = aportesRegularesEditadosPorPessoa,
                 MesesConcluidos = objetivo.MesesConcluidos ?? new List<int>(),
             };
         }
@@ -394,6 +422,47 @@ namespace ImovPlan.Application.Services
                 objetivo.Status = "Completed";
                 await _objetivoRepo.UpdateAsync(id, objetivo);
             }
+        }
+
+        /// <summary>
+        /// Maps frontend investment type string to FonteSaldo enum.
+        /// </summary>
+        private static FonteSaldo MapTipoInvestimentoToFonte(string? tipo)
+        {
+            return tipo?.ToLowerInvariant() switch
+            {
+                "poupanca" => FonteSaldo.Poupanca,
+                "cdb_100" => FonteSaldo.RendaFixa,
+                "cdb_120" => FonteSaldo.RendaFixa,
+                "tesouro_selic" => FonteSaldo.RendaFixa,
+                "lci_lca" => FonteSaldo.RendaFixa,
+                "fundo_di" => FonteSaldo.Investimento,
+                "fgts" => FonteSaldo.FGTS,
+                "cripto" => FonteSaldo.Criptomoedas,
+                "previdencia" => FonteSaldo.Previdencia,
+                "conta_corrente" => FonteSaldo.ContaCorrente,
+                _ => FonteSaldo.Poupanca,
+            };
+        }
+
+        /// <summary>
+        /// Maps FonteSaldo enum back to frontend investment type string.
+        /// </summary>
+        private static string? MapFonteToTipoInvestimento(FonteSaldo fonte)
+        {
+            return fonte switch
+            {
+                FonteSaldo.Poupanca => "poupanca",
+                FonteSaldo.RendaFixa => "cdb_100",
+                FonteSaldo.RendaVariavel => "manual",
+                FonteSaldo.Investimento => "fundo_di",
+                FonteSaldo.FGTS => "fgts",
+                FonteSaldo.Criptomoedas => "cripto",
+                FonteSaldo.Previdencia => "previdencia",
+                FonteSaldo.ContaCorrente => "conta_corrente",
+                FonteSaldo.Outros => "manual",
+                _ => null,
+            };
         }
     }
 }

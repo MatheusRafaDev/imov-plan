@@ -55,6 +55,7 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.BancoEscolhidoTaxa = objetivo.BancoEscolhidoTaxa;
                 existing.PessoasIds = objetivo.PessoasIds;
                 existing.MesesConcluidos = objetivo.MesesConcluidos;
+                existing.TipoInvestimento = objetivo.TipoInvestimento;
                 existing.Status = objetivo.Status;
                 existing.UsuarioId = objetivo.UsuarioId;
 

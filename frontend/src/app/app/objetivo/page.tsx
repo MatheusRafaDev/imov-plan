@@ -59,6 +59,7 @@ export default function ObjetivoPage() {
         taxa_cdi_anual: objetivo.taxaCdiAnual || prev.taxa_cdi_anual,
         percentual_cdi: objetivo.percentualCdi || prev.percentual_cdi,
         percentual_custos_extras: objetivo.percentualCustosExtras || 0,
+        tipo_investimento: objetivo.tipoInvestimento || prev.tipo_investimento,
         data_fim: objetivo.prazoMaxMeses ? addMonthsISO(objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : todayISO(), objetivo.prazoMaxMeses) : prev.data_fim,
       }));
     }
@@ -110,6 +111,7 @@ export default function ObjetivoPage() {
       percentualCdi: Number(form.percentual_cdi),
       dataInicio: form.data_inicio ? new Date(form.data_inicio) : undefined,
       prazoMaxMeses: prazoMeses,
+      tipoInvestimento: form.tipo_investimento,
     };
     setObjetivo(novoObjetivo);
     const success = await saveDraft({ objetivo: novoObjetivo });

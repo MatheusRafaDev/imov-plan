@@ -11,145 +11,11 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SimulacaoService } from "@/services/SimulacaoService";
-
-// ─── Editable Aporte Cell ────────────────────────────────────────────────────
-function EditableAporte({ value, onSave, isEdited }: { value: number; onSave: (v: number) => void; isEdited: boolean }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(value.toFixed(2));
-  useEffect(() => { setVal(value.toFixed(2)); }, [value]);
-
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        type="number"
-        value={val}
-        onChange={e => setVal(e.target.value)}
-        onBlur={() => {
-          setEditing(false);
-          const num = parseFloat(val);
-          if (!isNaN(num) && num >= 0) onSave(num);
-          else setVal(value.toFixed(2));
-        }}
-        onKeyDown={e => {
-          if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "Escape") { setVal(value.toFixed(2)); setEditing(false); }
-        }}
-        className="w-24 text-right bg-background border border-border rounded px-1.5 py-0.5 outline-none text-foreground text-xs font-medium"
-      />
-    );
-  }
-
-  return (
-    <div
-      onClick={() => setEditing(true)}
-      className={`cursor-pointer hover:bg-accent/10 px-1.5 py-0.5 rounded transition-colors border border-transparent hover:border-accent/20 text-right ${isEdited ? "text-accent font-bold" : ""}`}
-      title="Clique para editar"
-    >
-      {brl(value)}
-    </div>
-  );
-}
-
-// ─── Extras Cell (context aportes) ────────────────────────
-type ContextExtra = { origem: string; valor: number; pessoaNome?: string };
-type PessoaAporte = { nome: string; aporte: number };
-
-function ExtrasCell({ contextItems, total, aporteRegular, pessoasAportes }: {
-  contextItems: ContextExtra[];
-  total: number;
-  aporteRegular: number;
-  pessoasAportes: PessoaAporte[];
-}) {
-  const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLDivElement>(null);
-  const [portalPos, setPortalPos] = useState({ top: 0, left: 0 });
-
-  useEffect(() => {
-    if (open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPortalPos({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + rect.width - 288 + window.scrollX,
-      });
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  const hasExtras = (contextItems ?? []).length > 0;
-  const hasAporte = aporteRegular > 0;
-  const canOpen = hasExtras || hasAporte;
-
-  return (
-    <div ref={triggerRef}>
-      <div
-        onClick={() => { if (canOpen) setOpen(o => !o); }}
-        className={`flex items-center justify-end gap-1 px-1.5 py-0.5 rounded transition-colors border border-transparent ${total > 0 ? "cursor-pointer hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" : "text-muted-foreground/40"}`}
-        title={canOpen ? "Clique para ver detalhes" : undefined}
-      >
-        {total > 0 ? `+${brl(total)}` : "—"}
-        {total > 0 && (open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)}
-      </div>
-
-      {open && canOpen && typeof document !== "undefined" && createPortal(
-        <div
-          className="fixed z-50 w-72 bg-card border border-border rounded-xl shadow-xl p-3 space-y-3"
-          style={{ top: `${portalPos.top + 4}px`, left: `${Math.max(8, portalPos.left)}px` }}
-        >
-          {/* Aporte regular por pessoa */}
-          {hasAporte && pessoasAportes.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Aporte regular</p>
-              {pessoasAportes.map((p, i) => (
-                <div key={i} className="flex items-center justify-between text-[11px] gap-2 py-0.5">
-                  <span className="text-foreground font-medium truncate">{p.nome}</span>
-                  <span className="num text-foreground shrink-0">{brl(p.aporte)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between text-[11px] font-semibold pt-1 border-t border-border/50">
-                <span className="text-muted-foreground">Total aporte</span>
-                <span className="num">{brl(aporteRegular)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Extras */}
-          {hasExtras && (
-            <div className="space-y-1">
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Extras do mês</p>
-              {contextItems.map((item, i) => (
-                <div key={i} className="flex items-center justify-between text-[11px] gap-2 py-0.5">
-                  <div className="flex flex-col min-w-0">
-                    <span className="truncate text-foreground font-medium">{item.origem}</span>
-                    <span className="text-[10px] text-muted-foreground">{item.pessoaNome || "Conjunto"}</span>
-                  </div>
-                  <span className="num text-accent shrink-0 font-semibold">+{brl(item.valor)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between text-[11px] font-semibold pt-1 border-t border-border/50">
-                <span className="text-muted-foreground">Total extras</span>
-                <span className="num text-accent">+{brl(total)}</span>
-              </div>
-            </div>
-          )}
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-}
+import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa } = usePlanContext();
   const router = useRouter();
 
   // Salvar registro de simulação no backend ao carregar a página
@@ -217,6 +83,33 @@ export default function ResultadoPage() {
     return aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
   }, [aportesExtras]);
 
+  const virtualAportesRegularesEditados = useMemo(() => {
+    const virtualMap: Record<number, number> = {};
+    const prazoMax = objetivo?.prazoMaxMeses ?? 600;
+    
+    for (let mes = 1; mes <= prazoMax; mes++) {
+      let isEditedInMonth = false;
+      let totalForMonth = 0;
+      
+      pessoas.forEach(p => {
+        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[mes];
+        if (editedValue !== undefined) {
+          isEditedInMonth = true;
+          totalForMonth += editedValue;
+        } else {
+          totalForMonth += Number(p.aporte_mensal) || 0;
+        }
+      });
+      
+      if (!isEditedInMonth && aportesRegularesEditados[mes] !== undefined) {
+          virtualMap[mes] = aportesRegularesEditados[mes];
+      } else if (isEditedInMonth) {
+          virtualMap[mes] = totalForMonth;
+      }
+    }
+    return virtualMap;
+  }, [pessoas, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, objetivo?.prazoMaxMeses]);
+
   const sim = useMemo(() => simular({
     valorImovel: Number(objetivo?.valorImovel ?? 0),
     percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
@@ -225,11 +118,11 @@ export default function ResultadoPage() {
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
     percentualCdi: Number(objetivo?.percentualCdi ?? 100),
     aporteMensalTotal: aporteTotal,
-    aportesRegularesEditados: aportesRegularesEditados,
+    aportesRegularesEditados: virtualAportesRegularesEditados,
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras: combinedExtras,
     prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, aportesRegularesEditados]);
+  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados]);
 
   const chartData = sim.rows.map(r => ({
     mes: r.mes,
@@ -244,88 +137,8 @@ export default function ResultadoPage() {
   const pontoMeta = chartData.find(d => d.mes === sim.mesAtingiuMeta);
   const dataCross = pontoMeta ? pontoMeta.label : undefined;
 
-  const tableRows = useMemo(() => {
-    const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
-    let saldoConjunto = 0;
-    let rentabilidadeAcumulada = 0;
-    let saldoAnterior = totalGuardado; // Track saldoAnterior explicitly as mutable variable
-
-    return sim.rows.map(r => {
-      const isExtra = r.aportesExtras > 0;
-      const atingiu = sim.mesAtingiuMeta === r.mes;
-
-      const extrasMes = combinedExtras.filter(a => {
-        const d = new Date(a.data + 'T12:00:00');
-        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
-        return mesOffset === r.mes;
-      });
-
-      const extrasPorPessoa: Record<string, number> = {};
-      let extrasConjunto = 0;
-      extrasMes.forEach(a => {
-        if (a.pessoaNome) extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
-        else extrasConjunto += Number(a.valor);
-      });
-
-      const saldoTotalAnterior = saldoAnterior; // Use tracked saldoAnterior instead of reverse calculation
-      const novosSaldos: Record<string, number> = {};
-      const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
-      const isEdited = r.aporteRegular !== defaultAporte;
-
-      pessoas.forEach(p => {
-        const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
-        const rendimentoPessoa = proporcao * r.rendimentoLiquido;
-        const baseAporte = r.mes === 1 ? 0 : (Number(p.aporte_mensal) || 0);
-        let aporteFinal = baseAporte;
-        if (isEdited && defaultAporte > 0) aporteFinal = (baseAporte / defaultAporte) * r.aporteRegular;
-        else if (isEdited) aporteFinal = 0;
-        const extra = extrasPorPessoa[p.nome] || 0;
-        novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
-      });
-
-      const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
-      const rendimentoConjunto = proporcaoConjunto * r.rendimentoLiquido;
-      // Edge case: when defaultAporte === 0 (month 1), edited aportes go to saldoConjunto
-      // instead of being distributed proportionally to individuals. This is intentional
-      // since month 1 has no regular aporte by default, so any edited value is treated
-      // as an extra contribution to the joint balance.
-      const diffConjunto = isEdited && defaultAporte === 0 ? r.aporteRegular : 0;
-      const novoSaldoConjunto = saldoConjunto + extrasConjunto + rendimentoConjunto + diffConjunto;
-
-      pessoas.forEach(p => { saldos[p.nome] = novosSaldos[p.nome]; });
-      saldoConjunto = novoSaldoConjunto;
-      saldoAnterior = r.saldoAcumulado; // Update saldoAnterior for next iteration
-
-      const percentRendimento = saldoTotalAnterior > 0 ? (r.rendimentoLiquido / saldoTotalAnterior) * 100 : 0;
-      rentabilidadeAcumulada += r.rendimentoLiquido;
-      const percentRentabilidade = r.totalInvestido > 0 ? (rentabilidadeAcumulada / r.totalInvestido) * 100 : 0;
-
-      return {
-        ...r,
-        atingiu,
-        isExtra,
-        percentRendimento,
-        saldosIndividuais: novosSaldos,
-        saldoConjunto: novoSaldoConjunto,
-        rentabilidadeAcumulada,
-        percentRentabilidade,
-        extrasPorPessoa,
-      };
-    });
-  }, [sim.rows, pessoas, combinedExtras, inicio, sim.mesAtingiuMeta, aporteTotal, totalGuardado]);
-
   const targetMonthIndex = sim.mesAtingiuMeta ? sim.mesAtingiuMeta - 1 : sim.rows.length - 1;
   const targetRow = tableRows[targetMonthIndex];
-
-  const toggleConcluido = (mes: number) => {
-    setMesesConcluidos(prev => {
-      if (prev.includes(mes)) {
-        return prev.filter(m => m !== mes);
-      } else {
-        return [...prev, mes];
-      }
-    });
-  };
 
   return (
     <div className="max-w-[1400px] w-full px-4 md:px-6 mx-auto space-y-7">
@@ -504,12 +317,72 @@ export default function ResultadoPage() {
                 {(() => {
                   const rRow = targetRow || sim.rows[sim.rows.length - 1];
                   if (!rRow) return null;
+                  
+                  // Re-calculate the final individual balances based on the new logic
+                  const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
+                  let saldoConjunto = 0;
+                  let saldoAnterior = totalGuardado;
+                  
+                  for (let i = 0; i <= targetMonthIndex; i++) {
+                    const r = sim.rows[i];
+                    const extrasMes = combinedExtras.filter(a => {
+                      const d = new Date(a.data + 'T12:00:00');
+                      const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+                      return mesOffset === r.mes;
+                    });
+                    
+                    const extrasPorPessoa: Record<string, number> = {};
+                    let extrasConjunto = 0;
+                    extrasMes.forEach(a => {
+                      if (a.pessoaNome) extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
+                      else extrasConjunto += Number(a.valor);
+                    });
+                    
+                    const saldoTotalAnterior = saldoAnterior;
+                    const novosSaldos: Record<string, number> = {};
+                    const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
+                    const isLegacyEdited = aportesRegularesEditados[r.mes] !== undefined;
+                    
+                    const aporteFinalPorPessoa: Record<string, number> = {};
+                    pessoas.forEach(p => {
+                      if (r.mes === 1) {
+                        aporteFinalPorPessoa[p.id] = 0;
+                      } else {
+                        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[r.mes];
+                        if (editedValue !== undefined) {
+                          aporteFinalPorPessoa[p.id] = editedValue;
+                        } else if (isLegacyEdited && defaultAporte > 0) {
+                          aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[r.mes] || 0);
+                        } else {
+                          aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
+                        }
+                      }
+                    });
+                    
+                    pessoas.forEach(p => {
+                      const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
+                      const rendimentoPessoa = proporcao * r.rendimentoLiquido;
+                      const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
+                      const extra = extrasPorPessoa[p.nome] || 0;
+                      novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
+                    });
+                    
+                    const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
+                    const rendimentoConjunto = proporcaoConjunto * r.rendimentoLiquido;
+                    const diffConjunto = isLegacyEdited && defaultAporte === 0 ? r.aporteRegular : 0;
+                    const novoSaldoConjunto = saldoConjunto + extrasConjunto + rendimentoConjunto + diffConjunto;
+                    
+                    pessoas.forEach(p => { saldos[p.nome] = novosSaldos[p.nome]; });
+                    saldoConjunto = novoSaldoConjunto;
+                    saldoAnterior = r.saldoAcumulado;
+                  }
+
                   const total = rRow.saldoAcumulado;
                   const lista = pessoas.map(p => {
-                    const v = rRow.saldosIndividuais[p.nome] || 0;
+                    const v = saldos[p.nome] || 0;
                     return { nome: p.nome, valor: v, percent: total > 0 ? (v / total) * 100 : 0 };
                   });
-                  if (rRow.saldoConjunto > 0) lista.push({ nome: "Conjunto", valor: rRow.saldoConjunto, percent: total > 0 ? (rRow.saldoConjunto / total) * 100 : 0 });
+                  if (saldoConjunto > 0) lista.push({ nome: "Conjunto", valor: saldoConjunto, percent: total > 0 ? (saldoConjunto / total) * 100 : 0 });
                   return lista.map((item, i) => (
                     <div key={i} className="space-y-1">
                       <div className="flex justify-between text-xs items-end">
@@ -556,154 +429,7 @@ export default function ResultadoPage() {
       </div>
 
       {/* Tabela mês a mês */}
-      <div>
-        <div className="mb-3">
-          <h2 className="font-display text-xl font-light">Tabela mês a mês</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
-        </div>
-
-        <div className="overflow-x-auto max-h-[560px] border border-border/50 rounded-xl shadow-sm bg-card relative">
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-sm text-muted-foreground shadow-sm">
-              <tr>
-                <Th>Mês</Th>
-                <Th>Data</Th>
-                <Th right>Aporte</Th>
-                <Th right>Extras</Th>
-                <Th right>Total Aporte</Th>
-                <Th right>Rend. Bruto</Th>
-                <Th right>IR</Th>
-                <Th right>Rend. Líquido</Th>
-                <Th right>Saldo Acumulado</Th>
-                <Th right>% Meta</Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {tableRows.map(r => {
-                const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
-                const isEdited = r.aporteRegular !== defaultAporte;
-                const isConcluido = mesesConcluidosSet.has(r.mes);
-                const totalExtras = r.aportesExtras;
-                const totalAporteMes = r.aporteRegular + totalExtras;
-                const progressoMeta = sim.meta > 0 ? (r.saldoAcumulado / sim.meta) * 100 : 0;
-
-                return (
-                  <tr
-                    key={r.mes}
-                    className={`transition-colors hover:bg-secondary/20 ${r.atingiu ? "bg-primary/10 shadow-[inset_3px_0_0_0_hsl(var(--primary))]" : ""} ${isConcluido && !r.atingiu ? "bg-teal-500/5" : ""} ${r.isExtra && !r.atingiu && !isConcluido ? "bg-accent/5" : ""}`}
-                  >
-                    {/* Mês — check manual */}
-                    <Td className="font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => toggleConcluido(r.mes)}
-                          title={isConcluido ? "Desmarcar" : "Marcar como concluído"}
-                          className={`w-6 h-6 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400" : "border-border/50 hover:border-teal-500/50 hover:bg-teal-500/10"}`}
-                        >
-                          {isConcluido && <Check className="h-4 w-4" />}
-                        </button>
-                        <span className={isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
-                        {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] uppercase font-bold tracking-wider">Meta</span>}
-                      </div>
-                    </Td>
-
-                    <Td suppressHydrationWarning className="text-muted-foreground whitespace-nowrap">
-                      {new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
-                    </Td>
-
-                    {/* Aporte editável */}
-                    <Td right>
-                      <EditableAporte
-                        value={r.aporteRegular}
-                        isEdited={isEdited}
-                        onSave={v => {
-                          setAportesRegularesEditados((prev: Record<number, number>) => {
-                            const copy = { ...prev };
-                            if (v === defaultAporte) delete copy[r.mes];
-                            else copy[r.mes] = v;
-                            return copy;
-                          });
-                          const updated = { ...aportesRegularesEditados };
-                          if (v === defaultAporte) delete updated[r.mes];
-                          else updated[r.mes] = v;
-                          saveDraft({ aportesRegularesEditados: updated });
-                        }}
-                      />
-                    </Td>
-
-                    {/* Extras expandíveis — aportes do contexto */}
-                    <Td right>
-                      {(() => {
-                        const ctxItems: ContextExtra[] = aportesExtras
-                          .filter(a => {
-                            const d = new Date(a.data + 'T12:00:00');
-                            const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
-                            return mesOffset === r.mes;
-                          })
-                          .map(a => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome }));
-
-                        const pessoasAportes: PessoaAporte[] = pessoas.map(p => {
-                          const baseAporte = r.mes === 1 ? 0 : (Number(p.aporte_mensal) || 0);
-                          let aporteFinal = baseAporte;
-                          if (isEdited && aporteTotal > 0) aporteFinal = (baseAporte / aporteTotal) * r.aporteRegular;
-                          else if (isEdited) aporteFinal = 0;
-                          return { nome: p.nome, aporte: aporteFinal };
-                        }).filter(p => p.aporte > 0);
-
-                        return (
-                          <ExtrasCell
-                            contextItems={ctxItems}
-                            total={totalExtras}
-                            aporteRegular={r.aporteRegular}
-                            pessoasAportes={pessoasAportes}
-                          />
-                        );
-                      })()}
-                    </Td>
-
-                    {/* Total Aporte do Mês */}
-                    <Td right className="font-medium text-foreground">
-                      {brl(totalAporteMes)}
-                    </Td>
-
-                    {/* Rendimento Bruto */}
-                    <Td right className="text-muted-foreground">
-                      {brl(r.rendimentoBruto)}
-                    </Td>
-
-                    {/* IR */}
-                    <Td right className="text-muted-foreground/70">
-                      {brl(r.imposto)}
-                    </Td>
-
-                    {/* Rendimento Líquido */}
-                    <Td right className="text-[#3B6D11] dark:text-[#80B551] font-medium">
-                      {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
-                    </Td>
-
-                    {/* Saldo Acumulado */}
-                    <Td right className="font-bold text-sm text-foreground">{brl(r.saldoAcumulado)}</Td>
-
-                    {/* Progresso % */}
-                    <Td right className="font-medium">
-                      <span className={progressoMeta >= 100 ? "text-primary" : "text-muted-foreground"}>
-                        {progressoMeta.toFixed(1)}%
-                      </span>
-                    </Td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <TabelaMesAMes />
     </div>
   );
-}
-
-function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
-  return <th className={`px-3 py-2.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{children}</th>;
-}
-function Td({ children, right, className = "", suppressHydrationWarning }: { children: React.ReactNode; right?: boolean; className?: string; suppressHydrationWarning?: boolean }) {
-  return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-[5px] num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }

@@ -14,6 +14,10 @@ namespace ImovPlan.Application.DTOs
 
         // Monthly tracking data
         public Dictionary<int, decimal> AportesRegularesEditados { get; set; } = new();
+        /// <summary>
+        /// Per-person aporte edits. Key = pessoaId, Value = Dictionary&lt;mes, valorEditado&gt;.
+        /// </summary>
+        public Dictionary<string, Dictionary<int, decimal>> AportesRegularesEditadosPorPessoa { get; set; } = new();
         public List<int> MesesConcluidos { get; set; } = new();
     }
 
@@ -31,6 +35,7 @@ namespace ImovPlan.Application.DTOs
         public int PrazoMaxMeses { get; set; }
         public string? DataInicio { get; set; } // ISO string from frontend
         public string? NomePlano { get; set; }
+        public string? TipoInvestimento { get; set; }
     }
 
     public class PessoaDraftDto
@@ -48,6 +53,11 @@ namespace ImovPlan.Application.DTOs
         /// Valor inicial da pessoa (saldo guardado). Mapeado para SaldoInicial no backend.
         /// </summary>
         public decimal ValorInicial { get; set; }
+
+        /// <summary>
+        /// Tipo de investimento escolhido para o saldo desta pessoa. Ex: "poupanca", "cdb_100".
+        /// </summary>
+        public string? TipoInvestimento { get; set; }
     }
 
     public class GastoDetalhadoDraftDto

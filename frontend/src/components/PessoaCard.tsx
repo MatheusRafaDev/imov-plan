@@ -164,7 +164,20 @@ export default function PessoaCard({
             <div className="w-full bg-secondary/80 rounded-full h-1.5 overflow-hidden mb-2">
               <div className="bg-accent h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${percent}%` }} />
             </div>
-            <span className="font-display text-2xl num font-semibold">{brl(valorInicial)}</span>
+            <div className="flex items-end justify-between">
+              <span className="font-display text-2xl num font-semibold">{brl(valorInicial)}</span>
+              {valorInicial > 0 && (
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+                  {p.tipoInvestimento === "poupanca" ? "Poupança" :
+                   p.tipoInvestimento === "cdb_100" || p.tipoInvestimento === "tesouro_selic" || p.tipoInvestimento === "lci_lca" ? "Renda Fixa" :
+                   p.tipoInvestimento === "fundo_di" ? "Fundo DI" :
+                   p.tipoInvestimento === "fgts" ? "FGTS" :
+                   p.tipoInvestimento === "conta_corrente" ? "Conta Corrente" :
+                   p.tipoInvestimento === "cripto" ? "Criptomoedas" :
+                   p.tipoInvestimento === "previdencia" ? "Previdência" : "Investimento"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -265,17 +278,39 @@ export default function PessoaCard({
 
         {/* Investimentos & Aportes */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-accent/5 rounded-xl p-4 border border-accent/10 space-y-2 flex flex-col justify-between">
+          <div className={`bg-accent/5 rounded-xl p-4 border border-accent/10 space-y-2 flex flex-col justify-between ${valorInicial > 0 ? "col-span-2 sm:col-span-1" : ""}`}>
             <Label className="text-xs font-medium text-accent flex items-center gap-1.5">
               <Wallet className="h-3 w-3" /> Já Guardado
             </Label>
-            <MoneyInput
-              variant="money"
-              min={0}
-              value={valorInicial}
-              onChange={v => atualizarPessoa(p.id, { valorInicial: v === "" ? 0 : v })}
-              className="bg-background font-medium"
-            />
+            <div className="flex gap-2">
+              <MoneyInput
+                variant="money"
+                min={0}
+                value={valorInicial}
+                onChange={v => atualizarPessoa(p.id, { valorInicial: v === "" ? 0 : v })}
+                className="bg-background font-medium flex-1"
+              />
+            </div>
+            {valorInicial > 0 && (
+              <div className="mt-2 space-y-1.5 animate-in slide-in-from-top-1 fade-in duration-200">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Onde está guardado?</Label>
+                <select
+                  value={p.tipoInvestimento || ""}
+                  onChange={(e) => atualizarPessoa(p.id, { tipoInvestimento: e.target.value })}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Selecione o tipo</option>
+                  <option value="poupanca">Poupança</option>
+                  <option value="conta_corrente">Conta Corrente</option>
+                  <option value="cdb_100">CDB / Renda Fixa</option>
+                  <option value="tesouro_selic">Tesouro Direto</option>
+                  <option value="fundo_di">Fundo de Investimento</option>
+                  <option value="fgts">FGTS</option>
+                  <option value="cripto">Criptomoedas</option>
+                  <option value="previdencia">Previdência</option>
+                </select>
+              </div>
+            )}
           </div>
           <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-2 flex flex-col justify-between">
             <Label className="text-xs font-medium text-primary flex items-center gap-1.5">

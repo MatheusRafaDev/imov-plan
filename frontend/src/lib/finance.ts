@@ -22,6 +22,7 @@ export type SimInput = {
   aportesExtras: Aporte[]; // datados
   prazoMaxMeses?: number; // limite p/ busca, default 600
   dataInicio?: Date;
+  tipoInvestimento?: string; // ex "poupanca", "cdb_100", "tesouro_selic"
 };
 
 export type SimRow = {

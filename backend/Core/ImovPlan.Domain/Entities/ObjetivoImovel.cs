@@ -65,6 +65,9 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("sessionId")]
         public string? SessionId { get; set; }
 
+        [BsonElement("tipoInvestimento")]
+        public string? TipoInvestimento { get; set; }
+
         [BsonElement("status")]
         public string Status { get; set; } = "Draft"; // "Draft", "Completed"
 
