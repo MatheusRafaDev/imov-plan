@@ -229,7 +229,7 @@ namespace ImovPlan.Application.Services
                 foreach (var pDto in draftDto.Pessoas)
                 {
                     // Try to find existing pessoa by Id or Name
-                    Pessoa pessoa = null;
+                    Pessoa? pessoa = null;
                     if (!string.IsNullOrEmpty(pDto.Id))
                         pessoa = existingPlanPessoas.FirstOrDefault(p => p.Id == pDto.Id);
                     if (pessoa == null)

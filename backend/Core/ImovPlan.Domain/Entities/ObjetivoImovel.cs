@@ -22,6 +22,10 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal PercentualEntrada { get; set; }
 
+        [BsonElement("percentualCustosExtras")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal PercentualCustosExtras { get; set; }
+
         [BsonElement("prazoMaxMeses")]
         public int PrazoMaxMeses { get; set; }
 

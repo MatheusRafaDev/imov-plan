@@ -6,6 +6,7 @@ namespace ImovPlan.Application.DTOs
     {
         public string? Id { get; set; }
         public string? SessionId { get; set; }
+        public string? UsuarioId { get; set; }
 
         public ObjetivoDraftDto? Objetivo { get; set; }
         public List<PessoaDraftDto> Pessoas { get; set; } = new();

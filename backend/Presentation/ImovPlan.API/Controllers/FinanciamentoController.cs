@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ImovPlan.Application.Services.Interfaces;
 using System.Collections.Generic;
 
