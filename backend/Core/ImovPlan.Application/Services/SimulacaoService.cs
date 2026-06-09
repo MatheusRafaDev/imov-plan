@@ -12,10 +12,12 @@ namespace ImovPlan.Application.Services
     public class SimulacaoService : ISimulacaoService
     {
         private readonly IRegistroSimulacaoRepository _registroRepo;
+        private readonly ISaldoInicialRepository _saldoRepo;
 
-        public SimulacaoService(IRegistroSimulacaoRepository registroRepo)
+        public SimulacaoService(IRegistroSimulacaoRepository registroRepo, ISaldoInicialRepository saldoRepo)
         {
             _registroRepo = registroRepo;
+            _saldoRepo = saldoRepo;
         }
 
         public async Task<SimulacaoResultado> ExecutarSimulacaoAsync(
@@ -26,7 +28,16 @@ namespace ImovPlan.Application.Services
             int stepAtual = 0)
         {
             var taxaMensal = (decimal)(Math.Pow((double)(1 + request.TaxaCDI / 100), 1.0 / 12.0) - 1);
-            var saldo = objetivo.ValorJaGuardado;
+            
+            // Fetch per-person initial balances from SaldoInicial
+            var saldoInicialTotal = 0m;
+            foreach (var aporte in request.AportesMensais)
+            {
+                var saldos = await _saldoRepo.GetByPessoaIdAsync(aporte.PessoaId);
+                saldoInicialTotal += saldos.Sum(s => s.Valor);
+            }
+            
+            var saldo = saldoInicialTotal > 0 ? saldoInicialTotal : objetivo.ValorJaGuardado;
             var totalInvestido = saldo;
 
             var totalAporteMensal = request.AportesMensais.Sum(a => a.Valor);

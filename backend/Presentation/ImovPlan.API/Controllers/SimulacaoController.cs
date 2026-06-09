@@ -8,6 +8,7 @@ namespace ImovPlan.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SimulacaoController : ControllerBase
     {
         private readonly ISimulacaoService _simulacaoService;

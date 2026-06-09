@@ -85,9 +85,27 @@ namespace ImovPlan.Application.Services
         public async Task<bool> UpdateDraftAsync(string id, PlanoDraftDto draftDto)
         {
             var existingObjetivo = await _objetivoRepo.GetByIdAsync(id);
-            if (existingObjetivo == null || existingObjetivo.SessionId != draftDto.SessionId)
+            if (existingObjetivo == null)
             {
                 return false;
+            }
+
+            // Check authorization: for logged-in users, verify UsuarioId; for session-based, verify SessionId
+            if (!string.IsNullOrEmpty(existingObjetivo.UsuarioId))
+            {
+                // Logged-in user plan: verify UsuarioId matches
+                if (string.IsNullOrEmpty(draftDto.UsuarioId) || existingObjetivo.UsuarioId != draftDto.UsuarioId)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                // Session-based plan: verify SessionId matches
+                if (existingObjetivo.SessionId != draftDto.SessionId)
+                {
+                    return false;
+                }
             }
 
             // ── Map Objetivo fields ──
@@ -254,13 +272,15 @@ namespace ImovPlan.Application.Services
                     await _saldoRepo.DeleteByPessoaIdAsync(pessoa.Id);
                     if (pDto.ValorInicial > 0)
                     {
-                        var fonte = MapTipoInvestimentoToFonte(pDto.TipoInvestimento ?? draftDto.Objetivo?.TipoInvestimento);
+                        var tipoInvestimento = pDto.TipoInvestimento ?? draftDto.Objetivo?.TipoInvestimento;
+                        var fonte = MapTipoInvestimentoToFonte(tipoInvestimento);
                         await _saldoRepo.AddAsync(new SaldoInicial
                         {
                             PessoaId = pessoa.Id,
                             ObjetivoImovelId = id,
                             Valor = pDto.ValorInicial,
                             Fonte = fonte,
+                            TipoInvestimento = tipoInvestimento,
                             RegistradoEm = DateTime.UtcNow,
                         });
                     }
@@ -349,7 +369,7 @@ namespace ImovPlan.Application.Services
                 var saldos = await _saldoRepo.GetByPessoaIdAsync(p.Id);
                 var valorInicial = saldos.Sum(s => s.Valor);
                 var firstSaldo = saldos.FirstOrDefault();
-                var tipoInvPessoa = firstSaldo != null ? MapFonteToTipoInvestimento(firstSaldo.Fonte) : null;
+                var tipoInvPessoa = firstSaldo != null ? MapFonteToTipoInvestimento(firstSaldo.Fonte, firstSaldo.TipoInvestimento) : null;
 
                 var gastos = await _gastoDetalhadoRepo.GetByPessoaIdAsync(p.Id);
 
@@ -447,9 +467,15 @@ namespace ImovPlan.Application.Services
 
         /// <summary>
         /// Maps FonteSaldo enum back to frontend investment type string.
+        /// If tipoInvestimento is provided (stored original value), it takes precedence.
         /// </summary>
-        private static string? MapFonteToTipoInvestimento(FonteSaldo fonte)
+        private static string? MapFonteToTipoInvestimento(FonteSaldo fonte, string? tipoInvestimento = null)
         {
+            // If we have the stored original investment type, use it
+            if (!string.IsNullOrEmpty(tipoInvestimento))
+                return tipoInvestimento;
+
+            // Otherwise, fall back to the enum-based mapping
             return fonte switch
             {
                 FonteSaldo.Poupanca => "poupanca",

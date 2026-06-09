@@ -7,6 +7,7 @@ namespace ImovPlan.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PlanoController : ControllerBase
     {
         private readonly IPlanoService _planoService;

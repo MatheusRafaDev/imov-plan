@@ -7,6 +7,7 @@ namespace ImovPlan.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PessoaController : ControllerBase
     {
         private readonly IPessoaRepository _pessoaRepository;
@@ -17,10 +18,14 @@ namespace ImovPlan.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string objetivoImovelId)
         {
-            var pessoas = await _pessoaRepository.GetAllAsync();
-            return Ok(pessoas);
+            if (string.IsNullOrEmpty(objetivoImovelId))
+                return BadRequest("objetivoImovelId is required.");
+
+            var allPessoas = await _pessoaRepository.GetAllAsync();
+            var filteredPessoas = allPessoas.Where(p => p.ObjetivoImovelId == objetivoImovelId).ToList();
+            return Ok(filteredPessoas);
         }
 
         [HttpGet("{id}")]

@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using MongoDB.Driver;
 using ImovPlan.Infrastructure.Data;
 using ImovPlan.Infrastructure.Configurations;
@@ -13,7 +16,10 @@ using ImovPlan.Application.Services;
 using ImovPlan.Application.Services.Interfaces;
 using System.Threading;
 
-while (true)
+const int maxRestartAttempts = 5;
+int restartAttempts = 0;
+
+while (restartAttempts < maxRestartAttempts)
 {
     var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +54,31 @@ while (true)
                   .AllowAnyMethod()
                   .AllowCredentials();
         });
+    });
+
+    // Configure JWT Authentication
+    var jwtKey = builder.Configuration["Jwt:Key"] ?? "ImovPlanSecretKey2026ForJWTTokenGeneration";
+    var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ImovPlanAPI";
+    var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ImovPlanClient";
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero
+        };
     });
 
     // Configure MongoDB
@@ -95,7 +126,17 @@ while (true)
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Unhandled exception: {ex.Message}\nRestarting API...");
-        Thread.Sleep(2000); // small delay before restart
+        restartAttempts++;
+        Console.WriteLine($"Unhandled exception: {ex.Message}\nRestarting API (attempt {restartAttempts}/{maxRestartAttempts})...");
+        
+        // Exponential backoff: 2s, 4s, 8s, 16s, 32s
+        var delay = (int)Math.Pow(2, restartAttempts) * 1000;
+        Thread.Sleep(delay);
+        
+        if (restartAttempts >= maxRestartAttempts)
+        {
+            Console.WriteLine($"Max restart attempts ({maxRestartAttempts}) reached. Giving up.");
+            throw; // Re-throw to let the process fail
+        }
     }
 }

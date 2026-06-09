@@ -9,6 +9,7 @@ namespace ImovPlan.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ObjetivoController : ControllerBase
     {
         private readonly IObjetivoRepository _objetivoRepository;
@@ -47,14 +48,14 @@ namespace ImovPlan.API.Controllers
             // Auto-calculate and persist CustosImovel
             var valorEntrada = _calculoService.CalcularEntrada(objetivo.ValorImovel, objetivo.PercentualEntrada);
             var custos = _calculoService.CalcularCustosExtras(objetivo.ValorImovel);
-            var totalNecessario = valorEntrada + custos.CustoITBI + custos.CustoEscritura + custos.CustoRegistro;
+            var totalNecessario = valorEntrada + (objetivo.ValorImovel * objetivo.PercentualCustosExtras / 100m);
 
             await _custosRepository.UpsertAsync(new CustosImovel
             {
                 ObjetivoImovelId = created.Id,
                 ValorEntrada = valorEntrada,
                 TotalNecessario = totalNecessario,
-                PercentualCustosExtras = 0,
+                PercentualCustosExtras = objetivo.PercentualCustosExtras,
                 CustoITBI = custos.CustoITBI,
                 CustoEscritura = custos.CustoEscritura,
                 CustoRegistro = custos.CustoRegistro,
@@ -71,14 +72,14 @@ namespace ImovPlan.API.Controllers
             // Recalculate and persist CustosImovel
             var valorEntrada = _calculoService.CalcularEntrada(objetivo.ValorImovel, objetivo.PercentualEntrada);
             var custos = _calculoService.CalcularCustosExtras(objetivo.ValorImovel);
-            var totalNecessario = valorEntrada + custos.CustoITBI + custos.CustoEscritura + custos.CustoRegistro;
+            var totalNecessario = valorEntrada + (objetivo.ValorImovel * objetivo.PercentualCustosExtras / 100m);
 
             await _custosRepository.UpsertAsync(new CustosImovel
             {
                 ObjetivoImovelId = id,
                 ValorEntrada = valorEntrada,
                 TotalNecessario = totalNecessario,
-                PercentualCustosExtras = 0,
+                PercentualCustosExtras = objetivo.PercentualCustosExtras,
                 CustoITBI = custos.CustoITBI,
                 CustoEscritura = custos.CustoEscritura,
                 CustoRegistro = custos.CustoRegistro,

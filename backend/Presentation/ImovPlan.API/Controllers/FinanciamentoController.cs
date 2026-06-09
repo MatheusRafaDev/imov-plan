@@ -6,6 +6,7 @@ namespace ImovPlan.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class FinanciamentoController : ControllerBase
     {
         private readonly IFinanciamentoService _financiamentoService;

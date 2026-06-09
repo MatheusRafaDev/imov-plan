@@ -3,6 +3,7 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import type { SimInput, Aporte } from "@/lib/finance";
 import Cookies from "js-cookie";
+import api from "@/lib/api";
 
 export type CenarioCompra = "entrada" | "pronto" | "planta";
 
@@ -113,9 +114,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
       try {
         if (userId) {
-          const res = await fetch(`http://localhost:5179/api/plano/user/${userId}`);
-          if (res.ok) {
-            const data = await res.json();
+          const res = await api.get(`/plano/user/${userId}`);
+          if (res.status === 200) {
+            const data = res.data;
             if (data.objetivo) {
               const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
               setObjetivo({ ...data.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
@@ -138,9 +139,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
         if (localPlanoId && !userId) {
           // Fetch existing draft from backend
-          const res = await fetch(`http://localhost:5179/api/plano/draft/${localPlanoId}?sessionId=${localSessionId}`);
-          if (res.ok) {
-            const data = await res.json();
+          const res = await api.get(`/plano/draft/${localPlanoId}?sessionId=${localSessionId}`);
+          if (res.status === 200) {
+            const data = res.data;
             if (data.objetivo) {
               const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
               setObjetivo({
@@ -180,45 +181,50 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         }
 
         // Create new draft in backend ONLY IF we didn't just load a valid one
-        const resBySession = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`);
+        try {
+          const resBySession = await api.get(`/plano/draft?sessionId=${localSessionId}`);
 
-        if (resBySession.ok && !userId) {
-          const existingDraft = await resBySession.json();
-          if (existingDraft.objetivo) {
-            const d = existingDraft.objetivo.dataInicio ? new Date(existingDraft.objetivo.dataInicio) : new Date();
-            setObjetivo({ ...existingDraft.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+          if (resBySession.status === 200 && !userId) {
+            const existingDraft = resBySession.data;
+            if (existingDraft.objetivo) {
+              const d = existingDraft.objetivo.dataInicio ? new Date(existingDraft.objetivo.dataInicio) : new Date();
+              setObjetivo({ ...existingDraft.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+            }
+            if (existingDraft.pessoas) setPessoas(existingDraft.pessoas);
+            if (existingDraft.bancoEscolhido) setBancoEscolhido(existingDraft.bancoEscolhido);
+            if (existingDraft.aportesExtras) setAportesExtras(existingDraft.aportesExtras);
+            if (existingDraft.aportesRegularesEditados) setAportesRegularesEditados(existingDraft.aportesRegularesEditados);
+            if (existingDraft.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(existingDraft.aportesRegularesEditadosPorPessoa);
+            if (existingDraft.mesesConcluidos) setMesesConcluidos(existingDraft.mesesConcluidos);
+            setPlanoId(existingDraft.id);
+            Cookies.set("imovplan_planoId", existingDraft.id, { expires: 30 });
+            return;
           }
-          if (existingDraft.pessoas) setPessoas(existingDraft.pessoas);
-          if (existingDraft.bancoEscolhido) setBancoEscolhido(existingDraft.bancoEscolhido);
-          if (existingDraft.aportesExtras) setAportesExtras(existingDraft.aportesExtras);
-          if (existingDraft.aportesRegularesEditados) setAportesRegularesEditados(existingDraft.aportesRegularesEditados);
-          if (existingDraft.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(existingDraft.aportesRegularesEditadosPorPessoa);
-          if (existingDraft.mesesConcluidos) setMesesConcluidos(existingDraft.mesesConcluidos);
-          setPlanoId(existingDraft.id);
-          Cookies.set("imovplan_planoId", existingDraft.id, { expires: 30 });
-          return;
+        } catch (e) {
+          console.warn("Failed to check for existing draft by session, will try to create new one:", e);
         }
 
-        const resPost = await fetch(`http://localhost:5179/api/plano/draft?sessionId=${localSessionId}`, { method: "POST" });
-        if (resPost.ok) {
-          const dataPost = await resPost.json();
-          setPlanoId(dataPost.id);
-          Cookies.set("imovplan_planoId", dataPost.id, { expires: 30 });
-          
-          if (userId) {
-            await fetch(`http://localhost:5179/api/plano/${dataPost.id}/link-user?usuarioId=${userId}`, { method: "POST" });
-          } else if (savedDraft) {
-             try {
-                await fetch(`http://localhost:5179/api/plano/draft/${dataPost.id}`, {
-                   method: "PUT",
-                   headers: { "Content-Type": "application/json" },
-                   body: savedDraft // already a JSON string
-                });
-             } catch (e) {
-                console.error("Falha ao sincronizar draft local para o novo id", e);
-             }
+        try {
+          const resPost = await api.post(`/plano/draft?sessionId=${localSessionId}`);
+          if (resPost.status === 200) {
+            const dataPost = resPost.data;
+            setPlanoId(dataPost.id);
+            Cookies.set("imovplan_planoId", dataPost.id, { expires: 30 });
+            
+            if (userId) {
+              await api.post(`/plano/${dataPost.id}/link-user?usuarioId=${userId}`);
+            } else if (savedDraft) {
+               try {
+                  await api.put(`/plano/draft/${dataPost.id}`, savedDraft);
+               } catch (e) {
+                  console.error("Falha ao sincronizar draft local para o novo id", e);
+               }
+            }
+          } else {
+            setPlanoId("local-draft-" + localSessionId);
           }
-        } else {
+        } catch (e) {
+          console.error("Failed to create draft:", e);
           setPlanoId("local-draft-" + localSessionId);
         }
 
@@ -232,11 +238,31 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reloadDraft = async () => {
-    if (!planoId) return;
+    const userCookie = Cookies.get("user");
+    let userId = null;
+    if (userCookie) {
+      try {
+        userId = JSON.parse(userCookie).id;
+      } catch (e) {}
+    }
+
     try {
-      const res = await fetch(`http://localhost:5179/api/plano/draft/${planoId}?sessionId=${sessionId}`);
-      if (res.ok) {
-        const data = await res.json();
+      let data;
+      if (userId) {
+        // For logged-in users, load by userId
+        const res = await api.get(`/plano/user/${userId}`);
+        if (res.status === 200) {
+          data = res.data;
+        }
+      } else if (planoId) {
+        // For non-logged-in users, load by planoId and sessionId
+        const res = await api.get(`/plano/draft/${planoId}?sessionId=${sessionId}`);
+        if (res.status === 200) {
+          data = res.data;
+        }
+      }
+
+      if (data) {
         if (data.objetivo) {
           const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
           setObjetivo({
@@ -250,6 +276,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
         if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
         if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+        if (data.id) setPlanoId(data.id);
       }
     } catch (e) {
       console.error("Failed to reload draft", e);
@@ -304,12 +331,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         let success = false;
         while (attempt < maxRetries && !success) {
           try {
-            const res = await fetch(`http://localhost:5179/api/plano/draft/${planoId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(draftToSave)
-            });
-            if (res.ok) {
+            const res = await api.put(`/plano/draft/${planoId}`, draftToSave);
+            if (res.status === 200) {
               success = true;
             } else if (res.status >= 500) {
               console.warn(`Tentativa ${attempt + 1} falhou ao sincronizar draft (status ${res.status}). Retentando...`);

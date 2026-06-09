@@ -1,8 +1,11 @@
 using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 
@@ -13,10 +16,12 @@ namespace ImovPlan.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(IUsuarioRepository usuarioRepository)
+        public AuthController(IUsuarioRepository usuarioRepository, IConfiguration configuration)
         {
             _usuarioRepository = usuarioRepository;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
@@ -70,7 +75,7 @@ namespace ImovPlan.API.Controllers
 
             await _usuarioRepository.CreateAsync(user);
 
-            var token = GenerateSimpleToken();
+            var token = GenerateJwtToken(user.Id);
 
             return Ok(new
             {
@@ -86,7 +91,7 @@ namespace ImovPlan.API.Controllers
             if (user == null || user.PasswordHash != HashPassword(request.Password))
                 return Unauthorized(new { message = "Email ou senha inválidos." });
 
-            var token = GenerateSimpleToken();
+            var token = GenerateJwtToken(user.Id);
 
             return Ok(new
             {
@@ -114,12 +119,31 @@ namespace ImovPlan.API.Controllers
             return Convert.ToBase64String(hash);
         }
 
-        private string GenerateSimpleToken()
+        private string GenerateJwtToken(string userId)
         {
-            // Gera um token base64 simples que serve para simular um JWT
-            var time = BitConverter.GetBytes(DateTime.UtcNow.ToBinary());
-            var key = Guid.NewGuid().ToByteArray();
-            return Convert.ToBase64String(time.Concat(key).ToArray());
+            var jwtKey = _configuration["Jwt:Key"] ?? "ImovPlanSecretKey2026ForJWTTokenGeneration";
+            var jwtIssuer = _configuration["Jwt:Issuer"] ?? "ImovPlanAPI";
+            var jwtAudience = _configuration["Jwt:Audience"] ?? "ImovPlanClient";
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.NameIdentifier, userId)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: jwtIssuer,
+                audience: jwtAudience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddDays(7),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 

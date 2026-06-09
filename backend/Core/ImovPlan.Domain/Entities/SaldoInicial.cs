@@ -29,6 +29,12 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.String)]
         public ImovPlan.Domain.Enums.FonteSaldo Fonte { get; set; } = ImovPlan.Domain.Enums.FonteSaldo.Poupanca;
 
+        /// <summary>
+        /// Tipo de investimento original (string) para preservar informações específicas como cdb_120, tesouro_selic, etc.
+        /// </summary>
+        [BsonElement("tipoInvestimento")]
+        public string? TipoInvestimento { get; set; }
+
         [BsonElement("registradoEm")]
         public DateTime RegistradoEm { get; set; } = DateTime.UtcNow;
 
