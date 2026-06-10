@@ -40,6 +40,25 @@ namespace ImovPlan.Infrastructure.Data
             modelBuilder.Entity<AporteExtra>().ToCollection("aportesExtras");
             modelBuilder.Entity<GastoDetalhado>().ToCollection("gastosDetalhados");
             modelBuilder.Entity<RegistroSimulacao>().ToCollection("registrosSimulacao");
+
+            // Indexes for frequently queried collections
+            modelBuilder.Entity<Pessoa>()
+                .HasIndex(p => p.ObjetivoImovelId);
+
+            modelBuilder.Entity<SaldoInicial>()
+                .HasIndex(s => s.PessoaId);
+
+            modelBuilder.Entity<AporteExtra>()
+                .HasIndex(a => a.ObjetivoImovelId);
+
+            modelBuilder.Entity<AporteRegularEdit>()
+                .HasIndex(a => new { a.ObjetivoImovelId, a.PessoaId, a.Mes });
+
+            modelBuilder.Entity<ObjetivoImovel>()
+                .HasIndex(o => o.SessionId);
+
+            modelBuilder.Entity<ObjetivoImovel>()
+                .HasIndex(o => o.UsuarioId);
         }
     }
 }

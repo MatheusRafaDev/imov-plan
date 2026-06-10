@@ -57,7 +57,11 @@ while (restartAttempts < maxRestartAttempts)
     });
 
     // Configure JWT Authentication
-    var jwtKey = builder.Configuration["Jwt:Key"] ?? "ImovPlanSecretKey2026ForJWTTokenGeneration";
+    var jwtKey = builder.Configuration["Jwt:Key"];
+    if (string.IsNullOrEmpty(jwtKey))
+    {
+        throw new InvalidOperationException("JWT:Key configuration is required. Set it in environment variables or appsettings.json.");
+    }
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ImovPlanAPI";
     var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ImovPlanClient";
 
@@ -116,6 +120,7 @@ while (restartAttempts < maxRestartAttempts)
     }
     app.UseHttpsRedirection();
     app.UseCors("AllowFrontend");
+    app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
 

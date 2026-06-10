@@ -231,6 +231,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Erro ao carregar rascunho do backend, usando local:", err);
         setPlanoId("local-draft-" + localSessionId);
+        isInitializing.current = false;
       }
     };
 
@@ -298,6 +299,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      const userCookie = Cookies.get("user");
+      let userId = null;
+      if (userCookie) {
+        try {
+          userId = JSON.parse(userCookie).id;
+        } catch (e) {}
+      }
+
       const payloadObjetivo = overrideData && overrideData.objetivo !== undefined ? overrideData.objetivo : objetivo;
       const payloadPessoas = overrideData && overrideData.pessoas !== undefined ? overrideData.pessoas : pessoas;
       const payloadBanco = overrideData && overrideData.bancoEscolhido !== undefined ? overrideData.bancoEscolhido : bancoEscolhido;
@@ -308,6 +317,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
       const draftToSave = {
         sessionId,
+        usuarioId: userId ?? undefined,
         objetivo: payloadObjetivo ? {
           ...payloadObjetivo,
           dataInicio: payloadObjetivo.dataInicio ? (payloadObjetivo.dataInicio instanceof Date ? payloadObjetivo.dataInicio.toISOString().slice(0,10) : new Date(payloadObjetivo.dataInicio).toISOString().slice(0,10)) : undefined

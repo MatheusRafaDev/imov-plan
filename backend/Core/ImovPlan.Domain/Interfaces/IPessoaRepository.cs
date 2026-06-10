@@ -8,6 +8,7 @@ namespace ImovPlan.Domain.Interfaces
     {
         Task<Pessoa?> GetByIdAsync(string id);
         Task<IEnumerable<Pessoa>> GetAllAsync();
+        Task<IEnumerable<Pessoa>> GetByObjetivoIdAsync(string objetivoId);
         Task<Pessoa> CreateAsync(Pessoa pessoa);
         Task UpdateAsync(string id, Pessoa pessoa);
         Task DeleteAsync(string id);

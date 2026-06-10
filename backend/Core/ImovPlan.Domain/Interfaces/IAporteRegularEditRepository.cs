@@ -9,5 +9,6 @@ namespace ImovPlan.Domain.Interfaces
         Task<IEnumerable<AporteRegularEdit>> GetByObjetivoIdAsync(string objetivoId);
         Task<IEnumerable<AporteRegularEdit>> GetByObjetivoEPessoaAsync(string objetivoId, string pessoaId);
         Task UpsertByMesAsync(AporteRegularEdit aporte);
+        Task DeleteByObjetivoIdAsync(string objetivoId);
     }
 }

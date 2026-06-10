@@ -26,6 +26,13 @@ namespace ImovPlan.Infrastructure.Repositories
             return await _context.Pessoas.ToListAsync();
         }
 
+        public async Task<IEnumerable<Pessoa>> GetByObjetivoIdAsync(string objetivoId)
+        {
+            return await _context.Pessoas
+                .Where(p => p.ObjetivoImovelId == objetivoId)
+                .ToListAsync();
+        }
+
         public async Task<Pessoa> CreateAsync(Pessoa pessoa)
         {
             _context.Pessoas.Add(pessoa);

@@ -45,6 +45,7 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.NomePlano = objetivo.NomePlano;
                 existing.ValorImovel = objetivo.ValorImovel;
                 existing.PercentualEntrada = objetivo.PercentualEntrada;
+                existing.PercentualCustosExtras = objetivo.PercentualCustosExtras;
                 existing.PrazoMaxMeses = objetivo.PrazoMaxMeses;
                 existing.ValorJaGuardado = objetivo.ValorJaGuardado;
                 existing.TaxaCdiAnual = objetivo.TaxaCdiAnual;

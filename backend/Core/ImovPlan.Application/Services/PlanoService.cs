@@ -176,6 +176,12 @@ namespace ImovPlan.Application.Services
             }
 
             // ── Map AportesRegularesEditados → AporteRegularEditRepository ──
+            if (draftDto.AportesRegularesEditados != null || draftDto.AportesRegularesEditadosPorPessoa != null)
+            {
+                // Delete existing edits to prevent accumulation of obsolete entries
+                await _aporteRegularEditRepo.DeleteByObjetivoIdAsync(id);
+            }
+
             if (draftDto.AportesRegularesEditados != null)
             {
                 foreach (var kvp in draftDto.AportesRegularesEditados)
@@ -221,19 +227,16 @@ namespace ImovPlan.Application.Services
             if (draftDto.Pessoas != null && draftDto.Pessoas.Count > 0)
             {
                 // Load existing people for this plan
-                var allPessoas = await _pessoaRepo.GetAllAsync();
-                var existingPlanPessoas = allPessoas.Where(p => p.ObjetivoImovelId == id).ToList();
+                var existingPlanPessoas = (await _pessoaRepo.GetByObjetivoIdAsync(id)).ToList();
 
                 var keptPessoaIds = new List<string>();
 
                 foreach (var pDto in draftDto.Pessoas)
                 {
-                    // Try to find existing pessoa by Id or Name
+                    // Try to find existing pessoa by Id only
                     Pessoa? pessoa = null;
                     if (!string.IsNullOrEmpty(pDto.Id))
                         pessoa = existingPlanPessoas.FirstOrDefault(p => p.Id == pDto.Id);
-                    if (pessoa == null)
-                        pessoa = existingPlanPessoas.FirstOrDefault(p => p.Nome == pDto.Nome);
 
                     if (pessoa != null)
                     {
@@ -326,7 +329,19 @@ namespace ImovPlan.Application.Services
         public async Task<PlanoDraftDto?> GetDraftAsync(string id, string sessionId)
         {
             var objetivo = await _objetivoRepo.GetByIdAsync(id);
-            if (objetivo == null || (objetivo.SessionId ?? string.Empty) != (sessionId ?? string.Empty))
+            if (objetivo == null)
+            {
+                return null;
+            }
+
+            // Skip SessionId validation if the plan is linked to a user (JWT auth already guarantees identity)
+            if (!string.IsNullOrEmpty(objetivo.UsuarioId))
+            {
+                return await BuildDraftDtoAsync(objetivo);
+            }
+
+            // For session-based plans, validate SessionId
+            if ((objetivo.SessionId ?? string.Empty) != (sessionId ?? string.Empty))
             {
                 return null;
             }
@@ -338,8 +353,7 @@ namespace ImovPlan.Application.Services
         {
             var id = objetivo.Id;
 
-            var allPessoas = await _pessoaRepo.GetAllAsync();
-            var pessoasDoPlano = allPessoas.Where(p => p.ObjetivoImovelId == id).ToList();
+            var pessoasDoPlano = (await _pessoaRepo.GetByObjetivoIdAsync(id)).ToList();
 
             // Fetch CustosImovel
             var custos = await _custosRepo.GetByObjetivoIdAsync(id);

@@ -92,7 +92,7 @@ namespace ImovPlan.API.Controllers
                 if (!success)
                     return NotFound("Plano não encontrado ou não autorizado para atualização.");
 
-                return NoContent();
+                return Ok();
             }
             catch (System.Exception ex)
             {

@@ -2,7 +2,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5179/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5179/api',
   headers: {
     'Content-Type': 'application/json',
   },
