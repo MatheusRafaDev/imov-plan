@@ -64,13 +64,13 @@ Sugerimos priorizar o financiamento pela **Caixa Econômica Federal**.
             decimal taxaSBPE = 10.5m;
             decimal taxaAplicada = request.Renda_Total_Bruta <= 9600 ? taxaMCMV : taxaSBPE;
 
-            if (request.Imovel != null && request.Imovel.ValorImovel > 0 && request.Imovel.PrazoMaxMeses > 0)
+            if (request.Imovel != null && (request.Imovel.ValorImovel ?? 0m) > 0 && (request.Imovel.PrazoMaxMeses ?? 0) > 0)
             {
-                var valorEntrada = request.Imovel.ValorImovel * (request.Imovel.PercentualEntrada / 100m);
-                var valorFinanciado = request.Imovel.ValorImovel - valorEntrada;
+                var valorEntrada = (request.Imovel.ValorImovel ?? 0m) * ((request.Imovel.PercentualEntrada ?? 0m) / 100m);
+                var valorFinanciado = (request.Imovel.ValorImovel ?? 0m) - valorEntrada;
                 if (valorFinanciado > 0)
                 {
-                    simulacoes = _financiamentoService.CompararSistemas(valorFinanciado, taxaAplicada, request.Imovel.PrazoMaxMeses);
+                    simulacoes = _financiamentoService.CompararSistemas(valorFinanciado, taxaAplicada, request.Imovel.PrazoMaxMeses ?? 0);
                 }
             }
 

@@ -143,7 +143,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
       <div className="p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
-        <Link href="/" className="flex items-center gap-2 mb-8 w-fit transition-transform hover:scale-102">
+        <Link href="/" className="flex items-center gap-2 mb-8 w-fit transition-transform hover:scale-105">
           <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
             <Building2 className="h-4 w-4 text-accent-foreground" />
           </div>

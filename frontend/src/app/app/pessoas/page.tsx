@@ -137,7 +137,7 @@ export default function PessoasPage() {
       gastos_mensais: form.usar_gastos_detalhados ? gastosTotais : (Number(form.gastos_mensais) || 0),
       usar_gastos_detalhados: form.usar_gastos_detalhados,
       gastos_detalhados: form.gastos_detalhados,
-      aporte_mensal: Math.round(sobra * 0.5),
+      aporte_mensal: Math.round(sobra),
       valorInicial: perPerson,
     };
     

@@ -9,39 +9,74 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 // ─── Editable Aporte Cell ────────────────────────────────────────────────────
 function EditableAporte({ value, onSave, isEdited }: { value: number; onSave: (v: number) => void; isEdited: boolean }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(value.toFixed(2));
-  useEffect(() => { setVal(value.toFixed(2)); }, [value]);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value.toFixed(2));
+  const ref = useRef<HTMLDivElement>(null);
 
-  if (editing) {
-    return (
-      <input
-        autoFocus
-        type="number"
-        value={val}
-        onChange={e => setVal(e.target.value)}
-        onBlur={() => {
-          setEditing(false);
-          const num = parseFloat(val);
-          if (!isNaN(num) && num >= 0) onSave(num);
-          else setVal(value.toFixed(2));
-        }}
-        onKeyDown={e => {
-          if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "Escape") { setVal(value.toFixed(2)); setEditing(false); }
-        }}
-        className="w-24 text-right bg-background border border-border rounded px-1.5 py-0.5 outline-none text-foreground text-xs font-medium"
-      />
-    );
-  }
+  useEffect(() => { setDraft(value.toFixed(2)); }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  const onSaveValue = () => {
+    const num = parseFloat(draft);
+    if (!isNaN(num) && num >= 0) {
+      onSave(num);
+      setOpen(false);
+    } else {
+      setDraft(value.toFixed(2));
+    }
+  };
 
   return (
-    <div
-      onClick={() => setEditing(true)}
-      className={`cursor-pointer hover:bg-accent/10 px-1.5 py-0.5 rounded transition-colors border border-transparent hover:border-accent/20 text-right ${isEdited ? "text-accent font-bold" : ""}`}
-      title="Clique para editar"
-    >
-      {brl(value)}
+    <div ref={ref} className="relative text-right">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`w-full text-right px-2 py-1 rounded transition-colors border ${isEdited ? "border-accent text-accent bg-accent/5" : "border-transparent hover:border-accent/20 hover:bg-accent/5"}`}
+      >
+        {brl(value)}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-20 mt-2 w-48 rounded-2xl border border-border/70 bg-card p-3 shadow-xl">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Editar aporte</p>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary/70 focus:ring-1 focus:ring-primary/20"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setDraft(value.toFixed(2)); setOpen(false); }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={onSaveValue}
+                className="rounded-xl bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -60,9 +95,15 @@ function ExtrasCell({ contextItems, total }: {
   useEffect(() => {
     if (open && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
+      const width = 288;
+      const left = Math.min(
+        Math.max(8 + window.scrollX, rect.left + rect.width - width + window.scrollX),
+        window.innerWidth - width - 8 + window.scrollX
+      );
+      const top = Math.min(rect.bottom + window.scrollY, window.scrollY + window.innerHeight - 220);
       setPortalPos({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + rect.width - 288 + window.scrollX,
+        top,
+        left,
       });
     }
   }, [open]);
@@ -128,7 +169,7 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
   return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-[5px] num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
-export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?: number, showFinancials?: boolean }) {
+export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedToggle = true, percentualCdiOverride }: { limitRows?: number, showFinancials?: boolean, showCompletedToggle?: boolean, percentualCdiOverride?: number }) {
   const { 
     objetivo, 
     pessoas, 
@@ -192,13 +233,13 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
     percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
     valorJaGuardado: totalGuardado,
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-    percentualCdi: Number(objetivo?.percentualCdi ?? 100),
+    percentualCdi: percentualCdiOverride ?? Number(objetivo?.percentualCdi ?? 100),
     aporteMensalTotal: aporteTotal,
     aportesRegularesEditados: virtualAportesRegularesEditados,
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras: combinedExtras,
     prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados]);
+  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, percentualCdiOverride]);
 
   const tableRows = useMemo(() => {
     const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
@@ -319,13 +360,15 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
                 >
                   <Td className="font-medium">
                     <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => toggleConcluido(r.mes)}
-                        title={isConcluido ? "Desmarcar" : "Marcar como concluído"}
-                        className={`w-6 h-6 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400" : "border-border/50 hover:border-teal-500/50 hover:bg-teal-500/10"}`}
-                      >
-                        {isConcluido && <Check className="h-4 w-4" />}
-                      </button>
+                      {showCompletedToggle ? (
+                        <button
+                          onClick={() => toggleConcluido(r.mes)}
+                          title={isConcluido ? "Desmarcar" : "Marcar como concluído"}
+                          className={`w-6 h-6 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400" : "border-border/50 hover:border-teal-500/50 hover:bg-teal-500/10"}`}
+                        >
+                          {isConcluido && <Check className="h-4 w-4" />}
+                        </button>
+                      ) : null}
                       <span className={isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
                       {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] uppercase font-bold tracking-wider">Meta</span>}
                     </div>
@@ -361,7 +404,6 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
                                 return newState;
                               });
                               
-                              // Clear legacy edit for this month if converting to per-person edit
                               if (aportesRegularesEditados[r.mes] !== undefined) {
                                 setAportesRegularesEditados(prev => {
                                   const copy = { ...prev };
@@ -386,10 +428,12 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
                         })
                         .map(a => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome }));
 
+                      const extrasTotal = ctxItems.reduce((sum, item) => sum + item.valor, 0);
+
                       return (
                         <ExtrasCell
                           contextItems={ctxItems}
-                          total={totalExtras}
+                          total={extrasTotal}
                         />
                       );
                     })()}

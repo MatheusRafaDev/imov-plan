@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { brl } from "@/lib/finance";
+import { usePlanContext } from "@/context/PlanContext";
+import { brl, nomeTipoInvestimento, percentualCdiPorTipoInvestimento, rendimentoEstimadoMensal } from "@/lib/finance";
 import { User, Pencil, Trash2, Plus, Check, Wallet, Briefcase, TrendingDown } from "lucide-react";
 import { useState } from "react";
 import type { Pessoa, GastoDetalhado } from "@/context/PlanContext";
@@ -35,6 +36,9 @@ export default function PessoaCard({
   const role = index === 0 ? "Titular" : "Participante";
   const valorInicial = p.valorInicial ?? 0;
   const percent = totalGuardadoObjetivo > 0 ? Math.min(100, Math.max(0, (valorInicial / totalGuardadoObjetivo) * 100)) : 0;
+  const { objetivo } = usePlanContext();
+  const cdiPercent = percentualCdiPorTipoInvestimento(p.tipoInvestimento);
+  const retornoMensalEstimado = rendimentoEstimadoMensal(valorInicial, Number(objetivo?.taxaCdiAnual ?? 10.5), p.tipoInvestimento);
 
   const handleAddGasto = () => {
     if (!novoGasto.nome || !novoGasto.valor) return;
@@ -310,6 +314,16 @@ export default function PessoaCard({
                   <option value="cripto">Criptomoedas</option>
                   <option value="previdencia">Previdência</option>
                 </select>
+                {p.tipoInvestimento && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Retorno estimado: {nomeTipoInvestimento(p.tipoInvestimento)} • {cdiPercent}% do CDI
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      ≈ {brl(retornoMensalEstimado)}/mês sobre o valor guardado
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

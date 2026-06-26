@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Users, Calculator, LineChart, LogOut, Home, Key, HardHat } from "lucide-react";
+import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePlanContext } from "@/context/PlanContext";
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </Button>
           </div>
         </div>
-        <nav className="md:hidden border-t border-border/60 bg-background/70">
+        <nav className="lg:hidden border-t border-border/60 bg-background/70">
           <div className="container flex">
             {nav.map((n, index) => {
               const active = pathname?.startsWith(n.to) || false;

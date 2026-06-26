@@ -5,7 +5,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
-import { brl, simular } from "@/lib/finance";
+import { brl, simular, nomeTipoInvestimento, percentualCdiPorTipoInvestimento } from "@/lib/finance";
 import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, ReferenceDot, Legend } from "recharts";
 import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
@@ -83,6 +83,19 @@ export default function ResultadoPage() {
     return aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
   }, [aportesExtras]);
 
+  const effectivePercentualCdi = useMemo(() => {
+    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
+    if (totalSaved <= 0) {
+      return Number(objetivo?.percentualCdi ?? 100);
+    }
+    return pessoas.reduce((sum, p) => {
+      const tipoPercent = p.tipoInvestimento
+        ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
+        : Number(objetivo?.percentualCdi ?? 100);
+      return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
+    }, 0);
+  }, [pessoas, objetivo?.percentualCdi]);
+
   const virtualAportesRegularesEditados = useMemo(() => {
     const virtualMap: Record<number, number> = {};
     const prazoMax = objetivo?.prazoMaxMeses ?? 600;
@@ -116,13 +129,90 @@ export default function ResultadoPage() {
     percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
     valorJaGuardado: totalGuardado,
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-    percentualCdi: Number(objetivo?.percentualCdi ?? 100),
+    percentualCdi: effectivePercentualCdi,
     aporteMensalTotal: aporteTotal,
     aportesRegularesEditados: virtualAportesRegularesEditados,
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras: combinedExtras,
     prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados]);
+  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, effectivePercentualCdi]);
+
+  const perPersonStats = useMemo(() => {
+    const initialById = Object.fromEntries(pessoas.map(p => [p.id, Number(p.valorInicial ?? 0)]));
+    const aporteTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    const extrasTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    const rendimentoTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    const finalSaldoById: Record<string, number> = { ...initialById };
+
+    for (const row of sim.rows) {
+      if (row.mes === 0) continue;
+
+      const defaultAporte = aporteTotal;
+      const isEditedMonth = aportesRegularesEditados[row.mes] !== undefined;
+      const aporteFinalPorPessoa: Record<string, number> = {};
+
+      pessoas.forEach(p => {
+        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[row.mes];
+        if (editedValue !== undefined) {
+          aporteFinalPorPessoa[p.id] = editedValue;
+        } else if (isEditedMonth && defaultAporte > 0) {
+          aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[row.mes] || 0);
+        } else {
+          aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
+        }
+      });
+
+      const extrasMes = combinedExtras.filter(a => {
+        const d = new Date(a.data + "T12:00:00");
+        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+        return mesOffset === row.mes;
+      });
+
+      const extrasPorPessoa: Record<string, number> = {};
+      let extrasConjunto = 0;
+      extrasMes.forEach(a => {
+        if (a.pessoaNome) {
+          extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
+        } else {
+          extrasConjunto += Number(a.valor);
+        }
+      });
+
+      const weightedBalances = Object.fromEntries(
+        pessoas.map(p => [
+          p.id,
+          (finalSaldoById[p.id] || 0) * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
+        ])
+      );
+      const totalWeighted = Object.values(weightedBalances).reduce((sum, value) => sum + value, 0);
+
+      pessoas.forEach(p => {
+        const balance = finalSaldoById[p.id] || 0;
+        const weight = totalWeighted > 0
+          ? (weightedBalances[p.id] || 0) / totalWeighted
+          : (row.saldoAcumulado > 0 ? balance / row.saldoAcumulado : 0);
+        const rendimentoPessoa = row.rendimentoLiquido * weight;
+
+        aporteTotalById[p.id] += aporteFinalPorPessoa[p.id];
+        extrasTotalById[p.id] += extrasPorPessoa[p.nome] || 0;
+        rendimentoTotalById[p.id] += rendimentoPessoa;
+        finalSaldoById[p.id] = balance + aporteFinalPorPessoa[p.id] + (extrasPorPessoa[p.nome] || 0) + rendimentoPessoa;
+      });
+    }
+
+    return pessoas.map(p => ({
+      id: p.id,
+      nome: p.nome,
+      tipoInvestimento: p.tipoInvestimento,
+      percentualCdiInvestimento: percentualCdiPorTipoInvestimento(p.tipoInvestimento),
+      valorInicial: Number(p.valorInicial ?? 0),
+      aporteTotal: aporteTotalById[p.id] || 0,
+      extrasTotal: extrasTotalById[p.id] || 0,
+      rendimentoTotal: rendimentoTotalById[p.id] || 0,
+      saldoFinal: finalSaldoById[p.id] || 0,
+      retornoInvestimento: (finalSaldoById[p.id] || 0) - (Number(p.valorInicial ?? 0) + (aporteTotalById[p.id] || 0) + (extrasTotalById[p.id] || 0)),
+    }));
+  }, [pessoas, sim.rows, combinedExtras, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, totalGuardado, aporteTotal, inicio]);
 
   const chartData = sim.rows.map(r => ({
     mes: r.mes,
@@ -234,7 +324,7 @@ export default function ResultadoPage() {
         {/* Resumo Financeiro (left side: 2 columns) */}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="font-display text-xl font-light">Resumo Financeiro</h2>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-4 gap-4">
 
             {/* Valor Inicial */}
             <Card className="p-4 border-border/50 bg-card shadow-soft">
@@ -306,6 +396,28 @@ export default function ResultadoPage() {
                     </div>
                   ));
                 })()}
+              </div>
+            </Card>
+
+            {/* Retorno de investimento */}
+            <Card className="p-4 border-border/50 bg-card shadow-soft">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><TrendingUp className="h-3.5 w-3.5" /> Retorno de investimento</p>
+              <p className="font-display text-2xl num mb-3">{brl(perPersonStats.reduce((sum, p) => sum + p.retornoInvestimento, 0))}</p>
+              <div className="space-y-3">
+                {perPersonStats.map((item) => (
+                  <div key={item.id} className="space-y-1">
+                    <div className="flex justify-between text-xs items-end">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground">{item.nome}</span>
+                        <span className="text-[10px] text-muted-foreground">{nomeTipoInvestimento(item.tipoInvestimento)} • {item.percentualCdiInvestimento}% do CDI</span>
+                      </div>
+                      <span className="num font-medium">{brl(item.retornoInvestimento)}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${item.percentualCdiInvestimento}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
             </Card>
 
@@ -429,7 +541,7 @@ export default function ResultadoPage() {
       </div>
 
       {/* Tabela mês a mês */}
-      <TabelaMesAMes />
+      <TabelaMesAMes percentualCdiOverride={effectivePercentualCdi} />
     </div>
   );
 }

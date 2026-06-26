@@ -16,30 +16,30 @@ namespace ImovPlan.Domain.Entities
 
         [BsonElement("valorImovel")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal ValorImovel { get; set; }
+        public decimal? ValorImovel { get; set; } = 0m;
 
         [BsonElement("percentualEntrada")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal PercentualEntrada { get; set; }
+        public decimal? PercentualEntrada { get; set; } = 0m;
 
         [BsonElement("percentualCustosExtras")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal PercentualCustosExtras { get; set; }
+        public decimal? PercentualCustosExtras { get; set; } = 0m;
 
         [BsonElement("valorJaGuardado")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal ValorJaGuardado { get; set; }
+        public decimal? ValorJaGuardado { get; set; } = 0m;
 
         [BsonElement("prazoMaxMeses")]
-        public int PrazoMaxMeses { get; set; }
+        public int? PrazoMaxMeses { get; set; } = 0;
 
         [BsonElement("taxaCdiAnual")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal TaxaCdiAnual { get; set; }
+        public decimal? TaxaCdiAnual { get; set; } = 0m;
 
         [BsonElement("percentualCdi")]
         [BsonRepresentation(BsonType.Decimal128)]
-        public decimal PercentualCdi { get; set; }
+        public decimal? PercentualCdi { get; set; } = 0m;
 
         [BsonElement("dataInicio")]
         public DateTime? DataInicio { get; set; }

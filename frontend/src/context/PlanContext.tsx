@@ -120,7 +120,16 @@ function aplicarDados(
   }
   if (dados.pessoas) definidores.setPessoas(dados.pessoas);
   if (dados.bancoEscolhido) definidores.setBancoEscolhido(dados.bancoEscolhido);
-  if (dados.aportesExtras) definidores.setAportesExtras(dados.aportesExtras);
+  if (dados.aportesExtras) {
+    definidores.setAportesExtras(dados.aportesExtras.map((a: any) => ({
+      ...a,
+      data: typeof a.data === "string"
+        ? a.data
+        : a.data instanceof Date
+          ? a.data.toISOString().slice(0, 10)
+          : new Date(a.data).toISOString().slice(0, 10),
+    })));
+  }
   if (dados.aportesRegularesEditados) definidores.setAportesRegularesEditados(dados.aportesRegularesEditados);
   if (dados.aportesRegularesEditadosPorPessoa) definidores.setAportesRegularesEditadosPorPessoa(dados.aportesRegularesEditadosPorPessoa);
   if (dados.mesesConcluidos) definidores.setMesesConcluidos(dados.mesesConcluidos);
@@ -193,7 +202,7 @@ async function salvarNoBackend(
     if (planoId) {
       try {
         // Tenta atualizar plano existente — PUT /api/plano/draft/{id}
-        await api.put(`/api/plano/draft/${planoId}`, payload);
+        await api.put(`/plano/draft/${planoId}`, payload);
         return planoId;
       } catch (putError: any) {
         if (putError?.response?.status === 404) {
@@ -209,16 +218,20 @@ async function salvarNoBackend(
     }
 
     // Cria ou obtém draft para o usuário — POST /api/plano/draft-for-user?usuarioId=...
-    const resposta = await api.post(`/api/plano/draft-for-user?usuarioId=${usuarioId}`, {});
+    const resposta = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`, {});
     const novoId: string | undefined = resposta.data?.id;
     if (novoId) {
       Cookies.set("imovplan_planoId", novoId, { expires: 30 });
       // Agora salva os dados no draft recém-criado
-      await api.put(`/api/plano/draft/${novoId}`, { ...payload });
+      await api.put(`/plano/draft/${novoId}`, { ...payload });
       return novoId;
     }
     return null;
   } catch (error: any) {
+    if (error?.response?.status === 500) {
+      console.warn("Salvar no backend falhou com 500. Dados continuam salvos localmente.", error?.response?.data || error.message);
+      return null;
+    }
     console.error("Erro ao salvar no backend:", error);
     throw error;
   }
@@ -278,7 +291,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
     try {
       // Tenta carregar do backend — rota correta: GET /api/plano/user/{usuarioId}
-      const resposta = await api.get(`/api/plano/user/${usuarioId}`);
+      const resposta = await api.get(`/plano/user/${usuarioId}`);
       if (resposta.status === 200 && resposta.data) {
         const draftData = resposta.data;
         // O backend retorna um PlanoDraftDto, precisamos mapear para o formato do contexto
@@ -308,13 +321,22 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             tipoInvestimento: p.tipoInvestimento,
           })),
           bancoEscolhido: draftData.bancoEscolhido || null,
-          aportesExtras: (draftData.aportesExtras || []).map((a: any) => ({
-            data: a.data ? new Date(a.data) : new Date(),
-            valor: a.valor,
-            origem: a.origem,
-            pessoaId: a.pessoaId,
-            pessoaNome: a.pessoaNome,
-          })),
+          aportesExtras: (draftData.aportesExtras || []).map((a: any) => {
+            const dataString = a.data
+              ? typeof a.data === "string"
+                ? a.data
+                : a.data instanceof Date
+                  ? a.data.toISOString().slice(0, 10)
+                  : new Date(a.data).toISOString().slice(0, 10)
+              : new Date().toISOString().slice(0, 10);
+            return {
+              data: dataString,
+              valor: a.valor,
+              origem: a.origem,
+              pessoaId: a.pessoaId,
+              pessoaNome: a.pessoaNome,
+            };
+          }),
           aportesRegularesEditados: draftData.aportesRegularesEditados || {},
           aportesRegularesEditadosPorPessoa: draftData.aportesRegularesEditadosPorPessoa || {},
           mesesConcluidos: draftData.mesesConcluidos || [],

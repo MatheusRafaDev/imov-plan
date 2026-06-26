@@ -44,9 +44,12 @@ namespace ImovPlan.API.Controllers
             var created = await _planejamentoRepository.CreateAsync(planejamento);
 
             // Auto-calculate and persist CustosCompra subdocument
-            var valorEntrada = _calculoService.CalcularEntrada(planejamento.ValorImovel, planejamento.PercentualEntrada);
-            var custos = _calculoService.CalcularCustosExtras(planejamento.ValorImovel);
-            var totalNecessario = valorEntrada + (planejamento.ValorImovel * planejamento.PercentualCustosExtras / 100m);
+            var valorImovel = planejamento.ValorImovel ?? 0m;
+            var percentualEntrada = planejamento.PercentualEntrada ?? 0m;
+            var percentualCustosExtras = planejamento.PercentualCustosExtras ?? 0m;
+            var valorEntrada = _calculoService.CalcularEntrada(valorImovel, percentualEntrada);
+            var custos = _calculoService.CalcularCustosExtras(valorImovel);
+            var totalNecessario = valorEntrada + (valorImovel * percentualCustosExtras / 100m);
 
             created.CustosCompra = new CustosCompra
             {
@@ -67,9 +70,12 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> Update(string id, [FromBody] Planejamento planejamento)
         {
             // Recalculate and persist CustosCompra subdocument
-            var valorEntrada = _calculoService.CalcularEntrada(planejamento.ValorImovel, planejamento.PercentualEntrada);
-            var custos = _calculoService.CalcularCustosExtras(planejamento.ValorImovel);
-            var totalNecessario = valorEntrada + (planejamento.ValorImovel * planejamento.PercentualCustosExtras / 100m);
+            var valorImovel = planejamento.ValorImovel ?? 0m;
+            var percentualEntrada = planejamento.PercentualEntrada ?? 0m;
+            var percentualCustosExtras = planejamento.PercentualCustosExtras ?? 0m;
+            var valorEntrada = _calculoService.CalcularEntrada(valorImovel, percentualEntrada);
+            var custos = _calculoService.CalcularCustosExtras(valorImovel);
+            var totalNecessario = valorEntrada + (valorImovel * percentualCustosExtras / 100m);
 
             planejamento.CustosCompra = new CustosCompra
             {

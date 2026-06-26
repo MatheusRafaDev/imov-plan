@@ -97,10 +97,7 @@ export default function ObjetivoPage() {
     data_inicio: todayISO(),
     data_fim: "",
     valor_ja_guardado: 0 as number | "",
-    taxa_cdi_anual: 10.5 as number | "",
-    percentual_cdi: 100 as number | "",
     percentual_custos_extras: 0 as number | "",
-    tipo_investimento: "",
     titular: "" as string | "",
   });
 
@@ -113,10 +110,7 @@ export default function ObjetivoPage() {
         percentual_entrada: objetivo.percentualEntrada || 20,
         data_inicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : prev.data_inicio,
         valor_ja_guardado: objetivo.valorJaGuardado || 0,
-        taxa_cdi_anual: objetivo.taxaCdiAnual || prev.taxa_cdi_anual,
-        percentual_cdi: objetivo.percentualCdi || prev.percentual_cdi,
         percentual_custos_extras: objetivo.percentualCustosExtras || 0,
-        tipo_investimento: objetivo.tipoInvestimento || prev.tipo_investimento,
         data_fim: objetivo.prazoMaxMeses
           ? addMonthsISO(
               objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : todayISO(),
@@ -126,29 +120,6 @@ export default function ObjetivoPage() {
       }));
     }
   }, [objetivo]);
-
-  useEffect(() => {
-    const fetchCdi = async () => {
-      try {
-        const res = await fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json");
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0 && data[0].valor) {
-            const fetchedCdi = parseFloat(data[0].valor);
-            setForm((prev) => {
-              if (!objetivo?.taxaCdiAnual || prev.taxa_cdi_anual === 10.5) {
-                return { ...prev, taxa_cdi_anual: fetchedCdi };
-              }
-              return prev;
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Falha ao buscar CDI do BCB:", err);
-      }
-    };
-    fetchCdi();
-  }, [objetivo?.taxaCdiAnual]);
 
   const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "";
 
@@ -176,11 +147,8 @@ export default function ObjetivoPage() {
         percentualEntrada: Number(form.percentual_entrada),
         percentualCustosExtras: Number(form.percentual_custos_extras),
         valorJaGuardado: Number(form.valor_ja_guardado) || 0,
-        taxaCdiAnual: Number(form.taxa_cdi_anual),
-        percentualCdi: Number(form.percentual_cdi),
         dataInicio: form.data_inicio ? new Date(form.data_inicio) : undefined,
         prazoMaxMeses: prazoMeses,
-        tipoInvestimento: form.tipo_investimento,
       };
 
       // Atualiza o estado do contexto
@@ -314,11 +282,11 @@ export default function ObjetivoPage() {
                       </Label>
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) })}
+                        onClick={() => setForm({ ...form, percentual_custos_extras: itbiInfo.isento ? 0 : parseFloat(itbiInfo.percentualTotal.toFixed(2)) })}
                         className="group flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-accent transition-all duration-300 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-full border border-accent/20 hover:border-accent/40 hover:shadow-[0_0_12px_var(--accent-glow,rgba(255,165,0,0.2))] active:scale-95"
                       >
                         <Sparkles className="h-3 w-3 text-accent group-hover:animate-pulse" />
-                        Sugerir {itbiInfo.percentualTotal.toFixed(1)}%
+                        Sugerir {itbiInfo.isento ? "0" : itbiInfo.percentualTotal.toFixed(1)}%
                       </button>
                     </div>
 
@@ -328,12 +296,11 @@ export default function ObjetivoPage() {
                       max={4}
                       value={form.percentual_custos_extras}
                       onChange={(v) => setForm({ ...form, percentual_custos_extras: Math.min(4, Number(v)) })}
-                      disabled={itbiInfo.isento && Number(form.valor_imovel) > 0}
                     />
 
                     {itbiInfo.isento && Number(form.valor_imovel) > 0 && (
                       <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                        ✓ ITBI isento — apenas cartório considerado
+                        ✓ ITBI isento — sugerimos 0%, mas você pode ajustar até 4% conforme desejar.
                       </p>
                     )}
 
@@ -388,62 +355,6 @@ export default function ObjetivoPage() {
                     })()}
                   </div>
 
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label className="text-muted-foreground">Tipo de investimento</Label>
-                    <select
-                      value={form.tipo_investimento || ""}
-                      onChange={(e) => {
-                        const tipo = e.target.value;
-                        const presets: Record<string, { cdi: number; percentual: number }> = {
-                          poupanca: { cdi: 10.5, percentual: 70 },
-                          cdb_100: { cdi: 10.5, percentual: 100 },
-                          cdb_120: { cdi: 10.5, percentual: 120 },
-                          tesouro_selic: { cdi: 10.5, percentual: 100 },
-                          lci_lca: { cdi: 10.5, percentual: 90 },
-                          fundo_di: { cdi: 10.5, percentual: 100 },
-                        };
-                        if (presets[tipo]) {
-                          setForm({ ...form, tipo_investimento: tipo, taxa_cdi_anual: presets[tipo].cdi, percentual_cdi: presets[tipo].percentual });
-                        } else {
-                          setForm({ ...form, tipo_investimento: tipo });
-                        }
-                      }}
-                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="">Selecione o tipo</option>
-                      <option value="poupanca">Poupança (70% CDI)</option>
-                      <option value="cdb_100">CDB 100% CDI</option>
-                      <option value="cdb_120">CDB 120% CDI</option>
-                      <option value="tesouro_selic">Tesouro Selic (100% CDI)</option>
-                      <option value="lci_lca">LCI/LCA (90% CDI)</option>
-                      <option value="fundo_di">Fundo DI (100% CDI)</option>
-                      <option value="manual">Personalizado</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">CDI anual (%)</Label>
-                    <MoneyInput
-                      variant="percent"
-                      min={0}
-                      max={30}
-                      value={form.taxa_cdi_anual}
-                      onChange={(v) => setForm({ ...form, taxa_cdi_anual: v })}
-                      disabled={!!form.tipo_investimento && form.tipo_investimento !== "manual"}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">% do CDI do investimento</Label>
-                    <MoneyInput
-                      variant="percent"
-                      min={50}
-                      max={200}
-                      value={form.percentual_cdi}
-                      onChange={(v) => setForm({ ...form, percentual_cdi: v })}
-                      disabled={!!form.tipo_investimento && form.tipo_investimento !== "manual"}
-                    />
-                  </div>
                 </div>
               )}
             </div>

@@ -85,7 +85,14 @@
     --ring: 16 70% 58%;
   }
 
-  * { @apply border-border; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  html, body {
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
@@ -136,6 +143,14 @@
 }
 
 @layer utilities {
+  .container {
+    max-width: 1200px;
+    width: min(100%, 1200px);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
   .bg-gradient-warm { background: var(--gradient-warm); }
   .bg-gradient-ink { background: var(--gradient-ink); }
   .bg-gradient-cream { background: var(--gradient-cream); }
@@ -181,6 +196,15 @@
     animation: fade-in-up 0.5s ease-out forwards;
   }
 
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out forwards;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
   /* Progress bar animation */
   .progress-bar {
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -204,13 +228,5 @@
   }
   .border-error {
     border-color: hsl(var(--destructive)) !important;
-  }
-
-  /* Ensure containers are always centered */
-  .container {
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
   }
 }

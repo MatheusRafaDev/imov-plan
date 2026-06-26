@@ -120,12 +120,12 @@ namespace ImovPlan.Application.Services
                 StepAtual = stepAtual,
                 Versao = versao,
                 // Inputs
-                ValorImovel = planejamento.ValorImovel,
+                ValorImovel = planejamento.ValorImovel ?? 0m,
                 TotalNecessario = totalNecessario,
                 ValorJaGuardado = valorJaGuardado,
                 AporteMensalTotal = totalAporteMensal,
-                TaxaCdiAnual = planejamento.TaxaCdiAnual,
-                PercentualCdi = planejamento.PercentualCdi,
+                TaxaCdiAnual = planejamento.TaxaCdiAnual ?? 0m,
+                PercentualCdi = planejamento.PercentualCdi ?? 0m,
                 // Outputs
                 MesesParaAtingir = resultado.MesesParaAtingir,
                 DataPrevistaAlvo = resultado.DataPrevistaAlvo,

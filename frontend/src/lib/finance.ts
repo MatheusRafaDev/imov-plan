@@ -80,6 +80,67 @@ export function taxaMensalEfetiva(taxaCdiAnual: number, percentualCdi: number) {
   return Math.pow(1 + anual, 1 / 12) - 1;
 }
 
+export function taxaMensalEfetivaPorTipoInvestimento(taxaCdiAnual: number, tipo?: string) {
+  return taxaMensalEfetiva(taxaCdiAnual, percentualCdiPorTipoInvestimento(tipo));
+}
+
+export function rendimentoEstimadoMensal(valor: number, taxaCdiAnual: number, tipo?: string) {
+  return valor * taxaMensalEfetivaPorTipoInvestimento(taxaCdiAnual, tipo);
+}
+
+export function rendimentoEstimadoAnual(valor: number, taxaCdiAnual: number, tipo?: string) {
+  const mensal = taxaMensalEfetivaPorTipoInvestimento(taxaCdiAnual, tipo);
+  return valor * (Math.pow(1 + mensal, 12) - 1);
+}
+
+export function percentualCdiPorTipoInvestimento(tipo?: string) {
+  switch (tipo) {
+    case "poupanca":
+      return 70;
+    case "conta_corrente":
+      return 25;
+    case "cdb_100":
+    case "tesouro_selic":
+    case "fundo_di":
+      return 100;
+    case "fgts":
+      return 50;
+    case "previdencia":
+      return 90;
+    case "cripto":
+      return 125;
+    default:
+      return 100;
+  }
+}
+
+export function nomeTipoInvestimento(tipo?: string) {
+  switch (tipo) {
+    case "poupanca":
+      return "Poupança";
+    case "conta_corrente":
+      return "Conta Corrente";
+    case "cdb_100":
+      return "CDB / Renda Fixa";
+    case "tesouro_selic":
+      return "Tesouro Selic";
+    case "fundo_di":
+      return "Fundo DI";
+    case "fgts":
+      return "FGTS";
+    case "cripto":
+      return "Criptomoedas";
+    case "previdencia":
+      return "Previdência";
+    default:
+      return "Investimento";
+  }
+}
+
+export function taxaCdiAnualEstimadoPorTipo(tipo: string | undefined, taxaCdiAnual = 10.5) {
+  return (taxaCdiAnual * percentualCdiPorTipoInvestimento(tipo)) / 100;
+}
+
 export function simular(input: SimInput): SimResult {
   const meta = calcularMeta(input);
   const custosExtras = calcularCustosExtras(input.valorImovel, input.percentualCustosExtras);
