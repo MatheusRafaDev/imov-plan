@@ -11,33 +11,38 @@ namespace ImovPlan.Application.Services
 {
     public class SimulacaoService : ISimulacaoService
     {
-        private readonly IRegistroSimulacaoRepository _registroRepo;
-        private readonly ISaldoInicialRepository _saldoRepo;
+        private readonly IHistoricoSimulacaoRepository _historicoSimulacaoRepo;
+        private readonly IParticipanteRepository _participanteRepo;
 
-        public SimulacaoService(IRegistroSimulacaoRepository registroRepo, ISaldoInicialRepository saldoRepo)
+        public SimulacaoService(IHistoricoSimulacaoRepository historicoSimulacaoRepo, IParticipanteRepository participanteRepo)
         {
-            _registroRepo = registroRepo;
-            _saldoRepo = saldoRepo;
+            _historicoSimulacaoRepo = historicoSimulacaoRepo;
+            _participanteRepo = participanteRepo;
         }
 
         public async Task<SimulacaoResultado> ExecutarSimulacaoAsync(
             SimulacaoRequestDto request,
-            ObjetivoImovel objetivo,
+            Planejamento planejamento,
             decimal totalNecessario,
             string origem = "auto",
             int stepAtual = 0)
         {
             var taxaMensal = (decimal)(Math.Pow((double)(1 + request.TaxaCDI / 100), 1.0 / 12.0) - 1);
             
-            // Fetch per-person initial balances from SaldoInicial
+            // Fetch per-person initial balances from Participante.PatrimonioInicial
             var saldoInicialTotal = 0m;
             foreach (var aporte in request.AportesMensais)
             {
-                var saldos = await _saldoRepo.GetByPessoaIdAsync(aporte.PessoaId);
-                saldoInicialTotal += saldos.Sum(s => s.Valor);
+                var participante = await _participanteRepo.GetByIdAsync(aporte.PessoaId);
+                if (participante?.PatrimonioInicial != null)
+                {
+                    saldoInicialTotal += participante.PatrimonioInicial.Valor;
+                }
             }
             
-            var saldo = saldoInicialTotal > 0 ? saldoInicialTotal : objetivo.ValorJaGuardado;
+            // Calculate ValorJaGuardado dynamically from all participantes
+            var valorJaGuardado = saldoInicialTotal > 0 ? saldoInicialTotal : 0m;
+            var saldo = valorJaGuardado;
             var totalInvestido = saldo;
 
             var totalAporteMensal = request.AportesMensais.Sum(a => a.Valor);
@@ -86,30 +91,41 @@ namespace ImovPlan.Application.Services
             resultado.LucroLiquido = saldo - totalInvestido;
 
             // Determinar a próxima versão do snapshot
-            var allRegistros = await _registroRepo.GetAllByObjetivoIdAsync(objetivo.Id);
+            var allRegistros = await _historicoSimulacaoRepo.GetAllByPlanejamentoIdAsync(planejamento.Id);
             var versao = allRegistros.Count() + 1;
 
             // Persistir registro da simulação
-            var pessoasSnapshot = request.AportesMensais.Select(a => new PessoaSnapshot
+            var participantesSnapshot = new List<ParticipanteSnapshot>();
+            foreach (var aporte in request.AportesMensais)
             {
-                PessoaId = a.PessoaId,
-                AporteMensal = a.Valor,
-            }).ToList();
+                var participante = await _participanteRepo.GetByIdAsync(aporte.PessoaId);
+                if (participante != null)
+                {
+                    participantesSnapshot.Add(new ParticipanteSnapshot
+                    {
+                        ParticipanteId = participante.Id,
+                        Nome = participante.Nome,
+                        AporteMensal = aporte.Valor,
+                        ValorInicial = participante.PatrimonioInicial?.Valor ?? 0,
+                        SobraMensal = participante.SobraMensal,
+                    });
+                }
+            }
 
-            var registro = new RegistroSimulacao
+            var registro = new HistoricoSimulacao
             {
-                ObjetivoImovelId = objetivo.Id,
+                PlanejamentoId = planejamento.Id,
                 GeradoEm = DateTime.UtcNow,
                 Origem = origem,
                 StepAtual = stepAtual,
                 Versao = versao,
                 // Inputs
-                ValorImovel = objetivo.ValorImovel,
+                ValorImovel = planejamento.ValorImovel,
                 TotalNecessario = totalNecessario,
-                ValorJaGuardado = objetivo.ValorJaGuardado,
+                ValorJaGuardado = valorJaGuardado,
                 AporteMensalTotal = totalAporteMensal,
-                TaxaCdiAnual = objetivo.TaxaCdiAnual,
-                PercentualCdi = objetivo.PercentualCdi,
+                TaxaCdiAnual = planejamento.TaxaCdiAnual,
+                PercentualCdi = planejamento.PercentualCdi,
                 // Outputs
                 MesesParaAtingir = resultado.MesesParaAtingir,
                 DataPrevistaAlvo = resultado.DataPrevistaAlvo,
@@ -118,12 +134,26 @@ namespace ImovPlan.Application.Services
                 LucroLiquido = resultado.LucroLiquido,
                 AtingiuMeta = saldo >= totalNecessario,
                 Falta = Math.Max(0, totalNecessario - saldo),
-                PessoasSnapshot = pessoasSnapshot,
-                DetalhesMensais = resultado.DetalhesMensais,
+                ParticipantesSnapshot = participantesSnapshot,
             };
 
+            await _historicoSimulacaoRepo.AddAsync(registro);
 
-            await _registroRepo.AddAsync(registro);
+            // Persist EvolucaoMensalSimulacao separately
+            var evolucaoMensal = resultado.DetalhesMensais.Select(d => new EvolucaoMensalSimulacao
+            {
+                SimulacaoId = registro.Id,
+                Mes = d.Mes,
+                DataReferencia = d.DataReferencia,
+                AporteMensal = d.AporteMensal,
+                AportesExtras = d.AportesExtras,
+                RendimentoBruto = d.RendimentoBruto,
+                Imposto = d.Imposto,
+                RendimentoLiquido = d.RendimentoLiquido,
+                TotalAcumulado = d.TotalAcumulado,
+            });
+
+            await _historicoSimulacaoRepo.AddEvolucaoAsync(evolucaoMensal);
 
             return resultado;
         }

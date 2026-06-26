@@ -13,31 +13,28 @@ namespace ImovPlan.API.Controllers
     public class SimulacaoController : ControllerBase
     {
         private readonly ISimulacaoService _simulacaoService;
-        private readonly IObjetivoRepository _objetivoRepository;
-        private readonly ICustosImovelRepository _custosRepository;
+        private readonly IPlanejamentoRepository _planejamentoRepository;
 
         public SimulacaoController(
             ISimulacaoService simulacaoService,
-            IObjetivoRepository objetivoRepository,
-            ICustosImovelRepository custosRepository)
+            IPlanejamentoRepository planejamentoRepository)
         {
             _simulacaoService = simulacaoService;
-            _objetivoRepository = objetivoRepository;
-            _custosRepository = custosRepository;
+            _planejamentoRepository = planejamentoRepository;
         }
 
         [HttpPost]
         public async Task<IActionResult> Simular([FromBody] SimulacaoRequestDto request)
         {
-            var objetivo = await _objetivoRepository.GetByIdAsync(request.ObjetivoId);
-            if (objetivo == null) return NotFound("Objetivo não encontrado");
+            var planejamento = await _planejamentoRepository.GetByIdAsync(request.ObjetivoId);
+            if (planejamento == null) return NotFound("Planejamento não encontrado");
 
-            var custos = await _custosRepository.GetByObjetivoIdAsync(request.ObjetivoId);
-            var totalNecessario = custos?.TotalNecessario ?? 0m;
+            // Get totalNecessario from CustosCompra subdocument
+            var totalNecessario = planejamento.CustosCompra?.TotalNecessario ?? 0m;
 
             var resultado = await _simulacaoService.ExecutarSimulacaoAsync(
                 request,
-                objetivo,
+                planejamento,
                 totalNecessario,
                 origem: "manual");
 

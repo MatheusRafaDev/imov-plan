@@ -26,7 +26,8 @@ export default function PessoaCard({
   remover: (id: string) => void;
   atualizarPessoa: (id: string, patch: Partial<Pessoa>) => void
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const isNew = !p.renda_mensal && !p.aporte_mensal && !p.gastos_mensais && !p.valorInicial;
+  const [isEditing, setIsEditing] = useState(isNew);
   const [novoGasto, setNovoGasto] = useState({ nome: "", valor: 0 });
   const gastosTotais = calcularGastos(p);
   const sobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - gastosTotais;

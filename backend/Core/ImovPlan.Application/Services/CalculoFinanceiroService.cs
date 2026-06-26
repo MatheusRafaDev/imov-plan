@@ -30,16 +30,16 @@ namespace ImovPlan.Application.Services
         }
 
         public DiagnosticoFinanceiroDto CalcularDiagnostico(
-            List<Pessoa> pessoas,
+            List<Participante> participantes,
             decimal totalNecessario,
             decimal aportesExtrasTotal)
         {
             var dto = new DiagnosticoFinanceiroDto();
 
-            if (pessoas.Count > 0) dto.SobraPessoa1 = pessoas[0].SobraMensal;
-            if (pessoas.Count > 1) dto.SobraPessoa2 = pessoas[1].SobraMensal;
+            if (participantes.Count > 0) dto.SobraPessoa1 = participantes[0].SobraMensal;
+            if (participantes.Count > 1) dto.SobraPessoa2 = participantes[1].SobraMensal;
 
-            dto.SobraCasal = pessoas.Sum(p => p.SobraMensal);
+            dto.SobraCasal = participantes.Sum(p => p.SobraMensal);
 
             var falta = totalNecessario - aportesExtrasTotal;
             dto.ValorFaltante = falta > 0 ? falta : 0;

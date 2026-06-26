@@ -12,7 +12,40 @@ import { Button } from "@/components/ui/button";
 import { brl, calcularEntrada, calcularCustosExtras, calcularMeta, mesesEntre } from "@/lib/finance";
 import { DateInput } from "@/components/DateInput";
 import { MonthYearInput } from "@/components/MonthYearInput";
-import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info } from "lucide-react";
+
+// ─── ITBI + Cartório Rule ─────────────────────────────────────────────────────
+function calcularCustosITBI(valorImovel: number): { itbi: number; cartorio: number; percentualTotal: number; isento: boolean } {
+  const ISENCAO_SP = 245527.77;
+  const TETO_SFH = 725808.00;
+  const ITBI_CHEIO = 0.03;
+  const ITBI_SFH_FAIXA1 = 0.005;
+
+  let itbi = 0;
+  let isento = false;
+
+  if (valorImovel <= ISENCAO_SP) {
+    // Isenção total (primeiro imóvel / MCMV)
+    itbi = 0;
+    isento = true;
+  } else if (valorImovel <= TETO_SFH) {
+    // SFH: 0,5% sobre o valor financiado estimado (80% do valor) + 3% no restante
+    const financiado = valorImovel * 0.8;
+    const entrada = valorImovel * 0.2;
+    itbi = (financiado * ITBI_SFH_FAIXA1) + (entrada * ITBI_CHEIO);
+  } else {
+    // Acima do teto: 3% sobre o valor total
+    itbi = valorImovel * ITBI_CHEIO;
+  }
+
+  // Cartório e Registro: ~1% + 1% = 2% (estimativa conservadora)
+  const cartorio = valorImovel * 0.02;
+
+  const total = itbi + cartorio;
+  const percentualTotal = valorImovel > 0 ? Math.min(4, (total / valorImovel) * 100) : 0;
+
+  return { itbi, cartorio, percentualTotal, isento };
+}
 
 const todayISO = () => {
   if (typeof window !== "undefined") {
@@ -32,6 +65,7 @@ export default function ObjetivoPage() {
   const router = useRouter();
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showITBIInfo, setShowITBIInfo] = useState(false);
 
   const [form, setForm] = useState({
     nome: "Imóvel",
@@ -97,6 +131,17 @@ export default function ObjetivoPage() {
   const entrada = calcularEntrada(Number(form.valor_imovel) || 0, Number(form.percentual_entrada) || 0);
   const custos = calcularCustosExtras(Number(form.valor_imovel) || 0, Number(form.percentual_custos_extras) || 0);
   const falta = Math.max(0, meta - (Number(form.valor_ja_guardado) || 0));
+
+  // ITBI exemption check
+  const { isento: isentoITBI, percentualTotal: percentualSugerido } = calcularCustosITBI(Number(form.valor_imovel) || 0);
+
+  // Auto-set custos extras to cartório-only (2%) when ITBI is exempt
+  useEffect(() => {
+    if (isentoITBI && Number(form.valor_imovel) > 0) {
+      const cartorioPercentual = 2; // Cartório + Registro ~2%
+      setForm(prev => ({ ...prev, percentual_custos_extras: cartorioPercentual }));
+    }
+  }, [isentoITBI, form.valor_imovel]);
 
   const salvar = async (avancar = false) => {
     if (!isFormValid) return;
@@ -218,17 +263,88 @@ export default function ObjetivoPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <Label className="text-muted-foreground">Custos extras (ITBI/Cartório) %</Label>
-                      <button
-                        type="button"
-                        onClick={() => setForm({ ...form, percentual_custos_extras: 5 })}
-                        className="group flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-accent transition-all duration-300 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-full border border-accent/20 hover:border-accent/40 hover:shadow-[0_0_12px_var(--accent-glow,rgba(255,165,0,0.2))] active:scale-95"
-                      >
-                        <Sparkles className="h-3 w-3 text-accent group-hover:animate-pulse" />
-                        Sugerir 5%
-                      </button>
+                      <Label className="text-muted-foreground flex items-center gap-1.5">
+                        Custos extras (ITBI/Cartório) %
+                        <button
+                          type="button"
+                          onClick={() => setShowITBIInfo(o => !o)}
+                          className="text-muted-foreground/60 hover:text-accent transition-colors"
+                          title="Ver regras do ITBI"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </Label>
+                      {(() => {
+                        const { percentualTotal, isento } = calcularCustosITBI(Number(form.valor_imovel) || 0);
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, percentual_custos_extras: percentualTotal })}
+                            className="group flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-accent transition-all duration-300 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-full border border-accent/20 hover:border-accent/40 hover:shadow-[0_0_12px_var(--accent-glow,rgba(255,165,0,0.2))] active:scale-95"
+                          >
+                            <Sparkles className="h-3 w-3 text-accent group-hover:animate-pulse" />
+                            {isento ? "Sugerir (isento)" : `Sugerir ${percentualTotal.toFixed(1)}%`}
+                          </button>
+                        );
+                      })()}
                     </div>
-                    <MoneyInput variant="percent" min={0} max={20} value={form.percentual_custos_extras} onChange={(v) => setForm({ ...form, percentual_custos_extras: v })} />
+                    <MoneyInput 
+                      variant="percent" 
+                      min={0} 
+                      max={4} 
+                      value={form.percentual_custos_extras} 
+                      onChange={(v) => setForm({ ...form, percentual_custos_extras: Math.min(4, Number(v)) })}
+                      disabled={isentoITBI && Number(form.valor_imovel) > 0}
+                    />
+                    {isentoITBI && Number(form.valor_imovel) > 0 && (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                        ✓ Campo bloqueado: ITBI isento, considerando apenas cartório (2%)
+                      </p>
+                    )}
+
+                    {/* ITBI Info Panel */}
+                    {showITBIInfo && (() => {
+                      const valorImovel = Number(form.valor_imovel) || 0;
+                      const { itbi, cartorio, percentualTotal, isento } = calcularCustosITBI(valorImovel);
+                      return (
+                        <div className="mt-2 p-3 rounded-lg bg-secondary/50 border border-border/60 text-[11px] space-y-2 animate-fade-in-up">
+                          <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Estimativa ITBI + Cartório (SP)</p>
+                          
+                          {valorImovel <= 0 && (
+                            <p className="text-muted-foreground">Preencha o valor do imóvel para ver a estimativa.</p>
+                          )}
+
+                          {valorImovel > 0 && (
+                            <>
+                              {isento && (
+                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                                  <span className="text-base">✓</span> Imóvel elegivel para isenção de ITBI (valor abaixo de R$ 245.527,77)
+                                </div>
+                              )}
+
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground pt-1">
+                                <span>ITBI estimado:</span>
+                                <span className="text-right font-medium text-foreground">{isento ? "R$ 0,00 (isento)" : brl(itbi)}</span>
+                                <span>Cartório + Registro:</span>
+                                <span className="text-right font-medium text-foreground">{brl(cartorio)}</span>
+                                <span className="font-semibold text-foreground pt-1 border-t border-border/40">Total estimado:</span>
+                                <span className="text-right font-bold text-accent pt-1 border-t border-border/40">{brl(itbi + cartorio)} ({percentualTotal.toFixed(2)}%)</span>
+                              </div>
+
+                              <p className="text-muted-foreground/70 text-[10px] pt-1 border-t border-border/40">
+                                {isento
+                                  ? "* Isenção para 1º imóvel / MCMV / HIS. Apenas cartório e registro são considerados."
+                                  : valorImovel <= 725808
+                                  ? "* SFH: 0,5% sobre 80% financiado + 3% nos 20% restantes + 2% cartório."
+                                  : "* Acima do teto SFH: 3% de ITBI sobre o valor total + 2% cartório."
+                                }
+                                {" "}Limitado a máx. 4% pelo sistema.
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
                   
                   </div>
                   <div className="space-y-2 sm:col-span-2">
@@ -277,9 +393,6 @@ export default function ObjetivoPage() {
             
             {/* Ações */}
             <div className="flex flex-wrap items-center gap-4 pt-6">
-              <Button onClick={() => salvar(false)} variant="outline" className="h-12 px-6" disabled={!isFormValid}>
-                Salvar Rascunho
-              </Button>
               <Button onClick={() => salvar(true)} disabled={!isFormValid} className="h-12 px-8 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
                 Salvar e Continuar <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

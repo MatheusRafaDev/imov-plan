@@ -62,7 +62,19 @@ namespace ImovPlan.API.Controllers
                 createdAt = existing.CreatedAt
             });
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var existing = await _usuarioRepository.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound(new { message = "Usuário não encontrado." });
+
+            await _usuarioRepository.DeleteAsync(id);
+            return NoContent();
+        }
     }
+
 
     public class UpdateUsuarioRequest
     {

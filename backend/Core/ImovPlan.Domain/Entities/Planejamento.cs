@@ -5,7 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace ImovPlan.Domain.Entities
 {
-    public class ObjetivoImovel
+    public class Planejamento
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
@@ -29,10 +29,6 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("prazoMaxMeses")]
         public int PrazoMaxMeses { get; set; }
 
-        [BsonElement("valorJaGuardado")]
-        [BsonRepresentation(BsonType.Decimal128)]
-        public decimal ValorJaGuardado { get; set; }
-
         [BsonElement("taxaCdiAnual")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal TaxaCdiAnual { get; set; }
@@ -55,9 +51,9 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal? BancoEscolhidoTaxa { get; set; }
 
-        [BsonElement("pessoasIds")]
+        [BsonElement("participantesIds")]
         [BsonRepresentation(BsonType.ObjectId)]
-        public List<string> PessoasIds { get; set; } = new();
+        public List<string> ParticipantesIds { get; set; } = new();
 
         [BsonElement("mesesConcluidos")]
         public List<int> MesesConcluidos { get; set; } = new();
@@ -75,7 +71,36 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("status")]
         public string Status { get; set; } = "Draft"; // "Draft", "Completed"
 
+        [BsonElement("custosCompra")]
+        public CustosCompra? CustosCompra { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class CustosCompra
+    {
+        [BsonElement("valorEntrada")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal ValorEntrada { get; set; }
+
+        [BsonElement("custoITBI")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal CustoITBI { get; set; }
+
+        [BsonElement("custoEscritura")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal CustoEscritura { get; set; }
+
+        [BsonElement("custoRegistro")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal CustoRegistro { get; set; }
+
+        [BsonElement("totalNecessario")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal TotalNecessario { get; set; }
+
+        [BsonElement("calculadoEm")]
+        public DateTime CalculadoEm { get; set; } = DateTime.UtcNow;
     }
 }

@@ -225,13 +225,13 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
 
       const saldoTotalAnterior = saldoAnterior;
       const novosSaldos: Record<string, number> = {};
-      const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
+      const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
       const isLegacyEdited = aportesRegularesEditados[r.mes] !== undefined;
 
       const aporteFinalPorPessoa: Record<string, number> = {};
       
       pessoas.forEach(p => {
-        if (r.mes === 1) {
+        if (r.mes === 0) {
           aporteFinalPorPessoa[p.id] = 0;
         } else {
           const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[r.mes];
@@ -306,7 +306,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
           </thead>
           <tbody className="divide-y divide-border/40">
             {displayRows.map(r => {
-              const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
+              const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
               const isConcluido = mesesConcluidosSet.has(r.mes);
               const totalExtras = r.aportesExtras;
               const totalAporteMes = r.aporteRegular + totalExtras;
@@ -336,13 +336,13 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
                   </Td>
 
                   {pessoas.map(p => {
-                    const defaultPessoaAporte = r.mes === 1 ? 0 : (Number(p.aporte_mensal) || 0);
+                    const defaultPessoaAporte = r.mes === 0 ? 0 : (Number(p.aporte_mensal) || 0);
                     const currentValue = r.aporteFinalPorPessoa[p.id] || 0;
                     const isEdited = currentValue !== defaultPessoaAporte;
 
                     return (
                       <Td key={p.id} right>
-                        {r.mes === 1 ? (
+                        {r.mes === 0 ? (
                           <div className="text-muted-foreground/40 text-right px-1.5 py-0.5">—</div>
                         ) : (
                           <EditableAporte

@@ -17,17 +17,17 @@ namespace ImovPlan.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<AporteExtra>> GetByObjetivoIdAsync(string objetivoId)
+        public async Task<IEnumerable<AporteExtra>> GetByPlanejamentoIdAsync(string planejamentoId)
         {
             return await _context.AportesExtras
-                .Where(a => a.ObjetivoImovelId == objetivoId)
+                .Where(a => a.PlanejamentoId == planejamentoId)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<AporteExtra>> GetByPessoaIdAsync(string pessoaId)
+        public async Task<IEnumerable<AporteExtra>> GetByParticipanteIdAsync(string participanteId)
         {
             return await _context.AportesExtras
-                .Where(a => a.PessoaId != null && a.PessoaId == pessoaId)
+                .Where(a => a.ParticipanteId != null && a.ParticipanteId == participanteId)
                 .ToListAsync();
         }
 
@@ -38,10 +38,10 @@ namespace ImovPlan.Infrastructure.Repositories
             return aporte;
         }
 
-        public async Task DeleteByObjetivoIdAsync(string objetivoId)
+        public async Task DeleteByPlanejamentoIdAsync(string planejamentoId)
         {
             var aportes = await _context.AportesExtras
-                .Where(a => a.ObjetivoImovelId == objetivoId)
+                .Where(a => a.PlanejamentoId == planejamentoId)
                 .ToListAsync();
                 
             if (aportes.Any())

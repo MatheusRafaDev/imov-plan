@@ -138,7 +138,7 @@ export default function ResultadoPage() {
   const dataCross = pontoMeta ? pontoMeta.label : undefined;
 
   const targetMonthIndex = sim.mesAtingiuMeta ? sim.mesAtingiuMeta - 1 : sim.rows.length - 1;
-  const targetRow = tableRows[targetMonthIndex];
+  const targetRow = sim.rows[targetMonthIndex];
 
   return (
     <div className="max-w-[1400px] w-full px-4 md:px-6 mx-auto space-y-7">
@@ -160,7 +160,7 @@ export default function ResultadoPage() {
           <div className="mt-3 pt-3 border-t border-border/50 text-xs text-muted-foreground pl-6">
             <ul className="list-disc list-outside space-y-1.5 ml-4">
               <li><strong className="text-foreground">Meta de {brl(sim.meta)}:</strong> Entrada + Custos Extras (Etapa 1).</li>
-              <li><strong className="text-foreground">Aportes de {brl(aporteTotal)}/mês:</strong> Soma dos participantes (Etapa 2). O mês 1 não tem aporte — apenas o saldo inicial rende.</li>
+              <li><strong className="text-foreground">Aportes de {brl(aporteTotal)}/mês:</strong> Soma dos participantes (Etapa 2). O mês 0 (início) não tem aporte — apenas o saldo inicial.</li>
               <li><strong className="text-foreground">Rendimento:</strong> {objetivo?.percentualCdi}% do CDI (≈ {(Number(objetivo?.taxaCdiAnual) * Number(objetivo?.percentualCdi) / 100).toFixed(2)}% a.a.), com IR regressivo (22,5% → 15%).</li>
             </ul>
           </div>
@@ -279,8 +279,8 @@ export default function ResultadoPage() {
                   const totalAportadoGeral = targetRow ? targetRow.totalInvestido - totalGuardado : 0;
                   const lista = pessoas.map(p => {
                     const aportesRegularesSum = sim.rows.slice(0, meses).reduce((sum, row) => {
-                      if (row.mes === 1) return sum;
-                      const defaultAporte = row.mes === 1 ? 0 : aporteTotal;
+                      if (row.mes === 0) return sum;
+                      const defaultAporte = row.mes === 0 ? 0 : aporteTotal;
                       const isEdited = row.aporteRegular !== defaultAporte;
                       if (isEdited) {
                          const baseAporte = Number(p.aporte_mensal) || 0;
@@ -340,12 +340,12 @@ export default function ResultadoPage() {
                     
                     const saldoTotalAnterior = saldoAnterior;
                     const novosSaldos: Record<string, number> = {};
-                    const defaultAporte = r.mes === 1 ? 0 : aporteTotal;
+                    const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
                     const isLegacyEdited = aportesRegularesEditados[r.mes] !== undefined;
                     
                     const aporteFinalPorPessoa: Record<string, number> = {};
                     pessoas.forEach(p => {
-                      if (r.mes === 1) {
+                      if (r.mes === 0) {
                         aporteFinalPorPessoa[p.id] = 0;
                       } else {
                         const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[r.mes];

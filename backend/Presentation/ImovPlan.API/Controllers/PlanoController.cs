@@ -44,6 +44,16 @@ namespace ImovPlan.API.Controllers
             return Ok(draft);
         }
 
+        [HttpPost("draft-for-user")]
+        public async Task<IActionResult> GetOrCreateDraftForUser([FromQuery] string usuarioId)
+        {
+            if (string.IsNullOrEmpty(usuarioId))
+                return BadRequest("UsuarioId is required.");
+
+            var draft = await _planoService.GetOrCreateDraftForUserAsync(usuarioId);
+            return Ok(draft);
+        }
+
         [HttpPost("{id}/link-user")]
         public async Task<IActionResult> LinkPlanToUser(string id, [FromQuery] string usuarioId)
         {

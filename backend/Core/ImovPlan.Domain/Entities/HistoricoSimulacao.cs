@@ -9,15 +9,15 @@ namespace ImovPlan.Domain.Entities
     /// Registro imutável de uma simulação executada, persistido ao final de cada cálculo.
     /// Armazena inputs e outputs para histórico e recuperação.
     /// </summary>
-    public class RegistroSimulacao
+    public class HistoricoSimulacao
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
-        [BsonElement("objetivoImovelId")]
+        [BsonElement("planejamentoId")]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string ObjetivoImovelId { get; set; } = string.Empty;
+        public string PlanejamentoId { get; set; } = string.Empty;
 
         [BsonElement("geradoEm")]
         public DateTime GeradoEm { get; set; } = DateTime.UtcNow;
@@ -89,23 +89,20 @@ namespace ImovPlan.Domain.Entities
 
         // ── Listas embedded ──
 
-        [BsonElement("pessoasSnapshot")]
-        public List<PessoaSnapshot> PessoasSnapshot { get; set; } = new();
-
-        [BsonElement("detalhesMensais")]
-        public List<DetalheMensal> DetalhesMensais { get; set; } = new();
+        [BsonElement("participantesSnapshot")]
+        public List<ParticipanteSnapshot> ParticipantesSnapshot { get; set; } = new();
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     /// <summary>
-    /// Snapshot dos dados de uma pessoa no momento da simulação.
+    /// Snapshot dos dados de um participante no momento da simulação.
     /// </summary>
-    public class PessoaSnapshot
+    public class ParticipanteSnapshot
     {
-        [BsonElement("pessoaId")]
-        public string PessoaId { get; set; } = string.Empty;
+        [BsonElement("participanteId")]
+        public string ParticipanteId { get; set; } = string.Empty;
 
         [BsonElement("nome")]
         public string Nome { get; set; } = string.Empty;

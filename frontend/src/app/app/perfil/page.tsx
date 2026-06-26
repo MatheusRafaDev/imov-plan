@@ -20,11 +20,12 @@ import {
   Briefcase,
   DollarSign,
   Heart,
-  PiggyBank
+  PiggyBank,
+  Trash2
 } from "lucide-react";
 
 export default function PerfilPage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, deleteAccount } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
@@ -198,6 +199,32 @@ export default function PerfilPage() {
               onChange={(v) => setDataNascimento(v)}
             />
           </div>
+        </div>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="p-8 shadow-soft border-destructive/20 space-y-6">
+        <div>
+          <h3 className="font-display text-xl text-destructive">Zona de Perigo</h3>
+          <p className="text-sm text-muted-foreground mt-1">Ações irreversíveis para a sua conta.</p>
+        </div>
+        
+        <div className="pt-4 border-t border-border/40 flex items-center justify-between">
+          <div>
+            <h4 className="font-medium text-foreground">Apagar conta</h4>
+            <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">Excluir permanentemente sua conta e todos os seus dados. Esta ação não pode ser desfeita.</p>
+          </div>
+          <Button 
+            variant="destructive" 
+            onClick={async () => {
+              if (confirm("Tem certeza que deseja apagar sua conta permanentemente?")) {
+                await deleteAccount();
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Apagar Conta
+          </Button>
         </div>
       </Card>
 

@@ -6,18 +6,17 @@ namespace ImovPlan.Infrastructure.Data
 {
     public class AppDbContext : DbContext
     {
-        // Existing collections
-        public DbSet<Pessoa> Pessoas { get; init; }
-        public DbSet<ObjetivoImovel> Objetivos { get; init; }
+        // Core collections
+        public DbSet<Participante> Participantes { get; init; }
+        public DbSet<Planejamento> Planejamentos { get; init; }
         public DbSet<Usuario> Usuarios { get; init; }
 
-        // New collections
-        public DbSet<CustosImovel> CustosImoveis { get; init; }
-        public DbSet<SaldoInicial> SaldosIniciais { get; init; }
-        public DbSet<AporteRegularEdit> AportesRegularesEdits { get; init; }
+        // Related collections
         public DbSet<AporteExtra> AportesExtras { get; init; }
         public DbSet<GastoDetalhado> GastosDetalhados { get; init; }
-        public DbSet<RegistroSimulacao> RegistrosSimulacao { get; init; }
+        public DbSet<HistoricoAporte> HistoricosAportes { get; init; }
+        public DbSet<HistoricoSimulacao> HistoricosSimulacao { get; init; }
+        public DbSet<EvolucaoMensalSimulacao> EvolucoesMensaisSimulacao { get; init; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -28,37 +27,39 @@ namespace ImovPlan.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Existing mappings
-            modelBuilder.Entity<Pessoa>().ToCollection("pessoas");
-            modelBuilder.Entity<ObjetivoImovel>().ToCollection("objetivos");
+            // Core collection mappings
+            modelBuilder.Entity<Participante>().ToCollection("participantes");
+            modelBuilder.Entity<Planejamento>().ToCollection("planejamentos");
             modelBuilder.Entity<Usuario>().ToCollection("usuarios");
 
-            // New collection mappings
-            modelBuilder.Entity<CustosImovel>().ToCollection("custosImoveis");
-            modelBuilder.Entity<SaldoInicial>().ToCollection("saldosIniciais");
-            modelBuilder.Entity<AporteRegularEdit>().ToCollection("aportesRegularesEdits");
+            // Related collection mappings
             modelBuilder.Entity<AporteExtra>().ToCollection("aportesExtras");
             modelBuilder.Entity<GastoDetalhado>().ToCollection("gastosDetalhados");
-            modelBuilder.Entity<RegistroSimulacao>().ToCollection("registrosSimulacao");
+            modelBuilder.Entity<HistoricoAporte>().ToCollection("historicoAportes");
+            modelBuilder.Entity<HistoricoSimulacao>().ToCollection("historicoSimulacoes");
+            modelBuilder.Entity<EvolucaoMensalSimulacao>().ToCollection("evolucaoMensalSimulacoes");
 
             // Indexes for frequently queried collections
-            modelBuilder.Entity<Pessoa>()
-                .HasIndex(p => p.ObjetivoImovelId);
-
-            modelBuilder.Entity<SaldoInicial>()
-                .HasIndex(s => s.PessoaId);
+            modelBuilder.Entity<Participante>()
+                .HasIndex(p => p.PlanejamentoId);
 
             modelBuilder.Entity<AporteExtra>()
-                .HasIndex(a => a.ObjetivoImovelId);
+                .HasIndex(a => a.PlanejamentoId);
 
-            modelBuilder.Entity<AporteRegularEdit>()
-                .HasIndex(a => new { a.ObjetivoImovelId, a.PessoaId, a.Mes });
+            modelBuilder.Entity<HistoricoAporte>()
+                .HasIndex(a => new { a.PlanejamentoId, a.ParticipanteId, a.Mes });
 
-            modelBuilder.Entity<ObjetivoImovel>()
+            modelBuilder.Entity<Planejamento>()
                 .HasIndex(o => o.SessionId);
 
-            modelBuilder.Entity<ObjetivoImovel>()
+            modelBuilder.Entity<Planejamento>()
                 .HasIndex(o => o.UsuarioId);
+
+            modelBuilder.Entity<HistoricoSimulacao>()
+                .HasIndex(s => s.PlanejamentoId);
+
+            modelBuilder.Entity<EvolucaoMensalSimulacao>()
+                .HasIndex(e => e.SimulacaoId);
         }
     }
 }

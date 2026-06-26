@@ -12,10 +12,10 @@ namespace ImovPlan.Application.Services.Interfaces
 
         /// <summary>
         /// Calcula o diagnóstico financeiro. totalNecessario e aportesExtrasTotal
-        /// são passados diretamente pois não constam mais na entidade ObjetivoImovel.
+        /// são passados diretamente pois não constam mais na entidade Planejamento.
         /// </summary>
         DiagnosticoFinanceiroDto CalcularDiagnostico(
-            List<Pessoa> pessoas,
+            List<Participante> participantes,
             decimal totalNecessario,
             decimal aportesExtrasTotal);
     }

@@ -23,4 +23,8 @@ export class UsuarioService {
     const response = await api.put(`/usuario/${id}`, payload);
     return response.data;
   }
+
+  static async deleteAccount(id: string): Promise<void> {
+    await api.delete(`/usuario/${id}`);
+  }
 }

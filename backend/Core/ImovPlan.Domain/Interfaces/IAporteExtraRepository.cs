@@ -6,9 +6,9 @@ namespace ImovPlan.Domain.Interfaces
 {
     public interface IAporteExtraRepository
     {
-        Task<IEnumerable<AporteExtra>> GetByObjetivoIdAsync(string objetivoId);
-        Task<IEnumerable<AporteExtra>> GetByPessoaIdAsync(string pessoaId);
+        Task<IEnumerable<AporteExtra>> GetByPlanejamentoIdAsync(string planejamentoId);
+        Task<IEnumerable<AporteExtra>> GetByParticipanteIdAsync(string participanteId);
         Task<AporteExtra> AddAsync(AporteExtra aporte);
-        Task DeleteByObjetivoIdAsync(string objetivoId);
+        Task DeleteByPlanejamentoIdAsync(string planejamentoId);
     }
 }

@@ -10,15 +10,12 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
-        [BsonElement("objetivoImovelId")]
+        [BsonElement("planejamentoId")]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string ObjetivoImovelId { get; set; } = string.Empty;
+        public string PlanejamentoId { get; set; } = string.Empty;
 
-        [BsonElement("pessoaId")]
-        public string? PessoaId { get; set; } = null;
-
-        [BsonElement("pessoaNome")]
-        public string PessoaNome { get; set; } = string.Empty;
+        [BsonElement("participanteId")]
+        public string? ParticipanteId { get; set; } = null;
 
         [BsonElement("valor")]
         [BsonRepresentation(BsonType.Decimal128)]

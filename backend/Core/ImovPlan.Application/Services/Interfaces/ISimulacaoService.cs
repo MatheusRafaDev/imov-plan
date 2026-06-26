@@ -8,7 +8,7 @@ namespace ImovPlan.Application.Services.Interfaces
     {
         Task<SimulacaoResultado> ExecutarSimulacaoAsync(
             SimulacaoRequestDto request,
-            ObjetivoImovel objetivo,
+            Planejamento planejamento,
             decimal totalNecessario,
             string origem = "auto",
             int stepAtual = 0);

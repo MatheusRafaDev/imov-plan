@@ -112,36 +112,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         } catch (e) {}
       }
 
-      try {
-        if (userId) {
-          const res = await api.get(`/plano/user/${userId}`);
-          if (res.status === 200) {
-            const data = res.data;
-            if (data.objetivo) {
-              const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
-              setObjetivo({ ...data.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
-            }
-            if (data.pessoas) setPessoas(data.pessoas);
-            if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
-            if (data.aportesExtras) setAportesExtras(data.aportesExtras);
-            if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
-            if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
-            if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
-            
-            setPlanoId(data.id);
-            Cookies.set("imovplan_planoId", data.id, { expires: 30 });
-            if (data.sessionId) {
-              Cookies.set("imovplan_sessionId", data.sessionId, { expires: 30 });
-            }
-            return;
-          }
-        }
-
-        if (localPlanoId && !userId) {
-          // Fetch existing draft from backend
-          const res = await api.get(`/plano/draft/${localPlanoId}?sessionId=${localSessionId}`);
-          if (res.status === 200) {
-            const data = res.data;
+      // OFFLINE MODE / ANONYMOUS: Never call backend API
+      if (!userId) {
+        const savedDraft = localStorage.getItem("imovplan_draft");
+        if (savedDraft) {
+          try {
+            const data = JSON.parse(savedDraft);
             if (data.objetivo) {
               const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
               setObjetivo({
@@ -155,83 +131,86 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
             if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
             if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
-            
-            setPlanoId(localPlanoId);
-            return;
-          }
+          } catch(e) {}
         }
-        
-        // Load fallback from localStorage ONLY if we are not logged in, to avoid carrying over old sessions to new accounts
+        setPlanoId(localPlanoId && localPlanoId.startsWith("local-draft-") ? localPlanoId : "local-draft-" + localSessionId);
+        isInitializing.current = false;
+        return;
+      }
+
+      // LOGGED IN MODE: Sync with backend
+      try {
+        let existingData = null;
+        try {
+          const res = await api.get(`/plano/user/${userId}`);
+          if (res.status === 200) {
+            existingData = res.data;
+          }
+        } catch (e) {
+          console.warn("Usuário ainda não tem plano no backend.");
+        }
+
+        if (existingData) {
+          if (existingData.objetivo) {
+            const d = existingData.objetivo.dataInicio ? new Date(existingData.objetivo.dataInicio) : new Date();
+            setObjetivo({ ...existingData.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+          }
+          if (existingData.pessoas) setPessoas(existingData.pessoas);
+          if (existingData.bancoEscolhido) setBancoEscolhido(existingData.bancoEscolhido);
+          if (existingData.aportesExtras) setAportesExtras(existingData.aportesExtras);
+          if (existingData.aportesRegularesEditados) setAportesRegularesEditados(existingData.aportesRegularesEditados);
+          if (existingData.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(existingData.aportesRegularesEditadosPorPessoa);
+          if (existingData.mesesConcluidos) setMesesConcluidos(existingData.mesesConcluidos);
+          
+          setPlanoId(existingData.id);
+          Cookies.set("imovplan_planoId", existingData.id, { expires: 30 });
+          if (existingData.sessionId) {
+            Cookies.set("imovplan_sessionId", existingData.sessionId, { expires: 30 });
+          }
+          return;
+        }
+
+        // If user has no plan, load from local storage to sync it up
         const savedDraft = localStorage.getItem("imovplan_draft");
-        if (savedDraft && !userId) {
-          const data = JSON.parse(savedDraft);
-          if (data.objetivo) {
-            const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
-            setObjetivo({
-              ...data.objetivo,
-              dataInicio: isNaN(d.getTime()) ? new Date() : d
-            });
-          }
-          if (data.pessoas) setPessoas(data.pessoas);
-          if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
-          if (data.aportesExtras) setAportesExtras(data.aportesExtras);
-          if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
-          if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
-          if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+        if (savedDraft) {
+          try {
+            const data = JSON.parse(savedDraft);
+            if (data.objetivo) {
+              const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
+              setObjetivo({ ...data.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+            }
+            if (data.pessoas) setPessoas(data.pessoas);
+            if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
+            if (data.aportesExtras) setAportesExtras(data.aportesExtras);
+            if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
+            if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
+            if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+          } catch(e) {}
         }
 
-        // Create new draft in backend ONLY IF we didn't just load a valid one
-        try {
-          const resBySession = await api.get(`/plano/draft?sessionId=${localSessionId}`);
-
-          if (resBySession.status === 200 && !userId) {
-            const existingDraft = resBySession.data;
-            if (existingDraft.objetivo) {
-              const d = existingDraft.objetivo.dataInicio ? new Date(existingDraft.objetivo.dataInicio) : new Date();
-              setObjetivo({ ...existingDraft.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+        // Create new draft in backend
+        const resPost = await api.post(`/plano/draft?sessionId=${localSessionId}`);
+        if (resPost.status === 200) {
+          const dataPost = resPost.data;
+          setPlanoId(dataPost.id);
+          Cookies.set("imovplan_planoId", dataPost.id, { expires: 30 });
+          
+          await api.post(`/plano/${dataPost.id}/link-user?usuarioId=${userId}`);
+          
+          if (savedDraft) {
+            try {
+              await api.put(`/plano/draft/${dataPost.id}`, JSON.parse(savedDraft));
+            } catch (e) {
+              console.error("Falha ao sincronizar draft local", e);
             }
-            if (existingDraft.pessoas) setPessoas(existingDraft.pessoas);
-            if (existingDraft.bancoEscolhido) setBancoEscolhido(existingDraft.bancoEscolhido);
-            if (existingDraft.aportesExtras) setAportesExtras(existingDraft.aportesExtras);
-            if (existingDraft.aportesRegularesEditados) setAportesRegularesEditados(existingDraft.aportesRegularesEditados);
-            if (existingDraft.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(existingDraft.aportesRegularesEditadosPorPessoa);
-            if (existingDraft.mesesConcluidos) setMesesConcluidos(existingDraft.mesesConcluidos);
-            setPlanoId(existingDraft.id);
-            Cookies.set("imovplan_planoId", existingDraft.id, { expires: 30 });
-            return;
           }
-        } catch (e) {
-          console.warn("Failed to check for existing draft by session, will try to create new one:", e);
-        }
-
-        try {
-          const resPost = await api.post(`/plano/draft?sessionId=${localSessionId}`);
-          if (resPost.status === 200) {
-            const dataPost = resPost.data;
-            setPlanoId(dataPost.id);
-            Cookies.set("imovplan_planoId", dataPost.id, { expires: 30 });
-            
-            if (userId) {
-              await api.post(`/plano/${dataPost.id}/link-user?usuarioId=${userId}`);
-            } else if (savedDraft) {
-               try {
-                  await api.put(`/plano/draft/${dataPost.id}`, savedDraft);
-               } catch (e) {
-                  console.error("Falha ao sincronizar draft local para o novo id", e);
-               }
-            }
-          } else {
-            setPlanoId("local-draft-" + localSessionId);
-          }
-        } catch (e) {
-          console.error("Failed to create draft:", e);
+        } else {
           setPlanoId("local-draft-" + localSessionId);
         }
 
       } catch (err) {
-        console.error("Erro ao carregar rascunho do backend, usando local:", err);
+        console.error("Erro ao inicializar rascunho com backend:", err);
         setPlanoId("local-draft-" + localSessionId);
-        isInitializing.current = false;
       }
     };
 
@@ -247,23 +226,31 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       } catch (e) {}
     }
 
-    try {
-      let data;
-      if (userId) {
-        // For logged-in users, load by userId
-        const res = await api.get(`/plano/user/${userId}`);
-        if (res.status === 200) {
-          data = res.data;
-        }
-      } else if (planoId) {
-        // For non-logged-in users, load by planoId and sessionId
-        const res = await api.get(`/plano/draft/${planoId}?sessionId=${sessionId}`);
-        if (res.status === 200) {
-          data = res.data;
-        }
+    if (!userId) {
+      // Offline mode
+      const savedDraft = localStorage.getItem("imovplan_draft");
+      if (savedDraft) {
+        try {
+          const data = JSON.parse(savedDraft);
+          if (data.objetivo) {
+            const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
+            setObjetivo({ ...data.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+          }
+          if (data.pessoas) setPessoas(data.pessoas);
+          if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
+          if (data.aportesExtras) setAportesExtras(data.aportesExtras);
+          if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
+          if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
+          if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
+        } catch(e) {}
       }
+      return;
+    }
 
-      if (data) {
+    try {
+      const res = await api.get(`/plano/user/${userId}`);
+      if (res.status === 200) {
+        const data = res.data;
         if (data.objetivo) {
           const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
           setObjetivo({
@@ -334,7 +321,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("imovplan_draft", JSON.stringify(draftToSave));
 
       // Sync to backend with retry on server errors (5xx)
-      if (planoId && !planoId.startsWith("local-draft-")) {
+      if (userId && planoId && !planoId.startsWith("local-draft-")) {
         const maxRetries = 3;
         const retryDelay = (attempt: number) => new Promise(res => setTimeout(res, attempt * 500));
         let attempt = 0;

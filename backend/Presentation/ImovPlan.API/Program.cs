@@ -93,21 +93,19 @@ while (restartAttempts < maxRestartAttempts)
         options.UseMongoDB(mongoClient, mongoSettings.DatabaseName));
 
     // Register Repositories
-    builder.Services.AddScoped<IPessoaRepository, PessoaRepository>();
-    builder.Services.AddScoped<IObjetivoRepository, ObjetivoRepository>();
+    builder.Services.AddScoped<IParticipanteRepository, ParticipanteRepository>();
+    builder.Services.AddScoped<IPlanejamentoRepository, PlanejamentoRepository>();
     builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
-    builder.Services.AddScoped<ICustosImovelRepository, CustosImovelRepository>();
-    builder.Services.AddScoped<ISaldoInicialRepository, SaldoInicialRepository>();
-    builder.Services.AddScoped<IAporteRegularEditRepository, AporteRegularEditRepository>();
+    builder.Services.AddScoped<IHistoricoAporteRepository, HistoricoAporteRepository>();
     builder.Services.AddScoped<IAporteExtraRepository, AporteExtraRepository>();
     builder.Services.AddScoped<IGastoDetalhadoRepository, GastoDetalhadoRepository>();
-    builder.Services.AddScoped<IRegistroSimulacaoRepository, RegistroSimulacaoRepository>();
+    builder.Services.AddScoped<IHistoricoSimulacaoRepository, HistoricoSimulacaoRepository>();
 
     // Register Services
     builder.Services.AddScoped<ICalculoFinanceiroService, CalculoFinanceiroService>();
     builder.Services.AddScoped<ISimulacaoService, SimulacaoService>();
     builder.Services.AddScoped<IFinanciamentoService, FinanciamentoService>();
-    builder.Services.AddScoped<IPlanoService, PlanoService>();
+    builder.Services.AddScoped<IPlanoService, PlanejamentoService>();
     builder.Services.AddHttpClient<IAiConsultingService, ImovPlan.Infrastructure.Services.GroqAiService>();
 
     var app = builder.Build();

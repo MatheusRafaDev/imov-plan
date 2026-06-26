@@ -8,8 +8,8 @@ namespace ImovPlan.Application.DTOs
         public List<PessoaConsultoriaDto> Pessoas { get; set; } = new();
         public decimal Renda_Total_Bruta { get; set; }
         
-        // We can reuse the Domain entity ObjetivoImovel to simplify, or map it dynamically
-        public ObjetivoImovel? Imovel { get; set; }
+        // We can reuse the Domain entity Planejamento to simplify, or map it dynamically
+        public Planejamento? Imovel { get; set; }
     }
 
     public class PessoaConsultoriaDto

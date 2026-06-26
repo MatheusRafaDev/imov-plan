@@ -19,6 +19,7 @@ type AuthContextType = {
   register: (email: string, password: string, name: string, dataNascimento?: string) => Promise<{ success: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: () => boolean;
   updateUser: (data: Partial<User>) => void;
 };
@@ -30,6 +31,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const clearAllData = () => {
+    setUser(null);
+    setToken(null);
+    const allCookies = Cookies.get();
+    for (const cookieName in allCookies) {
+      Cookies.remove(cookieName);
+      Cookies.remove(cookieName, { path: '/' });
+    }
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    delete api.defaults.headers.Authorization;
+  };
 
   useEffect(() => {
     async function initAuth() {
@@ -55,12 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             Cookies.set("user", JSON.stringify(updatedUser), { expires: 7 });
           } catch (err) {
             console.error("Erro ao verificar usuário no banco de dados:", err);
-            setUser(null);
-            setToken(null);
-            Cookies.remove("token");
-            Cookies.remove("user");
-            delete api.defaults.headers.Authorization;
+            clearAllData();
           }
+        } else {
+          clearAllData();
         }
         setLoading(false);
       }
@@ -128,25 +142,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
-    
-    // Remove all cookies
-    const allCookies = Cookies.get();
-    for (const cookieName in allCookies) {
-      Cookies.remove(cookieName);
-      Cookies.remove(cookieName, { path: '/' });
-    }
-    
-    // Clear all localStorage
-    if (typeof window !== "undefined") {
-      localStorage.clear();
-    }
-    
-    delete api.defaults.headers.Authorization;
-    
+    clearAllData();
     if (typeof window !== "undefined") {
       window.location.href = "/auth";
+    }
+  };
+
+  const deleteAccount = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (user) {
+        // Needs import of UsuarioService, but we can just use api directly here to avoid circular dependencies if any, 
+        // or just use api.delete
+        await api.delete(`/usuario/${user.id}`);
+      }
+      clearAllData();
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth";
+      }
+      return { success: true };
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Erro ao deletar conta";
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -164,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, error, register, login, logout, isAuthenticated, updateUser }}>
+    <AuthContext.Provider value={{ user, token, loading, error, register, login, logout, deleteAccount, isAuthenticated, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
