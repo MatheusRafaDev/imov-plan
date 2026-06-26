@@ -100,6 +100,7 @@ while (restartAttempts < maxRestartAttempts)
     builder.Services.AddScoped<IAporteExtraRepository, AporteExtraRepository>();
     builder.Services.AddScoped<IGastoDetalhadoRepository, GastoDetalhadoRepository>();
     builder.Services.AddScoped<IHistoricoSimulacaoRepository, HistoricoSimulacaoRepository>();
+    builder.Services.AddScoped<IParametrosFinanceirosRepository, ParametrosFinanceirosRepository>();
 
     // Register Services
     builder.Services.AddScoped<ICalculoFinanceiroService, CalculoFinanceiroService>();

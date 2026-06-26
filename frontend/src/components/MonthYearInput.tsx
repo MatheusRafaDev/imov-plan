@@ -36,8 +36,8 @@ export function MonthYearInput({ value, onChange, className }: MonthYearInputPro
     const yyyy = y;
     if (m && y && y.length === 4 && !isNaN(Number(y))) {
       const iso = `${yyyy}-${mm}-01`;
-      const d = new Date(iso);
-      if (!isNaN(d.getTime())) {
+      const monthNumber = Number(m);
+      if (monthNumber >= 1 && monthNumber <= 12) {
         onChange(iso);
       }
     }

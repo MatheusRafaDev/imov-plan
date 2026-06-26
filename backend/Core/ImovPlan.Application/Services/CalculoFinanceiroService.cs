@@ -17,9 +17,9 @@ namespace ImovPlan.Application.Services
         public (decimal CustoITBI, decimal CustoEscritura, decimal CustoRegistro) CalcularCustosExtras(decimal valorImovel)
         {
             return (
-                valorImovel * 0.02m, // ITBI ~2%
-                valorImovel * 0.01m, // Escritura ~1%
-                valorImovel * 0.005m // Registro ~0.5%
+                valorImovel * 0.02m, // Valor padrão; cálculos persistidos usam parametrosFinanceiros.
+                valorImovel * 0.01m,
+                valorImovel * 0.005m
             );
         }
 

@@ -17,19 +17,22 @@ namespace ImovPlan.Application.Services
         private readonly IAporteExtraRepository _aporteExtraRepo;
         private readonly IHistoricoAporteRepository _historicoAporteRepo;
         private readonly IGastoDetalhadoRepository _gastoDetalhadoRepo;
+        private readonly IParametrosFinanceirosRepository _parametrosRepo;
 
         public PlanejamentoService(
             IPlanejamentoRepository planejamentoRepo,
             IParticipanteRepository participanteRepo,
             IAporteExtraRepository aporteExtraRepo,
             IHistoricoAporteRepository historicoAporteRepo,
-            IGastoDetalhadoRepository gastoDetalhadoRepo)
+            IGastoDetalhadoRepository gastoDetalhadoRepo,
+            IParametrosFinanceirosRepository parametrosRepo)
         {
             _planejamentoRepo = planejamentoRepo;
             _participanteRepo = participanteRepo;
             _aporteExtraRepo = aporteExtraRepo;
             _historicoAporteRepo = historicoAporteRepo;
             _gastoDetalhadoRepo = gastoDetalhadoRepo;
+            _parametrosRepo = parametrosRepo;
         }
 
         public async Task<PlanoDraftDto?> GetDraftBySessionIdAsync(string sessionId)
@@ -144,10 +147,11 @@ namespace ImovPlan.Application.Services
                 }
 
                 // Update CustosCompra subdocument directly in Planejamento
+                var parametros = await _parametrosRepo.GetAtivoAsync();
                 var valorEntrada = o.ValorImovel * o.PercentualEntrada / 100m;
-                var custoITBI = o.ValorImovel * 0.02m;
-                var custoEscritura = o.ValorImovel * 0.01m;
-                var custoRegistro = o.ValorImovel * 0.005m;
+                var custoITBI = o.ValorImovel * parametros.CustoItbiPadrao;
+                var custoEscritura = o.ValorImovel * parametros.CustoEscrituraPadrao;
+                var custoRegistro = o.ValorImovel * parametros.CustoRegistroPadrao;
                 var totalNecessario = valorEntrada + (o.ValorImovel * o.PercentualCustosExtras / 100m);
 
                 existingPlanejamento.CustosCompra = new CustosCompra

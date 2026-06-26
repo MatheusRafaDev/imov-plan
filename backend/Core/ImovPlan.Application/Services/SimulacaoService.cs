@@ -13,11 +13,16 @@ namespace ImovPlan.Application.Services
     {
         private readonly IHistoricoSimulacaoRepository _historicoSimulacaoRepo;
         private readonly IParticipanteRepository _participanteRepo;
+        private readonly IParametrosFinanceirosRepository _parametrosRepo;
 
-        public SimulacaoService(IHistoricoSimulacaoRepository historicoSimulacaoRepo, IParticipanteRepository participanteRepo)
+        public SimulacaoService(
+            IHistoricoSimulacaoRepository historicoSimulacaoRepo,
+            IParticipanteRepository participanteRepo,
+            IParametrosFinanceirosRepository parametrosRepo)
         {
             _historicoSimulacaoRepo = historicoSimulacaoRepo;
             _participanteRepo = participanteRepo;
+            _parametrosRepo = parametrosRepo;
         }
 
         public async Task<SimulacaoResultado> ExecutarSimulacaoAsync(
@@ -27,7 +32,10 @@ namespace ImovPlan.Application.Services
             string origem = "auto",
             int stepAtual = 0)
         {
-            var taxaMensal = (decimal)(Math.Pow((double)(1 + request.TaxaCDI / 100), 1.0 / 12.0) - 1);
+            var parametros = await _parametrosRepo.GetAtivoAsync();
+            var percentualCdi = request.PercentualCdi > 0 ? request.PercentualCdi : planejamento.PercentualCdi ?? parametros.PercentualCdiPadrao;
+            var taxaAnualEfetiva = (request.TaxaCDI / 100m) * (percentualCdi / 100m);
+            var taxaMensal = (decimal)(Math.Pow((double)(1 + taxaAnualEfetiva), 1.0 / 12.0) - 1);
             
             // Fetch per-person initial balances from Participante.PatrimonioInicial
             var saldoInicialTotal = 0m;
@@ -51,7 +59,7 @@ namespace ImovPlan.Application.Services
             var meses = 0;
             var dataReferencia = DateTime.UtcNow;
 
-            while (saldo < totalNecessario && meses < 360) // Limite de 30 anos
+            while (saldo < totalNecessario && meses < parametros.PrazoFinanciamentoPadraoMeses)
             {
                 meses++;
                 dataReferencia = dataReferencia.AddMonths(1);
@@ -65,7 +73,7 @@ namespace ImovPlan.Application.Services
 
                 // Mirrors finance.ts: yield is calculated on (saldo + contributions) before compounding
                 var rendimentoMes = (saldo + aporteMes) * taxaMensal;
-                var imposto = CalcularIR(meses, rendimentoMes);
+                var imposto = CalcularIR(meses, rendimentoMes, parametros.AliquotasIr);
                 var rendimentoLiquido = rendimentoMes - imposto;
                 var novoSaldo = saldo + aporteMes + rendimentoLiquido;
 
@@ -125,7 +133,7 @@ namespace ImovPlan.Application.Services
                 ValorJaGuardado = valorJaGuardado,
                 AporteMensalTotal = totalAporteMensal,
                 TaxaCdiAnual = planejamento.TaxaCdiAnual ?? 0m,
-                PercentualCdi = planejamento.PercentualCdi ?? 0m,
+                PercentualCdi = percentualCdi,
                 // Outputs
                 MesesParaAtingir = resultado.MesesParaAtingir,
                 DataPrevistaAlvo = resultado.DataPrevistaAlvo,
@@ -160,12 +168,18 @@ namespace ImovPlan.Application.Services
 
         public decimal CalcularIR(int meses, decimal rendimento)
         {
+            return CalcularIR(meses, rendimento, ParametrosFinanceiros.DefaultAliquotasIr());
+        }
+
+        private decimal CalcularIR(int meses, decimal rendimento, List<AliquotaIrParametro> aliquotas)
+        {
             if (rendimento <= 0) return 0;
 
-            if (meses <= 6) return rendimento * 0.225m;
-            if (meses <= 12) return rendimento * 0.20m;
-            if (meses <= 24) return rendimento * 0.175m;
-            return rendimento * 0.15m;
+            var dias = meses * 30;
+            var aliquota = aliquotas
+                .OrderBy(a => a.AteDias ?? int.MaxValue)
+                .FirstOrDefault(a => a.AteDias == null || dias <= a.AteDias)?.Aliquota ?? 0.15m;
+            return rendimento * aliquota;
         }
 
         public decimal AplicarJurosCompostos(decimal capital, decimal taxaMensal, int meses)

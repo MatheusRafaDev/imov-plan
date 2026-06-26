@@ -102,7 +102,10 @@ export function percentualCdiPorTipoInvestimento(tipo?: string) {
     case "cdb_100":
     case "tesouro_selic":
     case "fundo_di":
+    case "lci_lca":
       return 100;
+    case "cdb_120":
+      return 120;
     case "fgts":
       return 50;
     case "previdencia":
@@ -122,6 +125,10 @@ export function nomeTipoInvestimento(tipo?: string) {
       return "Conta Corrente";
     case "cdb_100":
       return "CDB / Renda Fixa";
+    case "cdb_120":
+      return "CDB 120% CDI";
+    case "lci_lca":
+      return "LCI / LCA";
     case "tesouro_selic":
       return "Tesouro Selic";
     case "fundo_di":
@@ -194,6 +201,12 @@ export function simular(input: SimInput): SimResult {
     totalInvestido,
   });
 
+  if (saldo >= meta) {
+    atingiuMeta = true;
+    mesAtingiu = 0;
+    dataAtingiu = safeStartIso;
+  }
+
   for (let mes = 1; mes <= prazoMax; mes++) {
     const defaultAporte = input.aporteMensalTotal;
     const aporteRegular = input.aportesRegularesEditados?.[mes] ?? defaultAporte;
@@ -248,9 +261,11 @@ export function simular(input: SimInput): SimResult {
 
 // Diferença em meses (arredondando) entre duas datas ISO (YYYY-MM-DD).
 export function mesesEntre(inicioISO: string, fimISO: string): number {
-  const a = new Date(inicioISO);
-  const b = new Date(fimISO);
-  const m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  const [inicioAno, inicioMes] = inicioISO.split("-").map(Number);
+  const [fimAno, fimMes] = fimISO.split("-").map(Number);
+  if (!inicioAno || !inicioMes || !fimAno || !fimMes) return 1;
+
+  const m = (fimAno - inicioAno) * 12 + (fimMes - inicioMes);
   return Math.max(1, m);
 }
 

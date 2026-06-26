@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using ImovPlan.API.Extensions;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Application.Services.Interfaces;
@@ -33,20 +34,31 @@ namespace ImovPlan.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
+            var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(id);
-            if (planejamento == null) return NotFound();
+            if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
+                return NotFound();
+
             return Ok(planejamento);
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Planejamento planejamento)
         {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId))
+                return BadRequest("Usuário autenticado inválido.");
+
+            planejamento.UsuarioId = usuarioId;
+            planejamento.SessionId = null;
+            planejamento.Status = planejamento.Status ?? "Draft";
+
             var created = await _planejamentoRepository.CreateAsync(planejamento);
 
             // Auto-calculate and persist CustosCompra subdocument
-            var valorImovel = planejamento.ValorImovel ?? 0m;
-            var percentualEntrada = planejamento.PercentualEntrada ?? 0m;
-            var percentualCustosExtras = planejamento.PercentualCustosExtras ?? 0m;
+            var valorImovel = created.ValorImovel ?? 0m;
+            var percentualEntrada = created.PercentualEntrada ?? 0m;
+            var percentualCustosExtras = created.PercentualCustosExtras ?? 0m;
             var valorEntrada = _calculoService.CalcularEntrada(valorImovel, percentualEntrada);
             var custos = _calculoService.CalcularCustosExtras(valorImovel);
             var totalNecessario = valorEntrada + (valorImovel * percentualCustosExtras / 100m);
@@ -69,6 +81,15 @@ namespace ImovPlan.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] Planejamento planejamento)
         {
+            var usuarioId = User.GetUsuarioId();
+            var existing = await _planejamentoRepository.GetByIdAsync(id);
+            if (existing == null || string.IsNullOrEmpty(usuarioId) || existing.UsuarioId != usuarioId)
+                return NotFound();
+
+            // Preserve proprietário
+            planejamento.UsuarioId = existing.UsuarioId;
+            planejamento.SessionId = existing.SessionId;
+
             // Recalculate and persist CustosCompra subdocument
             var valorImovel = planejamento.ValorImovel ?? 0m;
             var percentualEntrada = planejamento.PercentualEntrada ?? 0m;
@@ -95,8 +116,10 @@ namespace ImovPlan.API.Controllers
         [HttpGet("{id}/diagnostico")]
         public async Task<IActionResult> GetDiagnostico(string id)
         {
+            var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(id);
-            if (planejamento == null) return NotFound();
+            if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
+                return NotFound();
 
             var participantes = new System.Collections.Generic.List<Participante>();
             foreach (var pid in planejamento.ParticipantesIds)
@@ -122,8 +145,10 @@ namespace ImovPlan.API.Controllers
         [HttpPost("{id}/aportes-extras")]
         public async Task<IActionResult> AddAporteExtra(string id, [FromBody] AporteExtra aporte)
         {
+            var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(id);
-            if (planejamento == null) return NotFound();
+            if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
+                return NotFound();
 
             aporte.PlanejamentoId = id;
             var created = await _aporteExtraRepository.AddAsync(aporte);

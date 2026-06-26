@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ImovPlan.Application.Services.Interfaces;
-using System.Collections.Generic;
+using ImovPlan.Domain.Interfaces;
 
 namespace ImovPlan.API.Controllers
 {
@@ -11,10 +12,14 @@ namespace ImovPlan.API.Controllers
     public class FinanciamentoController : ControllerBase
     {
         private readonly IFinanciamentoService _financiamentoService;
+        private readonly IParametrosFinanceirosRepository _parametrosRepo;
 
-        public FinanciamentoController(IFinanciamentoService financiamentoService)
+        public FinanciamentoController(
+            IFinanciamentoService financiamentoService,
+            IParametrosFinanceirosRepository parametrosRepo)
         {
             _financiamentoService = financiamentoService;
+            _parametrosRepo = parametrosRepo;
         }
 
         [HttpPost("simular")]
@@ -28,11 +33,11 @@ namespace ImovPlan.API.Controllers
         public IActionResult CalcularCET([FromBody] CetRequest request)
         {
             var cet = _financiamentoService.CalcularCET(
-                request.ValorFinanciado, 
-                request.TaxaAnual, 
-                request.PrazoMeses, 
-                request.TaxaMip, 
-                request.TaxaDfi, 
+                request.ValorFinanciado,
+                request.TaxaAnual,
+                request.PrazoMeses,
+                request.TaxaMip,
+                request.TaxaDfi,
                 request.TaxaAdmin
             );
             return Ok(new { CetEstimadoAnual = cet });
@@ -42,37 +47,31 @@ namespace ImovPlan.API.Controllers
         public IActionResult SimularFGTS([FromBody] FgtsRequest request)
         {
             var resultado = _financiamentoService.SimularFGTS(
-                request.SaldoDevedor, 
-                request.SaldoFgts, 
-                request.Modalidade, 
-                request.ParcelaAtual, 
+                request.SaldoDevedor,
+                request.SaldoFgts,
+                request.Modalidade,
+                request.ParcelaAtual,
                 request.PrazoRestante
             );
             return Ok(resultado);
         }
 
         [HttpGet("bancos")]
-        public IActionResult GetBancos()
+        public async Task<IActionResult> GetBancos()
         {
-            var bancos = new List<object>
-            {
-                new { Nome = "Caixa Econômica Federal", TaxaBaseAproximada = 11.19m },
-                new { Nome = "BRB", TaxaBaseAproximada = 11.36m },
-                new { Nome = "Itaú Unibanco", TaxaBaseAproximada = 11.60m },
-                new { Nome = "Banco do Brasil", TaxaBaseAproximada = 11.60m },
-                new { Nome = "Santander", TaxaBaseAproximada = 11.69m },
-                new { Nome = "Bradesco", TaxaBaseAproximada = 11.70m }
-            };
-            return Ok(bancos);
+            var parametros = await _parametrosRepo.GetAtivoAsync();
+            return Ok(parametros.BancosFinanciamento);
         }
 
         [HttpPost("comprometimento")]
-        public IActionResult Comprometimento([FromBody] ComprometimentoRequest request)
+        public async Task<IActionResult> Comprometimento([FromBody] ComprometimentoRequest request)
         {
+            var parametros = await _parametrosRepo.GetAtivoAsync();
             var ok = _financiamentoService.VerificarComprometimentoRenda(request.RendaBrutaFamiliar, request.ParcelaCalculada);
-            var limite = request.RendaBrutaFamiliar * 0.30m;
-            return Ok(new { 
-                Aprovado = ok, 
+            var limite = request.RendaBrutaFamiliar * parametros.LimiteComprometimentoRenda;
+            return Ok(new
+            {
+                Aprovado = ok,
                 ParcelaMaximaPermitida = limite,
                 Diferenca = request.ParcelaCalculada - limite
             });

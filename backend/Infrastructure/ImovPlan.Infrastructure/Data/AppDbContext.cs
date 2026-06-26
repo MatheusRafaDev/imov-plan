@@ -17,6 +17,7 @@ namespace ImovPlan.Infrastructure.Data
         public DbSet<HistoricoAporte> HistoricosAportes { get; init; }
         public DbSet<HistoricoSimulacao> HistoricosSimulacao { get; init; }
         public DbSet<EvolucaoMensalSimulacao> EvolucoesMensaisSimulacao { get; init; }
+        public DbSet<ParametrosFinanceiros> ParametrosFinanceiros { get; init; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -38,6 +39,7 @@ namespace ImovPlan.Infrastructure.Data
             modelBuilder.Entity<HistoricoAporte>().ToCollection("historicoAportes");
             modelBuilder.Entity<HistoricoSimulacao>().ToCollection("historicoSimulacoes");
             modelBuilder.Entity<EvolucaoMensalSimulacao>().ToCollection("evolucaoMensalSimulacoes");
+            modelBuilder.Entity<ParametrosFinanceiros>().ToCollection("parametrosFinanceiros");
 
             // Indexes for frequently queried collections
             modelBuilder.Entity<Participante>()
@@ -60,6 +62,9 @@ namespace ImovPlan.Infrastructure.Data
 
             modelBuilder.Entity<EvolucaoMensalSimulacao>()
                 .HasIndex(e => e.SimulacaoId);
+
+            modelBuilder.Entity<ParametrosFinanceiros>()
+                .HasIndex(p => p.Codigo);
         }
     }
 }

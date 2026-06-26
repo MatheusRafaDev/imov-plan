@@ -36,13 +36,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setToken(null);
     const allCookies = Cookies.get();
+    const cookieKeysToRemove = ["token", "user", "imovplan_planoId"];
     for (const cookieName in allCookies) {
-      Cookies.remove(cookieName);
-      Cookies.remove(cookieName, { path: '/' });
+      if (cookieKeysToRemove.includes(cookieName) || cookieName.startsWith("imovplan_")) {
+        Cookies.remove(cookieName);
+        Cookies.remove(cookieName, { path: "/" });
+      }
     }
     if (typeof window !== "undefined") {
-      localStorage.clear();
-      sessionStorage.clear();
+      // Remove only app-specific keys from localStorage
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (key === "token" || key === "user" || key.startsWith("imovplan_")) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+
+      // Likewise for sessionStorage
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (!key) continue;
+        if (key === "token" || key === "user" || key.startsWith("imovplan_")) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      sessionKeysToRemove.forEach((k) => sessionStorage.removeItem(k));
     }
     delete api.defaults.headers.Authorization;
   };

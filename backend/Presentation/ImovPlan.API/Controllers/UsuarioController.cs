@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using ImovPlan.API.Extensions;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 
@@ -22,6 +23,10 @@ namespace ImovPlan.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId) || usuarioId != id)
+                return NotFound(new { message = "Usuário não encontrado." });
+
             var user = await _usuarioRepository.GetByIdAsync(id);
             if (user == null)
                 return NotFound(new { message = "Usuário não encontrado." });
@@ -39,6 +44,10 @@ namespace ImovPlan.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] UpdateUsuarioRequest request)
         {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId) || usuarioId != id)
+                return NotFound(new { message = "Usuário não encontrado." });
+
             var existing = await _usuarioRepository.GetByIdAsync(id);
             if (existing == null)
                 return NotFound(new { message = "Usuário não encontrado." });
@@ -66,6 +75,10 @@ namespace ImovPlan.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId) || usuarioId != id)
+                return NotFound(new { message = "Usuário não encontrado." });
+
             var existing = await _usuarioRepository.GetByIdAsync(id);
             if (existing == null)
                 return NotFound(new { message = "Usuário não encontrado." });

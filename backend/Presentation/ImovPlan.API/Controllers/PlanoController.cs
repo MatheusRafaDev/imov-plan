@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using ImovPlan.API.Extensions;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Application.Services.Interfaces;
 
@@ -34,8 +35,9 @@ namespace ImovPlan.API.Controllers
         [HttpGet("user/{usuarioId}")]
         public async Task<IActionResult> GetDraftByUsuario(string usuarioId)
         {
-            if (string.IsNullOrEmpty(usuarioId))
-                return BadRequest("UsuarioId is required.");
+            var usuarioIdClaim = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+                return NotFound();
 
             var draft = await _planoService.GetDraftByUsuarioIdAsync(usuarioId);
             if (draft == null)
@@ -47,8 +49,9 @@ namespace ImovPlan.API.Controllers
         [HttpPost("draft-for-user")]
         public async Task<IActionResult> GetOrCreateDraftForUser([FromQuery] string usuarioId)
         {
-            if (string.IsNullOrEmpty(usuarioId))
-                return BadRequest("UsuarioId is required.");
+            var usuarioIdClaim = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+                return NotFound();
 
             var draft = await _planoService.GetOrCreateDraftForUserAsync(usuarioId);
             return Ok(draft);
@@ -57,8 +60,9 @@ namespace ImovPlan.API.Controllers
         [HttpPost("{id}/link-user")]
         public async Task<IActionResult> LinkPlanToUser(string id, [FromQuery] string usuarioId)
         {
-            if (string.IsNullOrEmpty(usuarioId))
-                return BadRequest("UsuarioId is required.");
+            var usuarioIdClaim = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+                return NotFound();
 
             var success = await _planoService.LinkPlanToUserAsync(id, usuarioId);
             if (!success)

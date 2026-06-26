@@ -4,8 +4,16 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
-import { brl, simular } from "@/lib/finance";
+import { brl, simular, type SimRow, type SimResult } from "@/lib/finance";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
+
+type EnrichedRow = SimRow & {
+  atingiu: boolean;
+  isExtra: boolean;
+  aporteFinalPorPessoa: Record<string, number>;
+  saldosIndividuais: Record<string, number>;
+  saldoConjunto: number;
+};
 
 // ─── Editable Aporte Cell ────────────────────────────────────────────────────
 function EditableAporte({ value, onSave, isEdited }: { value: number; onSave: (v: number) => void; isEdited: boolean }) {
@@ -169,7 +177,7 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
   return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-[5px] num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
-export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedToggle = true, percentualCdiOverride }: { limitRows?: number, showFinancials?: boolean, showCompletedToggle?: boolean, percentualCdiOverride?: number }) {
+export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedToggle = true, percentualCdiOverride, externalSim }: { limitRows?: number, showFinancials?: boolean, showCompletedToggle?: boolean, percentualCdiOverride?: number, externalSim?: SimResult }) {
   const { 
     objetivo, 
     pessoas, 
@@ -231,24 +239,27 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     return virtualMap;
   }, [pessoas, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, objetivo?.prazoMaxMeses]);
 
-  const sim = useMemo(() => simular({
-    valorImovel: Number(objetivo?.valorImovel ?? 0),
-    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-    valorJaGuardado: totalGuardado,
-    taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-    percentualCdi: percentualCdiOverride ?? Number(objetivo?.percentualCdi ?? 100),
-    aporteMensalTotal: aporteTotal,
-    aportesRegularesEditados: virtualAportesRegularesEditados,
-    dataInicio: objetivo?.dataInicio ?? new Date(),
-    aportesExtras: combinedExtras,
-    prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, percentualCdiOverride]);
+  // Usa dados externos (backend) se fornecidos, senão calcula client-side
+  const sim = useMemo(() => {
+    if (externalSim) return externalSim;
+    return simular({
+      valorImovel: Number(objetivo?.valorImovel ?? 0),
+      percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
+      percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
+      valorJaGuardado: totalGuardado,
+      taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
+      percentualCdi: percentualCdiOverride ?? Number(objetivo?.percentualCdi ?? 100),
+      aporteMensalTotal: aporteTotal,
+      aportesRegularesEditados: virtualAportesRegularesEditados,
+      dataInicio: objetivo?.dataInicio ?? new Date(),
+      aportesExtras: combinedExtras,
+      prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
+    });
+  }, [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, percentualCdiOverride, externalSim]);
 
-  const tableRows = useMemo(() => {
+  const tableRows = useMemo((): EnrichedRow[] => {
     const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
     let saldoConjunto = 0;
-    let rentabilidadeAcumulada = 0;
     let saldoAnterior = totalGuardado;
 
     return sim.rows.map(r => {
@@ -318,7 +329,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     });
   }, [sim.rows, pessoas, combinedExtras, inicio, sim.mesAtingiuMeta, aporteTotal, totalGuardado, aportesRegularesEditadosPorPessoa, aportesRegularesEditados]);
 
-  const displayRows = limitRows ? tableRows.slice(0, limitRows) : tableRows;
+  const displayRows: EnrichedRow[] = limitRows ? tableRows.slice(0, limitRows) : tableRows;
 
   return (
     <div>
@@ -384,7 +395,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
 
                   {pessoas.map(p => {
                     const defaultPessoaAporte = r.mes === 0 ? 0 : (Number(p.aporte_mensal) || 0);
-                    const currentValue = r.aporteFinalPorPessoa[p.id] || 0;
+                    const currentValue = r.aporteFinalPorPessoa?.[p.id] || 0;
                     const isEdited = currentValue !== defaultPessoaAporte;
 
                     return (

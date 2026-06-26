@@ -77,9 +77,14 @@ const todayISO = () => {
 };
 
 const addMonthsISO = (iso: string, months: number) => {
-  const d = new Date(iso);
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0, 10);
+  const [year, month] = iso.split("-").map(Number);
+  if (!year || !month) return iso;
+
+  const monthIndex = month - 1 + months;
+  const targetYear = year + Math.floor(monthIndex / 12);
+  const targetMonth = ((monthIndex % 12) + 12) % 12;
+
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-01`;
 };
 
 export default function ObjetivoPage() {
@@ -135,6 +140,26 @@ export default function ObjetivoPage() {
 
   const itbiInfo = calcularCustosITBI(Number(form.valor_imovel) || 0);
 
+  const objetivoFromForm = (nextForm: typeof form) => ({
+    ...(objetivo ?? {}),
+    nomePlano: nextForm.nome.trim() === "" ? "ImÃ³vel" : nextForm.nome.trim(),
+    valorImovel: Number(nextForm.valor_imovel) || 0,
+    percentualEntrada: Number(nextForm.percentual_entrada) || 0,
+    percentualCustosExtras: Number(nextForm.percentual_custos_extras) || 0,
+    valorJaGuardado: Number(nextForm.valor_ja_guardado) || 0,
+    dataInicio: nextForm.data_inicio ? new Date(`${nextForm.data_inicio}T12:00:00`) : undefined,
+    prazoMaxMeses: nextForm.data_fim ? mesesEntre(nextForm.data_inicio, nextForm.data_fim) : 0,
+  });
+
+  const updateForm = (patch: Partial<typeof form>, syncObjective = false) => {
+    const nextForm = { ...form, ...patch };
+    setForm(nextForm);
+
+    if (syncObjective && objetivo) {
+      setObjetivo(objetivoFromForm(nextForm));
+    }
+  };
+
   const salvar = async () => {
     if (!isFormValid || salvando) return;
     setSalvando(true);
@@ -147,7 +172,7 @@ export default function ObjetivoPage() {
         percentualEntrada: Number(form.percentual_entrada),
         percentualCustosExtras: Number(form.percentual_custos_extras),
         valorJaGuardado: Number(form.valor_ja_guardado) || 0,
-        dataInicio: form.data_inicio ? new Date(form.data_inicio) : undefined,
+        dataInicio: form.data_inicio ? new Date(`${form.data_inicio}T12:00:00`) : undefined,
         prazoMaxMeses: prazoMeses,
       };
 
@@ -192,7 +217,7 @@ export default function ObjetivoPage() {
                   id="nome"
                   value={form.nome}
                   placeholder="Imóvel"
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  onChange={(e) => updateForm({ nome: e.target.value })}
                   className="text-lg py-6"
                 />
               </div>
@@ -205,7 +230,7 @@ export default function ObjetivoPage() {
                     min={50000}
                     max={100000000}
                     value={form.valor_imovel}
-                    onChange={(v) => setForm({ ...form, valor_imovel: v })}
+                    onChange={(v) => updateForm({ valor_imovel: v }, true)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -221,7 +246,7 @@ export default function ObjetivoPage() {
                     max="100"
                     step="1"
                     value={form.percentual_entrada === "" ? 0 : form.percentual_entrada}
-                    onChange={(e) => setForm({ ...form, percentual_entrada: Number(e.target.value) })}
+                    onChange={(e) => updateForm({ percentual_entrada: Number(e.target.value) }, true)}
                     className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-accent"
                   />
                   <p className="text-xs text-right text-muted-foreground">Equivale a {brl(entrada)}</p>
@@ -231,14 +256,14 @@ export default function ObjetivoPage() {
                   <Label className="text-muted-foreground">Data de início</Label>
                   <MonthYearInput
                     value={form.data_inicio}
-                    onChange={(v) => setForm({ ...form, data_inicio: v })}
+                    onChange={(v) => updateForm({ data_inicio: v }, true)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Data limite (comprar até)</Label>
                   <MonthYearInput
                     value={form.data_fim}
-                    onChange={(v) => setForm({ ...form, data_fim: v })}
+                    onChange={(v) => updateForm({ data_fim: v }, true)}
                   />
                 </div>
               </div>
@@ -263,7 +288,7 @@ export default function ObjetivoPage() {
                       min={0}
                       max={form.valor_imovel === "" ? undefined : form.valor_imovel}
                       value={form.valor_ja_guardado}
-                      onChange={(v) => setForm({ ...form, valor_ja_guardado: v })}
+                      onChange={(v) => updateForm({ valor_ja_guardado: v }, true)}
                     />
                   </div>
 
@@ -282,7 +307,7 @@ export default function ObjetivoPage() {
                       </Label>
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, percentual_custos_extras: itbiInfo.isento ? 0 : parseFloat(itbiInfo.percentualTotal.toFixed(2)) })}
+                        onClick={() => updateForm({ percentual_custos_extras: itbiInfo.isento ? 0 : parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
                         className="group flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-accent transition-all duration-300 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-full border border-accent/20 hover:border-accent/40 hover:shadow-[0_0_12px_var(--accent-glow,rgba(255,165,0,0.2))] active:scale-95"
                       >
                         <Sparkles className="h-3 w-3 text-accent group-hover:animate-pulse" />
@@ -295,11 +320,11 @@ export default function ObjetivoPage() {
                       min={0}
                       max={4}
                       value={form.percentual_custos_extras}
-                      onChange={(v) => setForm({ ...form, percentual_custos_extras: Math.min(4, Number(v)) })}
+                      onChange={(v) => updateForm({ percentual_custos_extras: Math.min(4, Number(v)) }, true)}
                     />
 
                     {itbiInfo.isento && Number(form.valor_imovel) > 0 && (
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                      <p className="text-xs text-accent mt-1">
                         ✓ ITBI isento — sugerimos 0%, mas você pode ajustar até 4% conforme desejar.
                       </p>
                     )}
@@ -321,7 +346,7 @@ export default function ObjetivoPage() {
                           {valorImovel > 0 && (
                             <>
                               {isento && (
-                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                                <div className="flex items-center gap-1.5 text-accent font-medium">
                                   <span className="text-base">✓</span> Elegível para isenção de ITBI (valor abaixo de R$ 335.000)
                                 </div>
                               )}

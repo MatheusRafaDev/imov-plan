@@ -8,6 +8,7 @@ namespace ImovPlan.Application.DTOs
         public List<AporteMensalDto> AportesMensais { get; set; } = new();
         public List<AporteExtraDto> AportesExtras { get; set; } = new();
         public decimal TaxaCDI { get; set; }
+        public decimal PercentualCdi { get; set; } = 100m;
     }
 
     public class AporteMensalDto

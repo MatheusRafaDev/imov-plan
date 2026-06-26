@@ -1,49 +1,143 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import React from "react";
-import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
-import { brl, simular, nomeTipoInvestimento, percentualCdiPorTipoInvestimento } from "@/lib/finance";
+import { brl, simular, nomeTipoInvestimento, percentualCdiPorTipoInvestimento, type SimResult, type SimRow } from "@/lib/finance";
 import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, ReferenceDot, Legend } from "recharts";
-import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp, RefreshCw, Database, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SimulacaoService } from "@/services/SimulacaoService";
+import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
+
+/** Converte resposta do backend para SimResult */
+function backendToSimResult(backend: BackendSimulacaoResult): SimResult {
+  const rows: SimRow[] = backend.detalhesMensais.map(d => ({
+    mes: d.mes,
+    data: new Date(d.dataReferencia).toISOString(),
+    aporteRegular: d.aporteMensal,
+    aportesExtras: d.aportesExtras,
+    rendimentoBruto: d.rendimentoBruto,
+    imposto: d.imposto,
+    rendimentoLiquido: d.rendimentoLiquido,
+    saldoAcumulado: d.totalAcumulado,
+    totalInvestido: 0, // will be computed
+  }));
+
+  // Compute totalInvestido for each row
+  let totalInvestido = backend.valorJaGuardado;
+  for (const row of rows) {
+    if (row.mes === 0) {
+      row.totalInvestido = totalInvestido;
+    } else {
+      totalInvestido += row.aporteRegular + row.aportesExtras;
+      row.totalInvestido = totalInvestido;
+    }
+  }
+
+  return {
+    meta: backend.totalNecessario,
+    custosExtras: backend.totalNecessario - (backend.valorImovel * (backend.totalNecessario > 0 ? 1 : 0)),
+    valorEntrada: backend.valorImovel > 0 ? backend.totalNecessario * 0.8 : 0,
+    faltava: Math.max(0, backend.totalNecessario - backend.valorJaGuardado),
+    rows,
+    atingiuMeta: backend.atingiuMeta,
+    mesAtingiuMeta: backend.atingiuMeta ? backend.mesesParaAtingir : undefined,
+    dataAtingiuMeta: backend.atingiuMeta ? backend.dataPrevistaAlvo : undefined,
+    saldoFinal: backend.totalAcumulado,
+    totalInvestido: backend.totalInvestido,
+    lucroLiquido: backend.lucroLiquido,
+  };
+}
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
   const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa } = usePlanContext();
   const router = useRouter();
 
-  // Salvar registro de simulação no backend ao carregar a página
-  const registroSalvo = useRef(false);
+  // Estado para dados do backend
+  const [backendData, setBackendData] = useState<BackendSimulacaoResult | null>(null);
+  const [loadingBackend, setLoadingBackend] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
+  const [simSource, setSimSource] = useState<"backend" | "client">("client");
+
+  const effectivePercentualCdi = useMemo(() => {
+    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
+    if (totalSaved <= 0) {
+      return Number(objetivo?.percentualCdi ?? 100);
+    }
+    return pessoas.reduce((sum, p) => {
+      const tipoPercent = p.tipoInvestimento
+        ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
+        : Number(objetivo?.percentualCdi ?? 100);
+      return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
+    }, 0);
+  }, [pessoas, objetivo?.percentualCdi]);
+
+  // Carregar última simulação do backend ao montar
   useEffect(() => {
     if (!planoId || planoId.startsWith("local-draft-")) return;
-    if (registroSalvo.current) return;
-    registroSalvo.current = true;
 
-    const payload = {
-      objetivoId: planoId,
-      taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
-      aportesMensais: pessoas.map(p => ({
-        pessoaId: p.id || "",
-        valor: Number(p.aporte_mensal) || 0
-      })),
-      aportesExtras: aportesExtras.map(a => ({
-        pessoaId: a.pessoaId || "",
-        valor: Number(a.valor) || 0,
-        data: a.data || new Date().toISOString(),
-        origem: a.origem || "Extra"
-      }))
-    };
+    setLoadingBackend(true);
+    setBackendError(null);
 
-    SimulacaoService.salvarRegistroSimulacao(payload).catch(err => {
-      console.error("Erro ao salvar registro de simulação:", err);
-    });
-  }, [planoId, objetivo, pessoas, aportesExtras]);
+    SimulacaoService.getUltimaSimulacao(planoId)
+      .then(data => {
+        if (data) {
+          setBackendData(data);
+          setSimSource("backend");
+        } else {
+          // Nenhuma simulação salva — fica no modo client-side
+          setSimSource("client");
+        }
+      })
+      .catch(err => {
+        console.error("Erro ao carregar simulação do backend:", err);
+        setBackendError("Não foi possível carregar dados do servidor");
+        setSimSource("client");
+      })
+      .finally(() => setLoadingBackend(false));
+  }, [planoId]);
+
+  // Botão Calcular — chama o backend
+  const handleCalcular = useCallback(async () => {
+    if (!planoId || planoId.startsWith("local-draft-")) {
+      setBackendError("Salve o plano primeiro antes de calcular");
+      return;
+    }
+
+    setCalculating(true);
+    setBackendError(null);
+
+    try {
+      const result = await SimulacaoService.calcularSimulacao(planoId, {
+        objetivoId: planoId,
+        taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
+        percentualCdi: effectivePercentualCdi,
+        aportesMensais: pessoas.map(p => ({
+          pessoaId: p.id || "",
+          valor: Number(p.aporte_mensal) || 0
+        })),
+        aportesExtras: aportesExtras.map(a => ({
+          pessoaId: a.pessoaId || "",
+          valor: Number(a.valor) || 0,
+          data: a.data || new Date().toISOString(),
+          origem: a.origem || "Extra"
+        }))
+      });
+
+      setBackendData(result);
+      setSimSource("backend");
+    } catch (err: any) {
+      console.error("Erro ao calcular simulação:", err);
+      setBackendError(err?.response?.data?.message || "Erro ao calcular simulação no servidor");
+    } finally {
+      setCalculating(false);
+    }
+  }, [planoId, objetivo, pessoas, aportesExtras, effectivePercentualCdi]);
 
   // Convert mesesConcluidos array to Set for easier manipulation
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
@@ -76,7 +170,6 @@ export default function ResultadoPage() {
   const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
   const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
 
-  // Build combined extras: aportesExtras (from context) + extrasInline
   const inicio = objetivo?.dataInicio
     ? (typeof objetivo.dataInicio === "string"
         ? new Date(objetivo.dataInicio + "T12:00:00")
@@ -86,19 +179,6 @@ export default function ResultadoPage() {
   const combinedExtras = useMemo(() => {
     return aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
   }, [aportesExtras]);
-
-  const effectivePercentualCdi = useMemo(() => {
-    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
-    if (totalSaved <= 0) {
-      return Number(objetivo?.percentualCdi ?? 100);
-    }
-    return pessoas.reduce((sum, p) => {
-      const tipoPercent = p.tipoInvestimento
-        ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
-        : Number(objetivo?.percentualCdi ?? 100);
-      return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
-    }, 0);
-  }, [pessoas, objetivo?.percentualCdi]);
 
   const virtualAportesRegularesEditados = useMemo(() => {
     const virtualMap: Record<number, number> = {};
@@ -127,21 +207,33 @@ export default function ResultadoPage() {
     return virtualMap;
   }, [pessoas, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, objetivo?.prazoMaxMeses]);
 
-  const sim = useMemo(() => simular({
-    valorImovel: Number(objetivo?.valorImovel ?? 0),
-    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-    valorJaGuardado: totalGuardado,
-    taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-    percentualCdi: effectivePercentualCdi,
-    aporteMensalTotal: aporteTotal,
-    aportesRegularesEditados: virtualAportesRegularesEditados,
-    dataInicio: objetivo?.dataInicio ?? new Date(),
-    aportesExtras: combinedExtras,
-    prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-  }), [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, effectivePercentualCdi]);
+  // Construir o simResult: prioriza backend, fallback client-side
+  const sim = useMemo((): SimResult | null => {
+    if (backendData && simSource === "backend") {
+      return backendToSimResult(backendData);
+    }
+    
+    if (!objetivo?.valorImovel) return null;
 
+    return simular({
+      valorImovel: Number(objetivo?.valorImovel ?? 0),
+      percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
+      percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
+      valorJaGuardado: totalGuardado,
+      taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
+      percentualCdi: effectivePercentualCdi,
+      aporteMensalTotal: aporteTotal,
+      aportesRegularesEditados: virtualAportesRegularesEditados,
+      dataInicio: objetivo?.dataInicio ?? new Date(),
+      aportesExtras: combinedExtras,
+      prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
+    });
+  }, [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, effectivePercentualCdi, backendData, simSource]);
+
+  // Per-person stats
   const perPersonStats = useMemo(() => {
+    if (!sim) return [];
+
     const initialById = Object.fromEntries(pessoas.map(p => [p.id, Number(p.valorInicial ?? 0)]));
     const aporteTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
     const extrasTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
@@ -216,34 +308,91 @@ export default function ResultadoPage() {
       saldoFinal: finalSaldoById[p.id] || 0,
       retornoInvestimento: (finalSaldoById[p.id] || 0) - (Number(p.valorInicial ?? 0) + (aporteTotalById[p.id] || 0) + (extrasTotalById[p.id] || 0)),
     }));
-  }, [pessoas, sim.rows, combinedExtras, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, totalGuardado, aporteTotal, inicio]);
+  }, [pessoas, sim, combinedExtras, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, totalGuardado, aporteTotal, inicio]);
 
-  const chartData = sim.rows.map(r => ({
+  const chartData = sim?.rows.map(r => ({
     mes: r.mes,
     label: new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
     investido: Math.round(r.totalInvestido),
     saldo: Math.round(r.saldoAcumulado),
-  }));
+  })) ?? [];
 
-  const dataMeta = sim.dataAtingiuMeta
+  const dataMeta = sim?.dataAtingiuMeta
     ? new Date(sim.dataAtingiuMeta).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
     : null;
-  const pontoMeta = chartData.find(d => d.mes === sim.mesAtingiuMeta);
+  const pontoMeta = chartData.find(d => d.mes === sim?.mesAtingiuMeta);
   const dataCross = pontoMeta ? pontoMeta.label : undefined;
 
-  const targetMonthIndex = sim.mesAtingiuMeta ? sim.mesAtingiuMeta - 1 : sim.rows.length - 1;
-  const targetRow = sim.rows[targetMonthIndex];
+  const targetMonthIndex = sim?.mesAtingiuMeta ? sim.mesAtingiuMeta - 1 : (sim?.rows.length ?? 1) - 1;
+  const targetRow = sim?.rows[targetMonthIndex];
 
   const totalCompra = pessoas.reduce((s, p) => s + Number(p.valorInicial ?? 0), 0);
+
+  // Se não tem nenhum dado, mostrar estado vazio
+  if (!sim) {
+    return (
+      <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-7">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa 4 de 4</p>
+          <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
+          <p className="text-muted-foreground text-sm">Preencha as etapas anteriores para ver o resultado.</p>
+        </div>
+        <Card className="p-8 text-center border-border/50">
+          <p className="text-muted-foreground">Complete as etapas 1 a 3 primeiro.</p>
+          <Button onClick={() => router.push("/app/imovel")} className="mt-4">Ir para Etapa 1</Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-7">
       {/* Header */}
-      <div>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa 4 de 4</p>
-        <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
-        <p className="text-muted-foreground text-sm">O resultado de tudo o que você preencheu nas etapas anteriores.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa 4 de 4</p>
+          <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
+          <p className="text-muted-foreground text-sm">O resultado de tudo o que você preencheu nas etapas anteriores.</p>
+        </div>
+
+        {/* Botão Calcular */}
+        <div className="flex items-center gap-3 shrink-0">
+          {simSource === "backend" && (
+            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#3B6D11] dark:text-[#80B551] font-medium">
+              <Database className="h-3.5 w-3.5" />
+              Dados do servidor
+            </span>
+          )}
+          <Button
+            onClick={handleCalcular}
+            disabled={calculating || loadingBackend}
+            className="flex items-center gap-2"
+            size="lg"
+          >
+            {calculating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {calculating ? "Calculando..." : "Calcular"}
+          </Button>
+        </div>
       </div>
+
+      {/* Erro do backend */}
+      {backendError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-xs text-red-700 dark:text-red-400">
+          {backendError}
+        </div>
+      )}
+
+      {/* Loading */}
+      {loadingBackend && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">Carregando simulação salva...</span>
+        </div>
+      )}
 
       {/* Como é calculado */}
       <div className="bg-secondary/30 border border-border/50 rounded-lg p-4">
@@ -351,7 +500,6 @@ export default function ResultadoPage() {
         <div className="lg:col-span-2 space-y-4">
           <h2 className="font-display text-xl font-light">Resumo Financeiro</h2>
           <div className="grid md:grid-cols-4 gap-4">
-
             {/* Valor Inicial */}
             <Card className="p-4 border-border/50 bg-card shadow-soft">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Wallet className="h-3.5 w-3.5" /> Valor inicial</p>
@@ -453,10 +601,9 @@ export default function ResultadoPage() {
               <p className="font-display text-2xl num text-[#3B6D11] dark:text-[#80B551] mb-3">{brl(targetRow ? targetRow.saldoAcumulado : sim.saldoFinal)}</p>
               <div className="space-y-2">
                 {(() => {
-                  const rRow = targetRow || sim.rows[sim.rows.length - 1];
+                  const rRow = targetRow || (sim.rows[sim.rows.length - 1]);
                   if (!rRow) return null;
                   
-                  // Re-calculate the final individual balances based on the new logic
                   const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
                   let saldoConjunto = 0;
                   let saldoAnterior = totalGuardado;
@@ -566,8 +713,11 @@ export default function ResultadoPage() {
         </div>
       </div>
 
-      {/* Tabela mês a mês */}
-      <TabelaMesAMes percentualCdiOverride={effectivePercentualCdi} />
+      {/* Tabela mês a mês — com dados do backend se disponíveis */}
+      <TabelaMesAMes 
+        percentualCdiOverride={effectivePercentualCdi} 
+        externalSim={simSource === "backend" && backendData ? backendToSimResult(backendData) : undefined}
+      />
     </div>
   );
 }

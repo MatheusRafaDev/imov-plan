@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using ImovPlan.API.Extensions;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 
@@ -12,10 +13,14 @@ namespace ImovPlan.API.Controllers
     public class ParticipanteController : ControllerBase
     {
         private readonly IParticipanteRepository _participanteRepository;
+        private readonly IPlanejamentoRepository _planejamentoRepository;
 
-        public ParticipanteController(IParticipanteRepository participanteRepository)
+        public ParticipanteController(
+            IParticipanteRepository participanteRepository,
+            IPlanejamentoRepository planejamentoRepository)
         {
             _participanteRepository = participanteRepository;
+            _planejamentoRepository = planejamentoRepository;
         }
 
         [HttpGet]
@@ -24,6 +29,11 @@ namespace ImovPlan.API.Controllers
             if (string.IsNullOrEmpty(planejamentoId))
                 return BadRequest("planejamentoId is required.");
 
+            var usuarioId = User.GetUsuarioId();
+            var planejamento = await _planejamentoRepository.GetByIdAsync(planejamentoId);
+            if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
+                return NotFound();
+
             var allParticipantes = await _participanteRepository.GetByPlanejamentoIdAsync(planejamentoId);
             return Ok(allParticipantes);
         }
@@ -31,14 +41,29 @@ namespace ImovPlan.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
+            var usuarioId = User.GetUsuarioId();
             var participante = await _participanteRepository.GetByIdAsync(id);
-            if (participante == null) return NotFound();
+            if (participante == null || string.IsNullOrEmpty(usuarioId))
+                return NotFound();
+
+            var planejamento = await _planejamentoRepository.GetByIdAsync(participante.PlanejamentoId);
+            if (planejamento == null || planejamento.UsuarioId != usuarioId)
+                return NotFound();
+
             return Ok(participante);
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Participante participante)
         {
+            var usuarioId = User.GetUsuarioId();
+            if (participante == null || string.IsNullOrEmpty(participante.PlanejamentoId) || string.IsNullOrEmpty(usuarioId))
+                return BadRequest("Dados de participante inválidos.");
+
+            var planejamento = await _planejamentoRepository.GetByIdAsync(participante.PlanejamentoId);
+            if (planejamento == null || planejamento.UsuarioId != usuarioId)
+                return NotFound();
+
             var created = await _participanteRepository.CreateAsync(participante);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
@@ -46,6 +71,19 @@ namespace ImovPlan.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] Participante participante)
         {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId))
+                return NotFound();
+
+            var existing = await _participanteRepository.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound();
+
+            var planejamento = await _planejamentoRepository.GetByIdAsync(existing.PlanejamentoId);
+            if (planejamento == null || planejamento.UsuarioId != usuarioId)
+                return NotFound();
+
+            participante.PlanejamentoId = existing.PlanejamentoId;
             await _participanteRepository.UpdateAsync(id, participante);
             return NoContent();
         }
@@ -53,6 +91,18 @@ namespace ImovPlan.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId))
+                return NotFound();
+
+            var existing = await _participanteRepository.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound();
+
+            var planejamento = await _planejamentoRepository.GetByIdAsync(existing.PlanejamentoId);
+            if (planejamento == null || planejamento.UsuarioId != usuarioId)
+                return NotFound();
+
             await _participanteRepository.DeleteAsync(id);
             return NoContent();
         }

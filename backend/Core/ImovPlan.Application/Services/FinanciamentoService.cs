@@ -3,11 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using ImovPlan.Application.Services.Interfaces;
 using ImovPlan.Application.DTOs;
+using ImovPlan.Domain.Interfaces;
 
 namespace ImovPlan.Application.Services
 {
     public class FinanciamentoService : IFinanciamentoService
     {
+        private readonly IParametrosFinanceirosRepository _parametrosRepo;
+
+        public FinanciamentoService(IParametrosFinanceirosRepository parametrosRepo)
+        {
+            _parametrosRepo = parametrosRepo;
+        }
+
         public object SimularSAC(decimal pv, decimal taxaAnual, int prazoMeses)
         {
             var i = ConverterTaxaAnualParaMensal(taxaAnual);
@@ -90,7 +98,8 @@ namespace ImovPlan.Application.Services
 
         public bool VerificarComprometimentoRenda(decimal rendaBrutaFamiliar, decimal parcelaCalculada)
         {
-            var limite = rendaBrutaFamiliar * 0.30m;
+            var parametros = _parametrosRepo.GetAtivoAsync().GetAwaiter().GetResult();
+            var limite = rendaBrutaFamiliar * parametros.LimiteComprometimentoRenda;
             return parcelaCalculada <= limite;
         }
 
@@ -103,7 +112,8 @@ namespace ImovPlan.Application.Services
             }
             if (modalidade == 3) // 80% da Parcela
             {
-                var desconto = parcelaAtual * 0.80m;
+                var parametros = _parametrosRepo.GetAtivoAsync().GetAwaiter().GetResult();
+                var desconto = parcelaAtual * parametros.FgtsPercentualParcela;
                 var parcelaPagaPeloCliente = parcelaAtual - desconto;
                 return new { ParcelaPagaPeloCliente = parcelaPagaPeloCliente, DuracaoMeses = 12 };
             }
@@ -119,10 +129,10 @@ namespace ImovPlan.Application.Services
         // Aliquota de IR regressiva baseada em dias corridos
         private decimal AliquotaIR(int diasCorridos)
         {
-            if (diasCorridos <= 180) return 0.225m;
-            if (diasCorridos <= 360) return 0.20m;
-            if (diasCorridos <= 720) return 0.175m;
-            return 0.15m;
+            var parametros = _parametrosRepo.GetAtivoAsync().GetAwaiter().GetResult();
+            return parametros.AliquotasIr
+                .OrderBy(a => a.AteDias ?? int.MaxValue)
+                .FirstOrDefault(a => a.AteDias == null || diasCorridos <= a.AteDias)?.Aliquota ?? 0.15m;
         }
 
         // Conversão da taxa CDI anual e percentual CDI para taxa mensal efetiva
@@ -141,7 +151,8 @@ namespace ImovPlan.Application.Services
             var faltava = Math.Max(0, meta - input.ValorJaGuardado);
 
             var taxaMes = TaxaMensalEfetiva(input.TaxaCdiAnual, input.PercentualCdi);
-            var prazoMax = input.PrazoMaxMeses ?? 600;
+            var parametros = _parametrosRepo.GetAtivoAsync().GetAwaiter().GetResult();
+            var prazoMax = input.PrazoMaxMeses ?? parametros.PrazoMaxSimulacaoMeses;
             var dataInicio = input.DataInicio ?? DateTime.UtcNow;
 
             // Agrupar aportes extras por mês
