@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useState, useContext, ReactNode } from "react";
+import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect } from "react";
 import type { SimInput, Aporte } from "@/lib/finance";
 import Cookies from "js-cookie";
 import api from "@/lib/api";
@@ -32,6 +32,30 @@ export type Pessoa = {
   tipoInvestimento?: string;
 };
 
+// Shape exata que o backend PlanoController espera (PlanoDraftDto)
+type PlanoDraftPayload = {
+  sessionId: string | null;
+  usuarioId?: string;
+  objetivo: {
+    valorImovel: number;
+    percentualEntrada: number;
+    percentualCustosExtras: number;
+    valorJaGuardado: number;
+    taxaCdiAnual: number;
+    percentualCdi: number;
+    prazoMaxMeses: number;
+    dataInicio: string | null;
+    nomePlano: string;
+    tipoInvestimento: string;
+  } | null;
+  pessoas: Pessoa[];
+  bancoEscolhido: Banco | null;
+  aportesExtras: Aporte[];
+  aportesRegularesEditados: Record<number, number>;
+  aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
+  mesesConcluidos: number[];
+};
+
 type PlanContextType = {
   objetivo: Partial<SimInput> | null;
   setObjetivo: React.Dispatch<React.SetStateAction<Partial<SimInput> | null>>;
@@ -41,16 +65,6 @@ type PlanContextType = {
   setAportesExtras: React.Dispatch<React.SetStateAction<Aporte[]>>;
   planoId: string | null;
   sessionId: string | null;
-  saveDraft: (overrideData?: {
-    objetivo?: Partial<SimInput> | null;
-    pessoas?: Pessoa[];
-    bancoEscolhido?: Banco | null;
-    aportesExtras?: Aporte[];
-    aportesRegularesEditados?: Record<number, number>;
-    aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
-    mesesConcluidos?: number[];
-  }) => Promise<boolean>;
-  reloadDraft: () => Promise<void>;
   bancoEscolhido: Banco | null;
   setBancoEscolhido: React.Dispatch<React.SetStateAction<Banco | null>>;
   cenario: CenarioCompra;
@@ -61,13 +75,157 @@ type PlanContextType = {
   setAportesRegularesEditadosPorPessoa: React.Dispatch<React.SetStateAction<Record<string, Record<number, number>>>>;
   mesesConcluidos: number[];
   setMesesConcluidos: React.Dispatch<React.SetStateAction<number[]>>;
+  salvarPlano: (objetivoOverride?: Partial<SimInput> | null) => Promise<boolean>;
+  saveDraft: (patch?: {
+    objetivo?: Partial<SimInput> | null;
+    pessoas?: Pessoa[];
+    mesesConcluidos?: number[];
+    aportesRegularesEditados?: Record<number, number>;
+    aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
+  }) => Promise<boolean>;
+  carregarPlano: () => Promise<void>;
 };
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
+const CHAVE_LOCAL = "imovplan_dados";
+
+function obterIdUsuario(): string | null {
+  const cookieUsuario = Cookies.get("user");
+  if (!cookieUsuario) return null;
+  try {
+    return JSON.parse(cookieUsuario).id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function aplicarDados(
+  dados: any,
+  definidores: {
+    setObjetivo: PlanContextType["setObjetivo"];
+    setPessoas: PlanContextType["setPessoas"];
+    setBancoEscolhido: PlanContextType["setBancoEscolhido"];
+    setAportesExtras: PlanContextType["setAportesExtras"];
+    setAportesRegularesEditados: PlanContextType["setAportesRegularesEditados"];
+    setAportesRegularesEditadosPorPessoa: PlanContextType["setAportesRegularesEditadosPorPessoa"];
+    setMesesConcluidos: PlanContextType["setMesesConcluidos"];
+  }
+) {
+  if (!dados) return;
+  
+  if (dados.objetivo) {
+    const d = dados.objetivo.dataInicio ? new Date(dados.objetivo.dataInicio) : new Date();
+    definidores.setObjetivo({ ...dados.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+  }
+  if (dados.pessoas) definidores.setPessoas(dados.pessoas);
+  if (dados.bancoEscolhido) definidores.setBancoEscolhido(dados.bancoEscolhido);
+  if (dados.aportesExtras) definidores.setAportesExtras(dados.aportesExtras);
+  if (dados.aportesRegularesEditados) definidores.setAportesRegularesEditados(dados.aportesRegularesEditados);
+  if (dados.aportesRegularesEditadosPorPessoa) definidores.setAportesRegularesEditadosPorPessoa(dados.aportesRegularesEditadosPorPessoa);
+  if (dados.mesesConcluidos) definidores.setMesesConcluidos(dados.mesesConcluidos);
+}
+
+function salvarNoLocalStorage(dados: {
+  objetivo: Partial<SimInput> | null;
+  pessoas: Pessoa[];
+  bancoEscolhido: Banco | null;
+  aportesExtras: Aporte[];
+  aportesRegularesEditados: Record<number, number>;
+  aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
+  mesesConcluidos: number[];
+}) {
+  try {
+    localStorage.setItem(CHAVE_LOCAL, JSON.stringify(dados));
+  } catch (error) {
+    console.error("Erro ao salvar no localStorage:", error);
+  }
+}
+
+function montarObjetivoDraft(objetivo: Partial<SimInput> | null): PlanoDraftPayload["objetivo"] {
+  if (!objetivo) return null;
+  return {
+    valorImovel: Number(objetivo.valorImovel) || 0,
+    percentualEntrada: Number(objetivo.percentualEntrada) || 0,
+    percentualCustosExtras: Number(objetivo.percentualCustosExtras) || 0,
+    valorJaGuardado: Number(objetivo.valorJaGuardado) || 0,
+    taxaCdiAnual: Number(objetivo.taxaCdiAnual) || 10.5,
+    percentualCdi: Number(objetivo.percentualCdi) || 100,
+    prazoMaxMeses: Number(objetivo.prazoMaxMeses) || 0,
+    dataInicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : null,
+    nomePlano: (objetivo as any).nomePlano || "Imóvel",
+    tipoInvestimento: (objetivo as any).tipoInvestimento || "",
+  };
+}
+
+async function salvarNoBackend(
+  dados: {
+    objetivo: Partial<SimInput> | null;
+    pessoas: Pessoa[];
+    bancoEscolhido: Banco | null;
+    aportesExtras: Aporte[];
+    aportesRegularesEditados: Record<number, number>;
+    aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
+    mesesConcluidos: number[];
+  },
+  planoId: string | null,
+  sessionId: string | null
+): Promise<string | null> {
+  const usuarioId = obterIdUsuario();
+  if (!usuarioId) {
+    console.warn("Usuário não autenticado, salvando apenas localmente");
+    return null;
+  }
+
+  const payload: PlanoDraftPayload = {
+    sessionId,
+    usuarioId,
+    objetivo: montarObjetivoDraft(dados.objetivo),
+    pessoas: dados.pessoas || [],
+    bancoEscolhido: dados.bancoEscolhido || null,
+    aportesExtras: dados.aportesExtras || [],
+    aportesRegularesEditados: dados.aportesRegularesEditados || {},
+    aportesRegularesEditadosPorPessoa: dados.aportesRegularesEditadosPorPessoa || {},
+    mesesConcluidos: dados.mesesConcluidos || [],
+  };
+
+  try {
+    if (planoId) {
+      try {
+        // Tenta atualizar plano existente — PUT /api/plano/draft/{id}
+        await api.put(`/api/plano/draft/${planoId}`, payload);
+        return planoId;
+      } catch (putError: any) {
+        if (putError?.response?.status === 404) {
+          // Plano não existe mais no banco (ex: banco foi resetado).
+          // Limpa o ID inválido e cria um novo draft.
+          console.warn(`Plano ${planoId} não encontrado no banco (404). Criando novo draft...`);
+          Cookies.remove("imovplan_planoId");
+          // Cai no bloco de criação abaixo
+        } else {
+          throw putError;
+        }
+      }
+    }
+
+    // Cria ou obtém draft para o usuário — POST /api/plano/draft-for-user?usuarioId=...
+    const resposta = await api.post(`/api/plano/draft-for-user?usuarioId=${usuarioId}`, {});
+    const novoId: string | undefined = resposta.data?.id;
+    if (novoId) {
+      Cookies.set("imovplan_planoId", novoId, { expires: 30 });
+      // Agora salva os dados no draft recém-criado
+      await api.put(`/api/plano/draft/${novoId}`, { ...payload });
+      return novoId;
+    }
+    return null;
+  } catch (error: any) {
+    console.error("Erro ao salvar no backend:", error);
+    throw error;
+  }
+}
+
 export function PlanProvider({ children }: { children: ReactNode }) {
   const [objetivo, setObjetivo] = useState<Partial<SimInput> | null>(null);
-  
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [aportesExtras, setAportesExtras] = useState<Aporte[]>([]);
   const [bancoEscolhido, setBancoEscolhido] = useState<Banco | null>(null);
@@ -77,302 +235,262 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [aportesRegularesEditados, setAportesRegularesEditados] = useState<Record<number, number>>({});
   const [aportesRegularesEditadosPorPessoa, setAportesRegularesEditadosPorPessoa] = useState<Record<string, Record<number, number>>>({});
   const [mesesConcluidos, setMesesConcluidos] = useState<number[]>([]);
-  
-  const [planoId, setPlanoId] = useState<string | null>(null);
+
+  const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
   const [sessionId, setSessionId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-    let existing = Cookies.get("imovplan_sessionId");
-    if (!existing) {
-      existing = Math.random().toString(36).substring(2, 15);
-      Cookies.set("imovplan_sessionId", existing, { expires: 30 });
+    let existente = Cookies.get("imovplan_sessionId");
+    if (!existente) {
+      existente = Math.random().toString(36).substring(2, 15);
+      Cookies.set("imovplan_sessionId", existente, { expires: 30 });
     }
-    return existing;
+    return existente;
   });
 
-  const isInitializing = React.useRef(false);
+  const definidores = { 
+    setObjetivo, 
+    setPessoas, 
+    setBancoEscolhido, 
+    setAportesExtras, 
+    setAportesRegularesEditados, 
+    setAportesRegularesEditadosPorPessoa, 
+    setMesesConcluidos 
+  };
 
-  // Initialize Session and Draft
-  React.useEffect(() => {
-    if (isInitializing.current) return;
-    isInitializing.current = true;
+  // Função para carregar o plano
+  const carregarPlano = useCallback(async () => {
+    const usuarioId = obterIdUsuario();
 
-    // Check local storage for existing session/draft
-    const localSessionId = sessionId;
-    if (!localSessionId) return;
-    
-    // Draft can be local but we also sync to backend
-    const initDraft = async () => {
-      let localPlanoId = Cookies.get("imovplan_planoId");
-
-      const userCookie = Cookies.get("user");
-      let userId = null;
-      if (userCookie) {
-        try {
-          userId = JSON.parse(userCookie).id;
-        } catch (e) {}
-      }
-
-      // OFFLINE MODE / ANONYMOUS: Never call backend API
-      if (!userId) {
-        const savedDraft = localStorage.getItem("imovplan_draft");
-        if (savedDraft) {
-          try {
-            const data = JSON.parse(savedDraft);
-            if (data.objetivo) {
-              const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
-              setObjetivo({
-                ...data.objetivo,
-                dataInicio: isNaN(d.getTime()) ? new Date() : d
-              });
-            }
-            if (data.pessoas) setPessoas(data.pessoas);
-            if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
-            if (data.aportesExtras) setAportesExtras(data.aportesExtras);
-            if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
-            if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
-            if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
-          } catch(e) {}
+    if (!usuarioId) {
+      // Carrega do localStorage se não tiver usuário
+      const local = localStorage.getItem(CHAVE_LOCAL);
+      if (local) {
+        try { 
+          const dados = JSON.parse(local);
+          aplicarDados(dados, definidores); 
+          console.log("Dados carregados do localStorage");
+        } catch (error) {
+          console.error("Erro ao carregar dados do localStorage:", error);
         }
-        setPlanoId(localPlanoId && localPlanoId.startsWith("local-draft-") ? localPlanoId : "local-draft-" + localSessionId);
-        isInitializing.current = false;
-        return;
-      }
-
-      // LOGGED IN MODE: Sync with backend
-      try {
-        let existingData = null;
-        try {
-          const res = await api.get(`/plano/user/${userId}`);
-          if (res.status === 200) {
-            existingData = res.data;
-          }
-        } catch (e) {
-          console.warn("Usuário ainda não tem plano no backend.");
-        }
-
-        if (existingData) {
-          if (existingData.objetivo) {
-            const d = existingData.objetivo.dataInicio ? new Date(existingData.objetivo.dataInicio) : new Date();
-            setObjetivo({ ...existingData.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
-          }
-          if (existingData.pessoas) setPessoas(existingData.pessoas);
-          if (existingData.bancoEscolhido) setBancoEscolhido(existingData.bancoEscolhido);
-          if (existingData.aportesExtras) setAportesExtras(existingData.aportesExtras);
-          if (existingData.aportesRegularesEditados) setAportesRegularesEditados(existingData.aportesRegularesEditados);
-          if (existingData.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(existingData.aportesRegularesEditadosPorPessoa);
-          if (existingData.mesesConcluidos) setMesesConcluidos(existingData.mesesConcluidos);
-          
-          setPlanoId(existingData.id);
-          Cookies.set("imovplan_planoId", existingData.id, { expires: 30 });
-          if (existingData.sessionId) {
-            Cookies.set("imovplan_sessionId", existingData.sessionId, { expires: 30 });
-          }
-          return;
-        }
-
-        // If user has no plan, load from local storage to sync it up
-        const savedDraft = localStorage.getItem("imovplan_draft");
-        if (savedDraft) {
-          try {
-            const data = JSON.parse(savedDraft);
-            if (data.objetivo) {
-              const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
-              setObjetivo({ ...data.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
-            }
-            if (data.pessoas) setPessoas(data.pessoas);
-            if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
-            if (data.aportesExtras) setAportesExtras(data.aportesExtras);
-            if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
-            if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
-            if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
-          } catch(e) {}
-        }
-
-        // Create new draft in backend
-        const resPost = await api.post(`/plano/draft?sessionId=${localSessionId}`);
-        if (resPost.status === 200) {
-          const dataPost = resPost.data;
-          setPlanoId(dataPost.id);
-          Cookies.set("imovplan_planoId", dataPost.id, { expires: 30 });
-          
-          await api.post(`/plano/${dataPost.id}/link-user?usuarioId=${userId}`);
-          
-          if (savedDraft) {
-            try {
-              await api.put(`/plano/draft/${dataPost.id}`, JSON.parse(savedDraft));
-            } catch (e) {
-              console.error("Falha ao sincronizar draft local", e);
-            }
-          }
-        } else {
-          setPlanoId("local-draft-" + localSessionId);
-        }
-
-      } catch (err) {
-        console.error("Erro ao inicializar rascunho com backend:", err);
-        setPlanoId("local-draft-" + localSessionId);
-      }
-    };
-
-    initDraft();
-  }, []);
-
-  const reloadDraft = async () => {
-    const userCookie = Cookies.get("user");
-    let userId = null;
-    if (userCookie) {
-      try {
-        userId = JSON.parse(userCookie).id;
-      } catch (e) {}
-    }
-
-    if (!userId) {
-      // Offline mode
-      const savedDraft = localStorage.getItem("imovplan_draft");
-      if (savedDraft) {
-        try {
-          const data = JSON.parse(savedDraft);
-          if (data.objetivo) {
-            const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
-            setObjetivo({ ...data.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
-          }
-          if (data.pessoas) setPessoas(data.pessoas);
-          if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
-          if (data.aportesExtras) setAportesExtras(data.aportesExtras);
-          if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
-          if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
-          if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
-        } catch(e) {}
       }
       return;
     }
 
     try {
-      const res = await api.get(`/plano/user/${userId}`);
-      if (res.status === 200) {
-        const data = res.data;
-        if (data.objetivo) {
-          const d = data.objetivo.dataInicio ? new Date(data.objetivo.dataInicio) : new Date();
-          setObjetivo({
-            ...data.objetivo,
-            dataInicio: isNaN(d.getTime()) ? new Date() : d
-          });
+      // Tenta carregar do backend — rota correta: GET /api/plano/user/{usuarioId}
+      const resposta = await api.get(`/api/plano/user/${usuarioId}`);
+      if (resposta.status === 200 && resposta.data) {
+        const draftData = resposta.data;
+        // O backend retorna um PlanoDraftDto, precisamos mapear para o formato do contexto
+        const dadosMapeados = {
+          objetivo: draftData.objetivo ? {
+            nomePlano: draftData.objetivo.nomePlano,
+            valorImovel: draftData.objetivo.valorImovel,
+            percentualEntrada: draftData.objetivo.percentualEntrada,
+            percentualCustosExtras: draftData.objetivo.percentualCustosExtras,
+            valorJaGuardado: draftData.objetivo.valorJaGuardado,
+            taxaCdiAnual: draftData.objetivo.taxaCdiAnual,
+            percentualCdi: draftData.objetivo.percentualCdi,
+            prazoMaxMeses: draftData.objetivo.prazoMaxMeses,
+            dataInicio: draftData.objetivo.dataInicio ? new Date(draftData.objetivo.dataInicio) : new Date(),
+            tipoInvestimento: draftData.objetivo.tipoInvestimento,
+          } : null,
+          pessoas: (draftData.pessoas || []).map((p: any) => ({
+            id: p.id,
+            nome: p.nome,
+            renda_mensal: p.renda_mensal,
+            renda_complementar: p.renda_complementar,
+            gastos_mensais: p.gastos_mensais,
+            usar_gastos_detalhados: p.usar_gastos_detalhados,
+            gastos_detalhados: p.gastos_detalhados || [],
+            aporte_mensal: p.aporte_mensal,
+            valorInicial: p.valorInicial,
+            tipoInvestimento: p.tipoInvestimento,
+          })),
+          bancoEscolhido: draftData.bancoEscolhido || null,
+          aportesExtras: (draftData.aportesExtras || []).map((a: any) => ({
+            data: a.data ? new Date(a.data) : new Date(),
+            valor: a.valor,
+            origem: a.origem,
+            pessoaId: a.pessoaId,
+            pessoaNome: a.pessoaNome,
+          })),
+          aportesRegularesEditados: draftData.aportesRegularesEditados || {},
+          aportesRegularesEditadosPorPessoa: draftData.aportesRegularesEditadosPorPessoa || {},
+          mesesConcluidos: draftData.mesesConcluidos || [],
+        };
+        aplicarDados(dadosMapeados, definidores);
+        if (draftData.id) {
+          setPlanoId(draftData.id);
+          Cookies.set("imovplan_planoId", draftData.id, { expires: 30 });
         }
-        if (data.pessoas) setPessoas(data.pessoas);
-        if (data.bancoEscolhido) setBancoEscolhido(data.bancoEscolhido);
-        if (data.aportesExtras) setAportesExtras(data.aportesExtras);
-        if (data.aportesRegularesEditados) setAportesRegularesEditados(data.aportesRegularesEditados);
-        if (data.aportesRegularesEditadosPorPessoa) setAportesRegularesEditadosPorPessoa(data.aportesRegularesEditadosPorPessoa);
-        if (data.mesesConcluidos) setMesesConcluidos(data.mesesConcluidos);
-        if (data.id) setPlanoId(data.id);
+        console.log("Dados carregados do backend");
+        return;
       }
-    } catch (e) {
-      console.error("Failed to reload draft", e);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn("Plano não encontrado no backend (404). Limpando ID inválido e usando dados locais.");
+        // Limpa o planoId inválido — próximo save criará um novo draft
+        setPlanoId(null);
+        Cookies.remove("imovplan_planoId");
+      } else {
+        console.error("Erro ao carregar plano do backend:", error);
+      }
+      
+      // Tenta carregar do localStorage como fallback
+      const local = localStorage.getItem(CHAVE_LOCAL);
+      if (local) {
+        try { 
+          const dados = JSON.parse(local);
+          aplicarDados(dados, definidores); 
+          console.log("Dados carregados do localStorage (fallback)");
+        } catch (e) {
+          console.error("Erro ao carregar dados do localStorage:", e);
+        }
+      }
     }
-  };
+  }, []);
 
-  const saveDraft = async (overrideData?: {
+  // Função para salvar o plano (aceita um objetivo opcional para evitar bug de closure)
+  const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<boolean> => {
+    const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;
+    const dadosLocais = {
+      objetivo: objetivoFinal,
+      pessoas,
+      bancoEscolhido,
+      aportesExtras,
+      aportesRegularesEditados,
+      aportesRegularesEditadosPorPessoa,
+      mesesConcluidos,
+    };
+
+    // Sempre salva no localStorage como backup
+    salvarNoLocalStorage(dadosLocais);
+    console.log("Dados salvos no localStorage");
+
+    // Se tiver usuário autenticado, salva no backend
+    const usuarioId = obterIdUsuario();
+    if (usuarioId) {
+      try {
+        const novoId = await salvarNoBackend(dadosLocais, planoId, sessionId);
+        if (novoId && !planoId) {
+          setPlanoId(novoId);
+          Cookies.set("imovplan_planoId", novoId, { expires: 30 });
+        }
+        console.log("Dados salvos no backend");
+        return true;
+      } catch (error) {
+        // O localStorage já tem os dados, então não bloqueamos o fluxo
+        console.warn("Backup salvo no localStorage, falha no backend:", error);
+        return true;
+      }
+    }
+    
+    return true; // Salvou localmente
+  }, [
+    objetivo, 
+    pessoas, 
+    bancoEscolhido, 
+    aportesExtras,
+    aportesRegularesEditados, 
+    aportesRegularesEditadosPorPessoa,
+    mesesConcluidos, 
+    planoId, 
+    sessionId
+  ]);
+
+  // saveDraft: aceita um patch parcial e salva imediatamente (evita bug de closure nas páginas)
+  const saveDraft = useCallback(async (patch?: {
     objetivo?: Partial<SimInput> | null;
     pessoas?: Pessoa[];
-    bancoEscolhido?: Banco | null;
-    aportesExtras?: Aporte[];
+    mesesConcluidos?: number[];
     aportesRegularesEditados?: Record<number, number>;
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
-    mesesConcluidos?: number[];
   }): Promise<boolean> => {
-    if (!sessionId) {
-      console.warn("saveDraft called before sessionId ready — ignoring.");
-      return false;
-    }
+    const dadosFinal = {
+      objetivo: patch?.objetivo !== undefined ? patch.objetivo : objetivo,
+      pessoas: patch?.pessoas !== undefined ? patch.pessoas : pessoas,
+      bancoEscolhido,
+      aportesExtras,
+      aportesRegularesEditados: patch?.aportesRegularesEditados !== undefined ? patch.aportesRegularesEditados : aportesRegularesEditados,
+      aportesRegularesEditadosPorPessoa: patch?.aportesRegularesEditadosPorPessoa !== undefined ? patch.aportesRegularesEditadosPorPessoa : aportesRegularesEditadosPorPessoa,
+      mesesConcluidos: patch?.mesesConcluidos !== undefined ? patch.mesesConcluidos : mesesConcluidos,
+    };
 
-    try {
-      const userCookie = Cookies.get("user");
-      let userId = null;
-      if (userCookie) {
-        try {
-          userId = JSON.parse(userCookie).id;
-        } catch (e) {}
-      }
+    salvarNoLocalStorage(dadosFinal);
 
-      const payloadObjetivo = overrideData && overrideData.objetivo !== undefined ? overrideData.objetivo : objetivo;
-      const payloadPessoas = overrideData && overrideData.pessoas !== undefined ? overrideData.pessoas : pessoas;
-      const payloadBanco = overrideData && overrideData.bancoEscolhido !== undefined ? overrideData.bancoEscolhido : bancoEscolhido;
-      const payloadAportes = overrideData && overrideData.aportesExtras !== undefined ? overrideData.aportesExtras : aportesExtras;
-      const payloadAportesRegulares = overrideData && overrideData.aportesRegularesEditados !== undefined ? overrideData.aportesRegularesEditados : aportesRegularesEditados;
-      const payloadAportesRegularesPorPessoa = overrideData && overrideData.aportesRegularesEditadosPorPessoa !== undefined ? overrideData.aportesRegularesEditadosPorPessoa : aportesRegularesEditadosPorPessoa;
-      const payloadMesesConcluidos = overrideData && overrideData.mesesConcluidos !== undefined ? overrideData.mesesConcluidos : mesesConcluidos;
-
-      const draftToSave = {
-        sessionId,
-        usuarioId: userId ?? undefined,
-        objetivo: payloadObjetivo ? {
-          ...payloadObjetivo,
-          dataInicio: payloadObjetivo.dataInicio ? (payloadObjetivo.dataInicio instanceof Date ? payloadObjetivo.dataInicio.toISOString().slice(0,10) : new Date(payloadObjetivo.dataInicio).toISOString().slice(0,10)) : undefined
-        } : null,
-        pessoas: payloadPessoas,
-        bancoEscolhido: payloadBanco,
-        aportesExtras: payloadAportes,
-        aportesRegularesEditados: payloadAportesRegulares,
-        aportesRegularesEditadosPorPessoa: payloadAportesRegularesPorPessoa,
-        mesesConcluidos: payloadMesesConcluidos
-      };
-
-      // Save local fallback
-      localStorage.setItem("imovplan_draft", JSON.stringify(draftToSave));
-
-      // Sync to backend with retry on server errors (5xx)
-      if (userId && planoId && !planoId.startsWith("local-draft-")) {
-        const maxRetries = 3;
-        const retryDelay = (attempt: number) => new Promise(res => setTimeout(res, attempt * 500));
-        let attempt = 0;
-        let success = false;
-        while (attempt < maxRetries && !success) {
-          try {
-            const res = await api.put(`/plano/draft/${planoId}`, draftToSave);
-            if (res.status === 200) {
-              success = true;
-            } else if (res.status >= 500) {
-              console.warn(`Tentativa ${attempt + 1} falhou ao sincronizar draft (status ${res.status}). Retentando...`);
-              await retryDelay(attempt + 1);
-            } else {
-              console.error(`Erro ao sincronizar draft com backend: ${res.status} ${res.statusText}`);
-              break;
-            }
-          } catch (e) {
-            console.error("Network error while syncing draft:", e);
-            await retryDelay(attempt + 1);
-          }
-          attempt++;
+    const usuarioId = obterIdUsuario();
+    if (usuarioId) {
+      try {
+        const novoId = await salvarNoBackend(dadosFinal, planoId, sessionId);
+        if (novoId && !planoId) {
+          setPlanoId(novoId);
+          Cookies.set("imovplan_planoId", novoId, { expires: 30 });
         }
-        if (!success) {
-          console.error("Failed to sync draft after retries.");
-        } else {
-          // Refresh state from backend after successful save
-          await reloadDraft();
-        }
+        return true;
+      } catch (error) {
+        console.warn("saveDraft: falha no backend, dados salvos localmente", error);
+        return true;
       }
-
-      return true;
-    } catch (err) {
-      console.error("Failed to save draft:", err);
-      return false;
     }
-  };
+    return true;
+  }, [
+    objetivo, pessoas, bancoEscolhido, aportesExtras,
+    aportesRegularesEditados, aportesRegularesEditadosPorPessoa,
+    mesesConcluidos, planoId, sessionId
+  ]);
+
+  // Carrega o plano uma vez ao montar
+  const inicializado = useRef(false);
+  useEffect(() => {
+    if (inicializado.current) return;
+    inicializado.current = true;
+    carregarPlano();
+  }, [carregarPlano]);
+
+  // Salva automaticamente quando os dados mudarem (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (inicializado.current) {
+        salvarPlano();
+      }
+    }, 3000); // Espera 3 segundos após a última alteração
+
+    return () => clearTimeout(timer);
+  }, [
+    objetivo,
+    pessoas,
+    bancoEscolhido,
+    aportesExtras,
+    aportesRegularesEditados,
+    aportesRegularesEditadosPorPessoa,
+    mesesConcluidos,
+    salvarPlano
+  ]);
 
   return (
     <PlanContext.Provider value={{
-      objetivo, setObjetivo,
-      pessoas, setPessoas,
-      aportesExtras, setAportesExtras,
+      objetivo, 
+      setObjetivo,
+      pessoas, 
+      setPessoas,
+      aportesExtras, 
+      setAportesExtras,
       planoId,
       sessionId,
+      bancoEscolhido, 
+      setBancoEscolhido,
+      cenario, 
+      setCenario,
+      aportesRegularesEditados, 
+      setAportesRegularesEditados,
+      aportesRegularesEditadosPorPessoa, 
+      setAportesRegularesEditadosPorPessoa,
+      mesesConcluidos, 
+      setMesesConcluidos,
+      salvarPlano,
       saveDraft,
-      reloadDraft,
-      bancoEscolhido, setBancoEscolhido,
-      cenario, setCenario,
-      aportesRegularesEditados, setAportesRegularesEditados,
-      aportesRegularesEditadosPorPessoa, setAportesRegularesEditadosPorPessoa,
-      mesesConcluidos, setMesesConcluidos,
+      carregarPlano,
     }}>
       {children}
     </PlanContext.Provider>
@@ -382,7 +500,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 export function usePlanContext() {
   const context = useContext(PlanContext);
   if (!context) {
-    throw new Error("usePlanContext must be used within a PlanProvider");
+    throw new Error("usePlanContext deve ser usado dentro de um PlanProvider");
   }
   return context;
 }

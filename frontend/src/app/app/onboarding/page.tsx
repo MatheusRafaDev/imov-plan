@@ -11,7 +11,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     // Salva o cenário padrão "entrada" e redireciona direto
     Cookies.set("imovplan_cenario", "entrada", { expires: 30 });
-    router.push("/app/objetivo");
+    router.push("/app/imovel");
   }, [router]);
 
   return (

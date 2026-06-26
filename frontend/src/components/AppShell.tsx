@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 
 const navPorCenario = {
   entrada: [
-    { to: "/app/objetivo", icon: Building2, label: "Imóvel" },
+    { to: "/app/imovel", icon: Building2, label: "Imóvel" },
     { to: "/app/pessoas", icon: Users, label: "Perfil" },
     { to: "/app/planejamento", icon: Calculator, label: "Plano" },
     { to: "/app/resultado", icon: LineChart, label: "Resultado" },
@@ -33,7 +33,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const { cenario, objetivo } = usePlanContext();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
-  const homeHref = nav[0]?.to ?? "/app/objetivo";
+  const homeHref = nav[0]?.to ?? "/app/imovel";
   const isStep1Filled = !!(objetivo && objetivo.valorImovel && objetivo.valorImovel > 0);
 
   return (

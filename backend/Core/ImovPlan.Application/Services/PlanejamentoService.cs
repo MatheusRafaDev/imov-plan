@@ -129,6 +129,8 @@ namespace ImovPlan.Application.Services
                 var o = draftDto.Objetivo;
                 existingPlanejamento.ValorImovel = o.ValorImovel;
                 existingPlanejamento.PercentualEntrada = o.PercentualEntrada;
+                existingPlanejamento.PercentualCustosExtras = o.PercentualCustosExtras;
+                existingPlanejamento.ValorJaGuardado = o.ValorJaGuardado;
                 existingPlanejamento.TaxaCdiAnual = o.TaxaCdiAnual;
                 existingPlanejamento.PercentualCdi = o.PercentualCdi;
                 existingPlanejamento.PrazoMaxMeses = o.PrazoMaxMeses;
@@ -443,9 +445,7 @@ namespace ImovPlan.Application.Services
                 {
                     ValorImovel = planejamento.ValorImovel,
                     PercentualEntrada = planejamento.PercentualEntrada,
-                    PercentualCustosExtras = planejamento.CustosCompra?.TotalNecessario > 0 
-                        ? planejamento.CustosCompra.TotalNecessario / planejamento.ValorImovel * 100m 
-                        : 0,
+                    PercentualCustosExtras = planejamento.PercentualCustosExtras,
                     ValorJaGuardado = valorJaGuardado,
                     TaxaCdiAnual = planejamento.TaxaCdiAnual,
                     PercentualCdi = planejamento.PercentualCdi,

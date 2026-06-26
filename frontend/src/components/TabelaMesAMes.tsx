@@ -137,7 +137,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true }: { limitRows?
     setAportesRegularesEditados,
     aportesRegularesEditadosPorPessoa,
     setAportesRegularesEditadosPorPessoa,
-    saveDraft, 
+    saveDraft,
     mesesConcluidos, 
     setMesesConcluidos 
   } = usePlanContext();

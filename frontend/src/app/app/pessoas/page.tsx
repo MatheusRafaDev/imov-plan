@@ -35,11 +35,11 @@ export default function PessoasPage() {
   useEffect(() => {
     if (planoId && (!objetivo || !objetivo.valorImovel || objetivo.valorImovel === 0)) {
       const paths: Record<string, string> = {
-        entrada: "/app/objetivo",
+        entrada: "/app/imovel",
         pronto: "/app/pronto",
         planta: "/app/planta"
       };
-      router.replace(paths[cenario] || "/app/objetivo");
+      router.replace(paths[cenario] || "/app/imovel");
     }
   }, [planoId, objetivo, cenario, router]);
 

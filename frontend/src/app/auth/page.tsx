@@ -102,7 +102,7 @@ export default function AuthPage() {
 
     if (result.success) {
       toast.success(isLogin ? "Bem-vindo de volta!" : "Conta criada com sucesso!");
-      router.push(isLogin ? "/app/objetivo" : "/app/onboarding");
+      router.push(isLogin ? "/app/imovel" : "/app/onboarding");
     } else {
       const errorMsg = result.error || "";
       const newBackendErrors: { [key: string]: string } = {};

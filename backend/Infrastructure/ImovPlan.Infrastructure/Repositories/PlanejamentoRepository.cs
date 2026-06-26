@@ -46,6 +46,7 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.ValorImovel = planejamento.ValorImovel;
                 existing.PercentualEntrada = planejamento.PercentualEntrada;
                 existing.PercentualCustosExtras = planejamento.PercentualCustosExtras;
+                existing.ValorJaGuardado = planejamento.ValorJaGuardado;
                 existing.PrazoMaxMeses = planejamento.PrazoMaxMeses;
                 existing.TaxaCdiAnual = planejamento.TaxaCdiAnual;
                 existing.PercentualCdi = planejamento.PercentualCdi;

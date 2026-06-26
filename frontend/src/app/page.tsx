@@ -17,7 +17,7 @@ export default function Index() {
           <span className="font-display text-2xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
         </div>
         {user ? (
-          <Button asChild variant="secondary"><Link href="/app/objetivo">Abrir meu plano</Link></Button>
+          <Button asChild variant="secondary"><Link href="/app/imovel">Abrir meu plano</Link></Button>
         ) : (
           <Button asChild variant="ghost"><Link href="/auth">Entrar</Link></Button>
         )}
@@ -36,7 +36,7 @@ export default function Index() {
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button asChild size="lg" className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow h-12 px-7">
-              <Link href={user ? "/app/objetivo" : "/auth"}>
+              <Link href={user ? "/app/imovel" : "/auth"}>
                 Começar meu plano <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
