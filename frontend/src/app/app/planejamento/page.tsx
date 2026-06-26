@@ -57,7 +57,11 @@ export default function PlanejamentoPage() {
     valorJaGuardado: totalGuardado,
     taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
     percentualCdi: Number(objetivo?.percentualCdi ?? 100),
-    dataInicio: objetivo?.dataInicio ? new Date(objetivo.dataInicio + 'T12:00:00') : new Date(),
+    dataInicio: objetivo?.dataInicio
+      ? (typeof objetivo.dataInicio === "string"
+          ? new Date(objetivo.dataInicio + "T12:00:00")
+          : new Date(objetivo.dataInicio))
+      : new Date(),
     aportesExtras,
   }), [objetivo, aportesExtras, totalGuardado]);
   

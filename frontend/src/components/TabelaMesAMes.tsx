@@ -195,7 +195,11 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
   const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
   const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
-  const inicio = objetivo?.dataInicio ? new Date(objetivo.dataInicio + 'T12:00:00') : new Date();
+  const inicio = objetivo?.dataInicio
+    ? (typeof objetivo.dataInicio === "string"
+        ? new Date(objetivo.dataInicio + "T12:00:00")
+        : new Date(objetivo.dataInicio))
+    : new Date();
 
   const combinedExtras = useMemo(() => aportesExtras.map(a => ({ ...a, valor: Number(a.valor) })), [aportesExtras]);
 

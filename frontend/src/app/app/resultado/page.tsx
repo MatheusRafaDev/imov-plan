@@ -77,7 +77,11 @@ export default function ResultadoPage() {
   const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
 
   // Build combined extras: aportesExtras (from context) + extrasInline
-  const inicio = objetivo?.dataInicio ? new Date(objetivo.dataInicio + 'T12:00:00') : new Date();
+  const inicio = objetivo?.dataInicio
+    ? (typeof objetivo.dataInicio === "string"
+        ? new Date(objetivo.dataInicio + "T12:00:00")
+        : new Date(objetivo.dataInicio))
+    : new Date();
 
   const combinedExtras = useMemo(() => {
     return aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
@@ -230,8 +234,10 @@ export default function ResultadoPage() {
   const targetMonthIndex = sim.mesAtingiuMeta ? sim.mesAtingiuMeta - 1 : sim.rows.length - 1;
   const targetRow = sim.rows[targetMonthIndex];
 
+  const totalCompra = pessoas.reduce((s, p) => s + Number(p.valorInicial ?? 0), 0);
+
   return (
-    <div className="max-w-[1400px] w-full px-4 md:px-6 mx-auto space-y-7">
+    <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-7">
       {/* Header */}
       <div>
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa 4 de 4</p>
@@ -258,7 +264,7 @@ export default function ResultadoPage() {
       </div>
 
       {/* Top Cards — compact */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-4">
         <Card className="p-4 border-border/50 bg-primary/5 flex flex-col justify-center">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-primary font-medium mb-2">
             <CalendarCheck className="h-3.5 w-3.5" /> Atinge a meta em
@@ -270,6 +276,26 @@ export default function ResultadoPage() {
             <Wallet className="h-3.5 w-3.5" /> Total acumulado
           </div>
           <p className="font-display text-2xl num">{brl(targetRow ? targetRow.saldoAcumulado : sim.saldoFinal)}</p>
+        </Card>
+        <Card className="p-4 border-border/50 bg-card shadow-soft">
+          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-medium">
+            <User className="h-3.5 w-3.5" /> Valor de compra por participante
+          </div>
+          <p className="font-display text-2xl num mb-3">{brl(totalCompra)}</p>
+          <div className="space-y-2">
+            {pessoas.map(p => {
+              const valor = Number(p.valorInicial ?? 0);
+              const percent = totalCompra > 0 ? (valor / totalCompra) * 100 : 0;
+              return (
+                <div key={p.id} className="space-y-1">
+                  <div className="flex justify-between text-xs items-end">
+                    <span className="text-muted-foreground">{p.nome}</span>
+                    <span className="num font-medium">{brl(valor)} <span className="text-muted-foreground">({percent.toFixed(0)}%)</span></span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
         <Card className="p-4 border-border/50 flex flex-col justify-center">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-medium">
