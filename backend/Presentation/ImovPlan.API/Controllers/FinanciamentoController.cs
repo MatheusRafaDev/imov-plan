@@ -25,6 +25,9 @@ namespace ImovPlan.API.Controllers
         [HttpPost("simular")]
         public IActionResult Simular([FromBody] SimularRequest request)
         {
+            if (request.ValorFinanciado <= 0 || request.PrazoMeses <= 0 || request.TaxaAnual < 0)
+                return BadRequest("Parâmetros de simulação inválidos. ValorFinanciado e PrazoMeses devem ser > 0, TaxaAnual deve ser >= 0.");
+
             var resultado = _financiamentoService.CompararSistemas(request.ValorFinanciado, request.TaxaAnual, request.PrazoMeses);
             return Ok(resultado);
         }
@@ -32,6 +35,10 @@ namespace ImovPlan.API.Controllers
         [HttpPost("cet")]
         public IActionResult CalcularCET([FromBody] CetRequest request)
         {
+            if (request.ValorFinanciado <= 0 || request.PrazoMeses <= 0 || request.TaxaAnual < 0
+                || request.TaxaMip < 0 || request.TaxaDfi < 0 || request.TaxaAdmin < 0)
+                return BadRequest("Parâmetros de CET inválidos. ValorFinanciado e PrazoMeses devem ser > 0, taxas devem ser >= 0.");
+
             var cet = _financiamentoService.CalcularCET(
                 request.ValorFinanciado,
                 request.TaxaAnual,

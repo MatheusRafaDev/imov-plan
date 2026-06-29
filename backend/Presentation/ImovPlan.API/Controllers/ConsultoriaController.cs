@@ -35,8 +35,8 @@ namespace ImovPlan.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro na Consultoria de IA: {ex.Message}");
-                return StatusCode(500, new { error = "Falha ao processar a consultoria da IA no servidor.", details = ex.Message });
+                Console.WriteLine($"Erro na Consultoria de IA: {ex}");
+                return StatusCode(500, new { error = "Falha ao processar a consultoria da IA no servidor." });
             }
         }
     }

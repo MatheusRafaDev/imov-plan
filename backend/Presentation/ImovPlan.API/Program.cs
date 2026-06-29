@@ -14,6 +14,7 @@ using ImovPlan.Infrastructure.Repositories;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Application.Services;
 using ImovPlan.Application.Services.Interfaces;
+using ImovPlan.API.Services;
 using System.Threading;
 
 const int maxRestartAttempts = 5;
@@ -26,15 +27,24 @@ while (restartAttempts < maxRestartAttempts)
     // Load .env file from the backend root (try multiple paths)
     try
     {
-        var envPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env");
-        if (File.Exists(envPath))
-            DotNetEnv.Env.Load(envPath);
-        else if (File.Exists("../../../.env"))
-            DotNetEnv.Env.Load("../../../.env");
-        else if (File.Exists("../../.env"))
-            DotNetEnv.Env.Load("../../.env");
-        else if (File.Exists("../.env"))
-            DotNetEnv.Env.Load("../.env");
+        // When running from API project dir: ../../.env = backend/.env
+        // When running from solution dir: backend/.env
+        var envPaths = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env"),
+            "../../.env",
+            "../.env",
+            "backend/.env",
+            ".env"
+        };
+        foreach (var path in envPaths)
+        {
+            if (File.Exists(path))
+            {
+                DotNetEnv.Env.Load(path);
+                break;
+            }
+        }
     }
     catch { /* .env not found, continue with appsettings */ }
     builder.Configuration.AddEnvironmentVariables();
@@ -44,12 +54,15 @@ while (restartAttempts < maxRestartAttempts)
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
-    // Configure CORS
+    // Configure CORS — origins from configuration (appsettings.json / env)
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? new[] { "http://localhost:3000" };
+
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowFrontend", policy =>
         {
-            policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:3000","http://192.168.15.5:3000")
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
@@ -107,6 +120,7 @@ while (restartAttempts < maxRestartAttempts)
     builder.Services.AddScoped<ISimulacaoService, SimulacaoService>();
     builder.Services.AddScoped<IFinanciamentoService, FinanciamentoService>();
     builder.Services.AddScoped<IPlanoService, PlanejamentoService>();
+    builder.Services.AddScoped<ITokenService, JwtTokenService>();
     builder.Services.AddHttpClient<IAiConsultingService, ImovPlan.Infrastructure.Services.GroqAiService>();
 
     var app = builder.Build();

@@ -48,6 +48,16 @@ namespace ImovPlan.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task DeleteAsync(string id)
+        {
+            var existing = await _context.HistoricosSimulacao.FirstOrDefaultAsync(s => s.Id == id);
+            if (existing != null)
+            {
+                _context.HistoricosSimulacao.Remove(existing);
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao)
         {
             await _context.EvolucoesMensaisSimulacao.AddRangeAsync(evolucao);

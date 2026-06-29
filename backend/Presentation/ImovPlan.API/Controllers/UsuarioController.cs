@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using ImovPlan.API.Extensions;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
+using ImovPlan.Application.Services.Interfaces;
 
 namespace ImovPlan.API.Controllers
 {
@@ -14,10 +15,12 @@ namespace ImovPlan.API.Controllers
     public class UsuarioController : ControllerBase
     {
         private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IPlanoService _planoService;
 
-        public UsuarioController(IUsuarioRepository usuarioRepository)
+        public UsuarioController(IUsuarioRepository usuarioRepository, IPlanoService planoService)
         {
             _usuarioRepository = usuarioRepository;
+            _planoService = planoService;
         }
 
         [HttpGet("{id}")]
@@ -83,6 +86,7 @@ namespace ImovPlan.API.Controllers
             if (existing == null)
                 return NotFound(new { message = "Usuário não encontrado." });
 
+            await _planoService.DeleteAllUserDataAsync(id);
             await _usuarioRepository.DeleteAsync(id);
             return NoContent();
         }

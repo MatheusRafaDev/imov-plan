@@ -82,12 +82,10 @@ namespace ImovPlan.API.Controllers
         }
 
         [HttpGet("draft/{id}")]
-        public async Task<IActionResult> GetDraft(string id, [FromQuery] string sessionId)
+        public async Task<IActionResult> GetDraft(string id, [FromQuery] string? sessionId)
         {
-            if (string.IsNullOrEmpty(sessionId))
-                return BadRequest("SessionId is required.");
-
-            var draft = await _planoService.GetDraftAsync(id, sessionId);
+            var usuarioIdClaim = User.GetUsuarioId();
+            var draft = await _planoService.GetDraftAsync(id, sessionId, usuarioIdClaim);
             if (draft == null)
                 return NotFound("Plano não encontrado ou não autorizado.");
 
@@ -99,10 +97,11 @@ namespace ImovPlan.API.Controllers
         {
             try
             {
-                if (string.IsNullOrEmpty(draftDto.SessionId))
-                    return BadRequest("SessionId is required in the payload.");
+                var usuarioIdClaim = User.GetUsuarioId(); // pode ser null no fluxo anônimo (sessionId)
+                if (string.IsNullOrEmpty(draftDto.SessionId) && string.IsNullOrEmpty(usuarioIdClaim))
+                    return BadRequest("SessionId ou autenticação são obrigatórios.");
 
-                var success = await _planoService.UpdateDraftAsync(id, draftDto);
+                var success = await _planoService.UpdateDraftAsync(id, draftDto, usuarioIdClaim);
                 if (!success)
                     return NotFound("Plano não encontrado ou não autorizado para atualização.");
 
@@ -110,14 +109,23 @@ namespace ImovPlan.API.Controllers
             }
             catch (System.Exception ex)
             {
-                return StatusCode(500, ex.ToString());
+                // não retornar ex.ToString() ao cliente
+                Console.WriteLine($"Erro ao atualizar draft: {ex}");
+                return StatusCode(500, new { message = "Erro interno ao atualizar o plano." });
             }
         }
 
         [HttpPost("{id}/concluir")]
         public async Task<IActionResult> ConcluirPlano(string id)
         {
-            await _planoService.ConcluirPlanoAsync(id);
+            var usuarioIdClaim = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioIdClaim))
+                return Unauthorized();
+
+            var success = await _planoService.ConcluirPlanoAsync(id, usuarioIdClaim);
+            if (!success)
+                return NotFound("Plano não encontrado ou não autorizado.");
+
             return Ok();
         }
     }

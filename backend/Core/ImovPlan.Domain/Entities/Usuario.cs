@@ -25,6 +25,9 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("tipoInvestimento")]
         public string? TipoInvestimento { get; set; }
 
+        [BsonElement("role")]
+        public string? Role { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

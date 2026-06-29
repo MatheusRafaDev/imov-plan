@@ -1,13 +1,11 @@
 using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
+using ImovPlan.Application.Services.Interfaces;
 
 namespace ImovPlan.API.Controllers
 {
@@ -16,12 +14,12 @@ namespace ImovPlan.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IUsuarioRepository _usuarioRepository;
-        private readonly IConfiguration _configuration;
+        private readonly ITokenService _tokenService;
 
-        public AuthController(IUsuarioRepository usuarioRepository, IConfiguration configuration)
+        public AuthController(IUsuarioRepository usuarioRepository, ITokenService tokenService)
         {
             _usuarioRepository = usuarioRepository;
-            _configuration = configuration;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
@@ -70,12 +68,13 @@ namespace ImovPlan.API.Controllers
                 Nome = request.Name ?? string.Empty,
                 Email = request.Email,
                 PasswordHash = HashPassword(request.Password),
-                DataNascimento = parsedNascimento
+                DataNascimento = parsedNascimento,
+                Role = "User"
             };
 
             await _usuarioRepository.CreateAsync(user);
 
-            var token = GenerateJwtToken(user.Id);
+            var token = _tokenService.GenerateJwtToken(user.Id, user.Role);
 
             return Ok(new
             {
@@ -88,10 +87,29 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var user = await _usuarioRepository.GetByEmailAsync(request.Email);
-            if (user == null || user.PasswordHash != HashPassword(request.Password))
+            if (user == null)
                 return Unauthorized(new { message = "Email ou senha inválidos." });
 
-            var token = GenerateJwtToken(user.Id);
+            bool senhaValida;
+            if (user.PasswordHash.StartsWith("$2")) // hash bcrypt
+            {
+                senhaValida = VerifyPassword(request.Password, user.PasswordHash);
+            }
+            else
+            {
+                // Hash legado (SHA-256 + salt fixo) — valida e migra para bcrypt.
+                senhaValida = user.PasswordHash == LegacyHashPassword(request.Password);
+                if (senhaValida)
+                {
+                    user.PasswordHash = HashPassword(request.Password);
+                    await _usuarioRepository.UpdateAsync(user.Id, user);
+                }
+            }
+
+            if (!senhaValida)
+                return Unauthorized(new { message = "Email ou senha inválidos." });
+
+            var token = _tokenService.GenerateJwtToken(user.Id, user.Role);
 
             return Ok(new
             {
@@ -100,7 +118,7 @@ namespace ImovPlan.API.Controllers
             });
         }
 
-        private object MapUserResponse(Usuario user)
+        private static object MapUserResponse(Usuario user)
         {
             return new
             {
@@ -111,39 +129,16 @@ namespace ImovPlan.API.Controllers
             };
         }
 
-        private string HashPassword(string password)
+        private static string HashPassword(string password) => BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+
+        private static bool VerifyPassword(string password, string hash) => BCrypt.Net.BCrypt.Verify(password, hash);
+
+        // Mantido apenas para migração de hashes legados
+        private static string LegacyHashPassword(string password)
         {
             using var sha256 = SHA256.Create();
             var bytes = Encoding.UTF8.GetBytes(password + "ImovPlanSalt2026");
-            var hash = sha256.ComputeHash(bytes);
-            return Convert.ToBase64String(hash);
-        }
-
-        private string GenerateJwtToken(string userId)
-        {
-            var jwtKey = _configuration["Jwt:Key"] ?? "ImovPlanSecretKey2026ForJWTTokenGeneration";
-            var jwtIssuer = _configuration["Jwt:Issuer"] ?? "ImovPlanAPI";
-            var jwtAudience = _configuration["Jwt:Audience"] ?? "ImovPlanClient";
-
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, userId)
-            };
-
-            var token = new JwtSecurityToken(
-                issuer: jwtIssuer,
-                audience: jwtAudience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
-                signingCredentials: credentials
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return Convert.ToBase64String(sha256.ComputeHash(bytes));
         }
     }
 
@@ -161,4 +156,3 @@ namespace ImovPlan.API.Controllers
         public string Password { get; set; } = string.Empty;
     }
 }
-

@@ -18,6 +18,7 @@ namespace ImovPlan.Application.Services
         private readonly IHistoricoAporteRepository _historicoAporteRepo;
         private readonly IGastoDetalhadoRepository _gastoDetalhadoRepo;
         private readonly IParametrosFinanceirosRepository _parametrosRepo;
+        private readonly IHistoricoSimulacaoRepository _historicoSimulacaoRepo;
 
         public PlanejamentoService(
             IPlanejamentoRepository planejamentoRepo,
@@ -25,7 +26,8 @@ namespace ImovPlan.Application.Services
             IAporteExtraRepository aporteExtraRepo,
             IHistoricoAporteRepository historicoAporteRepo,
             IGastoDetalhadoRepository gastoDetalhadoRepo,
-            IParametrosFinanceirosRepository parametrosRepo)
+            IParametrosFinanceirosRepository parametrosRepo,
+            IHistoricoSimulacaoRepository historicoSimulacaoRepo)
         {
             _planejamentoRepo = planejamentoRepo;
             _participanteRepo = participanteRepo;
@@ -33,6 +35,7 @@ namespace ImovPlan.Application.Services
             _historicoAporteRepo = historicoAporteRepo;
             _gastoDetalhadoRepo = gastoDetalhadoRepo;
             _parametrosRepo = parametrosRepo;
+            _historicoSimulacaoRepo = historicoSimulacaoRepo;
         }
 
         public async Task<PlanoDraftDto?> GetDraftBySessionIdAsync(string sessionId)
@@ -77,6 +80,10 @@ namespace ImovPlan.Application.Services
             var planejamento = await _planejamentoRepo.GetByIdAsync(id);
             if (planejamento == null) return false;
 
+            // Impede sobrescrever a posse de um plano que já pertence a OUTRO usuário.
+            if (!string.IsNullOrEmpty(planejamento.UsuarioId) && planejamento.UsuarioId != usuarioId)
+                return false;
+
             planejamento.UsuarioId = usuarioId;
             await _planejamentoRepo.UpdateAsync(id, planejamento);
             return true;
@@ -100,30 +107,24 @@ namespace ImovPlan.Application.Services
             return planejamento.Id;
         }
 
-        public async Task<bool> UpdateDraftAsync(string id, PlanoDraftDto draftDto)
+        public async Task<bool> UpdateDraftAsync(string id, PlanoDraftDto draftDto, string? usuarioIdAutenticado)
         {
             var existingPlanejamento = await _planejamentoRepo.GetByIdAsync(id);
             if (existingPlanejamento == null)
-            {
                 return false;
-            }
 
-            // Check authorization: for logged-in users, verify UsuarioId; for session-based, verify SessionId
+            // Check authorization: for logged-in users, verify UsuarioId from JWT; for session-based, verify SessionId
             if (!string.IsNullOrEmpty(existingPlanejamento.UsuarioId))
             {
-                // Logged-in user plan: verify UsuarioId matches
-                if (string.IsNullOrEmpty(draftDto.UsuarioId) || existingPlanejamento.UsuarioId != draftDto.UsuarioId)
-                {
+                // Logged-in user plan: SÓ o dono autenticado pode editar.
+                if (string.IsNullOrEmpty(usuarioIdAutenticado) || existingPlanejamento.UsuarioId != usuarioIdAutenticado)
                     return false;
-                }
             }
             else
             {
                 // Session-based plan: verify SessionId matches
                 if (existingPlanejamento.SessionId != draftDto.SessionId)
-                {
                     return false;
-                }
             }
 
             // ── Map Planejamento fields ──
@@ -359,27 +360,69 @@ namespace ImovPlan.Application.Services
             return true;
         }
 
-        public async Task<PlanoDraftDto?> GetDraftAsync(string id, string sessionId)
+        public async Task<PlanoDraftDto?> GetDraftAsync(string id, string? sessionId, string? usuarioIdAutenticado)
         {
             var planejamento = await _planejamentoRepo.GetByIdAsync(id);
             if (planejamento == null)
-            {
                 return null;
-            }
 
-            // Skip SessionId validation if the plan is linked to a user (JWT auth already guarantees identity)
             if (!string.IsNullOrEmpty(planejamento.UsuarioId))
             {
+                // Só o dono autenticado pode ler.
+                if (string.IsNullOrEmpty(usuarioIdAutenticado) || planejamento.UsuarioId != usuarioIdAutenticado)
+                    return null;
                 return await BuildDraftDtoAsync(planejamento);
             }
 
             // For session-based plans, validate SessionId
             if ((planejamento.SessionId ?? string.Empty) != (sessionId ?? string.Empty))
-            {
                 return null;
-            }
 
             return await BuildDraftDtoAsync(planejamento);
+        }
+
+        public async Task<bool> ConcluirPlanoAsync(string id, string usuarioId)
+        {
+            var planejamento = await _planejamentoRepo.GetByIdAsync(id);
+            if (planejamento == null || planejamento.UsuarioId != usuarioId)
+                return false;
+
+            planejamento.Status = "Completed";
+            await _planejamentoRepo.UpdateAsync(id, planejamento);
+            return true;
+        }
+
+        public async Task DeleteAllUserDataAsync(string usuarioId)
+        {
+            var planejamento = await _planejamentoRepo.GetByUsuarioIdAsync(usuarioId);
+            if (planejamento == null)
+                return;
+
+            var planejamentoId = planejamento.Id;
+
+            // Deletar Participantes e seus GastosDetalhados
+            var participantes = await _participanteRepo.GetByPlanejamentoIdAsync(planejamentoId);
+            foreach (var p in participantes)
+            {
+                var gastos = await _gastoDetalhadoRepo.GetByParticipanteIdAsync(p.Id);
+                foreach (var g in gastos)
+                    await _gastoDetalhadoRepo.DeleteAsync(g.Id);
+                await _participanteRepo.DeleteAsync(p.Id);
+            }
+
+            // Deletar AportesExtras
+            await _aporteExtraRepo.DeleteByPlanejamentoIdAsync(planejamentoId);
+
+            // Deletar HistoricoAportes
+            await _historicoAporteRepo.DeleteByPlanejamentoIdAsync(planejamentoId);
+
+            // Deletar HistoricoSimulacao / EvolucaoMensalSimulacao
+            var historicos = await _historicoSimulacaoRepo.GetAllByPlanejamentoIdAsync(planejamentoId);
+            foreach (var h in historicos)
+                await _historicoSimulacaoRepo.DeleteAsync(h.Id);
+
+            // Deletar o Planejamento
+            await _planejamentoRepo.DeleteAsync(planejamentoId);
         }
 
         private async Task<PlanoDraftDto> BuildDraftDtoAsync(Planejamento planejamento)
@@ -478,16 +521,6 @@ namespace ImovPlan.Application.Services
                 AportesRegularesEditadosPorPessoa = aportesRegularesEditadosPorPessoa,
                 MesesConcluidos = planejamento.MesesConcluidos ?? new List<int>(),
             };
-        }
-
-        public async Task ConcluirPlanoAsync(string id)
-        {
-            var planejamento = await _planejamentoRepo.GetByIdAsync(id);
-            if (planejamento != null)
-            {
-                planejamento.Status = "Completed";
-                await _planejamentoRepo.UpdateAsync(id, planejamento);
-            }
         }
 
         /// <summary>

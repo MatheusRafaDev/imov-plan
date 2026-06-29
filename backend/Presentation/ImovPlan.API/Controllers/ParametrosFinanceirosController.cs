@@ -25,6 +25,7 @@ namespace ImovPlan.API.Controllers
             return Ok(parametros);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut]
         public async Task<IActionResult> Put([FromBody] ParametrosFinanceiros parametros)
         {
