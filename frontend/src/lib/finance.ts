@@ -142,7 +142,7 @@ export function simular(input: SimInput): SimResult {
   const valorEntrada = calcularEntrada(input.valorImovel, input.percentualEntrada);
   const faltava = Math.max(0, meta - input.valorJaGuardado);
   const taxaMes = taxaMensalEfetiva(input.taxaCdiAnual, input.percentualCdi);
-  const prazoMax = input.prazoMaxMeses ?? 600;
+  let prazoMax = (input.prazoMaxMeses ?? 600) + 6; // Sempre adiciona 6 meses extras ao planejamento
   let inicio: Date;
   if (typeof input.dataInicio === 'string' && input.dataInicio) {
     inicio = new Date(input.dataInicio + 'T12:00:00');
@@ -223,11 +223,12 @@ export function simular(input: SimInput): SimResult {
       totalInvestido,
     });
 
-    // Registra quando a meta foi atingida, mas continua o loop até o fim do prazo
+    // Registra quando a meta foi atingida e continua o loop por mais 6 meses
     if (!atingiuMeta && saldo >= meta) {
       atingiuMeta = true;
       mesAtingiu = mes;
       dataAtingiu = dataRef.toISOString();
+      prazoMax = Math.min(prazoMax, mes + 6);
     }
   }
 

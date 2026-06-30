@@ -18,17 +18,20 @@ namespace ImovPlan.API.Controllers
         private readonly ICalculoFinanceiroService _calculoService;
         private readonly IParticipanteRepository _participanteRepository;
         private readonly IAporteExtraRepository _aporteExtraRepository;
+        private readonly IParametrosFinanceirosRepository _parametrosRepo;
 
         public PlanejamentoController(
             IPlanejamentoRepository planejamentoRepository,
             ICalculoFinanceiroService calculoService,
             IParticipanteRepository participanteRepository,
-            IAporteExtraRepository aporteExtraRepository)
+            IAporteExtraRepository aporteExtraRepository,
+            IParametrosFinanceirosRepository parametrosRepo)
         {
             _planejamentoRepository = planejamentoRepository;
             _calculoService = calculoService;
             _participanteRepository = participanteRepository;
             _aporteExtraRepository = aporteExtraRepository;
+            _parametrosRepo = parametrosRepo;
         }
 
         [HttpGet("{id}")]
@@ -55,21 +58,20 @@ namespace ImovPlan.API.Controllers
 
             var created = await _planejamentoRepository.CreateAsync(planejamento);
 
-            // Auto-calculate and persist CustosCompra subdocument
+            var parametros = await _parametrosRepo.GetAtivoAsync();
             var valorImovel = created.ValorImovel ?? 0m;
             var percentualEntrada = created.PercentualEntrada ?? 0m;
             var percentualCustosExtras = created.PercentualCustosExtras ?? 0m;
             var valorEntrada = _calculoService.CalcularEntrada(valorImovel, percentualEntrada);
-            var custos = _calculoService.CalcularCustosExtras(valorImovel);
             var totalNecessario = valorEntrada + (valorImovel * percentualCustosExtras / 100m);
 
             created.CustosCompra = new CustosCompra
             {
                 ValorEntrada = valorEntrada,
                 TotalNecessario = totalNecessario,
-                CustoITBI = custos.CustoITBI,
-                CustoEscritura = custos.CustoEscritura,
-                CustoRegistro = custos.CustoRegistro,
+                CustoITBI = valorImovel * parametros.CustoItbiPadrao,
+                CustoEscritura = valorImovel * parametros.CustoEscrituraPadrao,
+                CustoRegistro = valorImovel * parametros.CustoRegistroPadrao,
                 CalculadoEm = System.DateTime.UtcNow,
             };
 
@@ -90,21 +92,20 @@ namespace ImovPlan.API.Controllers
             planejamento.UsuarioId = existing.UsuarioId;
             planejamento.SessionId = existing.SessionId;
 
-            // Recalculate and persist CustosCompra subdocument
+            var parametros = await _parametrosRepo.GetAtivoAsync();
             var valorImovel = planejamento.ValorImovel ?? 0m;
             var percentualEntrada = planejamento.PercentualEntrada ?? 0m;
             var percentualCustosExtras = planejamento.PercentualCustosExtras ?? 0m;
             var valorEntrada = _calculoService.CalcularEntrada(valorImovel, percentualEntrada);
-            var custos = _calculoService.CalcularCustosExtras(valorImovel);
             var totalNecessario = valorEntrada + (valorImovel * percentualCustosExtras / 100m);
 
             planejamento.CustosCompra = new CustosCompra
             {
                 ValorEntrada = valorEntrada,
                 TotalNecessario = totalNecessario,
-                CustoITBI = custos.CustoITBI,
-                CustoEscritura = custos.CustoEscritura,
-                CustoRegistro = custos.CustoRegistro,
+                CustoITBI = valorImovel * parametros.CustoItbiPadrao,
+                CustoEscritura = valorImovel * parametros.CustoEscrituraPadrao,
+                CustoRegistro = valorImovel * parametros.CustoRegistroPadrao,
                 CalculadoEm = System.DateTime.UtcNow,
             };
 

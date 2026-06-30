@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import React from "react";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
-import { brl, simular, nomeTipoInvestimento, percentualCdiPorTipoInvestimento, type SimResult, type SimRow } from "@/lib/finance";
+import { brl, simular, nomeTipoInvestimento, percentualCdiPorTipoInvestimento, type SimInput, type SimResult, type SimRow } from "@/lib/finance";
 import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, ReferenceDot, Legend } from "recharts";
 import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp, RefreshCw, Database, Loader2 } from "lucide-react";
@@ -13,7 +13,7 @@ import { SimulacaoService, type BackendSimulacaoResult } from "@/services/Simula
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 
 /** Converte resposta do backend para SimResult */
-function backendToSimResult(backend: BackendSimulacaoResult): SimResult {
+function backendToSimResult(backend: BackendSimulacaoResult, objetivo: Partial<SimInput> | null): SimResult {
   const rows: SimRow[] = backend.detalhesMensais.map(d => ({
     mes: d.mes,
     data: new Date(d.dataReferencia).toISOString(),
@@ -39,8 +39,8 @@ function backendToSimResult(backend: BackendSimulacaoResult): SimResult {
 
   return {
     meta: backend.totalNecessario,
-    custosExtras: backend.totalNecessario - (backend.valorImovel * (backend.totalNecessario > 0 ? 1 : 0)),
-    valorEntrada: backend.valorImovel > 0 ? backend.totalNecessario * 0.8 : 0,
+    custosExtras: (Number(objetivo?.valorImovel) || 0) * (Number(objetivo?.percentualCustosExtras) || 0) / 100,
+    valorEntrada: (Number(objetivo?.valorImovel) || 0) * (Number(objetivo?.percentualEntrada) || 0) / 100,
     faltava: Math.max(0, backend.totalNecessario - backend.valorJaGuardado),
     rows,
     atingiuMeta: backend.atingiuMeta,
@@ -54,7 +54,7 @@ function backendToSimResult(backend: BackendSimulacaoResult): SimResult {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa, dadosCalculados } = usePlanContext();
   const router = useRouter();
 
   // Estado para dados do backend
@@ -64,18 +64,8 @@ export default function ResultadoPage() {
   const [backendError, setBackendError] = useState<string | null>(null);
   const [simSource, setSimSource] = useState<"backend" | "client">("client");
 
-  const effectivePercentualCdi = useMemo(() => {
-    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
-    if (totalSaved <= 0) {
-      return Number(objetivo?.percentualCdi ?? 100);
-    }
-    return pessoas.reduce((sum, p) => {
-      const tipoPercent = p.tipoInvestimento
-        ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
-        : Number(objetivo?.percentualCdi ?? 100);
-      return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
-    }, 0);
-  }, [pessoas, objetivo?.percentualCdi]);
+  // Usar dados calculados centralizados do contexto
+  const { effectivePercentualCdi, aporteTotal, totalGuardado, combinedExtras, virtualAportesRegularesEditados, simResult, perPersonStats } = dadosCalculados;
 
   // Carregar última simulação do backend ao montar
   useEffect(() => {
@@ -145,170 +135,41 @@ export default function ResultadoPage() {
   // Save mesesConcluidos to database when it changes
   const isFirstRender = useRef(true);
   const prevMesesRef = useRef<number[]>(mesesConcluidos);
-  
+
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       prevMesesRef.current = mesesConcluidos;
       return;
     }
-    
+
     const prev = prevMesesRef.current;
     const curr = mesesConcluidos;
-    
+
     // Evitar save se o conteúdo não mudou
     if (prev.length === curr.length && prev.every((v, i) => v === curr[i])) {
       return;
     }
-    
+
     prevMesesRef.current = curr;
     saveDraft({ mesesConcluidos: curr });
   }, [mesesConcluidos, saveDraft]);
 
-  const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
-
-  const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
-  const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
-
   const inicio = objetivo?.dataInicio
     ? (typeof objetivo.dataInicio === "string"
-        ? new Date(objetivo.dataInicio + "T12:00:00")
-        : new Date(objetivo.dataInicio))
+      ? new Date(objetivo.dataInicio + "T12:00:00")
+      : new Date(objetivo.dataInicio))
     : new Date();
-
-  const combinedExtras = useMemo(() => {
-    return aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
-  }, [aportesExtras]);
-
-  const virtualAportesRegularesEditados = useMemo(() => {
-    const virtualMap: Record<number, number> = {};
-    const prazoMax = objetivo?.prazoMaxMeses ?? 600;
-    
-    for (let mes = 1; mes <= prazoMax; mes++) {
-      let isEditedInMonth = false;
-      let totalForMonth = 0;
-      
-      pessoas.forEach(p => {
-        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[mes];
-        if (editedValue !== undefined) {
-          isEditedInMonth = true;
-          totalForMonth += editedValue;
-        } else {
-          totalForMonth += Number(p.aporte_mensal) || 0;
-        }
-      });
-      
-      if (!isEditedInMonth && aportesRegularesEditados[mes] !== undefined) {
-          virtualMap[mes] = aportesRegularesEditados[mes];
-      } else if (isEditedInMonth) {
-          virtualMap[mes] = totalForMonth;
-      }
-    }
-    return virtualMap;
-  }, [pessoas, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, objetivo?.prazoMaxMeses]);
 
   // Construir o simResult: prioriza backend, fallback client-side
   const sim = useMemo((): SimResult | null => {
     if (backendData && simSource === "backend") {
-      return backendToSimResult(backendData);
-    }
-    
-    if (!objetivo?.valorImovel) return null;
-
-    return simular({
-      valorImovel: Number(objetivo?.valorImovel ?? 0),
-      percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-      percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-      valorJaGuardado: totalGuardado,
-      taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-      percentualCdi: effectivePercentualCdi,
-      aporteMensalTotal: aporteTotal,
-      aportesRegularesEditados: virtualAportesRegularesEditados,
-      dataInicio: objetivo?.dataInicio ?? new Date(),
-      aportesExtras: combinedExtras,
-      prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-    });
-  }, [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, effectivePercentualCdi, backendData, simSource]);
-
-  // Per-person stats
-  const perPersonStats = useMemo(() => {
-    if (!sim) return [];
-
-    const initialById = Object.fromEntries(pessoas.map(p => [p.id, Number(p.valorInicial ?? 0)]));
-    const aporteTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
-    const extrasTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
-    const rendimentoTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
-    const finalSaldoById: Record<string, number> = { ...initialById };
-
-    for (const row of sim.rows) {
-      if (row.mes === 0) continue;
-
-      const defaultAporte = aporteTotal;
-      const isEditedMonth = aportesRegularesEditados[row.mes] !== undefined;
-      const aporteFinalPorPessoa: Record<string, number> = {};
-
-      pessoas.forEach(p => {
-        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[row.mes];
-        if (editedValue !== undefined) {
-          aporteFinalPorPessoa[p.id] = editedValue;
-        } else if (isEditedMonth && defaultAporte > 0) {
-          aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[row.mes] || 0);
-        } else {
-          aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
-        }
-      });
-
-      const extrasMes = combinedExtras.filter(a => {
-        const d = new Date(a.data + "T12:00:00");
-        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
-        return mesOffset === row.mes;
-      });
-
-      const extrasPorPessoa: Record<string, number> = {};
-      let extrasConjunto = 0;
-      extrasMes.forEach(a => {
-        if (a.pessoaNome) {
-          extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
-        } else {
-          extrasConjunto += Number(a.valor);
-        }
-      });
-
-      const weightedBalances = Object.fromEntries(
-        pessoas.map(p => [
-          p.id,
-          (finalSaldoById[p.id] || 0) * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
-        ])
-      );
-      const totalWeighted = Object.values(weightedBalances).reduce((sum, value) => sum + value, 0);
-
-      pessoas.forEach(p => {
-        const balance = finalSaldoById[p.id] || 0;
-        const weight = totalWeighted > 0
-          ? (weightedBalances[p.id] || 0) / totalWeighted
-          : (row.saldoAcumulado > 0 ? balance / row.saldoAcumulado : 0);
-        const rendimentoPessoa = row.rendimentoLiquido * weight;
-
-        aporteTotalById[p.id] += aporteFinalPorPessoa[p.id];
-        extrasTotalById[p.id] += extrasPorPessoa[p.nome] || 0;
-        rendimentoTotalById[p.id] += rendimentoPessoa;
-        finalSaldoById[p.id] = balance + aporteFinalPorPessoa[p.id] + (extrasPorPessoa[p.nome] || 0) + rendimentoPessoa;
-      });
+      return backendToSimResult(backendData, objetivo);
     }
 
-    return pessoas.map(p => ({
-      id: p.id,
-      nome: p.nome,
-      tipoInvestimento: p.tipoInvestimento,
-      percentualCdiInvestimento: percentualCdiPorTipoInvestimento(p.tipoInvestimento),
-      valorInicial: Number(p.valorInicial ?? 0),
-      aporteTotal: aporteTotalById[p.id] || 0,
-      extrasTotal: extrasTotalById[p.id] || 0,
-      rendimentoTotal: rendimentoTotalById[p.id] || 0,
-      saldoFinal: finalSaldoById[p.id] || 0,
-      retornoInvestimento: (finalSaldoById[p.id] || 0) - (Number(p.valorInicial ?? 0) + (aporteTotalById[p.id] || 0) + (extrasTotalById[p.id] || 0)),
-    }));
-  }, [pessoas, sim, combinedExtras, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, totalGuardado, aporteTotal, inicio]);
+    // Usar simResult centralizado do contexto quando não há dados do backend
+    return simResult;
+  }, [backendData, simSource, objetivo, simResult]);
 
   const chartData = sim?.rows.map(r => ({
     mes: r.mes,
@@ -547,11 +408,11 @@ export default function ResultadoPage() {
                       const defaultAporte = row.mes === 0 ? 0 : aporteTotal;
                       const isEdited = row.aporteRegular !== defaultAporte;
                       if (isEdited) {
-                         const baseAporte = Number(p.aporte_mensal) || 0;
-                         const proporcao = defaultAporte > 0 ? baseAporte / defaultAporte : 0;
-                         return sum + (proporcao * row.aporteRegular);
+                        const baseAporte = Number(p.aporte_mensal) || 0;
+                        const proporcao = defaultAporte > 0 ? baseAporte / defaultAporte : 0;
+                        return sum + (proporcao * row.aporteRegular);
                       } else {
-                         return sum + (Number(p.aporte_mensal) || 0);
+                        return sum + (Number(p.aporte_mensal) || 0);
                       }
                     }, 0);
                     const v = aportesRegularesSum + (extrasMap[p.nome] || 0);
@@ -603,11 +464,11 @@ export default function ResultadoPage() {
                 {(() => {
                   const rRow = targetRow || (sim.rows[sim.rows.length - 1]);
                   if (!rRow) return null;
-                  
+
                   const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
                   let saldoConjunto = 0;
                   let saldoAnterior = totalGuardado;
-                  
+
                   for (let i = 0; i <= targetMonthIndex; i++) {
                     const r = sim.rows[i];
                     const extrasMes = combinedExtras.filter(a => {
@@ -615,19 +476,19 @@ export default function ResultadoPage() {
                       const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
                       return mesOffset === r.mes;
                     });
-                    
+
                     const extrasPorPessoa: Record<string, number> = {};
                     let extrasConjunto = 0;
                     extrasMes.forEach(a => {
                       if (a.pessoaNome) extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
                       else extrasConjunto += Number(a.valor);
                     });
-                    
+
                     const saldoTotalAnterior = saldoAnterior;
                     const novosSaldos: Record<string, number> = {};
                     const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
                     const isLegacyEdited = aportesRegularesEditados[r.mes] !== undefined;
-                    
+
                     const aporteFinalPorPessoa: Record<string, number> = {};
                     pessoas.forEach(p => {
                       if (r.mes === 0) {
@@ -643,7 +504,7 @@ export default function ResultadoPage() {
                         }
                       }
                     });
-                    
+
                     pessoas.forEach(p => {
                       const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
                       const rendimentoPessoa = proporcao * r.rendimentoLiquido;
@@ -651,12 +512,12 @@ export default function ResultadoPage() {
                       const extra = extrasPorPessoa[p.nome] || 0;
                       novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
                     });
-                    
+
                     const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
                     const rendimentoConjunto = proporcaoConjunto * r.rendimentoLiquido;
                     const diffConjunto = isLegacyEdited && defaultAporte === 0 ? r.aporteRegular : 0;
                     const novoSaldoConjunto = saldoConjunto + extrasConjunto + rendimentoConjunto + diffConjunto;
-                    
+
                     pessoas.forEach(p => { saldos[p.nome] = novosSaldos[p.nome]; });
                     saldoConjunto = novoSaldoConjunto;
                     saldoAnterior = r.saldoAcumulado;
@@ -714,9 +575,9 @@ export default function ResultadoPage() {
       </div>
 
       {/* Tabela mês a mês — com dados do backend se disponíveis */}
-      <TabelaMesAMes 
-        percentualCdiOverride={effectivePercentualCdi} 
-        externalSim={simSource === "backend" && backendData ? backendToSimResult(backendData) : undefined}
+      <TabelaMesAMes
+        percentualCdiOverride={effectivePercentualCdi}
+        externalSim={simSource === "backend" && backendData ? backendToSimResult(backendData, objetivo) : undefined}
       />
     </div>
   );

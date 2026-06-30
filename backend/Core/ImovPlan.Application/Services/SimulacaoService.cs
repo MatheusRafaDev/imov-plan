@@ -39,9 +39,9 @@ namespace ImovPlan.Application.Services
             
             // Fetch per-person initial balances from Participante.PatrimonioInicial
             var saldoInicialTotal = 0m;
-            foreach (var aporte in request.AportesMensais)
+            foreach (var pid in planejamento.ParticipantesIds)
             {
-                var participante = await _participanteRepo.GetByIdAsync(aporte.PessoaId);
+                var participante = await _participanteRepo.GetByIdAsync(pid);
                 if (participante?.PatrimonioInicial != null)
                 {
                     saldoInicialTotal += participante.PatrimonioInicial.Valor;
@@ -57,9 +57,12 @@ namespace ImovPlan.Application.Services
 
             var resultado = new SimulacaoResultado();
             var meses = 0;
-            var dataReferencia = DateTime.UtcNow;
+            var dataReferencia = planejamento.DataInicio ?? DateTime.UtcNow;
+            int? mesAtingiu = null;
+            DateTime? dataAtingiu = null;
+            var limiteMeses = parametros.PrazoFinanciamentoPadraoMeses;
 
-            while (saldo < totalNecessario && meses < parametros.PrazoFinanciamentoPadraoMeses)
+            while (meses < limiteMeses)
             {
                 meses++;
                 dataReferencia = dataReferencia.AddMonths(1);
@@ -90,10 +93,17 @@ namespace ImovPlan.Application.Services
                 });
 
                 saldo = novoSaldo;
+
+                if (!mesAtingiu.HasValue && saldo >= totalNecessario)
+                {
+                    mesAtingiu = meses;
+                    dataAtingiu = dataReferencia;
+                    limiteMeses = Math.Min(parametros.PrazoFinanciamentoPadraoMeses, meses + 6);
+                }
             }
 
-            resultado.MesesParaAtingir = meses;
-            resultado.DataPrevistaAlvo = dataReferencia;
+            resultado.MesesParaAtingir = mesAtingiu ?? meses;
+            resultado.DataPrevistaAlvo = dataAtingiu ?? dataReferencia;
             resultado.TotalAcumulado = saldo;
             resultado.TotalInvestido = totalInvestido;
             resultado.LucroLiquido = saldo - totalInvestido;

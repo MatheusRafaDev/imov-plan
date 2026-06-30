@@ -81,18 +81,52 @@ namespace ImovPlan.Application.Services
 
         public decimal CalcularCET(decimal pv, decimal taxaAnual, int prazoMeses, decimal taxaMip, decimal taxaDfi, decimal taxaAdmin)
         {
-            // O cálculo exato do CET requer iteração (Newton-Raphson) 
-            // Para efeitos de simulação inicial, adicionamos os custos ao fluxo para obter a taxa real
             var i = ConverterTaxaAnualParaMensal(taxaAnual);
-            
-            // Taxa estimada aproximada simplificada para fins de demonstração
-            var custoMedioSeguros = (taxaMip + taxaDfi) * (pv / 2); // média
-            var custoTotalMedioMes = custoMedioSeguros + taxaAdmin;
-            
-            // Incremento aproximado na taxa mensal
-            var cetMensal = i + (custoTotalMedioMes / pv); 
-            var cetAnual = (decimal)Math.Pow((double)(1 + cetMensal), 12) - 1;
-            
+            var amortizacao = pv / prazoMeses;
+            var fluxosDeCaixa = new double[prazoMeses + 1];
+            fluxosDeCaixa[0] = -(double)pv;
+            var saldoDevedor = pv;
+
+            for (int k = 1; k <= prazoMeses; k++)
+            {
+                var juros = saldoDevedor * i;
+                var parcela = amortizacao + juros;
+                var seguroMip = saldoDevedor * taxaMip;
+                var seguroDfi = pv * taxaDfi; 
+                var custoMensal = parcela + seguroMip + seguroDfi + taxaAdmin;
+                
+                fluxosDeCaixa[k] = (double)custoMensal;
+                saldoDevedor -= amortizacao;
+            }
+
+            // Newton-Raphson para TIR (IRR)
+            double tirMensal = (double)i; // Chute inicial
+            for (int iter = 0; iter < 100; iter++)
+            {
+                double npv = 0;
+                double dNpv = 0;
+                for (int k = 0; k <= prazoMeses; k++)
+                {
+                    double factor = Math.Pow(1 + tirMensal, k);
+                    npv += fluxosDeCaixa[k] / factor;
+                    if (k > 0)
+                    {
+                        dNpv -= k * fluxosDeCaixa[k] / (factor * (1 + tirMensal));
+                    }
+                }
+                
+                if (Math.Abs(npv) < 1e-6) break;
+                
+                double nextTir = tirMensal - npv / dNpv;
+                if (Math.Abs(nextTir - tirMensal) < 1e-7)
+                {
+                    tirMensal = nextTir;
+                    break;
+                }
+                tirMensal = nextTir;
+            }
+
+            var cetAnual = (decimal)Math.Pow(1 + tirMensal, 12) - 1;
             return Math.Round(cetAnual * 100, 2);
         }
 
@@ -190,7 +224,7 @@ namespace ImovPlan.Application.Services
                 var rendimentoLiquido = rendimentoBruto - imposto;
                 saldo += rendimentoLiquido;
 
-                var dataRef = new DateTime(dataInicio.Year, dataInicio.Month, 1).AddMonths(mes - 1);
+                var dataRef = new DateTime(dataInicio.Year, dataInicio.Month, 1).AddMonths(mes);
 
                 rows.Add(new SimRowDto
                 {
@@ -210,7 +244,6 @@ namespace ImovPlan.Application.Services
                     atingiuMeta = true;
                     mesAtingiuMeta = mes;
                     dataAtingiuMeta = dataRef.ToString("yyyy-MM-dd");
-                    break;
                 }
             }
 

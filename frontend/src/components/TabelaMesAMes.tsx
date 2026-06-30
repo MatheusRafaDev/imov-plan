@@ -178,17 +178,18 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
 }
 
 export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedToggle = true, percentualCdiOverride, externalSim }: { limitRows?: number, showFinancials?: boolean, showCompletedToggle?: boolean, percentualCdiOverride?: number, externalSim?: SimResult }) {
-  const { 
-    objetivo, 
-    pessoas, 
-    aportesExtras, 
-    aportesRegularesEditados, 
+  const {
+    objetivo,
+    pessoas,
+    aportesExtras,
+    aportesRegularesEditados,
     setAportesRegularesEditados,
     aportesRegularesEditadosPorPessoa,
     setAportesRegularesEditadosPorPessoa,
     saveDraft,
-    mesesConcluidos, 
-    setMesesConcluidos 
+    mesesConcluidos,
+    setMesesConcluidos,
+    dadosCalculados
   } = usePlanContext();
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
@@ -200,64 +201,24 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     });
   };
 
-  const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
-  const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
-  const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
+  // Usar dados calculados centralizados do contexto
+  const { aporteTotal, totalGuardado, combinedExtras, virtualAportesRegularesEditados, simResult } = dadosCalculados;
+
   const inicio = objetivo?.dataInicio
     ? (typeof objetivo.dataInicio === "string"
         ? new Date(objetivo.dataInicio + "T12:00:00")
         : new Date(objetivo.dataInicio))
     : new Date();
 
-  const combinedExtras = useMemo(() => aportesExtras.map(a => ({ ...a, valor: Number(a.valor) })), [aportesExtras]);
-
-  // Create virtual map to pass to finance logic
-  const virtualAportesRegularesEditados = useMemo(() => {
-    const virtualMap: Record<number, number> = {};
-    const prazoMax = objetivo?.prazoMaxMeses ?? 600;
-    
-    for (let mes = 1; mes <= prazoMax; mes++) {
-      let isEditedInMonth = false;
-      let totalForMonth = 0;
-      
-      pessoas.forEach(p => {
-        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[mes];
-        if (editedValue !== undefined) {
-          isEditedInMonth = true;
-          totalForMonth += editedValue;
-        } else {
-          totalForMonth += Number(p.aporte_mensal) || 0;
-        }
-      });
-      
-      if (!isEditedInMonth && aportesRegularesEditados[mes] !== undefined) {
-          virtualMap[mes] = aportesRegularesEditados[mes];
-      } else if (isEditedInMonth) {
-          virtualMap[mes] = totalForMonth;
-      }
-    }
-    return virtualMap;
-  }, [pessoas, aportesRegularesEditadosPorPessoa, aportesRegularesEditados, objetivo?.prazoMaxMeses]);
-
-  // Usa dados externos (backend) se fornecidos, senão calcula client-side
+  // Usa dados externos (backend) se fornecidos, senão usa simResult centralizado
   const sim = useMemo(() => {
     if (externalSim) return externalSim;
-    return simular({
-      valorImovel: Number(objetivo?.valorImovel ?? 0),
-      percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-      percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-      valorJaGuardado: totalGuardado,
-      taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-      percentualCdi: percentualCdiOverride ?? Number(objetivo?.percentualCdi ?? 100),
-      aporteMensalTotal: aporteTotal,
-      aportesRegularesEditados: virtualAportesRegularesEditados,
-      dataInicio: objetivo?.dataInicio ?? new Date(),
-      aportesExtras: combinedExtras,
-      prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-    });
-  }, [objetivo, combinedExtras, aporteTotal, totalGuardado, virtualAportesRegularesEditados, percentualCdiOverride, externalSim]);
+    return simResult;
+  }, [externalSim, simResult]);
 
   const tableRows = useMemo((): EnrichedRow[] => {
+    if (!sim) return [];
+
     const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
     let saldoConjunto = 0;
     let saldoAnterior = totalGuardado;
@@ -327,9 +288,34 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
         saldoConjunto: novoSaldoConjunto,
       };
     });
-  }, [sim.rows, pessoas, combinedExtras, inicio, sim.mesAtingiuMeta, aporteTotal, totalGuardado, aportesRegularesEditadosPorPessoa, aportesRegularesEditados]);
+  }, [sim?.rows, pessoas, combinedExtras, inicio, sim?.mesAtingiuMeta, aporteTotal, totalGuardado, aportesRegularesEditadosPorPessoa, aportesRegularesEditados]);
 
   const displayRows: EnrichedRow[] = limitRows ? tableRows.slice(0, limitRows) : tableRows;
+
+  const totals = useMemo(() => {
+    let aportePorPessoa: Record<string, number> = {};
+    pessoas.forEach(p => aportePorPessoa[p.id] = 0);
+    let extras = 0;
+    let totalMes = 0;
+    let rendBruto = 0;
+    let ir = 0;
+    let rendLiquido = 0;
+    let saldoFinal = 0;
+
+    displayRows.forEach(r => {
+      pessoas.forEach(p => {
+        aportePorPessoa[p.id] += r.aporteFinalPorPessoa?.[p.id] || 0;
+      });
+      extras += r.aportesExtras;
+      totalMes += r.aporteRegular + r.aportesExtras;
+      rendBruto += r.rendimentoBruto;
+      ir += r.imposto;
+      rendLiquido += r.rendimentoLiquido;
+      saldoFinal = r.saldoAcumulado;
+    });
+
+    return { aportePorPessoa, extras, totalMes, rendBruto, ir, rendLiquido, saldoFinal };
+  }, [displayRows, pessoas]);
 
   return (
     <div>
@@ -338,7 +324,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
         <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
       </div>
 
-      <div className="overflow-x-auto max-h-[560px] border border-border/50 rounded-xl shadow-sm bg-card relative">
+      <div className="overflow-x-auto border border-border/50 rounded-xl shadow-sm bg-card relative">
         <table className="w-full text-xs">
           <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-sm text-muted-foreground shadow-sm">
             <tr>
@@ -366,7 +352,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
               const isConcluido = mesesConcluidosSet.has(r.mes);
               const totalExtras = r.aportesExtras;
               const totalAporteMes = r.aporteRegular + totalExtras;
-              const progressoMeta = sim.meta > 0 ? (r.saldoAcumulado / sim.meta) * 100 : 0;
+              const progressoMeta = sim && sim.meta > 0 ? (r.saldoAcumulado / sim.meta) * 100 : 0;
 
               return (
                 <tr
@@ -485,6 +471,31 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
               );
             })}
           </tbody>
+          <tfoot className="bg-primary/10 border-t-2 border-primary/30">
+            <tr className="font-bold text-foreground">
+              <Td className="bg-primary/20">Total Geral</Td>
+              <Td className="bg-primary/20">{""}</Td>
+              {pessoas.map(p => (
+                <Td key={p.id} right className="bg-primary/20">{brl(totals.aportePorPessoa[p.id])}</Td>
+              ))}
+              <Td right className="bg-primary/20">{brl(totals.extras)}</Td>
+              <Td right className="bg-primary/20">{brl(totals.totalMes)}</Td>
+              {showFinancials && (
+                <>
+                  <Td right className="bg-primary/20 text-muted-foreground">{brl(totals.rendBruto)}</Td>
+                  <Td right className="bg-primary/20 text-muted-foreground/70">{brl(totals.ir)}</Td>
+                  <Td right className="bg-primary/20 text-[#3B6D11] dark:text-[#80B551]">
+                    {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
+                  </Td>
+                  <Td right className="bg-primary/20">{brl(totals.saldoFinal)}</Td>
+                  <Td right className="bg-primary/20">{""}</Td>
+                </>
+              )}
+              {!showFinancials && (
+                <Td right className="bg-primary/20">{brl(totals.saldoFinal)}</Td>
+              )}
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

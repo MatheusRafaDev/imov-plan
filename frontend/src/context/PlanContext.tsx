@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect } from "react";
-import type { SimInput, Aporte } from "@/lib/finance";
+import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect, useMemo } from "react";
+import type { SimInput, Aporte, SimResult, SimRow } from "@/lib/finance";
+import { simular, percentualCdiPorTipoInvestimento } from "@/lib/finance";
 import Cookies from "js-cookie";
 import api from "@/lib/api";
 
@@ -30,6 +31,27 @@ export type Pessoa = {
   aporte_mensal: number;
   valorInicial?: number;
   tipoInvestimento?: string;
+};
+
+export type DadosCalculados = {
+  aporteTotal: number;
+  totalGuardado: number;
+  effectivePercentualCdi: number;
+  virtualAportesRegularesEditados: Record<number, number>;
+  combinedExtras: Aporte[];
+  simResult: SimResult | null;
+  perPersonStats: Array<{
+    id: string;
+    nome: string;
+    tipoInvestimento: string | undefined;
+    percentualCdiInvestimento: number;
+    valorInicial: number;
+    aporteTotal: number;
+    extrasTotal: number;
+    rendimentoTotal: number;
+    saldoFinal: number;
+    retornoInvestimento: number;
+  }>;
 };
 
 // Shape exata que o backend PlanoController espera (PlanoDraftDto)
@@ -84,11 +106,177 @@ type PlanContextType = {
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
   }) => Promise<boolean>;
   carregarPlano: () => Promise<void>;
+  dadosCalculados: DadosCalculados;
+  recalcular: () => void;
 };
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
 const CHAVE_LOCAL = "imovplan_dados";
+
+// Função centralizada para calcular todos os dados financeiros
+function calcularDadosFinanceiros(
+  objetivo: Partial<SimInput> | null,
+  pessoas: Pessoa[],
+  aportesExtras: Aporte[],
+  aportesRegularesEditados: Record<number, number>,
+  aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>
+): DadosCalculados {
+  const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
+  const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
+  const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
+
+  const effectivePercentualCdi = (() => {
+    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
+    if (totalSaved <= 0) {
+      return Number(objetivo?.percentualCdi ?? 100);
+    }
+    return pessoas.reduce((sum, p) => {
+      const tipoPercent = p.tipoInvestimento
+        ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
+        : Number(objetivo?.percentualCdi ?? 100);
+      return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
+    }, 0);
+  })();
+
+  const combinedExtras = aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
+
+  const virtualAportesRegularesEditados = (() => {
+    const virtualMap: Record<number, number> = {};
+    const prazoMax = objetivo?.prazoMaxMeses ?? 600;
+
+    for (let mes = 1; mes <= prazoMax; mes++) {
+      let isEditedInMonth = false;
+      let totalForMonth = 0;
+
+      pessoas.forEach(p => {
+        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[mes];
+        if (editedValue !== undefined) {
+          isEditedInMonth = true;
+          totalForMonth += editedValue;
+        } else {
+          totalForMonth += Number(p.aporte_mensal) || 0;
+        }
+      });
+
+      if (!isEditedInMonth && aportesRegularesEditados[mes] !== undefined) {
+        virtualMap[mes] = aportesRegularesEditados[mes];
+      } else if (isEditedInMonth) {
+        virtualMap[mes] = totalForMonth;
+      }
+    }
+    return virtualMap;
+  })();
+
+  const inicio = objetivo?.dataInicio
+    ? (typeof objetivo.dataInicio === "string"
+      ? new Date(objetivo.dataInicio + "T12:00:00")
+      : new Date(objetivo.dataInicio))
+    : new Date();
+
+  const simResult = objetivo?.valorImovel ? simular({
+    valorImovel: Number(objetivo?.valorImovel ?? 0),
+    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
+    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
+    valorJaGuardado: totalGuardado,
+    taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
+    percentualCdi: effectivePercentualCdi,
+    aporteMensalTotal: aporteTotal,
+    aportesRegularesEditados: virtualAportesRegularesEditados,
+    dataInicio: objetivo?.dataInicio ?? new Date(),
+    aportesExtras: combinedExtras,
+    prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
+  }) : null;
+
+  const perPersonStats = (() => {
+    if (!simResult) return [];
+
+    const initialById = Object.fromEntries(pessoas.map(p => [p.id, Number(p.valorInicial ?? 0)]));
+    const aporteTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    const extrasTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    const rendimentoTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    const finalSaldoById: Record<string, number> = { ...initialById };
+
+    for (const row of simResult.rows) {
+      if (row.mes === 0) continue;
+
+      const defaultAporte = aporteTotal;
+      const isEditedMonth = aportesRegularesEditados[row.mes] !== undefined;
+      const aporteFinalPorPessoa: Record<string, number> = {};
+
+      pessoas.forEach(p => {
+        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[row.mes];
+        if (editedValue !== undefined) {
+          aporteFinalPorPessoa[p.id] = editedValue;
+        } else if (isEditedMonth && defaultAporte > 0) {
+          aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[row.mes] || 0);
+        } else {
+          aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
+        }
+      });
+
+      const extrasMes = combinedExtras.filter(a => {
+        const d = new Date(a.data + "T12:00:00");
+        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+        return mesOffset === row.mes;
+      });
+
+      const extrasPorPessoa: Record<string, number> = {};
+      let extrasConjunto = 0;
+      extrasMes.forEach(a => {
+        if (a.pessoaNome) {
+          extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
+        } else {
+          extrasConjunto += Number(a.valor);
+        }
+      });
+
+      const weightedBalances = Object.fromEntries(
+        pessoas.map(p => [
+          p.id,
+          (finalSaldoById[p.id] || 0) * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
+        ])
+      );
+      const totalWeighted = Object.values(weightedBalances).reduce((sum, value) => sum + value, 0);
+
+      pessoas.forEach(p => {
+        const balance = finalSaldoById[p.id] || 0;
+        const weight = totalWeighted > 0
+          ? (weightedBalances[p.id] || 0) / totalWeighted
+          : (row.saldoAcumulado > 0 ? balance / row.saldoAcumulado : 0);
+        const rendimentoPessoa = row.rendimentoLiquido * weight;
+
+        aporteTotalById[p.id] += aporteFinalPorPessoa[p.id];
+        extrasTotalById[p.id] += extrasPorPessoa[p.nome] || 0;
+        rendimentoTotalById[p.id] += rendimentoPessoa;
+        finalSaldoById[p.id] = balance + aporteFinalPorPessoa[p.id] + (extrasPorPessoa[p.nome] || 0) + rendimentoPessoa;
+      });
+    }
+
+    return pessoas.map(p => ({
+      id: p.id,
+      nome: p.nome,
+      tipoInvestimento: p.tipoInvestimento,
+      percentualCdiInvestimento: percentualCdiPorTipoInvestimento(p.tipoInvestimento),
+      valorInicial: Number(p.valorInicial ?? 0),
+      aporteTotal: aporteTotalById[p.id] || 0,
+      extrasTotal: extrasTotalById[p.id] || 0,
+      rendimentoTotal: rendimentoTotalById[p.id] || 0,
+      saldoFinal: finalSaldoById[p.id] || 0,
+      retornoInvestimento: (finalSaldoById[p.id] || 0) - (Number(p.valorInicial ?? 0) + (aporteTotalById[p.id] || 0) + (extrasTotalById[p.id] || 0)),
+    }));
+  })();
+
+  return {
+    aporteTotal,
+    totalGuardado,
+    effectivePercentualCdi,
+    virtualAportesRegularesEditados,
+    combinedExtras,
+    simResult,
+    perPersonStats,
+  };
+}
 
 function obterIdUsuario(): string | null {
   const cookieUsuario = Cookies.get("user");
@@ -248,6 +436,17 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [aportesRegularesEditados, setAportesRegularesEditados] = useState<Record<number, number>>({});
   const [aportesRegularesEditadosPorPessoa, setAportesRegularesEditadosPorPessoa] = useState<Record<string, Record<number, number>>>({});
   const [mesesConcluidos, setMesesConcluidos] = useState<number[]>([]);
+
+  // Estado para dados calculados centralizados
+  const [dadosCalculados, setDadosCalculados] = useState<DadosCalculados>({
+    aporteTotal: 0,
+    totalGuardado: 0,
+    effectivePercentualCdi: 100,
+    virtualAportesRegularesEditados: {},
+    combinedExtras: [],
+    simResult: null,
+    perPersonStats: [],
+  });
 
   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
   const [sessionId, setSessionId] = useState<string | null>(() => {
@@ -462,20 +661,43 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     mesesConcluidos, planoId, sessionId
   ]);
 
+  // Função para recalcular dados financeiros
+  const recalcular = useCallback(() => {
+    const calculados = calcularDadosFinanceiros(
+      objetivo,
+      pessoas,
+      aportesExtras,
+      aportesRegularesEditados,
+      aportesRegularesEditadosPorPessoa
+    );
+    setDadosCalculados(calculados);
+  }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa]);
+
   // Carrega o plano uma vez ao montar
   const inicializado = useRef(false);
+  const readyForAutoSave = useRef(false);
+
   useEffect(() => {
     if (inicializado.current) return;
     inicializado.current = true;
-    carregarPlano();
+    carregarPlano().finally(() => {
+      setTimeout(() => {
+        readyForAutoSave.current = true;
+      }, 500);
+    });
   }, [carregarPlano]);
+
+  // Recalcula dados financeiros automaticamente quando dados base mudam
+  useEffect(() => {
+    recalcular();
+  }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, recalcular]);
 
   // Salva automaticamente quando os dados mudarem (debounced)
   useEffect(() => {
+    if (!readyForAutoSave.current) return;
+
     const timer = setTimeout(() => {
-      if (inicializado.current) {
-        salvarPlano();
-      }
+      salvarPlano();
     }, 3000); // Espera 3 segundos após a última alteração
 
     return () => clearTimeout(timer);
@@ -492,27 +714,29 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
   return (
     <PlanContext.Provider value={{
-      objetivo, 
+      objetivo,
       setObjetivo,
-      pessoas, 
+      pessoas,
       setPessoas,
-      aportesExtras, 
+      aportesExtras,
       setAportesExtras,
       planoId,
       sessionId,
-      bancoEscolhido, 
+      bancoEscolhido,
       setBancoEscolhido,
-      cenario, 
+      cenario,
       setCenario,
-      aportesRegularesEditados, 
+      aportesRegularesEditados,
       setAportesRegularesEditados,
-      aportesRegularesEditadosPorPessoa, 
+      aportesRegularesEditadosPorPessoa,
       setAportesRegularesEditadosPorPessoa,
-      mesesConcluidos, 
+      mesesConcluidos,
       setMesesConcluidos,
       salvarPlano,
       saveDraft,
       carregarPlano,
+      dadosCalculados,
+      recalcular,
     }}>
       {children}
     </PlanContext.Provider>
