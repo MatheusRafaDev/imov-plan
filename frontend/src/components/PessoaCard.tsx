@@ -171,15 +171,15 @@ export default function PessoaCard({
             </div>
             <div className="flex items-end justify-between">
               <span className="font-display text-2xl num font-semibold">{brl(valorInicial)}</span>
-              {valorInicial > 0 && (
+                {valorInicial > 0 && (
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
                   {p.tipoInvestimento === "poupanca" ? "Poupança" :
-                   p.tipoInvestimento === "cdb_100" || p.tipoInvestimento === "tesouro_selic" || p.tipoInvestimento === "lci_lca" ? "Renda Fixa" :
+                   p.tipoInvestimento === "cdb_100" ? "CDB / Renda Fixa" :
+                   p.tipoInvestimento === "cdb_120" ? "CDB 120% CDI" :
+                   p.tipoInvestimento === "tesouro_selic" ? "Tesouro Selic" :
+                   p.tipoInvestimento === "lci_lca" ? "LCI / LCA" :
                    p.tipoInvestimento === "fundo_di" ? "Fundo DI" :
-                   p.tipoInvestimento === "fgts" ? "FGTS" :
-                   p.tipoInvestimento === "conta_corrente" ? "Conta Corrente" :
-                   p.tipoInvestimento === "cripto" ? "Criptomoedas" :
-                   p.tipoInvestimento === "previdencia" ? "Previdência" : "Investimento"}
+                   p.tipoInvestimento === "conta_corrente" ? "Conta Corrente" : "Investimento"}
                 </span>
               )}
             </div>
@@ -307,12 +307,11 @@ export default function PessoaCard({
                   <option value="">Selecione o tipo</option>
                   <option value="poupanca">Poupança</option>
                   <option value="conta_corrente">Conta Corrente</option>
-                  <option value="cdb_100">CDB / Renda Fixa</option>
-                  <option value="tesouro_selic">Tesouro Direto</option>
+                  <option value="cdb_100">CDB / Renda Fixa (100% CDI)</option>
+                  <option value="cdb_120">CDB 120% CDI</option>
+                  <option value="tesouro_selic">Tesouro Selic</option>
+                  <option value="lci_lca">LCI / LCA</option>
                   <option value="fundo_di">Fundo de Investimento</option>
-                  <option value="fgts">FGTS</option>
-                  <option value="cripto">Criptomoedas</option>
-                  <option value="previdencia">Previdência</option>
                 </select>
                 {p.tipoInvestimento && (
                   <div className="space-y-1">

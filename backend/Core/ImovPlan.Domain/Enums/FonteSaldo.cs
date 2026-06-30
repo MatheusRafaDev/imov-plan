@@ -4,11 +4,8 @@ namespace ImovPlan.Domain.Enums
     {
         Poupanca,
         ContaCorrente,
-        FGTS,
         RendaFixa,
         RendaVariavel,
-        Criptomoedas,
-        Previdencia,
         Investimento,
         Outros
     }

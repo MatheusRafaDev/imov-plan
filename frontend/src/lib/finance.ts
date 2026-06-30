@@ -106,12 +106,6 @@ export function percentualCdiPorTipoInvestimento(tipo?: string) {
       return 100;
     case "cdb_120":
       return 120;
-    case "fgts":
-      return 50;
-    case "previdencia":
-      return 90;
-    case "cripto":
-      return 125;
     default:
       return 100;
   }
@@ -133,12 +127,6 @@ export function nomeTipoInvestimento(tipo?: string) {
       return "Tesouro Selic";
     case "fundo_di":
       return "Fundo DI";
-    case "fgts":
-      return "FGTS";
-    case "cripto":
-      return "Criptomoedas";
-    case "previdencia":
-      return "Previdência";
     default:
       return "Investimento";
   }
