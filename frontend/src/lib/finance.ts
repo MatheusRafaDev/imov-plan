@@ -136,6 +136,10 @@ export function taxaCdiAnualEstimadoPorTipo(tipo: string | undefined, taxaCdiAnu
   return (taxaCdiAnual * percentualCdiPorTipoInvestimento(tipo)) / 100;
 }
 
+export function totalMesMaisRendimentoLiquido(totalMes: number, rendimentoLiquido: number) {
+  return totalMes + rendimentoLiquido;
+}
+
 export function simular(input: SimInput): SimResult {
   const meta = calcularMeta(input);
   const custosExtras = calcularCustosExtras(input.valorImovel, input.percentualCustosExtras);

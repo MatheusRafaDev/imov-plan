@@ -1,5 +1,5 @@
 import { expect, test, describe } from 'vitest';
-import { calcularMeta, simular, aporteNecessarioParaPrazo, mesesParaMeta, aliquotaIR } from './finance';
+import { calcularMeta, simular, aporteNecessarioParaPrazo, mesesParaMeta, aliquotaIR, totalMesMaisRendimentoLiquido } from './finance';
 
 describe('finance.ts unit tests', () => {
   test('calcularMeta', () => {
@@ -67,5 +67,9 @@ describe('finance.ts unit tests', () => {
     // Como a simulação estende 6 meses a partir da meta, o prazo simulado foi 56.
     expect(res.totalInvestido).toBe(84000); 
     expect(res.saldoFinal).toBe(84000);
+  });
+
+  test('totalMesMaisRendimentoLiquido soma contribuição e rendimento líquido', () => {
+    expect(totalMesMaisRendimentoLiquido(28600, 4050.52)).toBe(32650.52);
   });
 });

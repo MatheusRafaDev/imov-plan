@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
-import { brl, simular, type SimRow, type SimResult } from "@/lib/finance";
+import { brl, simular, totalMesMaisRendimentoLiquido, type SimRow, type SimResult } from "@/lib/finance";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 type EnrichedRow = SimRow & {
@@ -479,7 +479,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                 <Td key={p.id} right className="bg-primary/20">{brl(totals.aportePorPessoa[p.id])}</Td>
               ))}
               <Td right className="bg-primary/20">{brl(totals.extras)}</Td>
-              <Td right className="bg-primary/20">{brl(totals.totalMes)}</Td>
+              <Td right className="bg-primary/20">{brl(totalMesMaisRendimentoLiquido(totals.totalMes, totals.rendLiquido))}</Td>
               {showFinancials && (
                 <>
                   <Td right className="bg-primary/20 text-muted-foreground">{brl(totals.rendBruto)}</Td>
@@ -487,7 +487,6 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                   <Td right className="bg-primary/20 text-[#3B6D11] dark:text-[#80B551]">
                     {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                   </Td>
-                  <Td right className="bg-primary/20">{brl(totals.saldoFinal)}</Td>
                   <Td right className="bg-primary/20">{""}</Td>
                 </>
               )}
