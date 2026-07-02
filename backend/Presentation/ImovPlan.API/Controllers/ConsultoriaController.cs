@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using ImovPlan.Application.DTOs;
@@ -13,10 +14,12 @@ namespace ImovPlan.API.Controllers
     public class ConsultoriaController : ControllerBase
     {
         private readonly IAiConsultingService _aiService;
+        private readonly ILogger<ConsultoriaController> _logger;
 
-        public ConsultoriaController(IAiConsultingService aiService)
+        public ConsultoriaController(IAiConsultingService aiService, ILogger<ConsultoriaController> logger)
         {
             _aiService = aiService;
+            _logger = logger;
         }
 
         [HttpPost("analisar")]
@@ -35,7 +38,7 @@ namespace ImovPlan.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro na Consultoria de IA: {ex}");
+                _logger.LogError(ex, "Erro na Consultoria de IA.");
                 return StatusCode(500, new { error = "Falha ao processar a consultoria da IA no servidor." });
             }
         }

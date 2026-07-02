@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using ImovPlan.API.Extensions;
@@ -13,10 +14,12 @@ namespace ImovPlan.API.Controllers
     public class PlanoController : ControllerBase
     {
         private readonly IPlanoService _planoService;
+        private readonly ILogger<PlanoController> _logger;
 
-        public PlanoController(IPlanoService planoService)
+        public PlanoController(IPlanoService planoService, ILogger<PlanoController> logger)
         {
             _planoService = planoService;
+            _logger = logger;
         }
 
         [HttpGet("draft")]
@@ -110,7 +113,7 @@ namespace ImovPlan.API.Controllers
             catch (System.Exception ex)
             {
                 // não retornar ex.ToString() ao cliente
-                Console.WriteLine($"Erro ao atualizar draft: {ex}");
+                _logger.LogError(ex, "Erro ao atualizar draft: {PlanoId}", id);
                 return StatusCode(500, new { message = "Erro interno ao atualizar o plano." });
             }
         }
