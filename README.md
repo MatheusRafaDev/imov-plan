@@ -64,6 +64,14 @@ imov-plan/
 3. Inicie o servidor de desenvolvimento: `npm run dev`
 > *Nota: O frontend roda por padrão na porta `3000`.*
 
+## 🧪 Testes e Paridade
+
+O projeto contém testes automatizados para garantir a estabilidade e a paridade de cálculos financeiros entre o Frontend (TypeScript) e o Backend (C#).
+
+Para garantir que a fórmula de simulação seja a mesma em ambos os lados:
+1. Ao alterar qualquer regra em `frontend/src/lib/finance.ts`, gere novamente os cenários de paridade executando: `npx tsx scripts/gerar-casos-paridade.ts` dentro da pasta `frontend/`.
+2. Em seguida, rode os testes do backend para garantir que as mudanças em C# refletem os mesmos resultados: `dotnet test` na pasta do backend.
+
 ## 📌 Melhorias Recentes
 
 - **Experiência de Erro Aprimorada:** Substituição de toasts intrusivos por banners amigáveis e bordas vermelhas (`border-destructive`) para melhor orientação do usuário.

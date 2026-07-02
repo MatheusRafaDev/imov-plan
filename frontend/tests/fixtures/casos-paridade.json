@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Cenario1_Basico",
+    "input": {
+      "valorImovel": 300000,
+      "percentualEntrada": 20,
+      "percentualCustosExtras": 5,
+      "valorJaGuardado": 10000,
+      "aporteMensalTotal": 1500,
+      "taxaCdiAnual": 10.5,
+      "percentualCdi": 100,
+      "aportesExtras": [],
+      "prazoMaxMeses": 360,
+      "dataInicio": "2025-01-01"
+    },
+    "output": {
+      "meta": 75000,
+      "atingiuMeta": true,
+      "mesAtingiuMeta": 37,
+      "saldoFinal": 88935.64446595503,
+      "totalInvestido": 74500
+    }
+  },
+  {
+    "name": "Cenario2_PrazoCurto",
+    "input": {
+      "valorImovel": 500000,
+      "percentualEntrada": 20,
+      "percentualCustosExtras": 5,
+      "valorJaGuardado": 50000,
+      "aporteMensalTotal": 10000,
+      "taxaCdiAnual": 10.5,
+      "percentualCdi": 100,
+      "aportesExtras": [
+        {
+          "data": "2025-06-01",
+          "valor": 20000,
+          "origem": "Bonus"
+        }
+      ],
+      "prazoMaxMeses": 60,
+      "dataInicio": "2025-01-01"
+    },
+    "output": {
+      "meta": 125000,
+      "atingiuMeta": true,
+      "mesAtingiuMeta": 6,
+      "saldoFinal": 200476.807104478,
+      "totalInvestido": 190000
+    }
+  },
+  {
+    "name": "Cenario3_SemPrazoDefinido",
+    "input": {
+      "valorImovel": 250000,
+      "percentualEntrada": 20,
+      "percentualCustosExtras": 5,
+      "valorJaGuardado": 0,
+      "aporteMensalTotal": 500,
+      "taxaCdiAnual": 8.5,
+      "percentualCdi": 100,
+      "aportesExtras": [],
+      "prazoMaxMeses": 600,
+      "dataInicio": "2025-01-01"
+    },
+    "output": {
+      "meta": 62500,
+      "atingiuMeta": true,
+      "mesAtingiuMeta": 94,
+      "saldoFinal": 67831.27024876539,
+      "totalInvestido": 50000
+    }
+  }
+]

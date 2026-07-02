@@ -158,7 +158,7 @@ export function simular(input: SimInput): SimResult {
   const extrasPorMes = new Map<number, number>();
   for (const a of input.aportesExtras) {
     const d = new Date(a.data + 'T12:00:00');
-    const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+    const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
     if (mesOffset >= 1) {
       const existing = extrasPorMes.get(mesOffset) ?? 0;
       extrasPorMes.set(mesOffset, existing + a.valor);
