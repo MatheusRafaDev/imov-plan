@@ -88,23 +88,33 @@ namespace ImovPlan.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new { message = "Email e senha são obrigatórios." });
+            }
+
             var user = await _usuarioRepository.GetByEmailAsync(request.Email);
             if (user == null)
                 return Unauthorized(new { message = "Email ou senha inválidos." });
 
-            bool senhaValida;
-            if (user.PasswordHash.StartsWith("$2")) // hash bcrypt
+            var passwordHash = user.PasswordHash ?? string.Empty;
+            bool senhaValida = false;
+
+            if (!string.IsNullOrEmpty(passwordHash))
             {
-                senhaValida = VerifyPassword(request.Password, user.PasswordHash);
-            }
-            else
-            {
-                // Hash legado (SHA-256 + salt fixo) — valida e migra para bcrypt.
-                senhaValida = user.PasswordHash == LegacyHashPassword(request.Password);
-                if (senhaValida)
+                if (passwordHash.StartsWith("$2")) // hash bcrypt
                 {
-                    user.PasswordHash = HashPassword(request.Password);
-                    await _usuarioRepository.UpdateAsync(user.Id, user);
+                    senhaValida = VerifyPassword(request.Password, passwordHash);
+                }
+                else
+                {
+                    // Hash legado (SHA-256 + salt fixo) — valida e migra para bcrypt.
+                    senhaValida = passwordHash == LegacyHashPassword(request.Password);
+                    if (senhaValida)
+                    {
+                        user.PasswordHash = HashPassword(request.Password);
+                        await _usuarioRepository.UpdateAsync(user.Id, user);
+                    }
                 }
             }
 

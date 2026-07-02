@@ -48,12 +48,16 @@ namespace ImovPlan.Application.Services
                 }
             }
             
-            // Calculate ValorJaGuardado dynamically from all participantes
-            var valorJaGuardado = saldoInicialTotal > 0 ? saldoInicialTotal : 0m;
+            // Calculate ValorJaGuardado dynamically from participants; fallback to plan objective if none exists.
+            var valorJaGuardado = saldoInicialTotal > 0
+                ? saldoInicialTotal
+                : planejamento.ValorJaGuardado ?? 0m;
             var saldo = valorJaGuardado;
             var totalInvestido = saldo;
 
             var totalAporteMensal = request.AportesMensais.Sum(a => a.Valor);
+            var aportesRegularesEditados = request.AportesRegularesEditados ?? new Dictionary<int, decimal>();
+            var aportesRegularesEditadosPorPessoa = request.AportesRegularesEditadosPorPessoa ?? new Dictionary<string, Dictionary<int, decimal>>();
 
             var resultado = new SimulacaoResultado();
             var meses = 0;
@@ -73,7 +77,17 @@ namespace ImovPlan.Application.Services
                     .Where(a => a.Data.Year == dataReferencia.Year && a.Data.Month == dataReferencia.Month)
                     .Sum(a => a.Valor);
 
-                var aporteMes = totalAporteMensal + aporteExtraMes;
+                var aporteRegular = aportesRegularesEditados.GetValueOrDefault(meses, totalAporteMensal);
+                var totalPorPessoaEditados = aportesRegularesEditadosPorPessoa
+                    .Values
+                    .Select(dict => dict.GetValueOrDefault(meses, 0m))
+                    .Sum();
+                if (totalPorPessoaEditados > 0)
+                {
+                    aporteRegular = totalPorPessoaEditados;
+                }
+
+                var aporteMes = aporteRegular + aporteExtraMes;
                 totalInvestido += aporteMes;
 
                 // Mirrors finance.ts: yield is calculated on (saldo + contributions) before compounding
@@ -86,7 +100,7 @@ namespace ImovPlan.Application.Services
                 {
                     Mes = meses,
                     DataReferencia = dataReferencia,
-                    AporteMensal = totalAporteMensal,
+                    AporteMensal = aporteRegular,
                     AportesExtras = aporteExtraMes,
                     RendimentoBruto = rendimentoMes,
                     Imposto = imposto,

@@ -116,7 +116,9 @@ export default function ResultadoPage() {
           valor: Number(a.valor) || 0,
           data: a.data || new Date().toISOString(),
           origem: a.origem || "Extra"
-        }))
+        })),
+        aportesRegularesEditados: aportesRegularesEditados,
+        aportesRegularesEditadosPorPessoa: aportesRegularesEditadosPorPessoa,
       });
 
       setBackendData(result);

@@ -9,6 +9,15 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
+
+const generateObjectId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  return Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+};
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
@@ -57,7 +66,7 @@ export default function PessoasPage() {
   useEffect(() => {
     if (pessoas.length === 0 && user && planoId) {
       const defaultPessoa: Pessoa = {
-        id: "user-" + user.id,
+        id: generateObjectId(),
         nome: user.name || "Eu",
         renda_mensal: 0,
         renda_complementar: 0,
@@ -130,7 +139,7 @@ export default function PessoasPage() {
     const updatedPeople = allPeople.map(p => ({ ...p, valorInicial: perPerson }));
     
     const novaPessoa: Pessoa = {
-      id: Math.random().toString(),
+      id: generateObjectId(),
       nome: form.nome,
       renda_mensal: Number(form.renda_mensal) || 0,
       renda_complementar: Number(form.renda_complementar) || 0,

@@ -34,8 +34,7 @@ bld/
 
 # ── Configurações com secrets ────────────────────────
 # NÃO ignore appsettings.json (connection string padrão local, sem secrets)
-# NÃO ignore appsettings.Development.json (config de dev, sem secrets reais)
-appsettings.Production.json
+# NÃO ignore appsettings.Development.json (config de dev, sem secrets reais).envappsettings.Production.json
 appsettings.Staging.json
 
 # ── Temporários ──────────────────────────────────────

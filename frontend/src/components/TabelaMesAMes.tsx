@@ -290,7 +290,31 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     });
   }, [sim?.rows, pessoas, combinedExtras, inicio, sim?.mesAtingiuMeta, aporteTotal, totalGuardado, aportesRegularesEditadosPorPessoa, aportesRegularesEditados]);
 
-  const displayRows: EnrichedRow[] = limitRows ? tableRows.slice(0, limitRows) : tableRows;
+  const objectiveEndDate = useMemo(() => {
+    if (!objetivo?.dataInicio || objetivo?.prazoMaxMeses == null || objetivo.prazoMaxMeses <= 0) return undefined;
+    const start = typeof objetivo.dataInicio === "string"
+      ? new Date(objetivo.dataInicio + "T12:00:00")
+      : new Date(objetivo.dataInicio);
+    if (isNaN(start.getTime())) return undefined;
+
+    return new Date(start.getFullYear(), start.getMonth() + objetivo.prazoMaxMeses, 1);
+  }, [objetivo?.dataInicio, objetivo?.prazoMaxMeses]);
+
+  const objectiveRowLimit = objetivo?.prazoMaxMeses && objetivo.prazoMaxMeses > 0 ? objetivo.prazoMaxMeses + 1 : undefined;
+  const effectiveLimit = limitRows !== undefined
+    ? objectiveRowLimit !== undefined
+      ? Math.min(limitRows, objectiveRowLimit)
+      : limitRows
+    : objectiveRowLimit;
+
+  const rowsFilteredByDate = objectiveEndDate
+    ? tableRows.filter(r => {
+        const rowDate = new Date(r.data);
+        return !isNaN(rowDate.getTime()) && rowDate.getTime() <= objectiveEndDate.getTime();
+      })
+    : tableRows;
+
+  const displayRows: EnrichedRow[] = effectiveLimit !== undefined ? rowsFilteredByDate.slice(0, effectiveLimit) : rowsFilteredByDate;
 
   const totals = useMemo(() => {
     let aportePorPessoa: Record<string, number> = {};
@@ -335,17 +359,9 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
               ))}
               <Th right>Extras</Th>
               <Th right>Total Mês</Th>
-              {showFinancials && (
-                <>
-                  <Th right>Rend. Bruto</Th>
-                  <Th right>IR</Th>
-                  <Th right>Rend. Líquido</Th>
-                  <Th right>Saldo Acumulado</Th>
-                  <Th right>% Meta</Th>
-                </>
-              )}
             </tr>
           </thead>
+          
           <tbody className="divide-y divide-border/40">
             {displayRows.map(r => {
               const defaultAporte = r.mes === 0 ? 0 : aporteTotal;

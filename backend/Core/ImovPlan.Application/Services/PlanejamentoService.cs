@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using MongoDB.Bson;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Application.Services.Interfaces;
 using ImovPlan.Domain.Entities;
@@ -293,7 +294,7 @@ namespace ImovPlan.Application.Services
                         // Create new participante
                         participante = new Participante
                         {
-                            Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+                            Id = !string.IsNullOrEmpty(pDto.Id) && ObjectId.TryParse(pDto.Id, out _) ? pDto.Id : ObjectId.GenerateNewId().ToString(),
                             PlanejamentoId = id,
                             Nome = pDto.Nome,
                             RendaMensal = pDto.Renda_mensal,

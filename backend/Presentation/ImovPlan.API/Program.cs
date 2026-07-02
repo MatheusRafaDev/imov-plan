@@ -87,6 +87,11 @@ if (string.IsNullOrEmpty(jwtKey))
 {
     throw new InvalidOperationException("JWT:Key configuration is required. Set it in environment variables or appsettings.json.");
 }
+var jwtKeyBytes = Encoding.UTF8.GetBytes(jwtKey);
+if (jwtKeyBytes.Length < 32)
+{
+    throw new InvalidOperationException("JWT:Key must be at least 32 bytes long when using HS256. Update the key in environment variables or appsettings.");
+}
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ImovPlanAPI";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ImovPlanClient";
 

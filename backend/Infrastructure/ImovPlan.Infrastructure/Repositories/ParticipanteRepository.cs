@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Infrastructure.Data;
@@ -18,6 +19,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<Participante?> GetByIdAsync(string id)
         {
+            if (!ObjectId.TryParse(id, out _))
+                return null;
+
             return await _context.Participantes.FirstOrDefaultAsync(p => p.Id == id);
         }
 

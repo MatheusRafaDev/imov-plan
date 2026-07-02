@@ -87,6 +87,20 @@ const addMonthsISO = (iso: string, months: number) => {
   return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-01`;
 };
 
+const MIN_PRAZO_MESES = 3;
+
+const normalizeDataFim = (inicio: string, fim: string) => {
+  if (!inicio) return fim;
+  if (!fim) return addMonthsISO(inicio, MIN_PRAZO_MESES);
+
+  const prazo = mesesEntre(inicio, fim);
+  if (prazo < MIN_PRAZO_MESES) {
+    return addMonthsISO(inicio, MIN_PRAZO_MESES);
+  }
+
+  return fim;
+};
+
 export default function ObjetivoPage() {
   const { objetivo, setObjetivo, salvarPlano } = usePlanContext();
   const router = useRouter();
@@ -108,12 +122,12 @@ export default function ObjetivoPage() {
 
   useEffect(() => {
     if (objetivo && objetivo.valorImovel !== undefined) {
-      setForm((prev) => ({
-        ...prev,
+      const nextForm = {
+        ...form,
         nome: (objetivo as any).nomePlano || "Imóvel",
         valor_imovel: objetivo.valorImovel || 0,
         percentual_entrada: objetivo.percentualEntrada || 20,
-        data_inicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : prev.data_inicio,
+        data_inicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : form.data_inicio,
         valor_ja_guardado: objetivo.valorJaGuardado || 0,
         percentual_custos_extras: objetivo.percentualCustosExtras || 0,
         data_fim: objetivo.prazoMaxMeses
@@ -121,12 +135,18 @@ export default function ObjetivoPage() {
               objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : todayISO(),
               objetivo.prazoMaxMeses
             )
-          : prev.data_fim,
-      }));
+          : form.data_fim,
+      };
+
+      setForm((prev) => normalizeDataFim(nextForm.data_inicio, nextForm.data_fim) === nextForm.data_fim ? nextForm : {
+        ...nextForm,
+        data_fim: normalizeDataFim(nextForm.data_inicio, nextForm.data_fim),
+      });
     }
   }, [objetivo]);
 
-  const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "";
+  const dataFimValida = form.data_inicio !== "" && form.data_fim !== "" && mesesEntre(form.data_inicio, form.data_fim) >= MIN_PRAZO_MESES;
+  const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "" && dataFimValida;
 
   const prazoMeses = form.data_fim ? mesesEntre(form.data_inicio, form.data_fim) : 0;
   const meta = calcularMeta({
@@ -152,11 +172,16 @@ export default function ObjetivoPage() {
   });
 
   const updateForm = (patch: Partial<typeof form>, syncObjective = false) => {
-    const nextForm = { ...form, ...patch };
-    setForm(nextForm);
+    const patchedForm = { ...form, ...patch };
+    const normalizedForm = {
+      ...patchedForm,
+      data_fim: patch.data_inicio || patch.data_fim ? normalizeDataFim(patchedForm.data_inicio, patchedForm.data_fim) : patchedForm.data_fim,
+    };
+
+    setForm(normalizedForm);
 
     if (syncObjective && objetivo) {
-      setObjetivo(objetivoFromForm(nextForm));
+      setObjetivo(objetivoFromForm(normalizedForm));
     }
   };
 
@@ -265,6 +290,11 @@ export default function ObjetivoPage() {
                     value={form.data_fim}
                     onChange={(v) => updateForm({ data_fim: v }, true)}
                   />
+                  {!dataFimValida && form.data_inicio && form.data_fim ? (
+                    <p className="text-xs text-rose-500">A data limite precisa ser pelo menos {MIN_PRAZO_MESES} meses após a data de início.</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">O limite define até quando a tabela mês a mês deve ser exibida.</p>
+                  )}
                 </div>
               </div>
             </div>
