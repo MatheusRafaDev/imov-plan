@@ -38,6 +38,14 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal TaxaFinanciamentoAnualPadrao { get; set; } = 9.5m;
 
+        [BsonElement("taxaMcmvAnualPadrao")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal TaxaMcmvAnualPadrao { get; set; } = 8.16m;
+
+        [BsonElement("taxaSbpeAnualPadrao")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal TaxaSbpeAnualPadrao { get; set; } = 10.5m;
+
         [BsonElement("limiteComprometimentoRenda")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal LimiteComprometimentoRenda { get; set; } = 0.30m;

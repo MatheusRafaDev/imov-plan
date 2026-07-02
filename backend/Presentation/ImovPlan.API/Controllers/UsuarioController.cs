@@ -90,6 +90,30 @@ namespace ImovPlan.API.Controllers
             await _usuarioRepository.DeleteAsync(id);
             return NoContent();
         }
+
+        [HttpGet("exportar")]
+        public async Task<IActionResult> ExportData()
+        {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId))
+                return Unauthorized(new { message = "Não autorizado." });
+
+            var user = await _usuarioRepository.GetByIdAsync(usuarioId);
+            if (user == null)
+                return NotFound(new { message = "Usuário não encontrado." });
+
+            var plano = await _planoService.GetDraftByUsuarioIdAsync(usuarioId);
+
+            var exportData = new
+            {
+                Usuario = user,
+                Planejamento = plano
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(exportData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            return File(bytes, "application/json", $"exportacao_dados_{usuarioId}.json");
+        }
     }
 
 

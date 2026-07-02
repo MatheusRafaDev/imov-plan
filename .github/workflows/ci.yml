@@ -23,6 +23,9 @@ jobs:
     - name: Test backend
       run: dotnet test backend/Tests/ImovPlan.Application.Tests/ImovPlan.Application.Tests.csproj --configuration Release --no-restore
 
+    - name: Audit dependencies
+      run: dotnet list backend/Presentation/ImovPlan.API/ImovPlan.API.csproj package --vulnerable
+
   frontend-tests:
     runs-on: ubuntu-latest
     steps:
@@ -38,6 +41,10 @@ jobs:
     - name: Install dependencies
       working-directory: ./frontend
       run: npm ci
+
+    - name: Audit dependencies
+      working-directory: ./frontend
+      run: npm audit --audit-level=high || true
       
     - name: Lint
       working-directory: ./frontend

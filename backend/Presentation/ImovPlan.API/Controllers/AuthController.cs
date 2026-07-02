@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Application.Services.Interfaces;
@@ -11,6 +12,7 @@ namespace ImovPlan.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("auth")]
     public class AuthController : ControllerBase
     {
         private readonly IUsuarioRepository _usuarioRepository;
@@ -74,11 +76,11 @@ namespace ImovPlan.API.Controllers
 
             await _usuarioRepository.CreateAsync(user);
 
-            var token = _tokenService.GenerateJwtToken(user.Id, user.Role);
+            var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User");
+            SetTokenCookie(token);
 
             return Ok(new
             {
-                token = token,
                 user = MapUserResponse(user)
             });
         }
@@ -109,13 +111,32 @@ namespace ImovPlan.API.Controllers
             if (!senhaValida)
                 return Unauthorized(new { message = "Email ou senha inválidos." });
 
-            var token = _tokenService.GenerateJwtToken(user.Id, user.Role);
+            var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User");
+            SetTokenCookie(token);
 
             return Ok(new
             {
-                token = token,
                 user = MapUserResponse(user)
             });
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("token");
+            return Ok(new { message = "Logout com sucesso." });
+        }
+
+        private void SetTokenCookie(string token)
+        {
+            var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("token", token, cookieOptions);
         }
 
         private static object MapUserResponse(Usuario user)
@@ -140,6 +161,43 @@ namespace ImovPlan.API.Controllers
             var bytes = Encoding.UTF8.GetBytes(password + "ImovPlanSalt2026");
             return Convert.ToBase64String(sha256.ComputeHash(bytes));
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            var user = await _usuarioRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+            {
+                // Para não expor se o email existe, retornamos sucesso genérico
+                return Ok(new { message = "Se o email existir, um token de recuperação foi gerado (simulado no console)." });
+            }
+
+            user.ResetPasswordToken = Guid.NewGuid().ToString();
+            user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
+            await _usuarioRepository.UpdateAsync(user.Id, user);
+
+            // Simulação de envio de email
+            Console.WriteLine($"[SIMULAÇÃO DE EMAIL] Para resetar a senha de {user.Email}, use o token: {user.ResetPasswordToken}");
+
+            return Ok(new { message = "Se o email existir, um token de recuperação foi gerado (simulado no console)." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            var user = await _usuarioRepository.GetByEmailAsync(request.Email);
+            if (user == null || user.ResetPasswordToken != request.Token || user.ResetPasswordExpiry < DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "Token inválido ou expirado." });
+            }
+
+            user.PasswordHash = HashPassword(request.NewPassword);
+            user.ResetPasswordToken = null;
+            user.ResetPasswordExpiry = null;
+            await _usuarioRepository.UpdateAsync(user.Id, user);
+
+            return Ok(new { message = "Senha redefinida com sucesso." });
+        }
     }
 
     public class RegisterRequest
@@ -154,5 +212,17 @@ namespace ImovPlan.API.Controllers
     {
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+    }
+
+    public class ForgotPasswordRequest
+    {
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class ResetPasswordRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
     }
 }

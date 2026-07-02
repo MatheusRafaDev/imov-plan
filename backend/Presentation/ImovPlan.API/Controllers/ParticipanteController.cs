@@ -27,12 +27,12 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> GetAll([FromQuery] string planejamentoId)
         {
             if (string.IsNullOrEmpty(planejamentoId))
-                return BadRequest("planejamentoId is required.");
+                return BadRequest(new { message = "planejamentoId is required." });
 
             var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(planejamentoId);
             if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var allParticipantes = await _participanteRepository.GetByPlanejamentoIdAsync(planejamentoId);
             return Ok(allParticipantes);
@@ -44,11 +44,11 @@ namespace ImovPlan.API.Controllers
             var usuarioId = User.GetUsuarioId();
             var participante = await _participanteRepository.GetByIdAsync(id);
             if (participante == null || string.IsNullOrEmpty(usuarioId))
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var planejamento = await _planejamentoRepository.GetByIdAsync(participante.PlanejamentoId);
             if (planejamento == null || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             return Ok(participante);
         }
@@ -58,11 +58,11 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioId = User.GetUsuarioId();
             if (participante == null || string.IsNullOrEmpty(participante.PlanejamentoId) || string.IsNullOrEmpty(usuarioId))
-                return BadRequest("Dados de participante inválidos.");
+                return BadRequest(new { message = "Dados de participante inválidos." });
 
             var planejamento = await _planejamentoRepository.GetByIdAsync(participante.PlanejamentoId);
             if (planejamento == null || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var created = await _participanteRepository.CreateAsync(participante);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -73,15 +73,15 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioId = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioId))
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var existing = await _participanteRepository.GetByIdAsync(id);
             if (existing == null)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var planejamento = await _planejamentoRepository.GetByIdAsync(existing.PlanejamentoId);
             if (planejamento == null || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             participante.PlanejamentoId = existing.PlanejamentoId;
             await _participanteRepository.UpdateAsync(id, participante);
@@ -93,15 +93,15 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioId = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioId))
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var existing = await _participanteRepository.GetByIdAsync(id);
             if (existing == null)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var planejamento = await _planejamentoRepository.GetByIdAsync(existing.PlanejamentoId);
             if (planejamento == null || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             await _participanteRepository.DeleteAsync(id);
             return NoContent();

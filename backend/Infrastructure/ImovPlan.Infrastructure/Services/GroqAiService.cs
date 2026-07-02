@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Application.Services.Interfaces;
+using ImovPlan.Domain.Interfaces;
 using System.Linq;
 
 namespace ImovPlan.Infrastructure.Services
@@ -16,11 +17,14 @@ namespace ImovPlan.Infrastructure.Services
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
         private readonly IFinanciamentoService _financiamentoService;
+        private readonly IParametrosFinanceirosRepository _parametrosRepo;
 
-        public GroqAiService(HttpClient httpClient, IConfiguration configuration, IFinanciamentoService financiamentoService)
+        public GroqAiService(HttpClient httpClient, IConfiguration configuration, IFinanciamentoService financiamentoService, IParametrosFinanceirosRepository parametrosRepo)
         {
             _httpClient = httpClient;
+            _httpClient.Timeout = TimeSpan.FromSeconds(15); // Timeout curto para não travar a UX
             _financiamentoService = financiamentoService;
+            _parametrosRepo = parametrosRepo;
             
             // Tenta pegar do appsettings (GroqConfig:ApiKey) ou da variável de ambiente GROQ_API_KEY do .env
             _apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") 
@@ -42,26 +46,15 @@ namespace ImovPlan.Infrastructure.Services
         {
             if (_apiKey == "mock")
             {
-                return @"### Análise do seu Perfil (Modo Simulação .NET)
-
-⚠️ *Aviso: Sua API Key do Groq ainda não foi configurada corretamente no Backend.*
-
-Com base na renda total familiar informada, eis a sua projeção simulada pelo Backend:
-
-**1. Enquadramento Minha Casa Minha Vida**
-Se sua renda for menor que R$ 9.600,00, você se enquadra no programa e pode usar seu FGTS.
-
-**2. Recomendação de Banco**
-Sugerimos priorizar o financiamento pela **Caixa Econômica Federal**.
-
-*Dica: Configure sua GROQ_API_KEY no arquivo .env do Backend e reinicie a API para obter a análise completa!*";
+                return GetMockResponse();
             }
 
             // Realizar simulação financeira real no backend para passar para a IA
+            var parametros = await _parametrosRepo.GetAtivoAsync();
             object? simulacoes = null;
-            decimal limiteParcela = request.Renda_Total_Bruta * 0.30m;
-            decimal taxaMCMV = 8.16m;
-            decimal taxaSBPE = 10.5m;
+            decimal limiteParcela = request.Renda_Total_Bruta * parametros.LimiteComprometimentoRenda;
+            decimal taxaMCMV = parametros.TaxaMcmvAnualPadrao;
+            decimal taxaSBPE = parametros.TaxaSbpeAnualPadrao;
             decimal taxaAplicada = request.Renda_Total_Bruta <= 9600 ? taxaMCMV : taxaSBPE;
 
             if (request.Imovel != null && (request.Imovel.ValorImovel ?? 0m) > 0 && (request.Imovel.PrazoMaxMeses ?? 0) > 0)
@@ -120,23 +113,47 @@ DADOS DO SISTEMA E DO USUÁRIO (JSON):
 
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("https://api.groq.com/openai/v1/chat/completions", content);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                var errorMsg = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Groq API Error: {response.StatusCode} - {errorMsg}");
+                var response = await _httpClient.PostAsync("https://api.groq.com/openai/v1/chat/completions", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return GetMockResponse();
+                }
+
+                var responseString = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(responseString);
+                var resultText = doc.RootElement
+                                    .GetProperty("choices")[0]
+                                    .GetProperty("message")
+                                    .GetProperty("content")
+                                    .GetString();
+
+                return resultText ?? string.Empty;
             }
+            catch (Exception)
+            {
+                // Circuit breaker / fallback em caso de timeout ou erro de rede
+                return GetMockResponse();
+            }
+        }
 
-            var responseString = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(responseString);
-            var resultText = doc.RootElement
-                                .GetProperty("choices")[0]
-                                .GetProperty("message")
-                                .GetProperty("content")
-                                .GetString();
+        private string GetMockResponse()
+        {
+            return @"### Análise do seu Perfil (Modo Simulação .NET)
 
-            return resultText ?? string.Empty;
+⚠️ *Aviso: Conexão com a IA indisponível no momento ou API Key não configurada.*
+
+Com base na renda total familiar informada, eis a sua projeção simulada pelo Backend:
+
+**1. Enquadramento Minha Casa Minha Vida**
+Se sua renda for menor que R$ 9.600,00, você se enquadra no programa e pode usar seu FGTS.
+
+**2. Recomendação de Banco**
+Sugerimos priorizar o financiamento pela **Caixa Econômica Federal**.
+
+*Dica: Tente novamente mais tarde ou verifique a configuração da API.*";
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using ImovPlan.Application.DTOs;
 
 namespace ImovPlan.Application.Services.Interfaces
@@ -8,8 +9,8 @@ namespace ImovPlan.Application.Services.Interfaces
         object SimularPrice(decimal pv, decimal taxaAnual, int prazoMeses);
         object CompararSistemas(decimal pv, decimal taxaAnual, int prazoMeses);
         decimal CalcularCET(decimal pv, decimal taxaAnual, int prazoMeses, decimal taxaMip, decimal taxaDfi, decimal taxaAdmin);
-        bool VerificarComprometimentoRenda(decimal rendaBrutaFamiliar, decimal parcelaCalculada);
+        Task<bool> VerificarComprometimentoRendaAsync(decimal rendaBrutaFamiliar, decimal parcelaCalculada);
         object SimularFGTS(decimal saldoDevedor, decimal saldoFgts, int modalidade, decimal parcelaAtual, int prazoRestante);
-        SimResultDto Simular(SimInputDto input);
+        Task<SimResultDto> SimularAsync(SimInputDto input);
     }
 }

@@ -34,13 +34,24 @@ namespace ImovPlan.API.Controllers
             _parametrosRepo = parametrosRepo;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId))
+                return Unauthorized(new { message = "Não autorizado." });
+
+            var planejamentos = await _planejamentoRepository.GetAllByUsuarioIdAsync(usuarioId);
+            return Ok(planejamentos);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
             var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(id);
             if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             return Ok(planejamento);
         }
@@ -50,7 +61,7 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioId = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioId))
-                return BadRequest("Usuário autenticado inválido.");
+                return BadRequest(new { message = "Usuário autenticado inválido." });
 
             planejamento.UsuarioId = usuarioId;
             planejamento.SessionId = null;
@@ -86,7 +97,7 @@ namespace ImovPlan.API.Controllers
             var usuarioId = User.GetUsuarioId();
             var existing = await _planejamentoRepository.GetByIdAsync(id);
             if (existing == null || string.IsNullOrEmpty(usuarioId) || existing.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             // Preserve proprietário
             planejamento.UsuarioId = existing.UsuarioId;
@@ -120,7 +131,7 @@ namespace ImovPlan.API.Controllers
             var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(id);
             if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var participantes = new System.Collections.Generic.List<Participante>();
             foreach (var pid in planejamento.ParticipantesIds)
@@ -149,7 +160,7 @@ namespace ImovPlan.API.Controllers
             var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(id);
             if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             aporte.PlanejamentoId = id;
             var created = await _aporteExtraRepository.AddAsync(aporte);

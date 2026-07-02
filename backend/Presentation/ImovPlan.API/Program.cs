@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using MongoDB.Driver;
 using ImovPlan.Infrastructure.Data;
 using ImovPlan.Infrastructure.Configurations;
@@ -47,6 +49,7 @@ catch { /* .env not found, continue with appsettings */ }
 builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -64,6 +67,18 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowCredentials();
     });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = 429;
 });
 
 // Configure JWT Authentication
@@ -93,6 +108,17 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ClockSkew = TimeSpan.Zero
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Cookies.ContainsKey("token"))
+            {
+                context.Token = context.Request.Cookies["token"];
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Configure MongoDB
@@ -101,6 +127,21 @@ builder.Configuration.GetSection("MongoDbSettings").Bind(mongoSettings);
 var mongoClient = new MongoClient(mongoSettings.ConnectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMongoDB(mongoClient, mongoSettings.DatabaseName));
+
+builder.Services.AddHealthChecks()
+    .AddAsyncCheck("mongodb", async () =>
+    {
+        try
+        {
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            await mongoClient.ListDatabaseNamesAsync(timeoutCts.Token);
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy();
+        }
+        catch (Exception ex)
+        {
+            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy("MongoDB falhou", ex);
+        }
+    });
 
 // Register Repositories
 builder.Services.AddScoped<IParticipanteRepository, ParticipanteRepository>();
@@ -120,6 +161,9 @@ builder.Services.AddScoped<IPlanoService, PlanejamentoService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddHttpClient<IAiConsultingService, ImovPlan.Infrastructure.Services.GroqAiService>();
 
+// Background Services
+builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -130,8 +174,10 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

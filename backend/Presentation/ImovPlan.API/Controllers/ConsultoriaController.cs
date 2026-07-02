@@ -27,7 +27,7 @@ namespace ImovPlan.API.Controllers
         {
             if (request == null || request.Pessoas == null || request.Pessoas.Count == 0)
             {
-                return BadRequest(new { error = "Dados do usuário são obrigatórios para a análise." });
+                return BadRequest(new { message = "Dados do usuário são obrigatórios para a análise." });
             }
 
             try
@@ -39,7 +39,7 @@ namespace ImovPlan.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro na Consultoria de IA.");
-                return StatusCode(500, new { error = "Falha ao processar a consultoria da IA no servidor." });
+                return StatusCode(500, new { message = "Falha ao processar a consultoria da IA no servidor." });
             }
         }
     }

@@ -34,9 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearAllData = () => {
     setUser(null);
-    setToken(null);
     const allCookies = Cookies.get();
-    const cookieKeysToRemove = ["token", "user", "imovplan_planoId"];
+    const cookieKeysToRemove = ["user", "imovplan_planoId"];
     for (const cookieName in allCookies) {
       if (cookieKeysToRemove.includes(cookieName) || cookieName.startsWith("imovplan_")) {
         Cookies.remove(cookieName);
@@ -49,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key) continue;
-        if (key === "token" || key === "user" || key.startsWith("imovplan_")) {
+        if (key === "user" || key.startsWith("imovplan_")) {
           keysToRemove.push(key);
         }
       }
@@ -60,24 +59,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       for (let i = 0; i < sessionStorage.length; i++) {
         const key = sessionStorage.key(i);
         if (!key) continue;
-        if (key === "token" || key === "user" || key.startsWith("imovplan_")) {
+        if (key === "user" || key.startsWith("imovplan_")) {
           sessionKeysToRemove.push(key);
         }
       }
       sessionKeysToRemove.forEach((k) => sessionStorage.removeItem(k));
     }
-    delete api.defaults.headers.Authorization;
   };
 
   useEffect(() => {
     async function initAuth() {
       if (typeof window !== "undefined") {
-        const storedToken = Cookies.get("token");
         const storedUser = Cookies.get("user");
-        if (storedToken && storedUser) {
+        if (storedUser) {
           try {
             const parsedUser = JSON.parse(storedUser);
-            api.defaults.headers.Authorization = `Bearer ${storedToken}`;
             
             // Verifica se o usuário existe no banco de dados
             const response = await api.get(`/usuario/${parsedUser.id}`);
@@ -88,7 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: dbUser.name,
               dataNascimento: dbUser.dataNascimento
             };
-            setToken(storedToken);
             setUser(updatedUser);
             Cookies.set("user", JSON.stringify(updatedUser), { expires: 7 });
           } catch (err) {
@@ -109,12 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const response = await api.post("/auth/register", { email, password, name, dataNascimento });
-      const { token: newToken, user: userData } = response.data;
-      setToken(newToken);
+      const { user: userData } = response.data;
       setUser(userData);
-      Cookies.set("token", newToken, { expires: 7 }); // 7 days
       Cookies.set("user", JSON.stringify(userData), { expires: 7 });
-      api.defaults.headers.Authorization = `Bearer ${newToken}`;
 
       // If they had a local guest plan, link it to their new account
       const localPlanoId = Cookies.get("imovplan_planoId");
@@ -147,12 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const response = await api.post("/auth/login", { email, password });
-      const { token: newToken, user: userData } = response.data;
-      setToken(newToken);
+      const { user: userData } = response.data;
       setUser(userData);
-      Cookies.set("token", newToken, { expires: 7 });
       Cookies.set("user", JSON.stringify(userData), { expires: 7 });
-      api.defaults.headers.Authorization = `Bearer ${newToken}`;
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Email ou senha inválidos";
@@ -163,7 +152,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (e) {
+      console.error("Erro no logout", e);
+    }
     clearAllData();
     if (typeof window !== "undefined") {
       window.location.href = "/auth";
@@ -194,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAuthenticated = () => {
-    return !!token && !!user;
+    return !!user;
   };
 
   const updateUser = (data: Partial<User>) => {
@@ -207,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, error, register, login, logout, deleteAccount, isAuthenticated, updateUser }}>
+    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, logout, deleteAccount, isAuthenticated, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

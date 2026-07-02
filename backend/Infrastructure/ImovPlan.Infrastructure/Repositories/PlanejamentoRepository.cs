@@ -27,7 +27,18 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<Planejamento?> GetByUsuarioIdAsync(string usuarioId)
         {
-            return await _context.Planejamentos.FirstOrDefaultAsync(o => o.UsuarioId == usuarioId);
+            return await _context.Planejamentos
+                .Where(p => p.UsuarioId == usuarioId)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<Planejamento>> GetAllByUsuarioIdAsync(string usuarioId)
+        {
+            return await _context.Planejamentos
+                .Where(p => p.UsuarioId == usuarioId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<Planejamento> CreateAsync(Planejamento planejamento)

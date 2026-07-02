@@ -26,11 +26,11 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> GetDraftBySession([FromQuery] string sessionId)
         {
             if (string.IsNullOrEmpty(sessionId))
-                return BadRequest("SessionId is required.");
+                return BadRequest(new { message = "SessionId is required." });
 
             var draft = await _planoService.GetDraftBySessionIdAsync(sessionId);
             if (draft == null)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             return Ok(draft);
         }
@@ -40,11 +40,11 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioIdClaim = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var draft = await _planoService.GetDraftByUsuarioIdAsync(usuarioId);
             if (draft == null)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             return Ok(draft);
         }
@@ -54,7 +54,7 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioIdClaim = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var draft = await _planoService.GetOrCreateDraftForUserAsync(usuarioId);
             return Ok(draft);
@@ -65,7 +65,7 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioIdClaim = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
-                return NotFound();
+                return NotFound(new { message = "Não encontrado." });
 
             var success = await _planoService.LinkPlanToUserAsync(id, usuarioId);
             if (!success)
@@ -78,7 +78,7 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> CreateDraft([FromQuery] string sessionId)
         {
             if (string.IsNullOrEmpty(sessionId))
-                return BadRequest("SessionId is required.");
+                return BadRequest(new { message = "SessionId is required." });
 
             var id = await _planoService.CreateDraftAsync(sessionId);
             return Ok(new { id });
@@ -102,7 +102,7 @@ namespace ImovPlan.API.Controllers
             {
                 var usuarioIdClaim = User.GetUsuarioId(); // pode ser null no fluxo anônimo (sessionId)
                 if (string.IsNullOrEmpty(draftDto.SessionId) && string.IsNullOrEmpty(usuarioIdClaim))
-                    return BadRequest("SessionId ou autenticação são obrigatórios.");
+                    return BadRequest(new { message = "SessionId ou autenticação são obrigatórios." });
 
                 var success = await _planoService.UpdateDraftAsync(id, draftDto, usuarioIdClaim);
                 if (!success)

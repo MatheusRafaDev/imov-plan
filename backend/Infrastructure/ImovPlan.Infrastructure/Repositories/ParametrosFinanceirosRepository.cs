@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Infrastructure.Data;
@@ -10,25 +11,35 @@ namespace ImovPlan.Infrastructure.Repositories
     public class ParametrosFinanceirosRepository : IParametrosFinanceirosRepository
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private const string CacheKey = "ParametrosFinanceiros_Ativo";
 
-        public ParametrosFinanceirosRepository(AppDbContext context)
+        public ParametrosFinanceirosRepository(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<ParametrosFinanceiros> GetAtivoAsync()
         {
+            if (_cache.TryGetValue(CacheKey, out ParametrosFinanceiros? cachedParametros) && cachedParametros != null)
+            {
+                return cachedParametros;
+            }
+
             var parametros = await _context.ParametrosFinanceiros
                 .FirstOrDefaultAsync(p => p.Ativo && p.Codigo == "default");
 
             if (parametros != null)
             {
+                _cache.Set(CacheKey, parametros, TimeSpan.FromMinutes(30));
                 return parametros;
             }
 
             parametros = ParametrosFinanceiros.Default();
             _context.ParametrosFinanceiros.Add(parametros);
             await _context.SaveChangesAsync();
+            _cache.Set(CacheKey, parametros, TimeSpan.FromMinutes(30));
             return parametros;
         }
 
@@ -45,6 +56,7 @@ namespace ImovPlan.Infrastructure.Repositories
             {
                 _context.ParametrosFinanceiros.Add(parametros);
                 await _context.SaveChangesAsync();
+                _cache.Remove(CacheKey);
                 return parametros;
             }
 
@@ -72,6 +84,7 @@ namespace ImovPlan.Infrastructure.Repositories
 
             _context.ParametrosFinanceiros.Update(existing);
             await _context.SaveChangesAsync();
+            _cache.Remove(CacheKey);
             return existing;
         }
     }

@@ -28,6 +28,12 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("role")]
         public string? Role { get; set; }
 
+        [BsonElement("resetPasswordToken")]
+        public string? ResetPasswordToken { get; set; }
+
+        [BsonElement("resetPasswordExpiry")]
+        public DateTime? ResetPasswordExpiry { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

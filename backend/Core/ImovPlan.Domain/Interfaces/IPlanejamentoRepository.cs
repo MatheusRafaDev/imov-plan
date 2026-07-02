@@ -8,6 +8,7 @@ namespace ImovPlan.Domain.Interfaces
         Task<Planejamento?> GetByIdAsync(string id);
         Task<Planejamento?> GetBySessionIdAsync(string sessionId);
         Task<Planejamento?> GetByUsuarioIdAsync(string usuarioId);
+        Task<System.Collections.Generic.List<Planejamento>> GetAllByUsuarioIdAsync(string usuarioId);
         Task<Planejamento> CreateAsync(Planejamento planejamento);
         Task UpdateAsync(string id, Planejamento planejamento);
         Task DeleteAsync(string id);

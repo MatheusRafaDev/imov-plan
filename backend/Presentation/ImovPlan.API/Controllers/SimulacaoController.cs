@@ -38,15 +38,15 @@ namespace ImovPlan.API.Controllers
         {
             var usuarioId = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioId))
-                return Unauthorized();
+                return Unauthorized(new { message = "Não autorizado." });
 
             var planejamento = await _planejamentoRepository.GetByIdAsync(planoId);
             if (planejamento == null || planejamento.UsuarioId != usuarioId)
-                return NotFound("Planejamento não encontrado");
+                return NotFound(new { message = "Planejamento não encontrado" });
 
             var ultimoRegistro = await _historicoRepository.GetUltimoByPlanejamentoIdAsync(planoId);
             if (ultimoRegistro == null)
-                return NotFound("Nenhuma simulação encontrada para este plano");
+                return NotFound(new { message = "Nenhuma simulação encontrada para este plano" });
 
             var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
 
@@ -63,7 +63,7 @@ namespace ImovPlan.API.Controllers
             var usuarioId = User.GetUsuarioId();
             var planejamento = await _planejamentoRepository.GetByIdAsync(planoId);
             if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
-                return NotFound("Planejamento não encontrado");
+                return NotFound(new { message = "Planejamento não encontrado" });
 
             var totalNecessario = planejamento.CustosCompra?.TotalNecessario ?? 0m;
 
@@ -76,7 +76,7 @@ namespace ImovPlan.API.Controllers
             // Buscar o registro completo que foi salvo
             var ultimoRegistro = await _historicoRepository.GetUltimoByPlanejamentoIdAsync(planoId);
             if (ultimoRegistro == null)
-                return StatusCode(500, "Erro ao salvar simulação");
+                return StatusCode(500, new { message = "Erro ao salvar simulação" });
 
             var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
             var result = MapToDto(ultimoRegistro, evolucao);

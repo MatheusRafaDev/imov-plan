@@ -60,7 +60,9 @@ namespace ImovPlan.Application.Services
             var dataReferencia = planejamento.DataInicio ?? DateTime.UtcNow;
             int? mesAtingiu = null;
             DateTime? dataAtingiu = null;
-            var limiteMeses = parametros.PrazoFinanciamentoPadraoMeses;
+            var limiteMeses = (planejamento.PrazoMaxMeses.HasValue && planejamento.PrazoMaxMeses.Value > 0)
+                ? planejamento.PrazoMaxMeses.Value
+                : parametros.PrazoFinanciamentoPadraoMeses;
 
             while (meses < limiteMeses)
             {

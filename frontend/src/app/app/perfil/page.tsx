@@ -21,13 +21,16 @@ import {
   DollarSign,
   Heart,
   PiggyBank,
-  Trash2
+  Trash2,
+  Download,
+  Shield
 } from "lucide-react";
 
 export default function PerfilPage() {
   const { user, updateUser, deleteAccount } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -88,6 +91,27 @@ export default function PerfilPage() {
   const completedFields = [name, email, dataNascimento].filter(Boolean).length;
   const totalFields = 3;
   const completionPercent = Math.round((completedFields / totalFields) * 100);
+
+  const handleExportData = async () => {
+    if (!user) return;
+    setExportLoading(true);
+    try {
+      const response = await import("@/lib/api").then(m => m.default.get("/usuario/exportar", { responseType: "blob" }));
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `meus-dados-imovplan.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Seus dados foram exportados com sucesso!");
+    } catch {
+      toast.error("Erro ao exportar dados. Tente novamente.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   if (loadingProfile) {
     return (
@@ -199,6 +223,40 @@ export default function PerfilPage() {
               onChange={(v) => setDataNascimento(v)}
             />
           </div>
+        </div>
+      </Card>
+
+      {/* LGPD / Dados */}
+      <Card className="p-8 shadow-soft border-border/60 space-y-6">
+        <div>
+          <h3 className="font-display text-xl flex items-center gap-2">
+            <Shield className="h-5 w-5 text-accent" />
+            Seus Dados (LGPD)
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            De acordo com a Lei Geral de Proteção de Dados (LGPD), você tem o direito de acessar e exportar todos os seus dados armazenados na plataforma.
+          </p>
+        </div>
+        <div className="pt-4 border-t border-border/40 flex items-center justify-between">
+          <div>
+            <h4 className="font-medium text-foreground">Exportar meus dados</h4>
+            <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+              Baixe um arquivo JSON completo com todos os seus dados: perfil, planejamento e histórico.
+            </p>
+          </div>
+          <Button
+            id="btn-exportar-dados"
+            variant="outline"
+            onClick={handleExportData}
+            disabled={exportLoading}
+          >
+            {exportLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            {exportLoading ? "Exportando..." : "Exportar Dados"}
+          </Button>
         </div>
       </Card>
 

@@ -130,9 +130,9 @@ namespace ImovPlan.Application.Services
             return Math.Round(cetAnual * 100, 2);
         }
 
-        public bool VerificarComprometimentoRenda(decimal rendaBrutaFamiliar, decimal parcelaCalculada)
+        public async Task<bool> VerificarComprometimentoRendaAsync(decimal rendaBrutaFamiliar, decimal parcelaCalculada)
         {
-            var parametros = _parametrosRepo.GetAtivoAsync().GetAwaiter().GetResult();
+            var parametros = await _parametrosRepo.GetAtivoAsync();
             var limite = rendaBrutaFamiliar * parametros.LimiteComprometimentoRenda;
             return parcelaCalculada <= limite;
         }
@@ -151,6 +151,11 @@ namespace ImovPlan.Application.Services
                 var parcelaPagaPeloCliente = parcelaAtual - desconto;
                 return new { ParcelaPagaPeloCliente = parcelaPagaPeloCliente, DuracaoMeses = 12 };
             }
+            if (modalidade == 2) // Redução de prazo mantendo a parcela
+            {
+                // TODO: Funcionalidade incompleta/não planejada.
+                return new { Erro = "Modalidade 2 (Redução de prazo) ainda não suportada." };
+            }
             return new { Erro = "Modalidade inválida" };
         }
 
@@ -161,9 +166,9 @@ namespace ImovPlan.Application.Services
         }
 
         // Aliquota de IR regressiva baseada em dias corridos
-        private decimal AliquotaIR(int diasCorridos)
+        private async Task<decimal> AliquotaIRAsync(int diasCorridos)
         {
-            var parametros = _parametrosRepo.GetAtivoAsync().GetAwaiter().GetResult();
+            var parametros = await _parametrosRepo.GetAtivoAsync();
             return parametros.AliquotasIr
                 .OrderBy(a => a.AteDias ?? int.MaxValue)
                 .FirstOrDefault(a => a.AteDias == null || diasCorridos <= a.AteDias)?.Aliquota ?? 0.15m;
@@ -176,7 +181,7 @@ namespace ImovPlan.Application.Services
             return (decimal)Math.Pow((double)(1 + anual), 1.0 / 12.0) - 1;
         }
 
-        public SimResultDto Simular(SimInputDto input)
+        public async Task<SimResultDto> SimularAsync(SimInputDto input)
         {
             // Cálculo da meta
             var meta = (input.ValorImovel * input.PercentualEntrada) / 100m + (input.ValorImovel * input.PercentualCustosExtras) / 100m;
@@ -185,7 +190,7 @@ namespace ImovPlan.Application.Services
             var faltava = Math.Max(0, meta - input.ValorJaGuardado);
 
             var taxaMes = TaxaMensalEfetiva(input.TaxaCdiAnual, input.PercentualCdi);
-            var parametros = _parametrosRepo.GetAtivoAsync().GetAwaiter().GetResult();
+            var parametros = await _parametrosRepo.GetAtivoAsync();
             var prazoMax = input.PrazoMaxMeses ?? parametros.PrazoMaxSimulacaoMeses;
             var dataInicio = input.DataInicio ?? DateTime.UtcNow;
 
@@ -219,7 +224,7 @@ namespace ImovPlan.Application.Services
 
                 var rendimentoBruto = saldo * taxaMes;
                 var dias = mes * 30;
-                var ir = AliquotaIR(dias);
+                var ir = await AliquotaIRAsync(dias);
                 var imposto = rendimentoBruto * ir;
                 var rendimentoLiquido = rendimentoBruto - imposto;
                 saldo += rendimentoLiquido;
