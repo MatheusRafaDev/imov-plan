@@ -91,13 +91,27 @@ namespace ImovPlan.Application.Services
                     .Sum(a => a.Valor);
 
                 var aporteRegular = aportesRegularesEditados.GetValueOrDefault(meses, totalAporteMensal);
-                var totalPorPessoaEditados = aportesRegularesEditadosPorPessoa
-                    .Values
-                    .Select(dict => dict.GetValueOrDefault(meses, 0m))
-                    .Sum();
-                if (totalPorPessoaEditados > 0)
+                
+                bool isEditedInMonth = false;
+                decimal totalForMonth = 0m;
+
+                foreach (var aporteRequest in request.AportesMensais)
                 {
-                    aporteRegular = totalPorPessoaEditados;
+                    if (aportesRegularesEditadosPorPessoa.TryGetValue(aporteRequest.PessoaId, out var dict) 
+                        && dict.TryGetValue(meses, out var editedValue))
+                    {
+                        isEditedInMonth = true;
+                        totalForMonth += editedValue;
+                    }
+                    else
+                    {
+                        totalForMonth += aporteRequest.Valor;
+                    }
+                }
+
+                if (isEditedInMonth)
+                {
+                    aporteRegular = totalForMonth;
                 }
 
                 var aporteMes = aporteRegular + aporteExtraMes;

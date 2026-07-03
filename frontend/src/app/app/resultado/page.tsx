@@ -52,6 +52,15 @@ function backendToSimResult(backend: BackendSimulacaoResult, objetivo: Partial<S
   };
 }
 
+type PessoaBreakdown = {
+  id: string;
+  nome: string;
+  valorInicial: number;
+  aportado: number; // aportes regulares + extras da pessoa, até o mês da meta
+  retorno: number;  // rendimento líquido atribuído à pessoa, até o mês da meta
+  saldo: number;    // saldo final da pessoa no mês da meta
+};
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
   const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa, dadosCalculados, backendData, loadingBackend, calculating, backendError, simSource, calcularBackend } = usePlanContext();
@@ -115,10 +124,105 @@ export default function ResultadoPage() {
   const pontoMeta = chartData.find(d => d.mes === sim?.mesAtingiuMeta);
   const dataCross = pontoMeta ? pontoMeta.label : undefined;
 
-  const targetMonthIndex = sim?.mesAtingiuMeta ? sim.mesAtingiuMeta - 1 : (sim?.rows.length ?? 1) - 1;
+  // Antes cortava no mês em que a meta era atingida (sim.mesAtingiuMeta).
+  // Agora sempre olha até o fim do planejamento (última linha da tabela) —
+  // "Atinge a meta em" continua mostrando a data da meta separadamente,
+  // mas os cards de resumo (Total acumulado, Retorno, etc.) refletem o
+  // planejamento inteiro.
+  const targetMonthIndex = (sim?.rows.length ?? 1) - 1;
   const targetRow = sim?.rows[targetMonthIndex];
 
   const totalCompra = pessoas.reduce((s, p) => s + Number(p.valorInicial ?? 0), 0);
+
+  /**
+   * Breakdown único por pessoa (aportado / retorno / saldo), sempre cortado
+   * em targetMonthIndex (mês da meta). Substitui os 3 loops que antes
+   * existiam separadamente em "Valor aportado", "Retorno de investimento"
+   * e "Total acumulado" — que haviam divergido entre si (o de Retorno
+   * usava perPersonStats, que soma a tabela inteira, e não o corte da meta).
+   */
+  const breakdown = useMemo((): { porPessoa: PessoaBreakdown[]; conjunto: { aportado: number; retorno: number; saldo: number } } => {
+    if (!sim || !targetRow) {
+      return { porPessoa: [], conjunto: { aportado: 0, retorno: 0, saldo: 0 } };
+    }
+
+    const saldos = Object.fromEntries(pessoas.map(p => [p.id, p.valorInicial ?? 0]));
+    const aportados = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    const retornos = Object.fromEntries(pessoas.map(p => [p.id, 0]));
+    let saldoConjunto = 0;
+    let aportadoConjunto = 0;
+    let retornoConjunto = 0;
+    let saldoAnterior = totalGuardado;
+
+    for (let i = 0; i <= targetMonthIndex; i++) {
+      const r = sim.rows[i];
+      const saldoTotalAnterior = saldoAnterior;
+
+      const extrasMes = combinedExtras.filter(a => {
+        const d = new Date(a.data + 'T12:00:00');
+        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+        return mesOffset === r.mes;
+      });
+      const extrasPorPessoa: Record<string, number> = {};
+      let extrasConjunto = 0;
+      extrasMes.forEach(a => {
+        if (a.pessoaId) extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
+        else extrasConjunto += Number(a.valor);
+      });
+
+      const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
+      const isLegacyEdited = aportesRegularesEditados[r.mes] !== undefined;
+      const aporteFinalPorPessoa: Record<string, number> = {};
+      pessoas.forEach(p => {
+        if (r.mes === 0) {
+          aporteFinalPorPessoa[p.id] = 0;
+        } else {
+          const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[r.mes];
+          if (editedValue !== undefined) {
+            aporteFinalPorPessoa[p.id] = editedValue;
+          } else if (isLegacyEdited && defaultAporte > 0) {
+            aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[r.mes] || 0);
+          } else {
+            aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
+          }
+        }
+      });
+
+      pessoas.forEach(p => {
+        const proporcao = saldoTotalAnterior > 0 ? (saldos[p.id] || 0) / saldoTotalAnterior : 0;
+        const rendimentoPessoa = proporcao * r.rendimentoLiquido;
+        const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
+        const extra = extrasPorPessoa[p.id] || 0;
+
+        retornos[p.id] = (retornos[p.id] || 0) + rendimentoPessoa;
+        aportados[p.id] = (aportados[p.id] || 0) + aporteFinal + extra;
+        saldos[p.id] = (saldos[p.id] || 0) + aporteFinal + extra + rendimentoPessoa;
+      });
+
+      const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
+      const rendimentoConjunto = proporcaoConjunto * r.rendimentoLiquido;
+      const diffConjunto = isLegacyEdited && defaultAporte === 0 ? r.aporteRegular : 0;
+
+      retornoConjunto += rendimentoConjunto;
+      aportadoConjunto += extrasConjunto + diffConjunto;
+      saldoConjunto = saldoConjunto + extrasConjunto + rendimentoConjunto + diffConjunto;
+      saldoAnterior = r.saldoAcumulado;
+    }
+
+    const porPessoa = pessoas.map(p => ({
+      id: p.id,
+      nome: p.nome,
+      valorInicial: p.valorInicial ?? 0,
+      aportado: aportados[p.id] || 0,
+      retorno: retornos[p.id] || 0,
+      saldo: saldos[p.id] || 0,
+    }));
+
+    return {
+      porPessoa,
+      conjunto: { aportado: aportadoConjunto, retorno: retornoConjunto, saldo: saldoConjunto },
+    };
+  }, [sim, targetRow, targetMonthIndex, pessoas, totalGuardado, aporteTotal, combinedExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, inicio]);
 
   // Se não tem nenhum dado, mostrar estado vazio
   if (!sim) {
@@ -309,41 +413,21 @@ export default function ResultadoPage() {
               </div>
             </Card>
 
-            {/* Valor Aportado */}
+            {/* Valor Aportado — agora lê do breakdown único */}
             <Card className="p-4 border-border/50 bg-card shadow-soft">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><Coins className="h-3.5 w-3.5" /> Valor aportado</p>
               <p className="font-display text-2xl num mb-3">{brl(targetRow ? targetRow.totalInvestido - totalGuardado : 0)}</p>
               <div className="space-y-2">
                 {(() => {
-                  const meses = sim.mesAtingiuMeta ?? sim.rows.length;
-                  const extrasMap: Record<string, number> = {};
-                  let conjuntoExtra = 0;
-                  aportesExtras.forEach(a => {
-                    const d = new Date(a.data + 'T12:00:00');
-                    const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
-                    if (mesOffset <= meses) {
-                      if (a.pessoaId) extrasMap[a.pessoaId] = (extrasMap[a.pessoaId] || 0) + Number(a.valor);
-                      else conjuntoExtra += Number(a.valor);
-                    }
-                  });
-                  const totalAportadoGeral = targetRow ? targetRow.totalInvestido - totalGuardado : 0;
-                  const lista = pessoas.map(p => {
-                    const aportesRegularesSum = sim.rows.slice(0, meses).reduce((sum, row) => {
-                      if (row.mes === 0) return sum;
-                      const defaultAporte = row.mes === 0 ? 0 : aporteTotal;
-                      const isEdited = row.aporteRegular !== defaultAporte;
-                      if (isEdited) {
-                        const baseAporte = Number(p.aporte_mensal) || 0;
-                        const proporcao = defaultAporte > 0 ? baseAporte / defaultAporte : 0;
-                        return sum + (proporcao * row.aporteRegular);
-                      } else {
-                        return sum + (Number(p.aporte_mensal) || 0);
-                      }
-                    }, 0);
-                    const v = aportesRegularesSum + (extrasMap[p.id] || 0);
-                    return { nome: p.nome, valor: v, percent: totalAportadoGeral > 0 ? (v / totalAportadoGeral) * 100 : 0 };
-                  });
-                  if (conjuntoExtra > 0) lista.push({ nome: "Conjunto", valor: conjuntoExtra, percent: totalAportadoGeral > 0 ? (conjuntoExtra / totalAportadoGeral) * 100 : 0 });
+                  const totalAportadoGeral = breakdown.porPessoa.reduce((s, p) => s + p.aportado, 0) + breakdown.conjunto.aportado;
+                  const lista = breakdown.porPessoa.map(p => ({
+                    nome: p.nome,
+                    valor: p.aportado,
+                    percent: totalAportadoGeral > 0 ? (p.aportado / totalAportadoGeral) * 100 : 0,
+                  }));
+                  if (breakdown.conjunto.aportado > 0) {
+                    lista.push({ nome: "Conjunto", valor: breakdown.conjunto.aportado, percent: totalAportadoGeral > 0 ? (breakdown.conjunto.aportado / totalAportadoGeral) * 100 : 0 });
+                  }
                   return lista.map((item, i) => (
                     <div key={i} className="space-y-1">
                       <div className="flex justify-between text-xs items-end">
@@ -359,101 +443,54 @@ export default function ResultadoPage() {
               </div>
             </Card>
 
-            {/* Retorno de investimento */}
+            {/* Retorno de investimento — CORRIGIDO: antes somava perPersonStats
+                (12 meses inteiros, R$ 3.930,03); agora usa breakdown, cortado
+                em targetMonthIndex, igual ao Lucro líquido (R$ 977,61) */}
             <Card className="p-4 border-border/50 bg-card shadow-soft">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5 mb-2"><TrendingUp className="h-3.5 w-3.5" /> Retorno de investimento</p>
-              <p className="font-display text-2xl num mb-3">{brl(perPersonStats.reduce((sum, p) => sum + p.retornoInvestimento, 0))}</p>
+              <p className="font-display text-2xl num mb-3">
+                +{brl(breakdown.porPessoa.reduce((sum, p) => sum + p.retorno, 0) + breakdown.conjunto.retorno)}
+              </p>
               <div className="space-y-3">
-                {perPersonStats.map((item) => (
-                  <div key={item.id} className="space-y-1">
-                    <div className="flex justify-between text-xs items-end">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground">{item.nome}</span>
-                        <span className="text-[10px] text-muted-foreground">{nomeTipoInvestimento(item.tipoInvestimento)} • {item.percentualCdiInvestimento}% do CDI</span>
+                {breakdown.porPessoa.map((item) => {
+                  const stats = perPersonStats.find(s => s.id === item.id);
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      <div className="flex justify-between text-xs items-end">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">{item.nome}</span>
+                          {stats && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {nomeTipoInvestimento(stats.tipoInvestimento)} • {stats.percentualCdiInvestimento}% do CDI
+                            </span>
+                          )}
+                        </div>
+                        <span className="num font-medium">{brl(item.retorno)}</span>
                       </div>
-                      <span className="num font-medium">{brl(item.retornoInvestimento)}</span>
+                      <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${stats?.percentualCdiInvestimento ?? 0}%` }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${item.percentualCdiInvestimento}%` }} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
 
-            {/* Total Acumulado */}
+            {/* Total Acumulado — agora lê do breakdown único */}
             <Card className="p-4 border-border/50 bg-[#3B6D11]/5 shadow-soft">
               <p className="text-[10px] uppercase tracking-wider text-[#3B6D11] dark:text-[#80B551] font-medium flex items-center gap-1.5 mb-2"><TrendingUp className="h-3.5 w-3.5" /> Total acumulado</p>
               <p className="font-display text-2xl num text-[#3B6D11] dark:text-[#80B551] mb-3">{brl(targetRow ? targetRow.saldoAcumulado : sim.saldoFinal)}</p>
               <div className="space-y-2">
                 {(() => {
-                  const rRow = targetRow || (sim.rows[sim.rows.length - 1]);
-                  if (!rRow) return null;
-
-                  const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
-                  let saldoConjunto = 0;
-                  let saldoAnterior = totalGuardado;
-
-                  for (let i = 0; i <= targetMonthIndex; i++) {
-                    const r = sim.rows[i];
-                    const extrasMes = combinedExtras.filter(a => {
-                      const d = new Date(a.data + 'T12:00:00');
-                      const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
-                      return mesOffset === r.mes;
-                    });
-
-                    const extrasPorPessoa: Record<string, number> = {};
-                    let extrasConjunto = 0;
-                    extrasMes.forEach(a => {
-                      if (a.pessoaId) extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
-                      else extrasConjunto += Number(a.valor);
-                    });
-
-                    const saldoTotalAnterior = saldoAnterior;
-                    const novosSaldos: Record<string, number> = {};
-                    const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
-                    const isLegacyEdited = aportesRegularesEditados[r.mes] !== undefined;
-
-                    const aporteFinalPorPessoa: Record<string, number> = {};
-                    pessoas.forEach(p => {
-                      if (r.mes === 0) {
-                        aporteFinalPorPessoa[p.id] = 0;
-                      } else {
-                        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[r.mes];
-                        if (editedValue !== undefined) {
-                          aporteFinalPorPessoa[p.id] = editedValue;
-                        } else if (isLegacyEdited && defaultAporte > 0) {
-                          aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[r.mes] || 0);
-                        } else {
-                          aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
-                        }
-                      }
-                    });
-
-                    pessoas.forEach(p => {
-                      const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
-                      const rendimentoPessoa = proporcao * r.rendimentoLiquido;
-                      const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
-                      const extra = extrasPorPessoa[p.id] || 0;
-                      novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
-                    });
-
-                    const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
-                    const rendimentoConjunto = proporcaoConjunto * r.rendimentoLiquido;
-                    const diffConjunto = isLegacyEdited && defaultAporte === 0 ? r.aporteRegular : 0;
-                    const novoSaldoConjunto = saldoConjunto + extrasConjunto + rendimentoConjunto + diffConjunto;
-
-                    pessoas.forEach(p => { saldos[p.nome] = novosSaldos[p.nome]; });
-                    saldoConjunto = novoSaldoConjunto;
-                    saldoAnterior = r.saldoAcumulado;
+                  const total = targetRow ? targetRow.saldoAcumulado : sim.saldoFinal;
+                  const lista = breakdown.porPessoa.map(p => ({
+                    nome: p.nome,
+                    valor: p.saldo,
+                    percent: total > 0 ? (p.saldo / total) * 100 : 0,
+                  }));
+                  if (breakdown.conjunto.saldo > 0) {
+                    lista.push({ nome: "Conjunto", valor: breakdown.conjunto.saldo, percent: total > 0 ? (breakdown.conjunto.saldo / total) * 100 : 0 });
                   }
-
-                  const total = rRow.saldoAcumulado;
-                  const lista = pessoas.map(p => {
-                    const v = saldos[p.nome] || 0;
-                    return { nome: p.nome, valor: v, percent: total > 0 ? (v / total) * 100 : 0 };
-                  });
-                  if (saldoConjunto > 0) lista.push({ nome: "Conjunto", valor: saldoConjunto, percent: total > 0 ? (saldoConjunto / total) * 100 : 0 });
                   return lista.map((item, i) => (
                     <div key={i} className="space-y-1">
                       <div className="flex justify-between text-xs items-end">

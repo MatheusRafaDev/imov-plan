@@ -306,23 +306,9 @@ export default function PessoaCard({
                 >
                   <option value="">Selecione o tipo</option>
                   <option value="poupanca">Poupança</option>
-                  <option value="conta_corrente">Conta Corrente</option>
-                  <option value="cdb_100">CDB / Renda Fixa (100% CDI)</option>
-                  <option value="cdb_120">CDB 120% CDI</option>
-                  <option value="tesouro_selic">Tesouro Selic</option>
-                  <option value="lci_lca">LCI / LCA</option>
-                  <option value="fundo_di">Fundo de Investimento</option>
+                  <option value="cdb_100">CDB (100% CDI)</option>
                 </select>
-                {p.tipoInvestimento && (
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Retorno estimado: {nomeTipoInvestimento(p.tipoInvestimento)} • {cdiPercent}% do CDI
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      ≈ {brl(retornoMensalEstimado)}/mês sobre o valor guardado
-                    </p>
-                  </div>
-                )}
+
               </div>
             )}
           </div>

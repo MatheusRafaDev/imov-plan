@@ -5,7 +5,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { brl, simular, totalMesMaisRendimentoLiquido, mesDaSimulacaoParaData, type SimRow, type SimResult } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2 } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 
 type EnrichedRow = SimRow & {
@@ -16,168 +16,222 @@ type EnrichedRow = SimRow & {
   saldoConjunto: number;
 };
 
-// ─── Editable Aporte Cell ────────────────────────────────────────────────────
-function EditableAporte({
-  value,
-  planned,
-  pessoaNome,
+function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
+  const diff = value - planned;
+  return (
+    <div title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)}` : undefined}
+      className={`px-2 py-1 rounded border text-right transition-colors ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent text-foreground"}`}
+    >
+      {brl(value)}
+      {isEdited && (
+        <span className={`ml-1 text-[9px] font-bold ${diff > 0 ? "text-green-500" : "text-rose-500"}`}>
+          {diff > 0 ? "▲" : "▼"}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RowActions({
   mes,
-  onSave,
-  isEdited,
+  dataStr,
+  pessoas,
+  aportesPlanejados,
+  aportesReais,
+  onSaveAportes,
+  onAddExtra,
 }: {
-  value: number;
-  planned: number;
-  pessoaNome: string;
   mes: number;
-  onSave: (v: number) => void;
-  isEdited: boolean;
+  dataStr: string;
+  pessoas: { id: string; nome: string }[];
+  aportesPlanejados: Record<string, number>;
+  aportesReais: Record<string, number>;
+  onSaveAportes: (novosValores: Record<string, number>) => void;
+  onAddExtra: (pessoaId: string | null, origem: string, valor: number) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value.toFixed(2));
+  const [openMenu, setOpenMenu] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [openExtra, setOpenExtra] = useState(false);
+
   const triggerRef = useRef<HTMLDivElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const editPopupRef = useRef<HTMLDivElement>(null);
+  const extraPopupRef = useRef<HTMLDivElement>(null);
+
   const [portalPos, setPortalPos] = useState({ top: 0, left: 0, width: 0 });
 
-  useEffect(() => { setDraft(value.toFixed(2)); }, [value]);
-
+  // Estado Modal Edit
+  const [editDraft, setEditDraft] = useState<Record<string, string>>({});
   useEffect(() => {
-    if (open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const popupWidth = 260;
-      const left = Math.min(
-        Math.max(8 + window.scrollX, rect.right - popupWidth + window.scrollX),
-        window.innerWidth - popupWidth - 8 + window.scrollX
-      );
-      setPortalPos({ top: rect.bottom + window.scrollY + 4, left, width: popupWidth });
-      setTimeout(() => inputRef.current?.select(), 50);
+    if (openEdit) {
+      const initial: Record<string, string> = {};
+      pessoas.forEach(p => initial[p.id] = (aportesReais[p.id] || 0).toFixed(2));
+      setEditDraft(initial);
     }
-  }, [open]);
+  }, [openEdit, pessoas, aportesReais]);
+
+  // Estado Modal Extra
+  const [extraPessoa, setExtraPessoa] = useState<string>("conjunto");
+  const [extraOrigemMode, setExtraOrigemMode] = useState<"predefined" | "custom">("predefined");
+  const [extraOrigemPredefined, setExtraOrigemPredefined] = useState("13º Salário");
+  const [extraOrigemCustom, setExtraOrigemCustom] = useState("");
+  const [extraValor, setExtraValor] = useState("0");
+
+  const updatePos = (width: number) => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const left = rect.left - width - 12;
+      const finalLeft = left < 8 ? rect.right + 12 : left;
+      // Garante que o top não ultrapasse a tela
+      const rawTop = rect.top;
+      const top = Math.max(8, Math.min(rawTop, window.innerHeight - 420));
+      setPortalPos({ top, left: Math.min(finalLeft, window.innerWidth - width - 8), width });
+    }
+  };
 
   useEffect(() => {
-    if (!open) return;
+    if (openEdit) updatePos(300);
+    else if (openExtra) updatePos(280);
+    else if (openMenu) updatePos(220);
+  }, [openMenu, openEdit, openExtra]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        triggerRef.current && !triggerRef.current.contains(event.target as Node) &&
-        popupRef.current && !popupRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false);
-        setDraft(value.toFixed(2));
-      }
+      const target = event.target as Node;
+      if (triggerRef.current && triggerRef.current.contains(target)) return;
+      if (openMenu && menuRef.current && !menuRef.current.contains(target)) setOpenMenu(false);
+      if (openEdit && editPopupRef.current && !editPopupRef.current.contains(target)) setOpenEdit(false);
+      if (openExtra && extraPopupRef.current && !extraPopupRef.current.contains(target)) setOpenExtra(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open, value]);
-
-  const realValue = parseFloat(draft);
-  const diff = isNaN(realValue) ? 0 : realValue - planned;
-  const diffValid = !isNaN(realValue) && realValue >= 0;
-
-  const onSaveValue = () => {
-    if (diffValid) {
-      onSave(realValue);
-      setOpen(false);
-    }
-  };
-
-  const onRestore = () => {
-    onSave(planned);
-    setDraft(planned.toFixed(2));
-    setOpen(false);
-  };
+  }, [openMenu, openEdit, openExtra]);
 
   return (
-    <div ref={triggerRef} className="relative text-right">
+    <div ref={triggerRef} className="relative flex items-center justify-center">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)}` : "Clique para editar o aporte real"}
-        className={`w-full text-right px-2 py-1 rounded transition-colors border ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent hover:border-accent/20 hover:bg-accent/5"}`}
+        onClick={() => setOpenMenu(o => !o)}
+        className={`w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ${openMenu || openEdit || openExtra ? "opacity-100 bg-secondary" : "opacity-0 group-hover:opacity-100 focus:opacity-100"}`}
       >
-        {brl(value)}
-        {isEdited && (
-          <span className={`ml-1 text-[9px] font-bold ${diff > 0 ? "text-green-500" : "text-rose-500"}`}>
-            {diff > 0 ? "▲" : "▼"}
-          </span>
-        )}
+        <MoreHorizontal className="h-4 w-4" />
       </button>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div
-          ref={popupRef}
-          className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden"
-          style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}
-        >
-          {/* Header */}
-          <div className="bg-secondary/60 px-4 py-2.5 border-b border-border/50">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
-              Aporte · {pessoaNome} · Mês {mes}
-            </p>
+      {openMenu && typeof document !== "undefined" && createPortal(
+        <div ref={menuRef} className="fixed z-50 rounded-xl border border-border/70 bg-card shadow-xl overflow-hidden py-1" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}>
+          <button onClick={() => { setOpenMenu(false); setOpenEdit(true); }} className="w-full text-left px-4 py-2.5 text-xs text-foreground hover:bg-secondary/70 flex items-center gap-2">
+            <Edit2 className="h-3.5 w-3.5 text-muted-foreground" /> Editar Aportes do Mês
+          </button>
+          <button onClick={() => { setOpenMenu(false); setOpenExtra(true); }} className="w-full text-left px-4 py-2.5 text-xs text-foreground hover:bg-secondary/70 flex items-center gap-2">
+            <Plus className="h-3.5 w-3.5 text-muted-foreground" /> Adicionar Aporte Extra
+          </button>
+        </div>,
+        document.body
+      )}
+
+      {openEdit && typeof document !== "undefined" && createPortal(
+        <div ref={editPopupRef} className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}>
+          <div className="bg-secondary/60 px-4 py-3 border-b border-border/50">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Editar Aportes · Mês {mes}</p>
           </div>
-
-          <div className="p-4 space-y-3">
-            {/* Planejado */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Planejado</span>
-              <span className="num font-medium text-foreground">{brl(planned)}</span>
+          <div className="p-4 space-y-4">
+            {pessoas.map(p => {
+              const planejado = aportesPlanejados[p.id] || 0;
+              const val = editDraft[p.id] === "" ? 0 : Number(editDraft[p.id]);
+              const diff = val - planejado;
+              return (
+                <div key={p.id} className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-medium">{p.nome.split(" ")[0]}</span>
+                    <span className="text-muted-foreground">Planejado: {brl(planejado)}</span>
+                  </div>
+                  <MoneyInput
+                    variant="money"
+                    min={0}
+                    value={val}
+                    onChange={(v) => setEditDraft(prev => ({ ...prev, [p.id]: v === "" ? "0" : v.toString() }))}
+                    className="h-9 text-sm bg-background border-border"
+                  />
+                  {diff !== 0 && (
+                    <div className={`text-[10px] font-semibold text-right ${diff > 0 ? "text-green-500" : "text-rose-500"}`}>
+                      {diff > 0 ? `▲ +${brl(diff)}` : `▼ -${brl(Math.abs(diff))}`}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setOpenEdit(false)} className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
+              <button type="button" onClick={() => {
+                const results: Record<string, number> = {};
+                pessoas.forEach(p => results[p.id] = Number(editDraft[p.id] || 0));
+                onSaveAportes(results);
+                setOpenEdit(false);
+              }} className="flex-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Salvar</button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
-            {/* Separador */}
-            <div className="border-t border-border/40" />
-
-            {/* Real — campo editável */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Real aportado</label>
-              <MoneyInput
-                ref={inputRef}
-                variant="money"
-                min={0}
-                value={draft === "" ? 0 : Number(draft)}
-                onChange={(v) => setDraft(v === "" ? "0" : v.toString())}
-                onKeyDown={(e) => { if (e.key === "Enter") onSaveValue(); if (e.key === "Escape") { setOpen(false); setDraft(value.toFixed(2)); } }}
-                className="h-10 text-sm bg-background border-border"
-              />
+      {openExtra && typeof document !== "undefined" && createPortal(
+        <div ref={extraPopupRef} className="fixed z-50 rounded-xl border border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: 'calc(100vh - 16px)' }}>
+          <div className="bg-secondary/60 px-3 py-2 border-b border-border/50">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Extra · Mês {mes}</p>
+          </div>
+          <div className="p-3 space-y-2.5 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 60px)' }}>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Pessoa</label>
+                <select value={extraPessoa} onChange={e => setExtraPessoa(e.target.value)} className="w-full h-8 px-2 rounded-md border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary/20">
+                  <option value="conjunto">Conjunto</option>
+                  {pessoas.map(p => (
+                    <option key={p.id} value={p.id}>{p.nome.split(" ")[0]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Origem</label>
+                {extraOrigemMode === "predefined" ? (
+                  <select 
+                    value={extraOrigemPredefined} 
+                    onChange={e => {
+                      if (e.target.value === "Outro") setExtraOrigemMode("custom");
+                      else setExtraOrigemPredefined(e.target.value);
+                    }} 
+                    className="w-full h-8 px-2 rounded-md border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary/20"
+                  >
+                    <option value="13º Salário">13º Salário</option>
+                    <option value="Férias">Férias</option>
+                    <option value="Bônus">Bônus</option>
+                    <option value="PLR">PLR</option>
+                    <option value="Renda Extra">Renda Extra</option>
+                    <option value="Venda de Bem">Venda de Bem</option>
+                    <option value="Restituição IR">Restituição IR</option>
+                    <option value="Outro">Outro...</option>
+                  </select>
+                ) : (
+                  <div className="flex gap-1">
+                    <input autoFocus type="text" value={extraOrigemCustom} onChange={e => setExtraOrigemCustom(e.target.value)} placeholder="Digite..." className="w-full h-8 px-2 rounded-md border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary/20" />
+                    <button type="button" onClick={() => { setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); }} className="h-8 px-1.5 text-[10px] border border-border rounded-md bg-secondary text-muted-foreground hover:text-foreground shrink-0">←</button>
+                  </div>
+                )}
+              </div>
             </div>
-
-            {/* Diferença */}
-            {diffValid && diff !== 0 && (
-              <div className={`flex items-center justify-between text-xs rounded-lg px-3 py-2 ${diff > 0 ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-rose-500/10 text-rose-700 dark:text-rose-400"}`}>
-                <span className="font-medium">{diff > 0 ? "▲ Aportou a mais" : "▼ Aportou a menos"}</span>
-                <span className="num font-bold">{diff > 0 ? "+" : ""}{brl(Math.abs(diff))}</span>
-              </div>
-            )}
-            {diffValid && diff === 0 && draft !== planned.toFixed(2) && (
-              <div className="flex items-center justify-between text-xs rounded-lg px-3 py-2 bg-secondary/50 text-muted-foreground">
-                <span>Igual ao planejado</span>
-              </div>
-            )}
-
-            {/* Botões */}
-            <div className="flex gap-2 pt-1">
-              {isEdited && (
-                <button
-                  type="button"
-                  onClick={onRestore}
-                  className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-                >
-                  Restaurar
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setDraft(value.toFixed(2)); }}
-                className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={onSaveValue}
-                disabled={!diffValid}
-                className="flex-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-              >
-                Salvar
-              </button>
+            <div className="space-y-1">
+              <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Valor</label>
+              <MoneyInput variant="money" min={0} value={extraValor === "" ? 0 : Number(extraValor)} onChange={(v) => setExtraValor(v === "" ? "0" : v.toString())} className="h-8 text-xs bg-background border-border" />
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => { setOpenExtra(false); setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); setExtraValor("0"); }} className="flex-1 rounded-lg border border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
+              <button type="button" 
+                disabled={(extraOrigemMode === "custom" && !extraOrigemCustom.trim()) || Number(extraValor) <= 0} 
+                onClick={() => {
+                  const pid = extraPessoa === "conjunto" ? null : extraPessoa;
+                  const finalOrigem = extraOrigemMode === "predefined" ? extraOrigemPredefined : extraOrigemCustom.trim();
+                  onAddExtra(pid, finalOrigem, Number(extraValor)); 
+                  setOpenExtra(false); setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); setExtraValor("0"); 
+              }} className="flex-1 rounded-lg bg-primary px-2 py-1.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">Adicionar</button>
             </div>
           </div>
         </div>,
@@ -189,14 +243,20 @@ function EditableAporte({
 
 
 // ─── Extras Cell (context aportes) ────────────────────────
-type ContextExtra = { origem: string; valor: number; pessoaNome?: string };
+type ContextExtra = { origem: string; valor: number; pessoaNome?: string; index: number };
 
-function ExtrasCell({ contextItems, total }: {
+function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: {
   contextItems: ContextExtra[];
   total: number;
+  onEditExtra: (index: number, origem: string, valor: number) => void;
+  onDeleteExtra: (index: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editOrigem, setEditOrigem] = useState("");
+  const [editValor, setEditValor] = useState("0");
   const triggerRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const [portalPos, setPortalPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
@@ -204,21 +264,24 @@ function ExtrasCell({ contextItems, total }: {
       const rect = triggerRef.current.getBoundingClientRect();
       const width = 288;
       const left = Math.min(
-        Math.max(8 + window.scrollX, rect.left + rect.width - width + window.scrollX),
-        window.innerWidth - width - 8 + window.scrollX
+        Math.max(8, rect.left + rect.width - width),
+        window.innerWidth - width - 8
       );
-      const top = Math.min(rect.bottom + window.scrollY, window.scrollY + window.innerHeight - 220);
-      setPortalPos({
-        top,
-        left,
-      });
+      const top = Math.min(rect.bottom + 4, window.innerHeight - 220);
+      setPortalPos({ top, left });
     }
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) setOpen(false);
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        popupRef.current && !popupRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+        setEditingIdx(null);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -226,6 +289,12 @@ function ExtrasCell({ contextItems, total }: {
 
   const hasExtras = (contextItems ?? []).length > 0;
   const canOpen = hasExtras;
+
+  const startEdit = (item: ContextExtra) => {
+    setEditingIdx(item.index);
+    setEditOrigem(item.origem);
+    setEditValor(item.valor.toString());
+  };
 
   return (
     <div ref={triggerRef}>
@@ -240,19 +309,59 @@ function ExtrasCell({ contextItems, total }: {
 
       {open && canOpen && typeof document !== "undefined" && createPortal(
         <div
+          ref={popupRef}
           className="fixed z-50 w-72 bg-card border border-border rounded-xl shadow-xl p-3 space-y-3"
           style={{ top: `${portalPos.top + 4}px`, left: `${Math.max(8, portalPos.left)}px` }}
         >
           {hasExtras && (
             <div className="space-y-1">
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Extras do mês</p>
-              {contextItems.map((item, i) => (
-                <div key={i} className="flex items-center justify-between text-[11px] gap-2 py-0.5">
-                  <div className="flex flex-col min-w-0">
-                    <span className="truncate text-foreground font-medium">{item.origem}</span>
-                    <span className="text-[10px] text-muted-foreground">{item.pessoaNome || "Conjunto"}</span>
-                  </div>
-                  <span className="num text-accent shrink-0 font-semibold">+{brl(item.valor)}</span>
+              {contextItems.map((item) => (
+                <div key={item.index}>
+                  {editingIdx === item.index ? (
+                    <div className="space-y-2 p-2 rounded-lg bg-secondary/40 border border-border/40">
+                      <select value={editOrigem} onChange={e => {
+                        if (e.target.value === "__custom__") setEditOrigem("");
+                        else setEditOrigem(e.target.value);
+                      }} className="w-full h-8 px-2 rounded-md border border-border bg-background text-xs">
+                        {["13º Salário","Férias","Bônus","PLR","Renda Extra","Venda de Bem","Restituição IR"].includes(editOrigem) ? null : (
+                          <option value={editOrigem}>{editOrigem || "Personalizado"}</option>
+                        )}
+                        <option value="13º Salário">13º Salário</option>
+                        <option value="Férias">Férias</option>
+                        <option value="Bônus">Bônus</option>
+                        <option value="PLR">PLR</option>
+                        <option value="Renda Extra">Renda Extra</option>
+                        <option value="Venda de Bem">Venda de Bem</option>
+                        <option value="Restituição IR">Restituição IR</option>
+                        <option value="__custom__">Outro...</option>
+                      </select>
+                      {!["13º Salário","Férias","Bônus","PLR","Renda Extra","Venda de Bem","Restituição IR"].includes(editOrigem) && (
+                        <input type="text" value={editOrigem} onChange={e => setEditOrigem(e.target.value)} placeholder="Digite..." className="w-full h-8 px-2 rounded-md border border-border bg-background text-xs" />
+                      )}
+                      <MoneyInput variant="money" min={0} value={Number(editValor) || 0} onChange={(v) => setEditValor(v === "" ? "0" : v.toString())} className="h-8 text-xs bg-background border-border" />
+                      <div className="flex gap-1.5">
+                        <button type="button" onClick={() => setEditingIdx(null)} className="flex-1 rounded-md border border-border/60 px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">Cancelar</button>
+                        <button type="button" disabled={!editOrigem.trim() || Number(editValor) <= 0} onClick={() => { onEditExtra(item.index, editOrigem.trim(), Number(editValor)); setEditingIdx(null); }} className="flex-1 rounded-md bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Salvar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-[11px] gap-2 py-0.5 group/extra">
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate text-foreground font-medium">{item.origem}</span>
+                        <span className="text-[10px] text-muted-foreground">{item.pessoaNome || "Conjunto"}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="num text-accent font-semibold">+{brl(item.valor)}</span>
+                        <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title="Editar">
+                          <Edit2 className="h-3 w-3" />
+                        </button>
+                        <button type="button" onClick={() => onDeleteExtra(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all" title="Excluir">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="flex justify-between text-[11px] font-semibold pt-1 border-t border-border/50">
@@ -281,6 +390,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     objetivo,
     pessoas,
     aportesExtras,
+    setAportesExtras,
     aportesRegularesEditados,
     setAportesRegularesEditados,
     aportesRegularesEditadosPorPessoa,
@@ -460,9 +570,9 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                   <Th right>IR</Th>
                   <Th right>Rend. Líq.</Th>
                   <Th right>Saldo</Th>
-                  <Th right>% Meta</Th>
                 </>
               )}
+              <Th></Th>
             </tr>
           </thead>
           
@@ -472,7 +582,6 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
               const isConcluido = mesesConcluidosSet.has(r.mes);
               const totalExtras = r.aportesExtras;
               const totalAporteMes = r.aporteRegular + totalExtras;
-              const progressoMeta = sim && sim.meta > 0 ? (r.saldoAcumulado / sim.meta) * 100 : 0;
 
               return (
                 <tr
@@ -514,33 +623,10 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                         {r.mes === 0 ? (
                           <div className="text-muted-foreground/40 text-right px-1.5 py-0.5">—</div>
                         ) : (
-                          <EditableAporte
+                          <DisplayAporte
                             value={currentValue}
                             planned={defaultPessoaAporte}
-                            pessoaNome={p.nome.split(" ")[0]}
-                            mes={r.mes}
                             isEdited={isEdited}
-                            onSave={v => {
-                              setAportesRegularesEditadosPorPessoa(prev => {
-                                const personEdits = { ...(prev[p.id] || {}) };
-                                if (v === defaultPessoaAporte) {
-                                  delete personEdits[r.mes];
-                                } else {
-                                  personEdits[r.mes] = v;
-                                }
-                                const newState = { ...prev, [p.id]: personEdits };
-                                saveDraft({ aportesRegularesEditadosPorPessoa: newState });
-                                return newState;
-                              });
-                              
-                              if (aportesRegularesEditados[r.mes] !== undefined) {
-                                setAportesRegularesEditados(prev => {
-                                  const copy = { ...prev };
-                                  delete copy[r.mes];
-                                  return copy;
-                                });
-                              }
-                            }}
                           />
                         )}
                       </Td>
@@ -550,11 +636,12 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                   <Td right>
                     {(() => {
                       const ctxItems: ContextExtra[] = aportesExtras
-                        .filter(a => {
+                        .map((a, idx) => ({ a, idx }))
+                        .filter(({ a }) => {
                           const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
                           return mesOffset === r.mes;
                         })
-                        .map(a => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome }));
+                        .map(({ a, idx }) => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome, index: idx }));
 
                       const extrasTotal = ctxItems.reduce((sum, item) => sum + item.valor, 0);
 
@@ -562,6 +649,21 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                         <ExtrasCell
                           contextItems={ctxItems}
                           total={extrasTotal}
+                          onEditExtra={(index, origem, valor) => {
+                            setAportesExtras(prev => {
+                              const copy = [...prev];
+                              copy[index] = { ...copy[index], origem, valor };
+                              saveDraft({ aportesExtras: copy });
+                              return copy;
+                            });
+                          }}
+                          onDeleteExtra={(index) => {
+                            setAportesExtras(prev => {
+                              const copy = prev.filter((_, i) => i !== index);
+                              saveDraft({ aportesExtras: copy });
+                              return copy;
+                            });
+                          }}
                         />
                       );
                     })()}
@@ -586,14 +688,51 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                       </Td>
 
                       <Td right className="font-bold text-sm text-foreground">{brl(r.saldoAcumulado)}</Td>
-
-                      <Td right className="font-medium">
-                        <span className={progressoMeta >= 100 ? "text-primary" : "text-muted-foreground"}>
-                          {progressoMeta.toFixed(1)}%
-                        </span>
-                      </Td>
                     </>
                   )}
+                  
+                  {/* Actions Column */}
+                  <Td right className="group">
+                    {r.mes > 0 && (
+                      <RowActions
+                        mes={r.mes}
+                        dataStr={r.data}
+                        pessoas={pessoas.map(p => ({ id: p.id, nome: p.nome }))}
+                        aportesPlanejados={Object.fromEntries(pessoas.map(p => [p.id, Number(p.aporte_mensal) || 0]))}
+                        aportesReais={r.aporteFinalPorPessoa}
+                        onSaveAportes={(novosValores) => {
+                          setAportesRegularesEditadosPorPessoa(prev => {
+                            let newState = { ...prev };
+                            pessoas.forEach(p => {
+                              const v = novosValores[p.id];
+                              const defaultP = Number(p.aporte_mensal) || 0;
+                              const pEdits = { ...(newState[p.id] || {}) };
+                              if (v === defaultP) {
+                                delete pEdits[r.mes];
+                              } else {
+                                pEdits[r.mes] = v;
+                              }
+                              newState[p.id] = pEdits;
+                            });
+                            saveDraft({ aportesRegularesEditadosPorPessoa: newState });
+                            return newState;
+                          });
+                        }}
+                        onAddExtra={(pessoaId, origem, valor) => {
+                          const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : null;
+                          const newExtra = {
+                            pessoaId: pessoaId || undefined,
+                            pessoaNome: p ? p.nome.split(" ")[0] : undefined,
+                            origem,
+                            valor,
+                            data: r.data.split("T")[0]
+                          };
+                          setAportesExtras(prev => [...prev, newExtra]);
+                          saveDraft({ aportesExtras: [...aportesExtras, newExtra] });
+                        }}
+                      />
+                    )}
+                  </Td>
                 </tr>
               );
             })}
@@ -614,10 +753,17 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                   <Td right className="bg-primary/20 text-[#3B6D11] dark:text-[#80B551]">
                     {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                   </Td>
-                  <Td right className="bg-primary/20">{""}</Td>
-                  <Td right className="bg-primary/20">{""}</Td>
+                  <Td right className="bg-primary/20 py-2">
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
+                      <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
+                        +{brl(totals.totalMes + totals.rendLiquido)} período
+                      </span>
+                    </div>
+                  </Td>
                 </>
               )}
+              <Td className="bg-primary/20"></Td>
             </tr>
           </tfoot>
         </table>
