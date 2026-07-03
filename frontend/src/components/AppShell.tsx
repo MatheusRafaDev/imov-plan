@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, FolderOpen } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePlanContext } from "@/context/PlanContext";
@@ -30,11 +30,23 @@ const navPorCenario = {
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const { logout, user } = useAuth();
-  const { cenario, objetivo } = usePlanContext();
+  const { cenario, objetivo, saveDraft, calcularBackend } = usePlanContext();
   const pathname = usePathname();
+  const router = useRouter();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
   const homeHref = nav[0]?.to ?? "/app/imovel";
   const isStep1Filled = !!(objetivo && objetivo.valorImovel && objetivo.valorImovel > 0);
+
+  const handleNavClick = async (e: React.MouseEvent<HTMLAnchorElement>, targetPath: string) => {
+    if (targetPath === "/app/planejamento" || targetPath === "/app/resultado") {
+      e.preventDefault();
+      const savedId = await saveDraft();
+      if (savedId && !savedId.startsWith("local-draft")) {
+        calcularBackend(savedId);
+      }
+      router.push(targetPath);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-cream">
@@ -67,6 +79,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                   ) : (
                     <Link
                       href={n.to}
+                      onClick={(e) => handleNavClick(e, n.to)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                         isActive 
                           ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" 
@@ -120,7 +133,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                   {n.label}
                 </div>
               ) : (
-                <Link key={n.to} href={n.to} className={`flex-1 py-2 grid place-items-center text-xs gap-0.5 ${active ? "text-accent" : "text-muted-foreground"}`}>
+                <Link key={n.to} href={n.to} onClick={(e) => handleNavClick(e, n.to)} className={`flex-1 py-2 grid place-items-center text-xs gap-0.5 ${active ? "text-accent" : "text-muted-foreground"}`}>
                   <n.icon className="h-4 w-4" />
                   {n.label}
                 </Link>

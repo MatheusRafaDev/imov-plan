@@ -1,0 +1,1333 @@
+﻿diff --git a/backend/Core/ImovPlan.Application/Services/SimulacaoService.cs b/backend/Core/ImovPlan.Application/Services/SimulacaoService.cs
+index e77d3c0..e106cb3 100644
+--- a/backend/Core/ImovPlan.Application/Services/SimulacaoService.cs
++++ b/backend/Core/ImovPlan.Application/Services/SimulacaoService.cs
+@@ -65,9 +65,22 @@ namespace ImovPlan.Application.Services
+             int? mesAtingiu = null;
+             DateTime? dataAtingiu = null;
+             var limiteMeses = (planejamento.PrazoMaxMeses.HasValue && planejamento.PrazoMaxMeses.Value > 0)
+-                ? planejamento.PrazoMaxMeses.Value
++                ? planejamento.PrazoMaxMeses.Value + 6
+                 : parametros.PrazoFinanciamentoPadraoMeses;
+ 
++            // Registro inicial (M├¬s 0)
++            resultado.DetalhesMensais.Add(new DetalheMensal
++            {
++                Mes = 0,
++                DataReferencia = dataReferencia,
++                AporteMensal = 0,
++                AportesExtras = 0,
++                RendimentoBruto = 0,
++                Imposto = 0,
++                RendimentoLiquido = 0,
++                TotalAcumulado = saldo
++            });
++
+             while (meses < limiteMeses)
+             {
+                 meses++;
+@@ -114,7 +127,14 @@ namespace ImovPlan.Application.Services
+                 {
+                     mesAtingiu = meses;
+                     dataAtingiu = dataReferencia;
+-                    limiteMeses = Math.Min(parametros.PrazoFinanciamentoPadraoMeses, meses + 6);
++                    if (!planejamento.PrazoMaxMeses.HasValue || planejamento.PrazoMaxMeses.Value <= 0)
++                    {
++                        limiteMeses = Math.Min(parametros.PrazoFinanciamentoPadraoMeses, meses + 6);
++                    }
++                    else
++                    {
++                        limiteMeses = Math.Max(planejamento.PrazoMaxMeses.Value, meses + 6);
++                    }
+                 }
+             }
+ 
+@@ -124,9 +144,9 @@ namespace ImovPlan.Application.Services
+             resultado.TotalInvestido = totalInvestido;
+             resultado.LucroLiquido = saldo - totalInvestido;
+ 
+-            // Determinar a pr├│xima vers├úo do snapshot
+-            var allRegistros = await _historicoSimulacaoRepo.GetAllByPlanejamentoIdAsync(planejamento.Id);
+-            var versao = allRegistros.Count() + 1;
++            // Remover simula├º├Áes anteriores para n├úo poluir o banco e manter sempre apenas a mais recente
++            await _historicoSimulacaoRepo.DeleteAllByPlanejamentoIdAsync(planejamento.Id);
++            var versao = 1;
+ 
+             // Persistir registro da simula├º├úo
+             var participantesSnapshot = new List<ParticipanteSnapshot>();
+diff --git a/backend/Core/ImovPlan.Domain/Interfaces/IHistoricoSimulacaoRepository.cs b/backend/Core/ImovPlan.Domain/Interfaces/IHistoricoSimulacaoRepository.cs
+index ce470f3..782ce4d 100644
+--- a/backend/Core/ImovPlan.Domain/Interfaces/IHistoricoSimulacaoRepository.cs
++++ b/backend/Core/ImovPlan.Domain/Interfaces/IHistoricoSimulacaoRepository.cs
+@@ -10,6 +10,7 @@ namespace ImovPlan.Domain.Interfaces
+         Task<IEnumerable<HistoricoSimulacao>> GetAllByPlanejamentoIdAsync(string planejamentoId);
+         Task<HistoricoSimulacao> AddAsync(HistoricoSimulacao registro);
+         Task DeleteAsync(string id);
++        Task DeleteAllByPlanejamentoIdAsync(string planejamentoId);
+         Task<IEnumerable<EvolucaoMensalSimulacao>> GetEvolucaoBySimulacaoIdAsync(string simulacaoId);
+         Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao);
+     }
+diff --git a/backend/Infrastructure/ImovPlan.Infrastructure/Repositories/HistoricoSimulacaoRepository.cs b/backend/Infrastructure/ImovPlan.Infrastructure/Repositories/HistoricoSimulacaoRepository.cs
+index 2b201b9..17336d3 100644
+--- a/backend/Infrastructure/ImovPlan.Infrastructure/Repositories/HistoricoSimulacaoRepository.cs
++++ b/backend/Infrastructure/ImovPlan.Infrastructure/Repositories/HistoricoSimulacaoRepository.cs
+@@ -50,10 +50,35 @@ namespace ImovPlan.Infrastructure.Repositories
+ 
+         public async Task DeleteAsync(string id)
+         {
++            var existingEvolutions = await _context.EvolucoesMensaisSimulacao.Where(e => e.SimulacaoId == id).ToListAsync();
++            if (existingEvolutions.Any())
++            {
++                _context.EvolucoesMensaisSimulacao.RemoveRange(existingEvolutions);
++            }
++
+             var existing = await _context.HistoricosSimulacao.FirstOrDefaultAsync(s => s.Id == id);
+             if (existing != null)
+             {
+                 _context.HistoricosSimulacao.Remove(existing);
++            }
++
++            await _context.SaveChangesAsync();
++        }
++
++        public async Task DeleteAllByPlanejamentoIdAsync(string planejamentoId)
++        {
++            var existingSims = await _context.HistoricosSimulacao.Where(s => s.PlanejamentoId == planejamentoId).ToListAsync();
++            if (existingSims.Any())
++            {
++                var simIds = existingSims.Select(s => s.Id).ToList();
++                var existingEvolutions = await _context.EvolucoesMensaisSimulacao.Where(e => simIds.Contains(e.SimulacaoId)).ToListAsync();
++                
++                if (existingEvolutions.Any())
++                {
++                    _context.EvolucoesMensaisSimulacao.RemoveRange(existingEvolutions);
++                }
++
++                _context.HistoricosSimulacao.RemoveRange(existingSims);
+                 await _context.SaveChangesAsync();
+             }
+         }
+diff --git a/frontend/src/app/app/imovel/page.tsx b/frontend/src/app/app/imovel/page.tsx
+index 885b35d..baca4cc 100644
+--- a/frontend/src/app/app/imovel/page.tsx
++++ b/frontend/src/app/app/imovel/page.tsx
+@@ -207,7 +207,7 @@ export default function ObjetivoPage() {
+       // Salva no backend usando o novoObjetivo diretamente (evita bug de closure/estado desatualizado)
+       const sucesso = await salvarPlano(novoObjetivo);
+ 
+-      if (sucesso !== false) {
++      if (sucesso !== null) {
+         setForm((prev) => ({ ...prev, nome: nomePlanoFinal }));
+         toast.success("Plano salvo com sucesso!");
+         router.push("/app/pessoas");
+diff --git a/frontend/src/app/app/pessoas/page.tsx b/frontend/src/app/app/pessoas/page.tsx
+index 7d49d69..8ba838d 100644
+--- a/frontend/src/app/app/pessoas/page.tsx
++++ b/frontend/src/app/app/pessoas/page.tsx
+@@ -30,7 +30,7 @@ const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados
+ };
+ 
+ export default function PessoasPage() {
+-  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId } = usePlanContext();
++  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId, calcularBackend } = usePlanContext();
+   
+   const [isEditingTotal, setIsEditingTotal] = useState(false);
+   const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
+@@ -82,8 +82,11 @@ export default function PessoasPage() {
+   }, [user, pessoas.length, setPessoas, planoId, saveDraft]);
+ 
+   const prosseguir = async () => {
+-    const success = await saveDraft();
+-    if (success) {
++    const savedId = await saveDraft();
++    if (savedId) {
++      if (!savedId.startsWith("local-draft")) {
++        calcularBackend(savedId);
++      }
+       router.push("/app/planejamento");
+     } else {
+       toast.error("Erro ao salvar os dados. Tente novamente.");
+diff --git a/frontend/src/app/app/planejamento/page.tsx b/frontend/src/app/app/planejamento/page.tsx
+index 1408931..74aa297 100644
+--- a/frontend/src/app/app/planejamento/page.tsx
++++ b/frontend/src/app/app/planejamento/page.tsx
+@@ -18,12 +18,15 @@ import { TabelaMesAMes } from "@/components/TabelaMesAMes";
+ const ORIGENS = ["FGTS", "13┬║ Sal├írio", "B├┤nus", "Hora Extra", "F├®rias", "Freelance", "Restitui├º├úo IR", "PLR", "Venda de bem", "Heran├ºa", "Presente", "Outro"];
+ 
+ export default function PlanejamentoPage() {
+-  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft } = usePlanContext();
++  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend } = usePlanContext();
+   const router = useRouter();
+ 
+   const prosseguir = async () => {
+-    const success = await saveDraft();
+-    if (success) {
++    const savedId = await saveDraft();
++    if (savedId) {
++      if (!savedId.startsWith("local-draft")) {
++        calcularBackend(savedId);
++      }
+       router.push("/app/resultado");
+     } else {
+       toast.error("Erro ao salvar os dados. Tente novamente.");
+@@ -73,6 +76,8 @@ export default function PlanejamentoPage() {
+ 
+   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
+   const mesesEstimados = mesesParaMeta({ ...baseSim, aporteMensalTotal: aporteTotal });
++  const foraDoPrazo = mesesEstimados !== null && prazoMeses > 0 && mesesEstimados > prazoMeses;
++  const aporteAjustado = foraDoPrazo ? aporteNecessarioParaPrazo({ ...baseSim, prazoMeses }) : 0;
+   
+   const progressoPercent = Math.min(100, (totalGuardado / meta) * 100);
+ 
+@@ -104,7 +109,7 @@ export default function PlanejamentoPage() {
+       data: aporte.data,
+       valor: Number(aporte.valor),
+       origem: aporte.origem,
+-      pessoa_id: aporte.pessoaNome ? pessoas.find((p) => p.nome === aporte.pessoaNome)?.id ?? "" : "",
++      pessoa_id: aporte.pessoaId ?? "",
+     });
+     setEditingAporteIndex(index);
+     setIsAportesExtrasModalOpen(true);
+@@ -122,11 +127,21 @@ export default function PlanejamentoPage() {
+         <p className="text-muted-foreground text-lg">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar l├í mais r├ípido.</p>
+       </div>
+ 
++      {foraDoPrazo && (
++        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex gap-3 text-destructive">
++          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
++          <div className="text-sm">
++            <p className="font-semibold mb-1">Aten├º├úo ao seu prazo</p>
++            <p>Mantendo o ritmo atual, a meta ser├í atingida em {mesesEstimados} meses, acima do prazo escolhido ({prazoMeses} meses). Para atingir o objetivo no prazo, o aporte necess├írio ├® de <strong>{brl(aporteAjustado)}</strong> por m├¬s.</p>
++          </div>
++        </div>
++      )}
++
+       {/* Top Cards */}
+       <div className="grid lg:grid-cols-3 gap-6">
+-        <Card className="p-6 border-border/50 bg-primary/5 flex flex-col justify-center items-center text-center">
++        <Card className={`p-6 border-border/50 flex flex-col justify-center items-center text-center ${foraDoPrazo ? 'bg-destructive/5' : 'bg-primary/5'}`}>
+           <p className="text-sm font-medium text-muted-foreground mb-2">Tempo estimado</p>
+-          <p className="font-display text-6xl text-primary num">{mesesEstimados ? `${mesesEstimados}` : "ÔÇö"}</p>
++          <p className={`font-display text-6xl num ${foraDoPrazo ? 'text-destructive' : 'text-primary'}`}>{mesesEstimados ? `${mesesEstimados}` : "ÔÇö"}</p>
+           <p className="text-sm text-muted-foreground mt-2">{mesesEstimados ? "meses" : "Indefinido"}</p>
+         </Card>
+ 
+diff --git a/frontend/src/app/app/resultado/page.tsx b/frontend/src/app/app/resultado/page.tsx
+index a0068a7..448372b 100644
+--- a/frontend/src/app/app/resultado/page.tsx
++++ b/frontend/src/app/app/resultado/page.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useMemo, useState, useRef, useEffect, useCallback } from "react";
++import { useMemo, useRef, useEffect } from "react";
+ import React from "react";
+ import { usePlanContext } from "@/context/PlanContext";
+ import { Card } from "@/components/ui/card";
+@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
+ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, ReferenceDot, Legend } from "recharts";
+ import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp, RefreshCw, Database, Loader2 } from "lucide-react";
+ import { Button } from "@/components/ui/button";
+-import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
++import { type BackendSimulacaoResult } from "@/services/SimulacaoService";
+ import { TabelaMesAMes } from "@/components/TabelaMesAMes";
+ 
+ /** Converte resposta do backend para SimResult */
+@@ -54,83 +54,12 @@ function backendToSimResult(backend: BackendSimulacaoResult, objetivo: Partial<S
+ 
+ // ÔöÇÔöÇÔöÇ Page ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+ export default function ResultadoPage() {
+-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa, dadosCalculados } = usePlanContext();
++  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa, dadosCalculados, backendData, loadingBackend, calculating, backendError, simSource, calcularBackend } = usePlanContext();
+   const router = useRouter();
+ 
+-  // Estado para dados do backend
+-  const [backendData, setBackendData] = useState<BackendSimulacaoResult | null>(null);
+-  const [loadingBackend, setLoadingBackend] = useState(false);
+-  const [calculating, setCalculating] = useState(false);
+-  const [backendError, setBackendError] = useState<string | null>(null);
+-  const [simSource, setSimSource] = useState<"backend" | "client">("client");
+-
+   // Usar dados calculados centralizados do contexto
+   const { effectivePercentualCdi, aporteTotal, totalGuardado, combinedExtras, virtualAportesRegularesEditados, simResult, perPersonStats } = dadosCalculados;
+ 
+-  // Carregar ├║ltima simula├º├úo do backend ao montar
+-  useEffect(() => {
+-    if (!planoId || planoId.startsWith("local-draft-")) return;
+-
+-    setLoadingBackend(true);
+-    setBackendError(null);
+-
+-    SimulacaoService.getUltimaSimulacao(planoId)
+-      .then(data => {
+-        if (data) {
+-          setBackendData(data);
+-          setSimSource("backend");
+-        } else {
+-          // Nenhuma simula├º├úo salva ÔÇö fica no modo client-side
+-          setSimSource("client");
+-        }
+-      })
+-      .catch(err => {
+-        console.error("Erro ao carregar simula├º├úo do backend:", err);
+-        setBackendError("N├úo foi poss├¡vel carregar dados do servidor");
+-        setSimSource("client");
+-      })
+-      .finally(() => setLoadingBackend(false));
+-  }, [planoId]);
+-
+-  // Bot├úo Calcular ÔÇö chama o backend
+-  const handleCalcular = useCallback(async () => {
+-    if (!planoId || planoId.startsWith("local-draft-")) {
+-      setBackendError("Salve o plano primeiro antes de calcular");
+-      return;
+-    }
+-
+-    setCalculating(true);
+-    setBackendError(null);
+-
+-    try {
+-      const result = await SimulacaoService.calcularSimulacao(planoId, {
+-        objetivoId: planoId,
+-        taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
+-        percentualCdi: effectivePercentualCdi,
+-        aportesMensais: pessoas.map(p => ({
+-          pessoaId: p.id || "",
+-          valor: Number(p.aporte_mensal) || 0
+-        })),
+-        aportesExtras: aportesExtras.map(a => ({
+-          pessoaId: a.pessoaId || "",
+-          valor: Number(a.valor) || 0,
+-          data: a.data || new Date().toISOString(),
+-          origem: a.origem || "Extra"
+-        })),
+-        aportesRegularesEditados: aportesRegularesEditados,
+-        aportesRegularesEditadosPorPessoa: aportesRegularesEditadosPorPessoa,
+-      });
+-
+-      setBackendData(result);
+-      setSimSource("backend");
+-    } catch (err: any) {
+-      console.error("Erro ao calcular simula├º├úo:", err);
+-      setBackendError(err?.response?.data?.message || "Erro ao calcular simula├º├úo no servidor");
+-    } finally {
+-      setCalculating(false);
+-    }
+-  }, [planoId, objetivo, pessoas, aportesExtras, effectivePercentualCdi]);
+-
+   // Convert mesesConcluidos array to Set for easier manipulation
+   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
+ 
+@@ -220,14 +149,8 @@ export default function ResultadoPage() {
+ 
+         {/* Bot├úo Calcular */}
+         <div className="flex items-center gap-3 shrink-0">
+-          {simSource === "backend" && (
+-            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#3B6D11] dark:text-[#80B551] font-medium">
+-              <Database className="h-3.5 w-3.5" />
+-              Dados do servidor
+-            </span>
+-          )}
+           <Button
+-            onClick={handleCalcular}
++            onClick={() => calcularBackend()}
+             disabled={calculating || loadingBackend}
+             className="flex items-center gap-2"
+             size="lg"
+@@ -399,7 +322,7 @@ export default function ResultadoPage() {
+                     const d = new Date(a.data + 'T12:00:00');
+                     const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+                     if (mesOffset <= meses) {
+-                      if (a.pessoaNome) extrasMap[a.pessoaNome] = (extrasMap[a.pessoaNome] || 0) + Number(a.valor);
++                      if (a.pessoaId) extrasMap[a.pessoaId] = (extrasMap[a.pessoaId] || 0) + Number(a.valor);
+                       else conjuntoExtra += Number(a.valor);
+                     }
+                   });
+@@ -417,7 +340,7 @@ export default function ResultadoPage() {
+                         return sum + (Number(p.aporte_mensal) || 0);
+                       }
+                     }, 0);
+-                    const v = aportesRegularesSum + (extrasMap[p.nome] || 0);
++                    const v = aportesRegularesSum + (extrasMap[p.id] || 0);
+                     return { nome: p.nome, valor: v, percent: totalAportadoGeral > 0 ? (v / totalAportadoGeral) * 100 : 0 };
+                   });
+                   if (conjuntoExtra > 0) lista.push({ nome: "Conjunto", valor: conjuntoExtra, percent: totalAportadoGeral > 0 ? (conjuntoExtra / totalAportadoGeral) * 100 : 0 });
+@@ -482,7 +405,7 @@ export default function ResultadoPage() {
+                     const extrasPorPessoa: Record<string, number> = {};
+                     let extrasConjunto = 0;
+                     extrasMes.forEach(a => {
+-                      if (a.pessoaNome) extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
++                      if (a.pessoaId) extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
+                       else extrasConjunto += Number(a.valor);
+                     });
+ 
+@@ -511,7 +434,7 @@ export default function ResultadoPage() {
+                       const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
+                       const rendimentoPessoa = proporcao * r.rendimentoLiquido;
+                       const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
+-                      const extra = extrasPorPessoa[p.nome] || 0;
++                      const extra = extrasPorPessoa[p.id] || 0;
+                       novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
+                     });
+ 
+diff --git a/frontend/src/components/AppShell.tsx b/frontend/src/components/AppShell.tsx
+index 6168783..7e7c04a 100644
+--- a/frontend/src/components/AppShell.tsx
++++ b/frontend/src/components/AppShell.tsx
+@@ -2,7 +2,7 @@
+ 
+ import { ReactNode } from "react";
+ import Link from "next/link";
+-import { usePathname } from "next/navigation";
++import { usePathname, useRouter } from "next/navigation";
+ import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, FolderOpen } from "lucide-react";
+ import { useAuth } from "@/context/AuthContext";
+ import { usePlanContext } from "@/context/PlanContext";
+@@ -30,12 +30,24 @@ const navPorCenario = {
+ 
+ export const AppShell = ({ children }: { children: ReactNode }) => {
+   const { logout, user } = useAuth();
+-  const { cenario, objetivo } = usePlanContext();
++  const { cenario, objetivo, saveDraft, calcularBackend } = usePlanContext();
+   const pathname = usePathname();
++  const router = useRouter();
+   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
+   const homeHref = nav[0]?.to ?? "/app/imovel";
+   const isStep1Filled = !!(objetivo && objetivo.valorImovel && objetivo.valorImovel > 0);
+ 
++  const handleNavClick = async (e: React.MouseEvent<HTMLAnchorElement>, targetPath: string) => {
++    if (targetPath === "/app/planejamento" || targetPath === "/app/resultado") {
++      e.preventDefault();
++      const savedId = await saveDraft();
++      if (savedId && !savedId.startsWith("local-draft")) {
++        calcularBackend(savedId);
++      }
++      router.push(targetPath);
++    }
++  };
++
+   return (
+     <div className="min-h-screen bg-gradient-cream">
+       <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
+@@ -67,6 +79,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
+                   ) : (
+                     <Link
+                       href={n.to}
++                      onClick={(e) => handleNavClick(e, n.to)}
+                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                         isActive 
+                           ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" 
+@@ -120,7 +133,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
+                   {n.label}
+                 </div>
+               ) : (
+-                <Link key={n.to} href={n.to} className={`flex-1 py-2 grid place-items-center text-xs gap-0.5 ${active ? "text-accent" : "text-muted-foreground"}`}>
++                <Link key={n.to} href={n.to} onClick={(e) => handleNavClick(e, n.to)} className={`flex-1 py-2 grid place-items-center text-xs gap-0.5 ${active ? "text-accent" : "text-muted-foreground"}`}>
+                   <n.icon className="h-4 w-4" />
+                   {n.label}
+                 </Link>
+diff --git a/frontend/src/components/TabelaMesAMes.tsx b/frontend/src/components/TabelaMesAMes.tsx
+index 860ff9c..32799a2 100644
+--- a/frontend/src/components/TabelaMesAMes.tsx
++++ b/frontend/src/components/TabelaMesAMes.tsx
+@@ -4,8 +4,9 @@ import { useMemo, useState, useRef, useEffect } from "react";
+ import React from "react";
+ import { createPortal } from "react-dom";
+ import { usePlanContext } from "@/context/PlanContext";
+-import { brl, simular, totalMesMaisRendimentoLiquido, type SimRow, type SimResult } from "@/lib/finance";
++import { brl, simular, totalMesMaisRendimentoLiquido, mesDaSimulacaoParaData, type SimRow, type SimResult } from "@/lib/finance";
+ import { Check, ChevronDown, ChevronUp } from "lucide-react";
++import { MoneyInput } from "@/components/MoneyInput";
+ 
+ type EnrichedRow = SimRow & {
+   atingiu: boolean;
+@@ -16,79 +17,177 @@ type EnrichedRow = SimRow & {
+ };
+ 
+ // ÔöÇÔöÇÔöÇ Editable Aporte Cell ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+-function EditableAporte({ value, onSave, isEdited }: { value: number; onSave: (v: number) => void; isEdited: boolean }) {
++function EditableAporte({
++  value,
++  planned,
++  pessoaNome,
++  mes,
++  onSave,
++  isEdited,
++}: {
++  value: number;
++  planned: number;
++  pessoaNome: string;
++  mes: number;
++  onSave: (v: number) => void;
++  isEdited: boolean;
++}) {
+   const [open, setOpen] = useState(false);
+   const [draft, setDraft] = useState(value.toFixed(2));
+-  const ref = useRef<HTMLDivElement>(null);
++  const triggerRef = useRef<HTMLDivElement>(null);
++  const popupRef = useRef<HTMLDivElement>(null);
++  const inputRef = useRef<HTMLInputElement>(null);
++  const [portalPos, setPortalPos] = useState({ top: 0, left: 0, width: 0 });
+ 
+   useEffect(() => { setDraft(value.toFixed(2)); }, [value]);
+ 
++  useEffect(() => {
++    if (open && triggerRef.current) {
++      const rect = triggerRef.current.getBoundingClientRect();
++      const popupWidth = 260;
++      const left = Math.min(
++        Math.max(8 + window.scrollX, rect.right - popupWidth + window.scrollX),
++        window.innerWidth - popupWidth - 8 + window.scrollX
++      );
++      setPortalPos({ top: rect.bottom + window.scrollY + 4, left, width: popupWidth });
++      setTimeout(() => inputRef.current?.select(), 50);
++    }
++  }, [open]);
++
+   useEffect(() => {
+     if (!open) return;
+     const handleClickOutside = (event: MouseEvent) => {
+-      if (ref.current && !ref.current.contains(event.target as Node)) {
++      if (
++        triggerRef.current && !triggerRef.current.contains(event.target as Node) &&
++        popupRef.current && !popupRef.current.contains(event.target as Node)
++      ) {
+         setOpen(false);
++        setDraft(value.toFixed(2));
+       }
+     };
+     document.addEventListener("mousedown", handleClickOutside);
+     return () => document.removeEventListener("mousedown", handleClickOutside);
+-  }, [open]);
++  }, [open, value]);
++
++  const realValue = parseFloat(draft);
++  const diff = isNaN(realValue) ? 0 : realValue - planned;
++  const diffValid = !isNaN(realValue) && realValue >= 0;
+ 
+   const onSaveValue = () => {
+-    const num = parseFloat(draft);
+-    if (!isNaN(num) && num >= 0) {
+-      onSave(num);
++    if (diffValid) {
++      onSave(realValue);
+       setOpen(false);
+-    } else {
+-      setDraft(value.toFixed(2));
+     }
+   };
+ 
++  const onRestore = () => {
++    onSave(planned);
++    setDraft(planned.toFixed(2));
++    setOpen(false);
++  };
++
+   return (
+-    <div ref={ref} className="relative text-right">
++    <div ref={triggerRef} className="relative text-right">
+       <button
+         type="button"
+         onClick={() => setOpen((o) => !o)}
+-        className={`w-full text-right px-2 py-1 rounded transition-colors border ${isEdited ? "border-accent text-accent bg-accent/5" : "border-transparent hover:border-accent/20 hover:bg-accent/5"}`}
++        title={isEdited ? `Planejado: ${brl(planned)} ÔåÆ Real: ${brl(value)}` : "Clique para editar o aporte real"}
++        className={`w-full text-right px-2 py-1 rounded transition-colors border ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent hover:border-accent/20 hover:bg-accent/5"}`}
+       >
+         {brl(value)}
++        {isEdited && (
++          <span className={`ml-1 text-[9px] font-bold ${diff > 0 ? "text-green-500" : "text-rose-500"}`}>
++            {diff > 0 ? "Ôû▓" : "Ôû╝"}
++          </span>
++        )}
+       </button>
+ 
+-      {open && (
+-        <div className="absolute right-0 z-20 mt-2 w-48 rounded-2xl border border-border/70 bg-card p-3 shadow-xl">
+-          <div className="space-y-2">
+-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Editar aporte</p>
+-            <input
+-              type="number"
+-              min="0"
+-              step="0.01"
+-              value={draft}
+-              onChange={(e) => setDraft(e.target.value)}
+-              className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary/70 focus:ring-1 focus:ring-primary/20"
+-            />
+-            <div className="flex justify-end gap-2">
++      {open && typeof document !== "undefined" && createPortal(
++        <div
++          ref={popupRef}
++          className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden"
++          style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}
++        >
++          {/* Header */}
++          <div className="bg-secondary/60 px-4 py-2.5 border-b border-border/50">
++            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
++              Aporte ┬À {pessoaNome} ┬À M├¬s {mes}
++            </p>
++          </div>
++
++          <div className="p-4 space-y-3">
++            {/* Planejado */}
++            <div className="flex items-center justify-between text-xs">
++              <span className="text-muted-foreground">Planejado</span>
++              <span className="num font-medium text-foreground">{brl(planned)}</span>
++            </div>
++
++            {/* Separador */}
++            <div className="border-t border-border/40" />
++
++            {/* Real ÔÇö campo edit├ível */}
++            <div className="space-y-1.5">
++              <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Real aportado</label>
++              <MoneyInput
++                ref={inputRef}
++                variant="money"
++                min={0}
++                value={draft === "" ? 0 : Number(draft)}
++                onChange={(v) => setDraft(v === "" ? "0" : v.toString())}
++                onKeyDown={(e) => { if (e.key === "Enter") onSaveValue(); if (e.key === "Escape") { setOpen(false); setDraft(value.toFixed(2)); } }}
++                className="h-10 text-sm bg-background border-border"
++              />
++            </div>
++
++            {/* Diferen├ºa */}
++            {diffValid && diff !== 0 && (
++              <div className={`flex items-center justify-between text-xs rounded-lg px-3 py-2 ${diff > 0 ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-rose-500/10 text-rose-700 dark:text-rose-400"}`}>
++                <span className="font-medium">{diff > 0 ? "Ôû▓ Aportou a mais" : "Ôû╝ Aportou a menos"}</span>
++                <span className="num font-bold">{diff > 0 ? "+" : ""}{brl(Math.abs(diff))}</span>
++              </div>
++            )}
++            {diffValid && diff === 0 && draft !== planned.toFixed(2) && (
++              <div className="flex items-center justify-between text-xs rounded-lg px-3 py-2 bg-secondary/50 text-muted-foreground">
++                <span>Igual ao planejado</span>
++              </div>
++            )}
++
++            {/* Bot├Áes */}
++            <div className="flex gap-2 pt-1">
++              {isEdited && (
++                <button
++                  type="button"
++                  onClick={onRestore}
++                  className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
++                >
++                  Restaurar
++                </button>
++              )}
+               <button
+                 type="button"
+-                onClick={() => { setDraft(value.toFixed(2)); setOpen(false); }}
+-                className="text-xs text-muted-foreground hover:text-foreground"
++                onClick={() => { setOpen(false); setDraft(value.toFixed(2)); }}
++                className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+               >
+                 Cancelar
+               </button>
+               <button
+                 type="button"
+                 onClick={onSaveValue}
+-                className="rounded-xl bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
++                disabled={!diffValid}
++                className="flex-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+               >
+                 Salvar
+               </button>
+             </div>
+           </div>
+-        </div>
++        </div>,
++        document.body
+       )}
+     </div>
+   );
+ }
+ 
++
+ // ÔöÇÔöÇÔöÇ Extras Cell (context aportes) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+ type ContextExtra = { origem: string; valor: number; pessoaNome?: string };
+ 
+@@ -228,15 +327,14 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+       const atingiu = sim.mesAtingiuMeta === r.mes;
+ 
+       const extrasMes = combinedExtras.filter(a => {
+-        const d = new Date(a.data + 'T12:00:00');
+-        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
++        const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
+         return mesOffset === r.mes;
+       });
+ 
+       const extrasPorPessoa: Record<string, number> = {};
+       let extrasConjunto = 0;
+       extrasMes.forEach(a => {
+-        if (a.pessoaNome) extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
++        if (a.pessoaId) extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
+         else extrasConjunto += Number(a.valor);
+       });
+ 
+@@ -262,12 +360,21 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+         }
+       });
+ 
++      let saldoTotalComAportes = 0;
++      pessoas.forEach(p => {
++        const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
++        const extra = extrasPorPessoa[p.id] || 0;
++        saldoTotalComAportes += (saldos[p.nome] || 0) + aporteFinal + extra;
++      });
++
+       pessoas.forEach(p => {
+-        const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
+-        const rendimentoPessoa = proporcao * r.rendimentoLiquido;
+         const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
+-        const extra = extrasPorPessoa[p.nome] || 0;
+-        novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
++        const extra = extrasPorPessoa[p.id] || 0;
++        const saldoAtualizado = (saldos[p.nome] || 0) + aporteFinal + extra;
++
++        const proporcao = saldoTotalComAportes > 0 ? saldoAtualizado / saldoTotalComAportes : 0;
++        const rendimentoPessoa = proporcao * r.rendimentoLiquido;
++        novosSaldos[p.nome] = saldoAtualizado + rendimentoPessoa;
+       });
+ 
+       const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
+@@ -290,16 +397,6 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+     });
+   }, [sim?.rows, pessoas, combinedExtras, inicio, sim?.mesAtingiuMeta, aporteTotal, totalGuardado, aportesRegularesEditadosPorPessoa, aportesRegularesEditados]);
+ 
+-  const objectiveEndDate = useMemo(() => {
+-    if (!objetivo?.dataInicio || objetivo?.prazoMaxMeses == null || objetivo.prazoMaxMeses <= 0) return undefined;
+-    const start = typeof objetivo.dataInicio === "string"
+-      ? new Date(objetivo.dataInicio + "T12:00:00")
+-      : new Date(objetivo.dataInicio);
+-    if (isNaN(start.getTime())) return undefined;
+-
+-    return new Date(start.getFullYear(), start.getMonth() + objetivo.prazoMaxMeses, 1);
+-  }, [objetivo?.dataInicio, objetivo?.prazoMaxMeses]);
+-
+   const objectiveRowLimit = objetivo?.prazoMaxMeses && objetivo.prazoMaxMeses > 0 ? objetivo.prazoMaxMeses + 1 : undefined;
+   const effectiveLimit = limitRows !== undefined
+     ? objectiveRowLimit !== undefined
+@@ -307,14 +404,12 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+       : limitRows
+     : objectiveRowLimit;
+ 
+-  const rowsFilteredByDate = objectiveEndDate
+-    ? tableRows.filter(r => {
+-        const rowDate = new Date(r.data);
+-        return !isNaN(rowDate.getTime()) && rowDate.getTime() <= objectiveEndDate.getTime();
+-      })
++  // Filtrar por n├║mero de m├¬s (evita bugs de fuso hor├írio ao comparar datas)
++  const rowsFilteredByMes = objectiveRowLimit !== undefined
++    ? tableRows.filter(r => r.mes <= objectiveRowLimit - 1)
+     : tableRows;
+ 
+-  const displayRows: EnrichedRow[] = effectiveLimit !== undefined ? rowsFilteredByDate.slice(0, effectiveLimit) : rowsFilteredByDate;
++  const displayRows: EnrichedRow[] = effectiveLimit !== undefined ? rowsFilteredByMes.slice(0, effectiveLimit) : rowsFilteredByMes;
+ 
+   const totals = useMemo(() => {
+     let aportePorPessoa: Record<string, number> = {};
+@@ -359,6 +454,15 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+               ))}
+               <Th right>Extras</Th>
+               <Th right>Total M├¬s</Th>
++              {showFinancials && (
++                <>
++                  <Th right>Rend. Bruto</Th>
++                  <Th right>IR</Th>
++                  <Th right>Rend. L├¡q.</Th>
++                  <Th right>Saldo</Th>
++                  <Th right>% Meta</Th>
++                </>
++              )}
+             </tr>
+           </thead>
+           
+@@ -377,7 +481,12 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+                 >
+                   <Td className="font-medium">
+                     <div className="flex items-center gap-1.5">
+-                      {showCompletedToggle ? (
++                      {r.mes === 0 ? (
++                        // M├¬s 0 = in├¡cio, sempre marcado como conclu├¡do sem op├º├úo de toggle
++                        <div className="w-6 h-6 rounded flex items-center justify-center border shrink-0 bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400">
++                          <Check className="h-4 w-4" />
++                        </div>
++                      ) : showCompletedToggle ? (
+                         <button
+                           onClick={() => toggleConcluido(r.mes)}
+                           title={isConcluido ? "Desmarcar" : "Marcar como conclu├¡do"}
+@@ -386,7 +495,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+                           {isConcluido && <Check className="h-4 w-4" />}
+                         </button>
+                       ) : null}
+-                      <span className={isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
++                      <span className={r.mes === 0 || isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
+                       {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] uppercase font-bold tracking-wider">Meta</span>}
+                     </div>
+                   </Td>
+@@ -407,6 +516,9 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+                         ) : (
+                           <EditableAporte
+                             value={currentValue}
++                            planned={defaultPessoaAporte}
++                            pessoaNome={p.nome.split(" ")[0]}
++                            mes={r.mes}
+                             isEdited={isEdited}
+                             onSave={v => {
+                               setAportesRegularesEditadosPorPessoa(prev => {
+@@ -439,8 +551,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+                     {(() => {
+                       const ctxItems: ContextExtra[] = aportesExtras
+                         .filter(a => {
+-                          const d = new Date(a.data + 'T12:00:00');
+-                          const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
++                          const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
+                           return mesOffset === r.mes;
+                         })
+                         .map(a => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome }));
+@@ -495,7 +606,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+                 <Td key={p.id} right className="bg-primary/20">{brl(totals.aportePorPessoa[p.id])}</Td>
+               ))}
+               <Td right className="bg-primary/20">{brl(totals.extras)}</Td>
+-              <Td right className="bg-primary/20">{brl(totalMesMaisRendimentoLiquido(totals.totalMes, totals.rendLiquido))}</Td>
++              <Td right className="bg-primary/20">{brl(totals.totalMes)}</Td>
+               {showFinancials && (
+                 <>
+                   <Td right className="bg-primary/20 text-muted-foreground">{brl(totals.rendBruto)}</Td>
+@@ -504,11 +615,9 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
+                     {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
+                   </Td>
+                   <Td right className="bg-primary/20">{""}</Td>
++                  <Td right className="bg-primary/20">{""}</Td>
+                 </>
+               )}
+-              {!showFinancials && (
+-                <Td right className="bg-primary/20">{brl(totals.saldoFinal)}</Td>
+-              )}
+             </tr>
+           </tfoot>
+         </table>
+diff --git a/frontend/src/context/PlanContext.tsx b/frontend/src/context/PlanContext.tsx
+index 4767af5..3633914 100644
+--- a/frontend/src/context/PlanContext.tsx
++++ b/frontend/src/context/PlanContext.tsx
+@@ -2,9 +2,10 @@
+ 
+ import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect, useMemo } from "react";
+ import type { SimInput, Aporte, SimResult, SimRow } from "@/lib/finance";
+-import { simular, percentualCdiPorTipoInvestimento } from "@/lib/finance";
++import { simular, percentualCdiPorTipoInvestimento, mesDaSimulacaoParaData } from "@/lib/finance";
+ import Cookies from "js-cookie";
+ import api from "@/lib/api";
++import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
+ 
+ export type CenarioCompra = "entrada" | "pronto" | "planta";
+ 
+@@ -97,17 +98,23 @@ type PlanContextType = {
+   setAportesRegularesEditadosPorPessoa: React.Dispatch<React.SetStateAction<Record<string, Record<number, number>>>>;
+   mesesConcluidos: number[];
+   setMesesConcluidos: React.Dispatch<React.SetStateAction<number[]>>;
+-  salvarPlano: (objetivoOverride?: Partial<SimInput> | null) => Promise<boolean>;
++  salvarPlano: (objetivoOverride?: Partial<SimInput> | null) => Promise<string | null>;
+   saveDraft: (patch?: {
+     objetivo?: Partial<SimInput> | null;
+     pessoas?: Pessoa[];
+     mesesConcluidos?: number[];
+     aportesRegularesEditados?: Record<number, number>;
+     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
+-  }) => Promise<boolean>;
++  }) => Promise<string | null>;
+   carregarPlano: () => Promise<void>;
+   dadosCalculados: DadosCalculados;
+   recalcular: () => void;
++  backendData: BackendSimulacaoResult | null;
++  calculating: boolean;
++  backendError: string | null;
++  simSource: "backend" | "client";
++  loadingBackend: boolean;
++  calcularBackend: (planoIdOverride?: string | null) => Promise<void>;
+ };
+ 
+ const PlanContext = createContext<PlanContextType | undefined>(undefined);
+@@ -115,7 +122,7 @@ const PlanContext = createContext<PlanContextType | undefined>(undefined);
+ const CHAVE_LOCAL = "imovplan_dados";
+ 
+ // Fun├º├úo centralizada para calcular todos os dados financeiros
+-function calcularDadosFinanceiros(
++export function calcularDadosFinanceiros(
+   objetivo: Partial<SimInput> | null,
+   pessoas: Pessoa[],
+   aportesExtras: Aporte[],
+@@ -216,40 +223,43 @@ function calcularDadosFinanceiros(
+       });
+ 
+       const extrasMes = combinedExtras.filter(a => {
+-        const d = new Date(a.data + "T12:00:00");
+-        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
++        const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
+         return mesOffset === row.mes;
+       });
+ 
+       const extrasPorPessoa: Record<string, number> = {};
+       let extrasConjunto = 0;
+       extrasMes.forEach(a => {
+-        if (a.pessoaNome) {
+-          extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
++        if (a.pessoaId) {
++          extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
+         } else {
+           extrasConjunto += Number(a.valor);
+         }
+       });
+ 
+       const weightedBalances = Object.fromEntries(
+-        pessoas.map(p => [
+-          p.id,
+-          (finalSaldoById[p.id] || 0) * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
+-        ])
++        pessoas.map(p => {
++          const saldoAtual = (finalSaldoById[p.id] || 0) + (aporteFinalPorPessoa[p.id] || 0) + (extrasPorPessoa[p.id] || 0);
++          return [
++            p.id,
++            saldoAtual * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
++          ];
++        })
+       );
+       const totalWeighted = Object.values(weightedBalances).reduce((sum, value) => sum + value, 0);
+ 
+       pessoas.forEach(p => {
+         const balance = finalSaldoById[p.id] || 0;
++        const saldoAtual = balance + (aporteFinalPorPessoa[p.id] || 0) + (extrasPorPessoa[p.id] || 0);
+         const weight = totalWeighted > 0
+           ? (weightedBalances[p.id] || 0) / totalWeighted
+-          : (row.saldoAcumulado > 0 ? balance / row.saldoAcumulado : 0);
++          : (row.saldoAcumulado > 0 ? saldoAtual / row.saldoAcumulado : 0);
+         const rendimentoPessoa = row.rendimentoLiquido * weight;
+ 
+         aporteTotalById[p.id] += aporteFinalPorPessoa[p.id];
+-        extrasTotalById[p.id] += extrasPorPessoa[p.nome] || 0;
++        extrasTotalById[p.id] += extrasPorPessoa[p.id] || 0;
+         rendimentoTotalById[p.id] += rendimentoPessoa;
+-        finalSaldoById[p.id] = balance + aporteFinalPorPessoa[p.id] + (extrasPorPessoa[p.nome] || 0) + rendimentoPessoa;
++        finalSaldoById[p.id] = saldoAtual + rendimentoPessoa;
+       });
+     }
+ 
+@@ -301,7 +311,7 @@ function aplicarDados(
+   }
+ ) {
+   if (!dados) return;
+-  
++
+   if (dados.objetivo) {
+     const d = dados.objetivo.dataInicio ? new Date(dados.objetivo.dataInicio) : new Date();
+     definidores.setObjetivo({ ...dados.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
+@@ -448,6 +458,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+     perPersonStats: [],
+   });
+ 
++  const [backendData, setBackendData] = useState<BackendSimulacaoResult | null>(null);
++  const [calculating, setCalculating] = useState(false);
++  const [backendError, setBackendError] = useState<string | null>(null);
++  const [simSource, setSimSource] = useState<"backend" | "client">("client");
++  const [loadingBackend, setLoadingBackend] = useState(false);
++
+   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
+   const [sessionId, setSessionId] = useState<string | null>(() => {
+     if (typeof window === "undefined") return null;
+@@ -459,14 +475,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+     return existente;
+   });
+ 
+-  const definidores = { 
+-    setObjetivo, 
+-    setPessoas, 
+-    setBancoEscolhido, 
+-    setAportesExtras, 
+-    setAportesRegularesEditados, 
+-    setAportesRegularesEditadosPorPessoa, 
+-    setMesesConcluidos 
++  const definidores = {
++    setObjetivo,
++    setPessoas,
++    setBancoEscolhido,
++    setAportesExtras,
++    setAportesRegularesEditados,
++    setAportesRegularesEditadosPorPessoa,
++    setMesesConcluidos
+   };
+ 
+   // Fun├º├úo para carregar o plano
+@@ -477,9 +493,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+       // Carrega do localStorage se n├úo tiver usu├írio
+       const local = localStorage.getItem(CHAVE_LOCAL);
+       if (local) {
+-        try { 
++        try {
+           const dados = JSON.parse(local);
+-          aplicarDados(dados, definidores); 
++          aplicarDados(dados, definidores);
+           console.log("Dados carregados do localStorage");
+         } catch (error) {
+           console.error("Erro ao carregar dados do localStorage:", error);
+@@ -544,6 +560,23 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+         if (draftData.id) {
+           setPlanoId(draftData.id);
+           Cookies.set("imovplan_planoId", draftData.id, { expires: 30 });
++
++          setLoadingBackend(true);
++          try {
++            const simData = await SimulacaoService.getUltimaSimulacao(draftData.id);
++            if (simData) {
++              setBackendData(simData);
++              setSimSource("backend");
++            } else {
++              setSimSource("client");
++            }
++          } catch (simError) {
++            console.error("Erro ao carregar ├║ltima simula├º├úo do backend:", simError);
++            setBackendError("N├úo foi poss├¡vel carregar dados do servidor");
++            setSimSource("client");
++          } finally {
++            setLoadingBackend(false);
++          }
+         }
+         console.log("Dados carregados do backend");
+         return;
+@@ -557,13 +590,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+       } else {
+         console.error("Erro ao carregar plano do backend:", error);
+       }
+-      
++
+       // Tenta carregar do localStorage como fallback
+       const local = localStorage.getItem(CHAVE_LOCAL);
+       if (local) {
+-        try { 
++        try {
+           const dados = JSON.parse(local);
+-          aplicarDados(dados, definidores); 
++          aplicarDados(dados, definidores);
+           console.log("Dados carregados do localStorage (fallback)");
+         } catch (e) {
+           console.error("Erro ao carregar dados do localStorage:", e);
+@@ -573,7 +606,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+   }, []);
+ 
+   // Fun├º├úo para salvar o plano (aceita um objetivo opcional para evitar bug de closure)
+-  const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<boolean> => {
++  const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
+     const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;
+     const dadosLocais = {
+       objetivo: objetivoFinal,
+@@ -599,24 +632,24 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
+         }
+         console.log("Dados salvos no backend");
+-        return true;
++        return novoId || planoId;
+       } catch (error) {
+         // O localStorage j├í tem os dados, ent├úo n├úo bloqueamos o fluxo
+         console.warn("Backup salvo no localStorage, falha no backend:", error);
+-        return true;
++        return planoId;
+       }
+     }
+-    
+-    return true; // Salvou localmente
++
++    return planoId || "local-draft"; // Salvou localmente
+   }, [
+-    objetivo, 
+-    pessoas, 
+-    bancoEscolhido, 
++    objetivo,
++    pessoas,
++    bancoEscolhido,
+     aportesExtras,
+-    aportesRegularesEditados, 
++    aportesRegularesEditados,
+     aportesRegularesEditadosPorPessoa,
+-    mesesConcluidos, 
+-    planoId, 
++    mesesConcluidos,
++    planoId,
+     sessionId
+   ]);
+ 
+@@ -627,7 +660,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+     mesesConcluidos?: number[];
+     aportesRegularesEditados?: Record<number, number>;
+     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
+-  }): Promise<boolean> => {
++  }): Promise<string | null> => {
+     const dadosFinal = {
+       objetivo: patch?.objetivo !== undefined ? patch.objetivo : objetivo,
+       pessoas: patch?.pessoas !== undefined ? patch.pessoas : pessoas,
+@@ -648,13 +681,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+           setPlanoId(novoId);
+           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
+         }
+-        return true;
++        return novoId || planoId;
+       } catch (error) {
+         console.warn("saveDraft: falha no backend, dados salvos localmente", error);
+-        return true;
++        return planoId;
+       }
+     }
+-    return true;
++    return planoId || "local-draft";
+   }, [
+     objetivo, pessoas, bancoEscolhido, aportesExtras,
+     aportesRegularesEditados, aportesRegularesEditadosPorPessoa,
+@@ -673,6 +706,62 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+     setDadosCalculados(calculados);
+   }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa]);
+ 
++  // Fun├º├úo para executar simula├º├úo e c├ílculo no backend
++  const calcularBackend = useCallback(async (planoIdOverride?: string | null) => {
++    const id = planoIdOverride !== undefined ? planoIdOverride : planoId;
++    if (!id || id.startsWith("local-draft-")) {
++      console.warn("calcularBackend: sem ID de plano v├ílido");
++      return;
++    }
++
++    setCalculating(true);
++    setBackendError(null);
++
++    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
++    const effectiveCdi = totalSaved <= 0
++      ? Number(objetivo?.percentualCdi ?? 100)
++      : pessoas.reduce((sum, p) => {
++        const tipoPercent = p.tipoInvestimento
++          ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
++          : Number(objetivo?.percentualCdi ?? 100);
++        return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
++      }, 0);
++
++    try {
++      // Garantir que todos os dados do contexto (ex: prazos rec├®m-alterados na tela)
++      // estejam salvos no banco antes de mandar o backend calcular,
++      // pois o backend l├¬ o PrazoMaxMeses direto do banco.
++      await saveDraft();
++
++      const result = await SimulacaoService.calcularSimulacao(id, {
++        objetivoId: id,
++        taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
++        percentualCdi: effectiveCdi,
++        aportesMensais: pessoas.map(p => ({
++          pessoaId: p.id || "",
++          valor: Number(p.aporte_mensal) || 0
++        })),
++        aportesExtras: aportesExtras.map(a => ({
++          pessoaId: a.pessoaId || "",
++          valor: Number(a.valor) || 0,
++          data: a.data || new Date().toISOString(),
++          origem: a.origem || "Extra"
++        })),
++        aportesRegularesEditados: aportesRegularesEditados,
++        aportesRegularesEditadosPorPessoa: aportesRegularesEditadosPorPessoa,
++      });
++
++      setBackendData(result);
++      setSimSource("backend");
++      setBackendError(null);
++    } catch (err: any) {
++      console.error("Erro ao calcular simula├º├úo no backend:", err);
++      setBackendError(err?.response?.data?.message || "Erro ao calcular simula├º├úo no servidor");
++    } finally {
++      setCalculating(false);
++    }
++  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa]);
++
+   // Carrega o plano uma vez ao montar
+   const inicializado = useRef(false);
+   const readyForAutoSave = useRef(false);
+@@ -737,6 +826,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
+       carregarPlano,
+       dadosCalculados,
+       recalcular,
++      backendData,
++      calculating,
++      backendError,
++      simSource,
++      loadingBackend,
++      calcularBackend,
+     }}>
+       {children}
+     </PlanContext.Provider>
+diff --git a/frontend/src/lib/finance.test.ts b/frontend/src/lib/finance.test.ts
+index 3d2ca0a..0bfd349 100644
+--- a/frontend/src/lib/finance.test.ts
++++ b/frontend/src/lib/finance.test.ts
+@@ -44,7 +44,7 @@ describe('finance.ts unit tests', () => {
+         aportesExtras: [],
+         dataInicio: new Date(),
+         prazoMeses: 50
+-    })).toBe(1340);
++    })).toBe(1500);
+   });
+   
+   test('simular (sem aportes extras, 0 juros)', () => {
+@@ -72,4 +72,57 @@ describe('finance.ts unit tests', () => {
+   test('totalMesMaisRendimentoLiquido soma contribui├º├úo e rendimento l├¡quido', () => {
+     expect(totalMesMaisRendimentoLiquido(28600, 4050.52)).toBe(32650.52);
+   });
++
++  test('simular com mesesExtrasAposMeta: 0 n├úo estende o prazo', () => {
++    const res = simular({
++        valorImovel: 300000,
++        percentualEntrada: 20,
++        percentualCustosExtras: 5,
++        valorJaGuardado: 0,
++        aporteMensalTotal: 1500,
++        taxaCdiAnual: 0, 
++        percentualCdi: 100,
++        aportesExtras: [],
++        prazoMaxMeses: 360,
++        mesesExtrasAposMeta: 0,
++        dataInicio: new Date()
++    });
++    
++    // A meta ├® batida no m├¬s 50. Como padding ├® 0, o prazo maximo final vira min(360, 50+0) = 50.
++    // O loop for vai at├® <= prazoMax. Com prazoMax = 50, ele ter├í as linhas de 0 at├® 50 (51 linhas).
++    expect(res.rows.length).toBe(51); 
++    expect(res.rows[res.rows.length - 1]?.mes).toBe(50);
++  });
++
++  test('aportes extras: offset de meses e m├¬s 0', () => {
++    const dataInicio = new Date("2026-07-01T12:00:00");
++    const res = simular({
++        valorImovel: 100000,
++        percentualEntrada: 10,
++        percentualCustosExtras: 0,
++        valorJaGuardado: 1000,
++        aporteMensalTotal: 0,
++        taxaCdiAnual: 0, 
++        percentualCdi: 100,
++        prazoMaxMeses: 5,
++        mesesExtrasAposMeta: 0,
++        dataInicio: dataInicio,
++        aportesExtras: [
++          { data: "2026-06-15", valor: 100, origem: "Mesmo m├¬s, antes" },
++          { data: "2026-07-15", valor: 200, origem: "Mesmo m├¬s" },
++          { data: "2026-08-05", valor: 300, origem: "M├¬s 1" },
++          { data: "2026-09-01", valor: 400, origem: "M├¬s 2" },
++          { data: "2026-10-31", valor: 500, origem: "M├¬s 3" },
++        ]
++    });
++
++    // M├¬s 0 (Jul 2026 e Junho 2026, offset <= 0): caem no start e se somam ao saldo inicial
++    expect(res.rows[0]?.saldoAcumulado).toBe(1000 + 100 + 200); // 1300
++    // M├¬s 1 (Ago 2026): recebe 300
++    expect(res.rows[1]?.aportesExtras).toBe(300);
++    // M├¬s 2 (Set 2026): recebe 400
++    expect(res.rows[2]?.aportesExtras).toBe(400);
++    // M├¬s 3 (Out 2026): recebe 500
++    expect(res.rows[3]?.aportesExtras).toBe(500);
++  });
+ });
+diff --git a/frontend/src/lib/finance.ts b/frontend/src/lib/finance.ts
+index ac47d29..b90e658 100644
+--- a/frontend/src/lib/finance.ts
++++ b/frontend/src/lib/finance.ts
+@@ -21,6 +21,7 @@ export type SimInput = {
+   percentualCdi: number; // ex 100 (% do CDI que o investimento rende)
+   aportesExtras: Aporte[]; // datados
+   prazoMaxMeses?: number; // limite p/ busca, default 600
++  mesesExtrasAposMeta?: number; // default 6, usado s├│ para exibi├º├úo
+   dataInicio?: Date;
+   tipoInvestimento?: string; // ex "poupanca", "cdb_100", "tesouro_selic"
+ };
+@@ -37,6 +38,15 @@ export type SimRow = {
+   totalInvestido: number; // soma de tudo que entrou (sem rendimento)
+ };
+ 
++// Calcula o ├¡ndice do m├¬s da simula├º├úo (1, 2, 3...) em que uma data de aporte cai,
++// relativo ao m├¬s de in├¡cio. Retorna null se a data for anterior ou igual ao m├¬s de in├¡cio
++// (aportes no m├¬s 0 s├úo descartados da simula├º├úo atualmente).
++export function mesDaSimulacaoParaData(dataISO: string, inicio: Date): number | null {
++  const d = new Date(dataISO + 'T12:00:00');
++  const offset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
++  return offset >= 1 ? offset : null;
++}
++
+ export type SimResult = {
+   meta: number;
+   custosExtras: number;
+@@ -146,7 +156,8 @@ export function simular(input: SimInput): SimResult {
+   const valorEntrada = calcularEntrada(input.valorImovel, input.percentualEntrada);
+   const faltava = Math.max(0, meta - input.valorJaGuardado);
+   const taxaMes = taxaMensalEfetiva(input.taxaCdiAnual, input.percentualCdi);
+-  let prazoMax = (input.prazoMaxMeses ?? 600) + 6; // Sempre adiciona 6 meses extras ao planejamento
++  const padding = input.mesesExtrasAposMeta ?? 6;
++  let prazoMax = (input.prazoMaxMeses ?? 600) + padding;
+   let inicio: Date;
+   if (typeof input.dataInicio === 'string' && input.dataInicio) {
+     inicio = new Date(input.dataInicio + 'T12:00:00');
+@@ -160,17 +171,19 @@ export function simular(input: SimInput): SimResult {
+   }
+ 
+   const extrasPorMes = new Map<number, number>();
++  let extrasMes0 = 0;
+   for (const a of input.aportesExtras) {
+-    const d = new Date(a.data + 'T12:00:00');
+-    const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
+-    if (mesOffset >= 1) {
++    const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
++    if (mesOffset !== null) {
+       const existing = extrasPorMes.get(mesOffset) ?? 0;
+       extrasPorMes.set(mesOffset, existing + a.valor);
++    } else {
++      extrasMes0 += a.valor;
+     }
+   }
+ 
+-  let saldo = input.valorJaGuardado;
+-  let totalInvestido = input.valorJaGuardado;
++  let saldo = input.valorJaGuardado + extrasMes0;
++  let totalInvestido = input.valorJaGuardado + extrasMes0;
+   const rows: SimRow[] = [];
+   let atingiuMeta = false;
+   let mesAtingiu: number | undefined;
+@@ -227,12 +240,18 @@ export function simular(input: SimInput): SimResult {
+       totalInvestido,
+     });
+ 
+-    // Registra quando a meta foi atingida e continua o loop por mais 6 meses
++    // Registra quando a meta foi atingida e continua o loop por mais `padding` meses
+     if (!atingiuMeta && saldo >= meta) {
+       atingiuMeta = true;
+       mesAtingiu = mes;
+       dataAtingiu = dataRef.toISOString();
+-      prazoMax = Math.min(prazoMax, mes + 6);
++      if (padding === 0) {
++        prazoMax = mes;
++      } else if (!input.prazoMaxMeses || input.prazoMaxMeses >= 600) {
++        prazoMax = Math.min(prazoMax, mes + padding);
++      } else {
++        prazoMax = Math.max(input.prazoMaxMeses, mes + padding);
++      }
+     }
+   }
+ 
+@@ -264,7 +283,7 @@ export function mesesEntre(inicioISO: string, fimISO: string): number {
+ 
+ // Calcula em quantos meses o usu├írio atinge a meta dado o aporte total.
+ export function mesesParaMeta(input: Omit<SimInput, "prazoMaxMeses">): number | null {
+-  const r = simular({ ...input, prazoMaxMeses: 600 });
++  const r = simular({ ...input, prazoMaxMeses: 600, mesesExtrasAposMeta: 0 });
+   return r.mesAtingiuMeta ?? null;
+ }
+ 
+@@ -276,7 +295,7 @@ export function aporteNecessarioParaPrazo(input: Omit<SimInput, "aporteMensalTot
+   let hi = Math.max(meta, 1);
+   for (let i = 0; i < 60; i++) {
+     const mid = (lo + hi) / 2;
+-    const r = simular({ ...input, aporteMensalTotal: mid, prazoMaxMeses: input.prazoMeses });
++    const r = simular({ ...input, aporteMensalTotal: mid, prazoMaxMeses: input.prazoMeses, mesesExtrasAposMeta: 0 });
+     const final = r.rows[r.rows.length - 1]?.saldoAcumulado ?? 0;
+     if (final >= meta) hi = mid; else lo = mid;
+   }

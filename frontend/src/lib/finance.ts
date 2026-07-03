@@ -21,6 +21,7 @@ export type SimInput = {
   percentualCdi: number; // ex 100 (% do CDI que o investimento rende)
   aportesExtras: Aporte[]; // datados
   prazoMaxMeses?: number; // limite p/ busca, default 600
+  mesesExtrasAposMeta?: number; // default 6, usado só para exibição
   dataInicio?: Date;
   tipoInvestimento?: string; // ex "poupanca", "cdb_100", "tesouro_selic"
 };
@@ -36,6 +37,15 @@ export type SimRow = {
   saldoAcumulado: number; // após rendimento e impostos do mês
   totalInvestido: number; // soma de tudo que entrou (sem rendimento)
 };
+
+// Calcula o índice do mês da simulação (1, 2, 3...) em que uma data de aporte cai,
+// relativo ao mês de início. Retorna null se a data for anterior ou igual ao mês de início
+// (aportes no mês 0 são descartados da simulação atualmente).
+export function mesDaSimulacaoParaData(dataISO: string, inicio: Date): number | null {
+  const d = new Date(dataISO + 'T12:00:00');
+  const offset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
+  return offset >= 1 ? offset : null;
+}
 
 export type SimResult = {
   meta: number;
@@ -146,7 +156,8 @@ export function simular(input: SimInput): SimResult {
   const valorEntrada = calcularEntrada(input.valorImovel, input.percentualEntrada);
   const faltava = Math.max(0, meta - input.valorJaGuardado);
   const taxaMes = taxaMensalEfetiva(input.taxaCdiAnual, input.percentualCdi);
-  let prazoMax = (input.prazoMaxMeses ?? 600) + 6; // Sempre adiciona 6 meses extras ao planejamento
+  const padding = input.mesesExtrasAposMeta ?? 6;
+  let prazoMax = (input.prazoMaxMeses ?? 600) + padding;
   let inicio: Date;
   if (typeof input.dataInicio === 'string' && input.dataInicio) {
     inicio = new Date(input.dataInicio + 'T12:00:00');
@@ -160,17 +171,19 @@ export function simular(input: SimInput): SimResult {
   }
 
   const extrasPorMes = new Map<number, number>();
+  let extrasMes0 = 0;
   for (const a of input.aportesExtras) {
-    const d = new Date(a.data + 'T12:00:00');
-    const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
-    if (mesOffset >= 1) {
+    const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
+    if (mesOffset !== null) {
       const existing = extrasPorMes.get(mesOffset) ?? 0;
       extrasPorMes.set(mesOffset, existing + a.valor);
+    } else {
+      extrasMes0 += a.valor;
     }
   }
 
-  let saldo = input.valorJaGuardado;
-  let totalInvestido = input.valorJaGuardado;
+  let saldo = input.valorJaGuardado + extrasMes0;
+  let totalInvestido = input.valorJaGuardado + extrasMes0;
   const rows: SimRow[] = [];
   let atingiuMeta = false;
   let mesAtingiu: number | undefined;
@@ -227,12 +240,18 @@ export function simular(input: SimInput): SimResult {
       totalInvestido,
     });
 
-    // Registra quando a meta foi atingida e continua o loop por mais 6 meses
+    // Registra quando a meta foi atingida e continua o loop por mais `padding` meses
     if (!atingiuMeta && saldo >= meta) {
       atingiuMeta = true;
       mesAtingiu = mes;
       dataAtingiu = dataRef.toISOString();
-      prazoMax = Math.min(prazoMax, mes + 6);
+      if (padding === 0) {
+        prazoMax = mes;
+      } else if (!input.prazoMaxMeses || input.prazoMaxMeses >= 600) {
+        prazoMax = Math.min(prazoMax, mes + padding);
+      } else {
+        prazoMax = Math.max(input.prazoMaxMeses, mes + padding);
+      }
     }
   }
 
@@ -264,7 +283,7 @@ export function mesesEntre(inicioISO: string, fimISO: string): number {
 
 // Calcula em quantos meses o usuário atinge a meta dado o aporte total.
 export function mesesParaMeta(input: Omit<SimInput, "prazoMaxMeses">): number | null {
-  const r = simular({ ...input, prazoMaxMeses: 600 });
+  const r = simular({ ...input, prazoMaxMeses: 600, mesesExtrasAposMeta: 0 });
   return r.mesAtingiuMeta ?? null;
 }
 
@@ -276,7 +295,7 @@ export function aporteNecessarioParaPrazo(input: Omit<SimInput, "aporteMensalTot
   let hi = Math.max(meta, 1);
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
-    const r = simular({ ...input, aporteMensalTotal: mid, prazoMaxMeses: input.prazoMeses });
+    const r = simular({ ...input, aporteMensalTotal: mid, prazoMaxMeses: input.prazoMeses, mesesExtrasAposMeta: 0 });
     const final = r.rows[r.rows.length - 1]?.saldoAcumulado ?? 0;
     if (final >= meta) hi = mid; else lo = mid;
   }

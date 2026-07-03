@@ -207,7 +207,7 @@ export default function ObjetivoPage() {
       // Salva no backend usando o novoObjetivo diretamente (evita bug de closure/estado desatualizado)
       const sucesso = await salvarPlano(novoObjetivo);
 
-      if (sucesso !== false) {
+      if (sucesso !== null) {
         setForm((prev) => ({ ...prev, nome: nomePlanoFinal }));
         toast.success("Plano salvo com sucesso!");
         router.push("/app/pessoas");

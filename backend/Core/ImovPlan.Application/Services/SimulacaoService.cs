@@ -65,8 +65,21 @@ namespace ImovPlan.Application.Services
             int? mesAtingiu = null;
             DateTime? dataAtingiu = null;
             var limiteMeses = (planejamento.PrazoMaxMeses.HasValue && planejamento.PrazoMaxMeses.Value > 0)
-                ? planejamento.PrazoMaxMeses.Value
+                ? planejamento.PrazoMaxMeses.Value + 6
                 : parametros.PrazoFinanciamentoPadraoMeses;
+
+            // Registro inicial (Mês 0)
+            resultado.DetalhesMensais.Add(new DetalheMensal
+            {
+                Mes = 0,
+                DataReferencia = dataReferencia,
+                AporteMensal = 0,
+                AportesExtras = 0,
+                RendimentoBruto = 0,
+                Imposto = 0,
+                RendimentoLiquido = 0,
+                TotalAcumulado = saldo
+            });
 
             while (meses < limiteMeses)
             {
@@ -114,7 +127,14 @@ namespace ImovPlan.Application.Services
                 {
                     mesAtingiu = meses;
                     dataAtingiu = dataReferencia;
-                    limiteMeses = Math.Min(parametros.PrazoFinanciamentoPadraoMeses, meses + 6);
+                    if (!planejamento.PrazoMaxMeses.HasValue || planejamento.PrazoMaxMeses.Value <= 0)
+                    {
+                        limiteMeses = Math.Min(parametros.PrazoFinanciamentoPadraoMeses, meses + 6);
+                    }
+                    else
+                    {
+                        limiteMeses = Math.Max(planejamento.PrazoMaxMeses.Value, meses + 6);
+                    }
                 }
             }
 
@@ -124,9 +144,9 @@ namespace ImovPlan.Application.Services
             resultado.TotalInvestido = totalInvestido;
             resultado.LucroLiquido = saldo - totalInvestido;
 
-            // Determinar a próxima versão do snapshot
-            var allRegistros = await _historicoSimulacaoRepo.GetAllByPlanejamentoIdAsync(planejamento.Id);
-            var versao = allRegistros.Count() + 1;
+            // Remover simulações anteriores para não poluir o banco e manter sempre apenas a mais recente
+            await _historicoSimulacaoRepo.DeleteAllByPlanejamentoIdAsync(planejamento.Id);
+            var versao = 1;
 
             // Persistir registro da simulação
             var participantesSnapshot = new List<ParticipanteSnapshot>();

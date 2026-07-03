@@ -50,10 +50,35 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
+            var existingEvolutions = await _context.EvolucoesMensaisSimulacao.Where(e => e.SimulacaoId == id).ToListAsync();
+            if (existingEvolutions.Any())
+            {
+                _context.EvolucoesMensaisSimulacao.RemoveRange(existingEvolutions);
+            }
+
             var existing = await _context.HistoricosSimulacao.FirstOrDefaultAsync(s => s.Id == id);
             if (existing != null)
             {
                 _context.HistoricosSimulacao.Remove(existing);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAllByPlanejamentoIdAsync(string planejamentoId)
+        {
+            var existingSims = await _context.HistoricosSimulacao.Where(s => s.PlanejamentoId == planejamentoId).ToListAsync();
+            if (existingSims.Any())
+            {
+                var simIds = existingSims.Select(s => s.Id).ToList();
+                var existingEvolutions = await _context.EvolucoesMensaisSimulacao.Where(e => simIds.Contains(e.SimulacaoId)).ToListAsync();
+                
+                if (existingEvolutions.Any())
+                {
+                    _context.EvolucoesMensaisSimulacao.RemoveRange(existingEvolutions);
+                }
+
+                _context.HistoricosSimulacao.RemoveRange(existingSims);
                 await _context.SaveChangesAsync();
             }
         }

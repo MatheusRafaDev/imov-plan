@@ -10,6 +10,7 @@ namespace ImovPlan.Domain.Interfaces
         Task<IEnumerable<HistoricoSimulacao>> GetAllByPlanejamentoIdAsync(string planejamentoId);
         Task<HistoricoSimulacao> AddAsync(HistoricoSimulacao registro);
         Task DeleteAsync(string id);
+        Task DeleteAllByPlanejamentoIdAsync(string planejamentoId);
         Task<IEnumerable<EvolucaoMensalSimulacao>> GetEvolucaoBySimulacaoIdAsync(string simulacaoId);
         Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao);
     }

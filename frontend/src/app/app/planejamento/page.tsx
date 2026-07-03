@@ -18,12 +18,15 @@ import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft } = usePlanContext();
+  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend } = usePlanContext();
   const router = useRouter();
 
   const prosseguir = async () => {
-    const success = await saveDraft();
-    if (success) {
+    const savedId = await saveDraft();
+    if (savedId) {
+      if (!savedId.startsWith("local-draft")) {
+        calcularBackend(savedId);
+      }
       router.push("/app/resultado");
     } else {
       toast.error("Erro ao salvar os dados. Tente novamente.");
@@ -73,6 +76,8 @@ export default function PlanejamentoPage() {
 
   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
   const mesesEstimados = mesesParaMeta({ ...baseSim, aporteMensalTotal: aporteTotal });
+  const foraDoPrazo = mesesEstimados !== null && prazoMeses > 0 && mesesEstimados > prazoMeses;
+  const aporteAjustado = foraDoPrazo ? aporteNecessarioParaPrazo({ ...baseSim, prazoMeses }) : 0;
   
   const progressoPercent = Math.min(100, (totalGuardado / meta) * 100);
 
@@ -104,7 +109,7 @@ export default function PlanejamentoPage() {
       data: aporte.data,
       valor: Number(aporte.valor),
       origem: aporte.origem,
-      pessoa_id: aporte.pessoaNome ? pessoas.find((p) => p.nome === aporte.pessoaNome)?.id ?? "" : "",
+      pessoa_id: aporte.pessoaId ?? "",
     });
     setEditingAporteIndex(index);
     setIsAportesExtrasModalOpen(true);
@@ -122,11 +127,21 @@ export default function PlanejamentoPage() {
         <p className="text-muted-foreground text-lg">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
 
+      {foraDoPrazo && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex gap-3 text-destructive">
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold mb-1">Atenção ao seu prazo</p>
+            <p>Mantendo o ritmo atual, a meta será atingida em {mesesEstimados} meses, acima do prazo escolhido ({prazoMeses} meses). Para atingir o objetivo no prazo, o aporte necessário é de <strong>{brl(aporteAjustado)}</strong> por mês.</p>
+          </div>
+        </div>
+      )}
+
       {/* Top Cards */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="p-6 border-border/50 bg-primary/5 flex flex-col justify-center items-center text-center">
+        <Card className={`p-6 border-border/50 flex flex-col justify-center items-center text-center ${foraDoPrazo ? 'bg-destructive/5' : 'bg-primary/5'}`}>
           <p className="text-sm font-medium text-muted-foreground mb-2">Tempo estimado</p>
-          <p className="font-display text-6xl text-primary num">{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
+          <p className={`font-display text-6xl num ${foraDoPrazo ? 'text-destructive' : 'text-primary'}`}>{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
           <p className="text-sm text-muted-foreground mt-2">{mesesEstimados ? "meses" : "Indefinido"}</p>
         </Card>
 

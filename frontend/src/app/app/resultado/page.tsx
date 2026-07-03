@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import React from "react";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine, ReferenceDot, Legend } from "recharts";
 import { CalendarCheck, Coins, TrendingUp, Wallet, Info, User, Check, Plus, Trash2, ChevronDown, ChevronUp, RefreshCw, Database, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
+import { type BackendSimulacaoResult } from "@/services/SimulacaoService";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 
 /** Converte resposta do backend para SimResult */
@@ -54,82 +54,11 @@ function backendToSimResult(backend: BackendSimulacaoResult, objetivo: Partial<S
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ResultadoPage() {
-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa, dadosCalculados } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, setAportesRegularesEditados, saveDraft, mesesConcluidos, setMesesConcluidos, planoId, aportesRegularesEditadosPorPessoa, dadosCalculados, backendData, loadingBackend, calculating, backendError, simSource, calcularBackend } = usePlanContext();
   const router = useRouter();
-
-  // Estado para dados do backend
-  const [backendData, setBackendData] = useState<BackendSimulacaoResult | null>(null);
-  const [loadingBackend, setLoadingBackend] = useState(false);
-  const [calculating, setCalculating] = useState(false);
-  const [backendError, setBackendError] = useState<string | null>(null);
-  const [simSource, setSimSource] = useState<"backend" | "client">("client");
 
   // Usar dados calculados centralizados do contexto
   const { effectivePercentualCdi, aporteTotal, totalGuardado, combinedExtras, virtualAportesRegularesEditados, simResult, perPersonStats } = dadosCalculados;
-
-  // Carregar última simulação do backend ao montar
-  useEffect(() => {
-    if (!planoId || planoId.startsWith("local-draft-")) return;
-
-    setLoadingBackend(true);
-    setBackendError(null);
-
-    SimulacaoService.getUltimaSimulacao(planoId)
-      .then(data => {
-        if (data) {
-          setBackendData(data);
-          setSimSource("backend");
-        } else {
-          // Nenhuma simulação salva — fica no modo client-side
-          setSimSource("client");
-        }
-      })
-      .catch(err => {
-        console.error("Erro ao carregar simulação do backend:", err);
-        setBackendError("Não foi possível carregar dados do servidor");
-        setSimSource("client");
-      })
-      .finally(() => setLoadingBackend(false));
-  }, [planoId]);
-
-  // Botão Calcular — chama o backend
-  const handleCalcular = useCallback(async () => {
-    if (!planoId || planoId.startsWith("local-draft-")) {
-      setBackendError("Salve o plano primeiro antes de calcular");
-      return;
-    }
-
-    setCalculating(true);
-    setBackendError(null);
-
-    try {
-      const result = await SimulacaoService.calcularSimulacao(planoId, {
-        objetivoId: planoId,
-        taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
-        percentualCdi: effectivePercentualCdi,
-        aportesMensais: pessoas.map(p => ({
-          pessoaId: p.id || "",
-          valor: Number(p.aporte_mensal) || 0
-        })),
-        aportesExtras: aportesExtras.map(a => ({
-          pessoaId: a.pessoaId || "",
-          valor: Number(a.valor) || 0,
-          data: a.data || new Date().toISOString(),
-          origem: a.origem || "Extra"
-        })),
-        aportesRegularesEditados: aportesRegularesEditados,
-        aportesRegularesEditadosPorPessoa: aportesRegularesEditadosPorPessoa,
-      });
-
-      setBackendData(result);
-      setSimSource("backend");
-    } catch (err: any) {
-      console.error("Erro ao calcular simulação:", err);
-      setBackendError(err?.response?.data?.message || "Erro ao calcular simulação no servidor");
-    } finally {
-      setCalculating(false);
-    }
-  }, [planoId, objetivo, pessoas, aportesExtras, effectivePercentualCdi]);
 
   // Convert mesesConcluidos array to Set for easier manipulation
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
@@ -220,14 +149,8 @@ export default function ResultadoPage() {
 
         {/* Botão Calcular */}
         <div className="flex items-center gap-3 shrink-0">
-          {simSource === "backend" && (
-            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#3B6D11] dark:text-[#80B551] font-medium">
-              <Database className="h-3.5 w-3.5" />
-              Dados do servidor
-            </span>
-          )}
           <Button
-            onClick={handleCalcular}
+            onClick={() => calcularBackend()}
             disabled={calculating || loadingBackend}
             className="flex items-center gap-2"
             size="lg"
@@ -399,7 +322,7 @@ export default function ResultadoPage() {
                     const d = new Date(a.data + 'T12:00:00');
                     const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
                     if (mesOffset <= meses) {
-                      if (a.pessoaNome) extrasMap[a.pessoaNome] = (extrasMap[a.pessoaNome] || 0) + Number(a.valor);
+                      if (a.pessoaId) extrasMap[a.pessoaId] = (extrasMap[a.pessoaId] || 0) + Number(a.valor);
                       else conjuntoExtra += Number(a.valor);
                     }
                   });
@@ -417,7 +340,7 @@ export default function ResultadoPage() {
                         return sum + (Number(p.aporte_mensal) || 0);
                       }
                     }, 0);
-                    const v = aportesRegularesSum + (extrasMap[p.nome] || 0);
+                    const v = aportesRegularesSum + (extrasMap[p.id] || 0);
                     return { nome: p.nome, valor: v, percent: totalAportadoGeral > 0 ? (v / totalAportadoGeral) * 100 : 0 };
                   });
                   if (conjuntoExtra > 0) lista.push({ nome: "Conjunto", valor: conjuntoExtra, percent: totalAportadoGeral > 0 ? (conjuntoExtra / totalAportadoGeral) * 100 : 0 });
@@ -482,7 +405,7 @@ export default function ResultadoPage() {
                     const extrasPorPessoa: Record<string, number> = {};
                     let extrasConjunto = 0;
                     extrasMes.forEach(a => {
-                      if (a.pessoaNome) extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
+                      if (a.pessoaId) extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
                       else extrasConjunto += Number(a.valor);
                     });
 
@@ -511,7 +434,7 @@ export default function ResultadoPage() {
                       const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
                       const rendimentoPessoa = proporcao * r.rendimentoLiquido;
                       const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
-                      const extra = extrasPorPessoa[p.nome] || 0;
+                      const extra = extrasPorPessoa[p.id] || 0;
                       novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
                     });
 

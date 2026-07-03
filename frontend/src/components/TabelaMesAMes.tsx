@@ -4,8 +4,9 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
-import { brl, simular, totalMesMaisRendimentoLiquido, type SimRow, type SimResult } from "@/lib/finance";
+import { brl, simular, totalMesMaisRendimentoLiquido, mesDaSimulacaoParaData, type SimRow, type SimResult } from "@/lib/finance";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { MoneyInput } from "@/components/MoneyInput";
 
 type EnrichedRow = SimRow & {
   atingiu: boolean;
@@ -16,78 +17,176 @@ type EnrichedRow = SimRow & {
 };
 
 // ─── Editable Aporte Cell ────────────────────────────────────────────────────
-function EditableAporte({ value, onSave, isEdited }: { value: number; onSave: (v: number) => void; isEdited: boolean }) {
+function EditableAporte({
+  value,
+  planned,
+  pessoaNome,
+  mes,
+  onSave,
+  isEdited,
+}: {
+  value: number;
+  planned: number;
+  pessoaNome: string;
+  mes: number;
+  onSave: (v: number) => void;
+  isEdited: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value.toFixed(2));
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [portalPos, setPortalPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => { setDraft(value.toFixed(2)); }, [value]);
 
   useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const popupWidth = 260;
+      const left = Math.min(
+        Math.max(8 + window.scrollX, rect.right - popupWidth + window.scrollX),
+        window.innerWidth - popupWidth - 8 + window.scrollX
+      );
+      setPortalPos({ top: rect.bottom + window.scrollY + 4, left, width: popupWidth });
+      setTimeout(() => inputRef.current?.select(), 50);
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(event.target as Node) &&
+        popupRef.current && !popupRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
+        setDraft(value.toFixed(2));
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
+  }, [open, value]);
+
+  const realValue = parseFloat(draft);
+  const diff = isNaN(realValue) ? 0 : realValue - planned;
+  const diffValid = !isNaN(realValue) && realValue >= 0;
 
   const onSaveValue = () => {
-    const num = parseFloat(draft);
-    if (!isNaN(num) && num >= 0) {
-      onSave(num);
+    if (diffValid) {
+      onSave(realValue);
       setOpen(false);
-    } else {
-      setDraft(value.toFixed(2));
     }
   };
 
+  const onRestore = () => {
+    onSave(planned);
+    setDraft(planned.toFixed(2));
+    setOpen(false);
+  };
+
   return (
-    <div ref={ref} className="relative text-right">
+    <div ref={triggerRef} className="relative text-right">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`w-full text-right px-2 py-1 rounded transition-colors border ${isEdited ? "border-accent text-accent bg-accent/5" : "border-transparent hover:border-accent/20 hover:bg-accent/5"}`}
+        title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)}` : "Clique para editar o aporte real"}
+        className={`w-full text-right px-2 py-1 rounded transition-colors border ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent hover:border-accent/20 hover:bg-accent/5"}`}
       >
         {brl(value)}
+        {isEdited && (
+          <span className={`ml-1 text-[9px] font-bold ${diff > 0 ? "text-green-500" : "text-rose-500"}`}>
+            {diff > 0 ? "▲" : "▼"}
+          </span>
+        )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 z-20 mt-2 w-48 rounded-2xl border border-border/70 bg-card p-3 shadow-xl">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Editar aporte</p>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary/70 focus:ring-1 focus:ring-primary/20"
-            />
-            <div className="flex justify-end gap-2">
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={popupRef}
+          className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden"
+          style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}
+        >
+          {/* Header */}
+          <div className="bg-secondary/60 px-4 py-2.5 border-b border-border/50">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+              Aporte · {pessoaNome} · Mês {mes}
+            </p>
+          </div>
+
+          <div className="p-4 space-y-3">
+            {/* Planejado */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Planejado</span>
+              <span className="num font-medium text-foreground">{brl(planned)}</span>
+            </div>
+
+            {/* Separador */}
+            <div className="border-t border-border/40" />
+
+            {/* Real — campo editável */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Real aportado</label>
+              <MoneyInput
+                ref={inputRef}
+                variant="money"
+                min={0}
+                value={draft === "" ? 0 : Number(draft)}
+                onChange={(v) => setDraft(v === "" ? "0" : v.toString())}
+                onKeyDown={(e) => { if (e.key === "Enter") onSaveValue(); if (e.key === "Escape") { setOpen(false); setDraft(value.toFixed(2)); } }}
+                className="h-10 text-sm bg-background border-border"
+              />
+            </div>
+
+            {/* Diferença */}
+            {diffValid && diff !== 0 && (
+              <div className={`flex items-center justify-between text-xs rounded-lg px-3 py-2 ${diff > 0 ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-rose-500/10 text-rose-700 dark:text-rose-400"}`}>
+                <span className="font-medium">{diff > 0 ? "▲ Aportou a mais" : "▼ Aportou a menos"}</span>
+                <span className="num font-bold">{diff > 0 ? "+" : ""}{brl(Math.abs(diff))}</span>
+              </div>
+            )}
+            {diffValid && diff === 0 && draft !== planned.toFixed(2) && (
+              <div className="flex items-center justify-between text-xs rounded-lg px-3 py-2 bg-secondary/50 text-muted-foreground">
+                <span>Igual ao planejado</span>
+              </div>
+            )}
+
+            {/* Botões */}
+            <div className="flex gap-2 pt-1">
+              {isEdited && (
+                <button
+                  type="button"
+                  onClick={onRestore}
+                  className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                >
+                  Restaurar
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => { setDraft(value.toFixed(2)); setOpen(false); }}
-                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => { setOpen(false); setDraft(value.toFixed(2)); }}
+                className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={onSaveValue}
-                className="rounded-xl bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                disabled={!diffValid}
+                className="flex-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 Salvar
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 }
+
 
 // ─── Extras Cell (context aportes) ────────────────────────
 type ContextExtra = { origem: string; valor: number; pessoaNome?: string };
@@ -228,15 +327,14 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
       const atingiu = sim.mesAtingiuMeta === r.mes;
 
       const extrasMes = combinedExtras.filter(a => {
-        const d = new Date(a.data + 'T12:00:00');
-        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+        const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
         return mesOffset === r.mes;
       });
 
       const extrasPorPessoa: Record<string, number> = {};
       let extrasConjunto = 0;
       extrasMes.forEach(a => {
-        if (a.pessoaNome) extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
+        if (a.pessoaId) extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
         else extrasConjunto += Number(a.valor);
       });
 
@@ -262,12 +360,21 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
         }
       });
 
+      let saldoTotalComAportes = 0;
       pessoas.forEach(p => {
-        const proporcao = saldoTotalAnterior > 0 ? (saldos[p.nome] || 0) / saldoTotalAnterior : 0;
-        const rendimentoPessoa = proporcao * r.rendimentoLiquido;
         const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
-        const extra = extrasPorPessoa[p.nome] || 0;
-        novosSaldos[p.nome] = (saldos[p.nome] || 0) + aporteFinal + extra + rendimentoPessoa;
+        const extra = extrasPorPessoa[p.id] || 0;
+        saldoTotalComAportes += (saldos[p.nome] || 0) + aporteFinal + extra;
+      });
+
+      pessoas.forEach(p => {
+        const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
+        const extra = extrasPorPessoa[p.id] || 0;
+        const saldoAtualizado = (saldos[p.nome] || 0) + aporteFinal + extra;
+
+        const proporcao = saldoTotalComAportes > 0 ? saldoAtualizado / saldoTotalComAportes : 0;
+        const rendimentoPessoa = proporcao * r.rendimentoLiquido;
+        novosSaldos[p.nome] = saldoAtualizado + rendimentoPessoa;
       });
 
       const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
@@ -290,16 +397,6 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     });
   }, [sim?.rows, pessoas, combinedExtras, inicio, sim?.mesAtingiuMeta, aporteTotal, totalGuardado, aportesRegularesEditadosPorPessoa, aportesRegularesEditados]);
 
-  const objectiveEndDate = useMemo(() => {
-    if (!objetivo?.dataInicio || objetivo?.prazoMaxMeses == null || objetivo.prazoMaxMeses <= 0) return undefined;
-    const start = typeof objetivo.dataInicio === "string"
-      ? new Date(objetivo.dataInicio + "T12:00:00")
-      : new Date(objetivo.dataInicio);
-    if (isNaN(start.getTime())) return undefined;
-
-    return new Date(start.getFullYear(), start.getMonth() + objetivo.prazoMaxMeses, 1);
-  }, [objetivo?.dataInicio, objetivo?.prazoMaxMeses]);
-
   const objectiveRowLimit = objetivo?.prazoMaxMeses && objetivo.prazoMaxMeses > 0 ? objetivo.prazoMaxMeses + 1 : undefined;
   const effectiveLimit = limitRows !== undefined
     ? objectiveRowLimit !== undefined
@@ -307,14 +404,12 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
       : limitRows
     : objectiveRowLimit;
 
-  const rowsFilteredByDate = objectiveEndDate
-    ? tableRows.filter(r => {
-        const rowDate = new Date(r.data);
-        return !isNaN(rowDate.getTime()) && rowDate.getTime() <= objectiveEndDate.getTime();
-      })
+  // Filtrar por número de mês (evita bugs de fuso horário ao comparar datas)
+  const rowsFilteredByMes = objectiveRowLimit !== undefined
+    ? tableRows.filter(r => r.mes <= objectiveRowLimit - 1)
     : tableRows;
 
-  const displayRows: EnrichedRow[] = effectiveLimit !== undefined ? rowsFilteredByDate.slice(0, effectiveLimit) : rowsFilteredByDate;
+  const displayRows: EnrichedRow[] = effectiveLimit !== undefined ? rowsFilteredByMes.slice(0, effectiveLimit) : rowsFilteredByMes;
 
   const totals = useMemo(() => {
     let aportePorPessoa: Record<string, number> = {};
@@ -359,6 +454,15 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
               ))}
               <Th right>Extras</Th>
               <Th right>Total Mês</Th>
+              {showFinancials && (
+                <>
+                  <Th right>Rend. Bruto</Th>
+                  <Th right>IR</Th>
+                  <Th right>Rend. Líq.</Th>
+                  <Th right>Saldo</Th>
+                  <Th right>% Meta</Th>
+                </>
+              )}
             </tr>
           </thead>
           
@@ -377,7 +481,12 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                 >
                   <Td className="font-medium">
                     <div className="flex items-center gap-1.5">
-                      {showCompletedToggle ? (
+                      {r.mes === 0 ? (
+                        // Mês 0 = início, sempre marcado como concluído sem opção de toggle
+                        <div className="w-6 h-6 rounded flex items-center justify-center border shrink-0 bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      ) : showCompletedToggle ? (
                         <button
                           onClick={() => toggleConcluido(r.mes)}
                           title={isConcluido ? "Desmarcar" : "Marcar como concluído"}
@@ -386,7 +495,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                           {isConcluido && <Check className="h-4 w-4" />}
                         </button>
                       ) : null}
-                      <span className={isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
+                      <span className={r.mes === 0 || isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
                       {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] uppercase font-bold tracking-wider">Meta</span>}
                     </div>
                   </Td>
@@ -407,6 +516,9 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                         ) : (
                           <EditableAporte
                             value={currentValue}
+                            planned={defaultPessoaAporte}
+                            pessoaNome={p.nome.split(" ")[0]}
+                            mes={r.mes}
                             isEdited={isEdited}
                             onSave={v => {
                               setAportesRegularesEditadosPorPessoa(prev => {
@@ -439,8 +551,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                     {(() => {
                       const ctxItems: ContextExtra[] = aportesExtras
                         .filter(a => {
-                          const d = new Date(a.data + 'T12:00:00');
-                          const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+                          const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
                           return mesOffset === r.mes;
                         })
                         .map(a => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome }));
@@ -495,7 +606,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                 <Td key={p.id} right className="bg-primary/20">{brl(totals.aportePorPessoa[p.id])}</Td>
               ))}
               <Td right className="bg-primary/20">{brl(totals.extras)}</Td>
-              <Td right className="bg-primary/20">{brl(totalMesMaisRendimentoLiquido(totals.totalMes, totals.rendLiquido))}</Td>
+              <Td right className="bg-primary/20">{brl(totals.totalMes)}</Td>
               {showFinancials && (
                 <>
                   <Td right className="bg-primary/20 text-muted-foreground">{brl(totals.rendBruto)}</Td>
@@ -504,10 +615,8 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
                     {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                   </Td>
                   <Td right className="bg-primary/20">{""}</Td>
+                  <Td right className="bg-primary/20">{""}</Td>
                 </>
-              )}
-              {!showFinancials && (
-                <Td right className="bg-primary/20">{brl(totals.saldoFinal)}</Td>
               )}
             </tr>
           </tfoot>

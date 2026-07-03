@@ -30,7 +30,7 @@ const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId } = usePlanContext();
+  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId, calcularBackend } = usePlanContext();
   
   const [isEditingTotal, setIsEditingTotal] = useState(false);
   const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
@@ -82,8 +82,11 @@ export default function PessoasPage() {
   }, [user, pessoas.length, setPessoas, planoId, saveDraft]);
 
   const prosseguir = async () => {
-    const success = await saveDraft();
-    if (success) {
+    const savedId = await saveDraft();
+    if (savedId) {
+      if (!savedId.startsWith("local-draft")) {
+        calcularBackend(savedId);
+      }
       router.push("/app/planejamento");
     } else {
       toast.error("Erro ao salvar os dados. Tente novamente.");

@@ -2,9 +2,10 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect, useMemo } from "react";
 import type { SimInput, Aporte, SimResult, SimRow } from "@/lib/finance";
-import { simular, percentualCdiPorTipoInvestimento } from "@/lib/finance";
+import { simular, percentualCdiPorTipoInvestimento, mesDaSimulacaoParaData } from "@/lib/finance";
 import Cookies from "js-cookie";
 import api from "@/lib/api";
+import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
 
 export type CenarioCompra = "entrada" | "pronto" | "planta";
 
@@ -97,17 +98,23 @@ type PlanContextType = {
   setAportesRegularesEditadosPorPessoa: React.Dispatch<React.SetStateAction<Record<string, Record<number, number>>>>;
   mesesConcluidos: number[];
   setMesesConcluidos: React.Dispatch<React.SetStateAction<number[]>>;
-  salvarPlano: (objetivoOverride?: Partial<SimInput> | null) => Promise<boolean>;
+  salvarPlano: (objetivoOverride?: Partial<SimInput> | null) => Promise<string | null>;
   saveDraft: (patch?: {
     objetivo?: Partial<SimInput> | null;
     pessoas?: Pessoa[];
     mesesConcluidos?: number[];
     aportesRegularesEditados?: Record<number, number>;
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
-  }) => Promise<boolean>;
+  }) => Promise<string | null>;
   carregarPlano: () => Promise<void>;
   dadosCalculados: DadosCalculados;
   recalcular: () => void;
+  backendData: BackendSimulacaoResult | null;
+  calculating: boolean;
+  backendError: string | null;
+  simSource: "backend" | "client";
+  loadingBackend: boolean;
+  calcularBackend: (planoIdOverride?: string | null) => Promise<void>;
 };
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
@@ -115,7 +122,7 @@ const PlanContext = createContext<PlanContextType | undefined>(undefined);
 const CHAVE_LOCAL = "imovplan_dados";
 
 // Função centralizada para calcular todos os dados financeiros
-function calcularDadosFinanceiros(
+export function calcularDadosFinanceiros(
   objetivo: Partial<SimInput> | null,
   pessoas: Pessoa[],
   aportesExtras: Aporte[],
@@ -216,40 +223,43 @@ function calcularDadosFinanceiros(
       });
 
       const extrasMes = combinedExtras.filter(a => {
-        const d = new Date(a.data + "T12:00:00");
-        const mesOffset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth()) + 1;
+        const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
         return mesOffset === row.mes;
       });
 
       const extrasPorPessoa: Record<string, number> = {};
       let extrasConjunto = 0;
       extrasMes.forEach(a => {
-        if (a.pessoaNome) {
-          extrasPorPessoa[a.pessoaNome] = (extrasPorPessoa[a.pessoaNome] || 0) + Number(a.valor);
+        if (a.pessoaId) {
+          extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
         } else {
           extrasConjunto += Number(a.valor);
         }
       });
 
       const weightedBalances = Object.fromEntries(
-        pessoas.map(p => [
-          p.id,
-          (finalSaldoById[p.id] || 0) * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
-        ])
+        pessoas.map(p => {
+          const saldoAtual = (finalSaldoById[p.id] || 0) + (aporteFinalPorPessoa[p.id] || 0) + (extrasPorPessoa[p.id] || 0);
+          return [
+            p.id,
+            saldoAtual * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
+          ];
+        })
       );
       const totalWeighted = Object.values(weightedBalances).reduce((sum, value) => sum + value, 0);
 
       pessoas.forEach(p => {
         const balance = finalSaldoById[p.id] || 0;
+        const saldoAtual = balance + (aporteFinalPorPessoa[p.id] || 0) + (extrasPorPessoa[p.id] || 0);
         const weight = totalWeighted > 0
           ? (weightedBalances[p.id] || 0) / totalWeighted
-          : (row.saldoAcumulado > 0 ? balance / row.saldoAcumulado : 0);
+          : (row.saldoAcumulado > 0 ? saldoAtual / row.saldoAcumulado : 0);
         const rendimentoPessoa = row.rendimentoLiquido * weight;
 
         aporteTotalById[p.id] += aporteFinalPorPessoa[p.id];
-        extrasTotalById[p.id] += extrasPorPessoa[p.nome] || 0;
+        extrasTotalById[p.id] += extrasPorPessoa[p.id] || 0;
         rendimentoTotalById[p.id] += rendimentoPessoa;
-        finalSaldoById[p.id] = balance + aporteFinalPorPessoa[p.id] + (extrasPorPessoa[p.nome] || 0) + rendimentoPessoa;
+        finalSaldoById[p.id] = saldoAtual + rendimentoPessoa;
       });
     }
 
@@ -301,7 +311,7 @@ function aplicarDados(
   }
 ) {
   if (!dados) return;
-  
+
   if (dados.objetivo) {
     const d = dados.objetivo.dataInicio ? new Date(dados.objetivo.dataInicio) : new Date();
     definidores.setObjetivo({ ...dados.objetivo, dataInicio: isNaN(d.getTime()) ? new Date() : d });
@@ -448,6 +458,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     perPersonStats: [],
   });
 
+  const [backendData, setBackendData] = useState<BackendSimulacaoResult | null>(null);
+  const [calculating, setCalculating] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
+  const [simSource, setSimSource] = useState<"backend" | "client">("client");
+  const [loadingBackend, setLoadingBackend] = useState(false);
+
   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
   const [sessionId, setSessionId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -459,14 +475,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     return existente;
   });
 
-  const definidores = { 
-    setObjetivo, 
-    setPessoas, 
-    setBancoEscolhido, 
-    setAportesExtras, 
-    setAportesRegularesEditados, 
-    setAportesRegularesEditadosPorPessoa, 
-    setMesesConcluidos 
+  const definidores = {
+    setObjetivo,
+    setPessoas,
+    setBancoEscolhido,
+    setAportesExtras,
+    setAportesRegularesEditados,
+    setAportesRegularesEditadosPorPessoa,
+    setMesesConcluidos
   };
 
   // Função para carregar o plano
@@ -477,9 +493,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       // Carrega do localStorage se não tiver usuário
       const local = localStorage.getItem(CHAVE_LOCAL);
       if (local) {
-        try { 
+        try {
           const dados = JSON.parse(local);
-          aplicarDados(dados, definidores); 
+          aplicarDados(dados, definidores);
           console.log("Dados carregados do localStorage");
         } catch (error) {
           console.error("Erro ao carregar dados do localStorage:", error);
@@ -544,6 +560,23 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         if (draftData.id) {
           setPlanoId(draftData.id);
           Cookies.set("imovplan_planoId", draftData.id, { expires: 30 });
+
+          setLoadingBackend(true);
+          try {
+            const simData = await SimulacaoService.getUltimaSimulacao(draftData.id);
+            if (simData) {
+              setBackendData(simData);
+              setSimSource("backend");
+            } else {
+              setSimSource("client");
+            }
+          } catch (simError) {
+            console.error("Erro ao carregar última simulação do backend:", simError);
+            setBackendError("Não foi possível carregar dados do servidor");
+            setSimSource("client");
+          } finally {
+            setLoadingBackend(false);
+          }
         }
         console.log("Dados carregados do backend");
         return;
@@ -557,13 +590,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       } else {
         console.error("Erro ao carregar plano do backend:", error);
       }
-      
+
       // Tenta carregar do localStorage como fallback
       const local = localStorage.getItem(CHAVE_LOCAL);
       if (local) {
-        try { 
+        try {
           const dados = JSON.parse(local);
-          aplicarDados(dados, definidores); 
+          aplicarDados(dados, definidores);
           console.log("Dados carregados do localStorage (fallback)");
         } catch (e) {
           console.error("Erro ao carregar dados do localStorage:", e);
@@ -573,7 +606,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Função para salvar o plano (aceita um objetivo opcional para evitar bug de closure)
-  const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<boolean> => {
+  const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
     const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;
     const dadosLocais = {
       objetivo: objetivoFinal,
@@ -599,24 +632,24 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
         }
         console.log("Dados salvos no backend");
-        return true;
+        return novoId || planoId;
       } catch (error) {
         // O localStorage já tem os dados, então não bloqueamos o fluxo
         console.warn("Backup salvo no localStorage, falha no backend:", error);
-        return true;
+        return planoId;
       }
     }
-    
-    return true; // Salvou localmente
+
+    return planoId || "local-draft"; // Salvou localmente
   }, [
-    objetivo, 
-    pessoas, 
-    bancoEscolhido, 
+    objetivo,
+    pessoas,
+    bancoEscolhido,
     aportesExtras,
-    aportesRegularesEditados, 
+    aportesRegularesEditados,
     aportesRegularesEditadosPorPessoa,
-    mesesConcluidos, 
-    planoId, 
+    mesesConcluidos,
+    planoId,
     sessionId
   ]);
 
@@ -627,7 +660,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     mesesConcluidos?: number[];
     aportesRegularesEditados?: Record<number, number>;
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
-  }): Promise<boolean> => {
+  }): Promise<string | null> => {
     const dadosFinal = {
       objetivo: patch?.objetivo !== undefined ? patch.objetivo : objetivo,
       pessoas: patch?.pessoas !== undefined ? patch.pessoas : pessoas,
@@ -648,13 +681,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           setPlanoId(novoId);
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
         }
-        return true;
+        return novoId || planoId;
       } catch (error) {
         console.warn("saveDraft: falha no backend, dados salvos localmente", error);
-        return true;
+        return planoId;
       }
     }
-    return true;
+    return planoId || "local-draft";
   }, [
     objetivo, pessoas, bancoEscolhido, aportesExtras,
     aportesRegularesEditados, aportesRegularesEditadosPorPessoa,
@@ -672,6 +705,62 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     );
     setDadosCalculados(calculados);
   }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa]);
+
+  // Função para executar simulação e cálculo no backend
+  const calcularBackend = useCallback(async (planoIdOverride?: string | null) => {
+    const id = planoIdOverride !== undefined ? planoIdOverride : planoId;
+    if (!id || id.startsWith("local-draft-")) {
+      console.warn("calcularBackend: sem ID de plano válido");
+      return;
+    }
+
+    setCalculating(true);
+    setBackendError(null);
+
+    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
+    const effectiveCdi = totalSaved <= 0
+      ? Number(objetivo?.percentualCdi ?? 100)
+      : pessoas.reduce((sum, p) => {
+        const tipoPercent = p.tipoInvestimento
+          ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
+          : Number(objetivo?.percentualCdi ?? 100);
+        return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
+      }, 0);
+
+    try {
+      // Garantir que todos os dados do contexto (ex: prazos recém-alterados na tela)
+      // estejam salvos no banco antes de mandar o backend calcular,
+      // pois o backend lê o PrazoMaxMeses direto do banco.
+      await saveDraft();
+
+      const result = await SimulacaoService.calcularSimulacao(id, {
+        objetivoId: id,
+        taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
+        percentualCdi: effectiveCdi,
+        aportesMensais: pessoas.map(p => ({
+          pessoaId: p.id || "",
+          valor: Number(p.aporte_mensal) || 0
+        })),
+        aportesExtras: aportesExtras.map(a => ({
+          pessoaId: a.pessoaId || "",
+          valor: Number(a.valor) || 0,
+          data: a.data || new Date().toISOString(),
+          origem: a.origem || "Extra"
+        })),
+        aportesRegularesEditados: aportesRegularesEditados,
+        aportesRegularesEditadosPorPessoa: aportesRegularesEditadosPorPessoa,
+      });
+
+      setBackendData(result);
+      setSimSource("backend");
+      setBackendError(null);
+    } catch (err: any) {
+      console.error("Erro ao calcular simulação no backend:", err);
+      setBackendError(err?.response?.data?.message || "Erro ao calcular simulação no servidor");
+    } finally {
+      setCalculating(false);
+    }
+  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa]);
 
   // Carrega o plano uma vez ao montar
   const inicializado = useRef(false);
@@ -737,6 +826,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       carregarPlano,
       dadosCalculados,
       recalcular,
+      backendData,
+      calculating,
+      backendError,
+      simSource,
+      loadingBackend,
+      calcularBackend,
     }}>
       {children}
     </PlanContext.Provider>
