@@ -11,10 +11,12 @@
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.16" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.16" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.16" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Core\ImovPlan.Domain\ImovPlan.Domain.csproj" />
     <ProjectReference Include="..\..\Core\ImovPlan.Application\ImovPlan.Application.csproj" />
     <ProjectReference Include="..\..\Infrastructure\ImovPlan.Infrastructure\ImovPlan.Infrastructure.csproj" />
   </ItemGroup>

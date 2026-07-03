@@ -19,8 +19,4 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\Core\ImovPlan.Application\ImovPlan.Application.csproj" />
-  </ItemGroup>
-
 </Project>

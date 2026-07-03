@@ -17,13 +17,11 @@ services:
     container_name: imovplan_backend
     ports:
       - "5179:8080"
+    env_file:
+      - ./backend/.env
     environment:
-      - MongoDbSettings__ConnectionString=mongodb://mongodb:27017
-      - MongoDbSettings__DatabaseName=ImovPlanDB
-      - Jwt__Key=ImovPlan_SuperSecretKey_2026_Minimum32Chars
       - Jwt__Issuer=ImovPlanAPI
       - Jwt__Audience=ImovPlanClient
-      - Cors__AllowedOrigins__0=http://localhost:3000
     depends_on:
       - mongodb
     restart: unless-stopped
