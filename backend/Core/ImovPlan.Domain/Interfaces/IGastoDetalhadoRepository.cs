@@ -9,6 +9,7 @@ namespace ImovPlan.Domain.Interfaces
         Task<IEnumerable<GastoDetalhado>> GetByParticipanteIdAsync(string participanteId);
         Task<IEnumerable<GastoDetalhado>> GetByPlanejamentoIdAsync(string planejamentoId);
         Task<GastoDetalhado> AddAsync(GastoDetalhado gasto);
+        Task AddRangeAsync(IEnumerable<GastoDetalhado> gastos);
         Task DeleteAsync(string id);
         Task DeleteByParticipanteIdAsync(string participanteId);
         Task DeleteByPlanejamentoIdAsync(string planejamentoId);

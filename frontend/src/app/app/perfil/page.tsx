@@ -17,10 +17,6 @@ import {
   Loader2,
   CheckCircle2,
   Clock,
-  Briefcase,
-  DollarSign,
-  Heart,
-  PiggyBank,
   Trash2,
   Download,
   Shield
@@ -125,167 +121,167 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-fade-in-up">
-
+    <div className="max-w-5xl mx-auto space-y-6 animate-fade-in-up">
+      {/* Header */}
       <div>
-        <h1 className="font-display text-3xl md:text-4xl">Meu Perfil</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie suas informações pessoais.
-        </p>
+        <h1 className="font-display text-3xl font-light tracking-tight text-foreground">Meu Perfil</h1>
+        <p className="text-sm text-muted-foreground mt-1">Gerencie suas informações e preferências.</p>
       </div>
 
-      {/* Profile Card */}
-      <Card className="p-0 overflow-hidden shadow-soft border-border/60">
-        {/* Banner */}
-        <div className="h-28 bg-gradient-warm relative">
-          <div className="absolute -bottom-10 left-8">
-            <div className="h-20 w-20 rounded-2xl bg-background border-4 border-background shadow-elevated grid place-items-center">
-              <span className="font-display text-2xl font-semibold text-accent">
+      <div className="grid md:grid-cols-[1fr_2fr] gap-6 items-start">
+        {/* Left Column - Card & Actions */}
+        <div className="space-y-6">
+          {/* Mini Profile Card */}
+          <Card className="overflow-hidden border border-border/50 bg-card p-6 shadow-sm flex flex-col items-center text-center rounded-2xl">
+            {/* Avatar */}
+            <div className="h-20 w-20 rounded-2xl bg-gradient-warm shadow-md flex items-center justify-center mb-4">
+              <span className="font-display text-2xl font-bold text-white">
                 {getInitials(name || "U")}
               </span>
             </div>
-          </div>
-        </div>
-        <div className="pt-14 pb-6 px-8">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="font-display text-2xl">{name || "Usuário"}</h2>
-              <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                <Mail className="h-3.5 w-3.5" /> {email}
+            <h2 className="font-display text-xl font-semibold text-foreground truncate max-w-full">{name || "Usuário"}</h2>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1.5 truncate max-w-full">
+              <Mail className="h-3 w-3 shrink-0" /> {email}
+            </p>
+
+            {/* Progress Bar */}
+            <div className="w-full mt-6 space-y-2 border-t border-border/40 pt-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground">Perfil {completionPercent}% completo</span>
+                <span className="text-muted-foreground">{completedFields}/{totalFields}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-warm transition-all duration-700 ease-out"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* LGPD & Account Management */}
+          <Card className="border border-border/50 bg-card p-6 shadow-sm space-y-4 rounded-2xl">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Shield className="h-4 w-4 text-accent" />
+                Privacidade & LGPD
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Baixe todos os seus dados pessoais e de simulação salvos em nossos servidores.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              Membro desde {new Date().getFullYear()}
+            
+            <Button
+              id="btn-exportar-dados"
+              variant="outline"
+              size="sm"
+              className="w-full text-xs rounded-xl"
+              onClick={handleExportData}
+              disabled={exportLoading}
+            >
+              {exportLoading ? (
+                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5 mr-2" />
+              )}
+              {exportLoading ? "Exportando..." : "Exportar Meus Dados (JSON)"}
+            </Button>
+          </Card>
+
+          {/* Danger Zone */}
+          <Card className="border border-destructive/20 bg-destructive/5 p-6 shadow-sm space-y-4 rounded-2xl">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-destructive flex items-center gap-2">
+                Apagar Conta
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Excluir permanentemente seus dados do servidor. Esta ação não poderá ser desfeita.
+              </p>
             </div>
+            
+            <Button 
+              variant="destructive" 
+              size="sm"
+              className="w-full text-xs rounded-xl"
+              onClick={async () => {
+                if (confirm("Tem certeza que deseja apagar sua conta permanentemente?")) {
+                  await deleteAccount();
+                }
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" />
+              Excluir Minha Conta
+            </Button>
+          </Card>
+        </div>
+
+        {/* Right Column - Form */}
+        <Card className="border border-border/50 bg-card p-8 shadow-sm space-y-6 rounded-2xl">
+          <div className="flex items-center justify-between border-b border-border/40 pb-4">
+            <h3 className="font-display text-xl font-semibold text-foreground">Informações Pessoais</h3>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3 w-3" /> Membro desde {new Date().getFullYear()}
+            </span>
           </div>
-          {/* Completion Bar */}
-          <div className="mt-5 p-4 rounded-xl bg-secondary/50 border border-border/40">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-accent" />
-                Perfil {completionPercent}% completo
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {completedFields}/{totalFields} campos
-              </span>
+
+          <div className="space-y-5">
+            {/* Nome */}
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-name" className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" /> Nome completo
+              </Label>
+              <Input
+                id="profile-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Seu nome completo"
+                className="h-11 rounded-xl border border-border/70 bg-background px-3 text-base text-foreground shadow-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20"
+              />
             </div>
-            <div className="h-2 rounded-full bg-border/60 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-warm transition-all duration-700 ease-out"
-                style={{ width: `${completionPercent}%` }}
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" /> Email
+              </Label>
+              <Input
+                id="profile-email"
+                value={email}
+                disabled
+                className="h-11 rounded-xl border border-border/70 bg-muted/30 px-3 text-base text-muted-foreground cursor-not-allowed opacity-70"
+              />
+            </div>
+
+            {/* Data de Nascimento */}
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-nascimento" className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" /> Data de nascimento
+              </Label>
+              <DateInput
+                id="profile-nascimento"
+                value={dataNascimento}
+                onChange={(v) => setDataNascimento(v)}
               />
             </div>
           </div>
-        </div>
-      </Card>
 
-      {/* Form */}
-      <Card className="p-8 shadow-soft border-border/60 space-y-6">
-        <h3 className="font-display text-xl">Informações Pessoais</h3>
-
-        <div className="grid md:grid-cols-2 gap-5">
-          {/* Nome */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-name" className="flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5 text-muted-foreground" /> Nome completo
-            </Label>
-            <Input
-              id="profile-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Seu nome completo"
-              className="h-12 text-lg font-medium"
-            />
+          {/* Save Button */}
+          <div className="flex justify-end pt-4 border-t border-border/40">
+            <Button
+              onClick={handleSave}
+              disabled={saving || !name}
+              className="bg-primary text-primary-foreground h-11 px-6 rounded-xl font-medium shadow-sm transition hover:bg-primary/95 flex items-center gap-2"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin-smooth" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {saving ? "Salvando..." : "Salvar Alterações"}
+            </Button>
           </div>
-
-          {/* Email (read-only) */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-email" className="flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground" /> Email
-            </Label>
-            <Input
-              id="profile-email"
-              value={email}
-              disabled
-              className="opacity-60 cursor-not-allowed"
-            />
-          </div>
-
-          {/* Data de Nascimento */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-nascimento" className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" /> Data de nascimento
-            </Label>
-            <DateInput
-              id="profile-nascimento"
-              value={dataNascimento}
-              onChange={(v) => setDataNascimento(v)}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* LGPD / Dados */}
-      <Card className="p-8 shadow-soft border-border/60 space-y-6">
-        <div>
-          <h3 className="font-display text-xl flex items-center gap-2">
-            <Shield className="h-5 w-5 text-accent" />
-            Seus Dados (LGPD)
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            De acordo com a Lei Geral de Proteção de Dados (LGPD), você tem o direito de acessar e exportar todos os seus dados armazenados na plataforma.
-          </p>
-        </div>
-        <div className="pt-4 border-t border-border/40 flex items-center justify-between">
-          <div>
-            <h4 className="font-medium text-foreground">Exportar meus dados</h4>
-            <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
-              Baixe um arquivo JSON completo com todos os seus dados: perfil, planejamento e histórico.
-            </p>
-          </div>
-          <Button
-            id="btn-exportar-dados"
-            variant="outline"
-            onClick={handleExportData}
-            disabled={exportLoading}
-          >
-            {exportLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            {exportLoading ? "Exportando..." : "Exportar Dados"}
-          </Button>
-        </div>
-      </Card>
-
-      {/* Danger Zone */}
-      <Card className="p-8 shadow-soft border-destructive/20 space-y-6">
-        <div>
-          <h3 className="font-display text-xl text-destructive">Zona de Perigo</h3>
-          <p className="text-sm text-muted-foreground mt-1">Ações irreversíveis para a sua conta.</p>
-        </div>
-        
-        <div className="pt-4 border-t border-border/40 flex items-center justify-between">
-          <div>
-            <h4 className="font-medium text-foreground">Apagar conta</h4>
-            <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">Excluir permanentemente sua conta e todos os seus dados. Esta ação não pode ser desfeita.</p>
-          </div>
-          <Button 
-            variant="destructive" 
-            onClick={async () => {
-              if (confirm("Tem certeza que deseja apagar sua conta permanentemente?")) {
-                await deleteAccount();
-              }
-            }}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Apagar Conta
-          </Button>
-        </div>
-      </Card>
-
+        </Card>
+      </div>
     </div>
   );
 }

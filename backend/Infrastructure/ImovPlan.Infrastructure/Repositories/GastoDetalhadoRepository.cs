@@ -37,6 +37,14 @@ namespace ImovPlan.Infrastructure.Repositories
             return gasto;
         }
 
+        public async Task AddRangeAsync(IEnumerable<GastoDetalhado> gastos)
+        {
+            var list = gastos.ToList();
+            if (list.Count == 0) return;
+            _context.GastosDetalhados.AddRange(list);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task DeleteAsync(string id)
         {
             var existing = await _context.GastosDetalhados.FirstOrDefaultAsync(g => g.Id == id);

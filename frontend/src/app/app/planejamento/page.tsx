@@ -181,99 +181,95 @@ export default function PlanejamentoPage() {
       {isAportesExtrasModalOpen && (
         <div className="fixed inset-0 z-[9999] grid min-h-screen place-items-center bg-slate-950/25 px-4 py-6 backdrop-blur-sm">
           <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-md" />
-          <div className="relative z-[10000] w-full max-w-3xl overflow-hidden rounded-[2rem] border border-border/50 bg-card/95 text-card-foreground shadow-[0_45px_120px_-60px_rgba(15,23,42,0.8)] ring-1 ring-slate-900/10">
-            <div className="border-b border-border/50 bg-secondary/5 px-8 py-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="max-w-[70%]">
-                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-2">Aporte extra</p>
-                  <h2 className="font-display text-3xl font-semibold leading-tight">
-                    {editingAporteIndex !== null ? "Editar aporte extra" : "Adicionar aporte extra"}
-                  </h2>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Registre uma entrada pontual que acelera seu plano e reduz o tempo até a meta.
-                  </p>
+          <div className="relative z-[10000] w-full max-w-md overflow-hidden rounded-2xl border border-border/50 bg-card/95 p-6 text-card-foreground shadow-[0_45px_120px_-60px_rgba(15,23,42,0.8)] ring-1 ring-slate-900/10">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+              <div>
+                <h2 className="font-display text-xl font-semibold text-foreground">
+                  {editingAporteIndex !== null ? "Editar Aporte Extra" : "Adicionar Aporte Extra"}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Aporte pontual para acelerar seu plano.</p>
+              </div>
+              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-secondary" onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Form Content */}
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Valor do aporte</Label>
+                <MoneyInput
+                  variant="money"
+                  value={novoAporte.valor}
+                  onChange={(v) => setNovoAporte({ ...novoAporte, valor: v })}
+                  className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-lg text-foreground shadow-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Data do aporte</Label>
+                <DateInput 
+                  value={novoAporte.data} 
+                  onChange={(v) => setNovoAporte({ ...novoAporte, data: v })} 
+                  className="w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20 text-foreground" 
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Origem</Label>
+                <select
+                  value={novoAporte.origem}
+                  onChange={(e) => setNovoAporte({ ...novoAporte, origem: e.target.value })}
+                  className="w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20 text-foreground"
+                >
+                  {ORIGENS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quem contribuiu?</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: "" })}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${novoAporte.pessoa_id === "" ? 'bg-primary text-primary-foreground border border-primary shadow-sm' : 'bg-background text-muted-foreground border border-border hover:border-primary/60 hover:text-foreground'}`}
+                  >
+                    Conjunto
+                  </button>
+                  {pessoas.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: p.id })}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${novoAporte.pessoa_id === p.id ? 'bg-primary text-primary-foreground border border-primary shadow-sm' : 'bg-background text-muted-foreground border border-border hover:border-primary/60 hover:text-foreground'}`}
+                    >
+                      {p.nome}
+                    </button>
+                  ))}
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}>
-                  <X className="h-5 w-5" />
-                </Button>
               </div>
             </div>
 
-            <div className="px-8 py-8">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-6">
-                  <div className="rounded-[1.5rem] border border-border/50 bg-background p-5 shadow-sm">
-                    <Label className="text-sm font-medium">Valor do aporte</Label>
-                    <MoneyInput
-                      variant="money"
-                      value={novoAporte.valor}
-                      onChange={(v) => setNovoAporte({ ...novoAporte, valor: v })}
-                      className="mt-3 h-14 w-full rounded-[1.5rem] border border-border/50 bg-white/95 px-4 text-2xl text-foreground shadow-sm outline-none"
-                    />
-                  </div>
+            {/* Footer Summary / Actions */}
+            {novoAporte.valor > 0 && (
+              <p className="text-xs text-muted-foreground text-center mb-4 italic">
+                Resumo: {brl(Number(novoAporte.valor))} em {novoAporte.data ? new Date(novoAporte.data + "T12:00:00").toLocaleDateString("pt-BR") : "data de hoje"} ({novoAporte.pessoa_id ? pessoas.find(p => p.id === novoAporte.pessoa_id)?.nome : "Conjunto"})
+              </p>
+            )}
 
-                  <div className="rounded-[1.5rem] border border-border/50 bg-background p-5 shadow-sm">
-                    <Label className="text-sm font-medium">Data do aporte</Label>
-                    <DateInput value={novoAporte.data} onChange={(v) => setNovoAporte({ ...novoAporte, data: v })} className="mt-3 w-full rounded-[1.5rem] border border-border/50 bg-white/95 px-4 py-3 text-sm outline-none" />
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="rounded-[1.5rem] border border-border/50 bg-background p-5 shadow-sm">
-                    <Label className="text-sm font-medium">Origem</Label>
-                    <select
-                      value={novoAporte.origem}
-                      onChange={(e) => setNovoAporte({ ...novoAporte, origem: e.target.value })}
-                      className="mt-3 w-full rounded-[1.5rem] border border-border/50 bg-white/95 px-4 py-3 text-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20 text-foreground"
-                    >
-                      {ORIGENS.map((o) => (
-                        <option key={o} value={o}>{o}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="rounded-[1.5rem] border border-border/50 bg-background p-5 shadow-sm">
-                    <Label className="text-sm font-medium">Quem contribuiu?</Label>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: "" })}
-                        className={`rounded-full px-4 py-2.5 text-sm font-medium transition ${novoAporte.pessoa_id === "" ? 'bg-primary text-primary-foreground border border-primary shadow-sm' : 'bg-background text-muted-foreground border border-border hover:border-primary/60 hover:text-foreground'}`}
-                      >
-                        Conjunto
-                      </button>
-                      {pessoas.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: p.id })}
-                          className={`rounded-full px-4 py-2.5 text-sm font-medium transition ${novoAporte.pessoa_id === p.id ? 'bg-primary text-primary-foreground border border-primary shadow-sm' : 'bg-background text-muted-foreground border border-border hover:border-primary/60 hover:text-foreground'}`}
-                        >
-                          {p.nome}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-[1.5rem] border border-border/50 bg-secondary/10 p-5 text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground">Resumo do aporte</p>
-                <p className="mt-2">
-                  {novoAporte.valor ? brl(Number(novoAporte.valor)) : "Escolha um valor"} em {novoAporte.data ? new Date(novoAporte.data + "T12:00:00").toLocaleDateString("pt-BR") : "selecione uma data"} para {novoAporte.pessoa_id ? pessoas.find((p) => p.id === novoAporte.pessoa_id)?.nome ?? "a pessoa selecionada" : "o conjunto"}.
-                </p>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <Button variant="ghost" className="w-full sm:w-auto" onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}>Cancelar</Button>
-                <Button
-                  onClick={() => { adicionarAporte(); setIsAportesExtrasModalOpen(false); }}
-                  className="w-full sm:w-auto bg-primary text-primary-foreground px-6"
-                  disabled={novoAporte.valor === "" || novoAporte.valor <= 0}
-                >
-                  <Plus className="h-4 w-4 mr-2" /> {editingAporteIndex !== null ? "Salvar" : "Adicionar aporte"}
-                </Button>
-              </div>
+            <div className="flex justify-end gap-2 border-t border-border/50 pt-4">
+              <Button variant="ghost" className="h-9 px-4 text-sm" onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}>Cancelar</Button>
+              <Button
+                onClick={() => { adicionarAporte(); setIsAportesExtrasModalOpen(false); }}
+                className="h-9 bg-primary text-primary-foreground px-4 text-sm"
+                disabled={novoAporte.valor === "" || novoAporte.valor <= 0}
+              >
+                <Plus className="h-4 w-4 mr-1.5" /> {editingAporteIndex !== null ? "Salvar" : "Adicionar"}
+              </Button>
             </div>
           </div>
         </div>
@@ -281,26 +277,7 @@ export default function PlanejamentoPage() {
 
       <div className="grid lg:grid-cols-[0.95fr_1.05fr] gap-6 pt-4 border-t border-border/40">
         <div className="space-y-4">
-          <div className="rounded-3xl border border-border/50 bg-card p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="font-display text-2xl font-light">Aporte mensal programado</h2>
-                <p className="text-sm text-muted-foreground mt-1">Valor base para manter o ritmo do seu plano todos os meses.</p>
-              </div>
-              <div className="rounded-3xl bg-secondary/80 px-4 py-3 text-right text-2xl font-semibold text-foreground num">
-                {brl(aporteTotal)}
-              </div>
-            </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {pessoas.map(p => (
-                <div key={p.id} className="rounded-2xl border border-border/50 bg-background p-4">
-                  <p className="text-sm text-muted-foreground">{p.nome}</p>
-                  <p className="mt-2 text-lg font-semibold num">{brl(Number(p.aporte_mensal || 0))}</p>
-                </div>
-              ))}
-            </div>
-          </div>
 
           <div className="rounded-3xl border border-border/50 bg-card p-6 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

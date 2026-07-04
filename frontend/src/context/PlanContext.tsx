@@ -365,7 +365,7 @@ function montarObjetivoDraft(objetivo: Partial<SimInput> | null): PlanoDraftPayl
   };
 }
 
-async function salvarNoBackend(
+export async function salvarNoBackend(
   dados: {
     objetivo: Partial<SimInput> | null;
     pessoas: Pessoa[];
@@ -465,6 +465,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [loadingBackend, setLoadingBackend] = useState(false);
 
   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
+  const ultimoCalculoRef = useRef<string>("");
   const [sessionId, setSessionId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     let existente = Cookies.get("imovplan_sessionId");
@@ -496,6 +497,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         try {
           const dados = JSON.parse(local);
           aplicarDados(dados, definidores);
+          ultimoCalculoRef.current = JSON.stringify({
+            objetivo: dados.objetivo,
+            pessoas: dados.pessoas,
+            aportesExtras: dados.aportesExtras,
+            aportesRegularesEditados: dados.aportesRegularesEditados,
+            aportesRegularesEditadosPorPessoa: dados.aportesRegularesEditadosPorPessoa,
+          });
           console.log("Dados carregados do localStorage");
         } catch (error) {
           console.error("Erro ao carregar dados do localStorage:", error);
@@ -557,6 +565,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           mesesConcluidos: draftData.mesesConcluidos || [],
         };
         aplicarDados(dadosMapeados, definidores);
+        ultimoCalculoRef.current = JSON.stringify({
+          objetivo: dadosMapeados.objetivo,
+          pessoas: dadosMapeados.pessoas,
+          aportesExtras: dadosMapeados.aportesExtras,
+          aportesRegularesEditados: dadosMapeados.aportesRegularesEditados,
+          aportesRegularesEditadosPorPessoa: dadosMapeados.aportesRegularesEditadosPorPessoa,
+        });
         if (draftData.id) {
           setPlanoId(draftData.id);
           Cookies.set("imovplan_planoId", draftData.id, { expires: 30 });
@@ -597,6 +612,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         try {
           const dados = JSON.parse(local);
           aplicarDados(dados, definidores);
+          ultimoCalculoRef.current = JSON.stringify({
+            objetivo: dados.objetivo,
+            pessoas: dados.pessoas,
+            aportesExtras: dados.aportesExtras,
+            aportesRegularesEditados: dados.aportesRegularesEditados,
+            aportesRegularesEditadosPorPessoa: dados.aportesRegularesEditadosPorPessoa,
+          });
           console.log("Dados carregados do localStorage (fallback)");
         } catch (e) {
           console.error("Erro ao carregar dados do localStorage:", e);
@@ -714,6 +736,19 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const hashAtual = JSON.stringify({
+      objetivo,
+      pessoas,
+      aportesExtras,
+      aportesRegularesEditados,
+      aportesRegularesEditadosPorPessoa,
+    });
+
+    if (ultimoCalculoRef.current === hashAtual && backendData) {
+      console.log("calcularBackend: sem alterações, pulando chamada");
+      return;
+    }
+
     setCalculating(true);
     setBackendError(null);
 
@@ -754,13 +789,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       setBackendData(result);
       setSimSource("backend");
       setBackendError(null);
+      ultimoCalculoRef.current = hashAtual;
     } catch (err: any) {
       console.error("Erro ao calcular simulação no backend:", err);
       setBackendError(err?.response?.data?.message || "Erro ao calcular simulação no servidor");
     } finally {
       setCalculating(false);
     }
-  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa]);
+  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, backendData, saveDraft]);
 
   // Carrega o plano uma vez ao montar
   const inicializado = useRef(false);
@@ -776,9 +812,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     });
   }, [carregarPlano]);
 
-  // Recalcula dados financeiros automaticamente quando dados base mudam
+  // Recalcula dados financeiros automaticamente quando dados base mudam (debounced 150ms)
   useEffect(() => {
-    recalcular();
+    const timer = setTimeout(() => {
+      recalcular();
+    }, 150);
+    return () => clearTimeout(timer);
   }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, recalcular]);
 
   // Salva automaticamente quando os dados mudarem (debounced)

@@ -181,59 +181,56 @@ namespace ImovPlan.Application.Services
                 // Delete existing AportesExtras to prevent duplication on save
                 await _aporteExtraRepo.DeleteByPlanejamentoIdAsync(id);
 
-                foreach (var a in draftDto.AportesExtras)
+                // Batch-insert all extras in a single SaveChanges call
+                var novasExtras = draftDto.AportesExtras.Select(a => new AporteExtra
                 {
-                    await _aporteExtraRepo.AddAsync(new AporteExtra
-                    {
-                        PlanejamentoId = id,
-                        ParticipanteId = string.IsNullOrEmpty(a.PessoaId) ? "" : a.PessoaId,
-                        Data = !string.IsNullOrEmpty(a.Data) && DateTime.TryParse(a.Data, out var d) ? d : DateTime.UtcNow,
-                        Valor = a.Valor,
-                        Origem = a.Origem,
-                    });
-                }
+                    PlanejamentoId = id,
+                    ParticipanteId = string.IsNullOrEmpty(a.PessoaId) ? "" : a.PessoaId,
+                    Data = !string.IsNullOrEmpty(a.Data) && DateTime.TryParse(a.Data, out var d) ? d : DateTime.UtcNow,
+                    Valor = a.Valor,
+                    Origem = a.Origem,
+                }).ToList();
+                await _aporteExtraRepo.AddRangeAsync(novasExtras);
             }
 
-            // ── Map AportesRegularesEditados → HistoricoAporteRepository ──
+            // ── Map AportesRegularesEditados + PorPessoa → HistoricoAporteRepository ──
             if (draftDto.AportesRegularesEditados != null || draftDto.AportesRegularesEditadosPorPessoa != null)
             {
                 // Delete existing edits to prevent accumulation of obsolete entries
                 await _historicoAporteRepo.DeleteByPlanejamentoIdAsync(id);
-            }
 
-            if (draftDto.AportesRegularesEditados != null)
-            {
-                foreach (var kvp in draftDto.AportesRegularesEditados)
+                // Accumulate all records and batch-insert in a single SaveChanges call
+                var historicoList = new List<HistoricoAporte>();
+
+                if (draftDto.AportesRegularesEditados != null)
                 {
-                    await _historicoAporteRepo.UpsertByMesAsync(new HistoricoAporte
+                    historicoList.AddRange(draftDto.AportesRegularesEditados.Select(kvp => new HistoricoAporte
                     {
                         PlanejamentoId = id,
-                        ParticipanteId = string.Empty, // Plan-level edit, not person-specific
+                        ParticipanteId = string.Empty,
                         Mes = kvp.Key,
                         ValorEditado = kvp.Value,
                         EditadoEm = DateTime.UtcNow,
-                    });
+                    }));
                 }
-            }
 
-            // ── Map AportesRegularesEditadosPorPessoa → HistoricoAporteRepository ──
-            if (draftDto.AportesRegularesEditadosPorPessoa != null)
-            {
-                foreach (var participanteKvp in draftDto.AportesRegularesEditadosPorPessoa)
+                if (draftDto.AportesRegularesEditadosPorPessoa != null)
                 {
-                    var participanteId = participanteKvp.Key;
-                    foreach (var mesKvp in participanteKvp.Value)
+                    foreach (var participanteKvp in draftDto.AportesRegularesEditadosPorPessoa)
                     {
-                        await _historicoAporteRepo.UpsertByMesAsync(new HistoricoAporte
+                        var participanteId = participanteKvp.Key;
+                        historicoList.AddRange(participanteKvp.Value.Select(mesKvp => new HistoricoAporte
                         {
                             PlanejamentoId = id,
                             ParticipanteId = participanteId,
                             Mes = mesKvp.Key,
                             ValorEditado = mesKvp.Value,
                             EditadoEm = DateTime.UtcNow,
-                        });
+                        }));
                     }
                 }
+
+                await _historicoAporteRepo.AddRangeAsync(historicoList);
             }
 
             // ── Map Monthly Tracking Data ──
@@ -323,23 +320,19 @@ namespace ImovPlan.Application.Services
                         keptParticipanteIds.Add(participante.Id);
                     }
 
-                    // Replace GastosDetalhados for this participante
-                    var existingGastos = await _gastoDetalhadoRepo.GetByParticipanteIdAsync(participante.Id);
-                    foreach (var g in existingGastos)
-                        await _gastoDetalhadoRepo.DeleteAsync(g.Id);
-                    if (pDto.Gastos_detalhados != null)
+                    // Replace GastosDetalhados for this participante (batch delete then batch insert)
+                    await _gastoDetalhadoRepo.DeleteByParticipanteIdAsync(participante.Id);
+                    if (pDto.Gastos_detalhados != null && pDto.Gastos_detalhados.Count > 0)
                     {
-                        foreach (var gDto in pDto.Gastos_detalhados)
+                        var gastosToAdd = pDto.Gastos_detalhados.Select(gDto => new GastoDetalhado
                         {
-                            await _gastoDetalhadoRepo.AddAsync(new GastoDetalhado
-                            {
-                                PlanejamentoId = id,
-                                ParticipanteId = participante.Id,
-                                Nome = gDto.Nome,
-                                Valor = gDto.Valor,
-                                Categoria = gDto.Categoria,
-                            });
-                        }
+                            PlanejamentoId = id,
+                            ParticipanteId = participante.Id,
+                            Nome = gDto.Nome,
+                            Valor = gDto.Valor,
+                            Categoria = gDto.Categoria,
+                        }).ToList();
+                        await _gastoDetalhadoRepo.AddRangeAsync(gastosToAdd);
                     }
                 }
 
@@ -453,6 +446,11 @@ namespace ImovPlan.Application.Services
             // Calculate ValorJaGuardado dynamically from Participante.PatrimonioInicial
             var valorJaGuardado = participantesDoPlano.Sum(p => p.PatrimonioInicial?.Valor ?? 0);
 
+            // Fetch ALL gastos for this planejamento in a single query, then group in-memory
+            var todosGastos = (await _gastoDetalhadoRepo.GetByPlanejamentoIdAsync(id))
+                .GroupBy(g => g.ParticipanteId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             // Build participante DTOs with their nested data
             var participanteDtos = new List<PessoaDraftDto>();
             foreach (var p in participantesDoPlano)
@@ -462,7 +460,7 @@ namespace ImovPlan.Application.Services
                     ? MapFonteToTipoInvestimento(p.PatrimonioInicial.Fonte, p.PatrimonioInicial.TipoInvestimento) 
                     : null;
 
-                var gastos = await _gastoDetalhadoRepo.GetByParticipanteIdAsync(p.Id);
+                var gastos = todosGastos.TryGetValue(p.Id, out var g) ? g : new List<GastoDetalhado>();
 
                 participanteDtos.Add(new PessoaDraftDto
                 {
@@ -472,12 +470,12 @@ namespace ImovPlan.Application.Services
                     Renda_complementar = p.RendaComplementar,
                     Gastos_mensais = p.GastosMensais,
                     Usar_gastos_detalhados = p.UsarGastosDetalhados,
-                    Gastos_detalhados = gastos.Select(g => new GastoDetalhadoDraftDto
+                    Gastos_detalhados = gastos.Select(g2 => new GastoDetalhadoDraftDto
                     {
-                        Id = g.Id,
-                        Nome = g.Nome,
-                        Valor = g.Valor,
-                        Categoria = g.Categoria,
+                        Id = g2.Id,
+                        Nome = g2.Nome,
+                        Valor = g2.Valor,
+                        Categoria = g2.Categoria,
                     }).ToList(),
                     Aporte_mensal = p.AporteMensal,
                     ValorInicial = valorInicial,

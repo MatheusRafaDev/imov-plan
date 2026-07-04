@@ -9,6 +9,7 @@ namespace ImovPlan.Domain.Interfaces
         Task<IEnumerable<HistoricoAporte>> GetByPlanejamentoIdAsync(string planejamentoId);
         Task<IEnumerable<HistoricoAporte>> GetByPlanejamentoEParticipanteAsync(string planejamentoId, string participanteId);
         Task UpsertByMesAsync(HistoricoAporte aporte);
+        Task AddRangeAsync(IEnumerable<HistoricoAporte> aportes);
         Task DeleteByPlanejamentoIdAsync(string planejamentoId);
     }
 }

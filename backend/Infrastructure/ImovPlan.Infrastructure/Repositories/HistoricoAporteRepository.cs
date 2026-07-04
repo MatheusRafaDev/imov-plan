@@ -53,6 +53,14 @@ namespace ImovPlan.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task AddRangeAsync(IEnumerable<HistoricoAporte> aportes)
+        {
+            var list = aportes.ToList();
+            if (list.Count == 0) return;
+            _context.HistoricosAportes.AddRange(list);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task DeleteByPlanejamentoIdAsync(string planejamentoId)
         {
             var toDelete = await _context.HistoricosAportes

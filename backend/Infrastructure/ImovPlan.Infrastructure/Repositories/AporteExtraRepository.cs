@@ -38,6 +38,14 @@ namespace ImovPlan.Infrastructure.Repositories
             return aporte;
         }
 
+        public async Task AddRangeAsync(IEnumerable<AporteExtra> aportes)
+        {
+            var list = aportes.ToList();
+            if (list.Count == 0) return;
+            _context.AportesExtras.AddRange(list);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task DeleteByPlanejamentoIdAsync(string planejamentoId)
         {
             var aportes = await _context.AportesExtras

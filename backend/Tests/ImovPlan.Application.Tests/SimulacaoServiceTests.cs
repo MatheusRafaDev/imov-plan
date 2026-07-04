@@ -76,7 +76,7 @@ namespace ImovPlan.Application.Tests
             // Assert
             // Como nunca atingirá a meta de 1.000.000, deve rodar exatamente até o PrazoMaxMeses definido (24)
             Assert.Equal(24, resultado.MesesParaAtingir); // MesesParaAtingir fallback é o total de meses rodados
-            Assert.Equal(24, resultado.DetalhesMensais.Count);
+            Assert.Equal(25, resultado.DetalhesMensais.Count);
         }
 
         [Fact]
@@ -97,7 +97,7 @@ namespace ImovPlan.Application.Tests
 
             // Assert
             // O fallback em ParametrosFinanceiros.PrazoFinanciamentoPadraoMeses é 360 (definido no setup)
-            Assert.Equal(360, resultado.DetalhesMensais.Count);
+            Assert.Equal(361, resultado.DetalhesMensais.Count);
             Assert.Equal(360, resultado.MesesParaAtingir);
         }
 
@@ -124,8 +124,8 @@ namespace ImovPlan.Application.Tests
             // MesesParaAtingir deve ser o mês exato (4 meses)
             Assert.Equal(4, resultado.MesesParaAtingir);
 
-            // O total de detalhes (meses simulados) deve ser MesesParaAtingir + 6 = 10
-            Assert.Equal(10, resultado.DetalhesMensais.Count);
+            // O total de detalhes (meses simulados) deve ser MesesParaAtingir + 6 = 10 (mais mês 0 = 11)
+            Assert.Equal(11, resultado.DetalhesMensais.Count);
             
             // Verifica o AtingiuMeta passado pro repositório, mas como aqui temos o DTO podemos testar saldo >= totalNecessario
             Assert.True(resultado.TotalAcumulado >= totalNecessario);

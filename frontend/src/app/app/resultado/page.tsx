@@ -536,11 +536,11 @@ export default function ResultadoPage() {
         </div>
       </div>
 
-      {/* Tabela mês a mês — com dados do backend se disponíveis */}
+
       <TabelaMesAMes
         percentualCdiOverride={effectivePercentualCdi}
-        externalSim={simSource === "backend" && backendData ? backendToSimResult(backendData, objetivo) : undefined}
       />
+
     </div>
   );
 }

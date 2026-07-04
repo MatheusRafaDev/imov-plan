@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -17,6 +17,11 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\ImovPlan.Application\ImovPlan.Application.csproj" />
+    <ProjectReference Include="..\..\Core\ImovPlan.Domain\ImovPlan.Domain.csproj" />
   </ItemGroup>
 
 </Project>

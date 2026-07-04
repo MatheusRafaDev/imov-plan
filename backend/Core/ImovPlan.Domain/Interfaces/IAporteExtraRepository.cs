@@ -9,6 +9,7 @@ namespace ImovPlan.Domain.Interfaces
         Task<IEnumerable<AporteExtra>> GetByPlanejamentoIdAsync(string planejamentoId);
         Task<IEnumerable<AporteExtra>> GetByParticipanteIdAsync(string participanteId);
         Task<AporteExtra> AddAsync(AporteExtra aporte);
+        Task AddRangeAsync(IEnumerable<AporteExtra> aportes);
         Task DeleteByPlanejamentoIdAsync(string planejamentoId);
     }
 }

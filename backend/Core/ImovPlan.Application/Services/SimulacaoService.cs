@@ -65,7 +65,7 @@ namespace ImovPlan.Application.Services
             int? mesAtingiu = null;
             DateTime? dataAtingiu = null;
             var limiteMeses = (planejamento.PrazoMaxMeses.HasValue && planejamento.PrazoMaxMeses.Value > 0)
-                ? planejamento.PrazoMaxMeses.Value + 6
+                ? planejamento.PrazoMaxMeses.Value
                 : parametros.PrazoFinanciamentoPadraoMeses;
 
             // Registro inicial (Mês 0)
@@ -141,14 +141,7 @@ namespace ImovPlan.Application.Services
                 {
                     mesAtingiu = meses;
                     dataAtingiu = dataReferencia;
-                    if (!planejamento.PrazoMaxMeses.HasValue || planejamento.PrazoMaxMeses.Value <= 0)
-                    {
-                        limiteMeses = Math.Min(parametros.PrazoFinanciamentoPadraoMeses, meses + 6);
-                    }
-                    else
-                    {
-                        limiteMeses = Math.Max(planejamento.PrazoMaxMeses.Value, meses + 6);
-                    }
+                    limiteMeses = meses + 6;
                 }
             }
 
