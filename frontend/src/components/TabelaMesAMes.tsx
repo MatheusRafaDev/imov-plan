@@ -4,8 +4,8 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
-import { brl, simular, totalMesMaisRendimentoLiquido, mesDaSimulacaoParaData, type SimRow, type SimResult } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2 } from "lucide-react";
+import { brl, simular, totalMesMaisRendimentoLiquido, mesDaSimulacaoParaData, type SimRow, type SimResult, type Sugestoes, type CenarioSimulacao } from "@/lib/finance";
+import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 
 type EnrichedRow = SimRow & {
@@ -385,6 +385,63 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
   return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-[5px] num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
+// ─── Seletor de Cenário ───────────────────────────────
+const CENARIOS: { value: CenarioSimulacao; label: string; icon: React.ReactNode; color: string }[] = [
+  { value: "pessimista", label: "Pessimista", icon: <TrendingDown className="h-3.5 w-3.5" />, color: "text-rose-500 border-rose-500/30 bg-rose-500/5 data-[active=true]:bg-rose-500/15" },
+  { value: "realista",   label: "Realista",   icon: <Minus className="h-3.5 w-3.5" />,        color: "text-foreground border-border/60 bg-secondary/40 data-[active=true]:bg-secondary" },
+  { value: "otimista",   label: "Otimista",   icon: <TrendingUp className="h-3.5 w-3.5" />,   color: "text-emerald-500 border-emerald-500/30 bg-emerald-500/5 data-[active=true]:bg-emerald-500/15" },
+];
+
+function CenarioSelector({ value, onChange }: { value: CenarioSimulacao; onChange: (v: CenarioSimulacao) => void }) {
+  return (
+    <div className="flex items-center gap-1.5 p-1 rounded-xl border border-border/40 bg-card shadow-sm">
+      {CENARIOS.map(c => (
+        <button
+          key={c.value}
+          type="button"
+          data-active={value === c.value}
+          onClick={() => onChange(c.value)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all duration-150 ${c.color}`}
+        >
+          {c.icon}
+          {c.label}
+          {c.value === "pessimista" && <span className="text-[9px] opacity-70">CDI −2%</span>}
+          {c.value === "otimista"   && <span className="text-[9px] opacity-70">CDI +2%</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Banner de Alerta de Inviabilidade ────────────────
+function InfeasibilityAlert({ sugestoes, prazoMaxMeses }: { sugestoes: Sugestoes; prazoMaxMeses: number }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 px-5 py-4 shadow-sm">
+      <div className="flex items-center gap-2.5 text-rose-500">
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <p className="text-sm font-semibold">Meta não atingida em {prazoMaxMeses} meses</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="rounded-xl bg-card border border-border/50 px-4 py-3 space-y-1">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Aumento de Aporte</p>
+          <p className="text-base font-bold text-rose-500">+{brl(sugestoes.aumentoAporteNecessario)}<span className="text-xs font-normal text-muted-foreground">/mês</span></p>
+          <p className="text-[11px] text-muted-foreground">para cumprir o prazo atual</p>
+        </div>
+        <div className="rounded-xl bg-card border border-border/50 px-4 py-3 space-y-1">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Novo Prazo</p>
+          <p className="text-base font-bold text-amber-500">{sugestoes.novoPrazoNecessarioMeses} meses</p>
+          <p className="text-[11px] text-muted-foreground">com o aporte atual</p>
+        </div>
+        <div className="rounded-xl bg-card border border-border/50 px-4 py-3 space-y-1">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Reduzir Meta</p>
+          <p className="text-base font-bold text-muted-foreground">−{brl(sugestoes.reducaoImovelNecessaria)}</p>
+          <p className="text-[11px] text-muted-foreground">no valor do imóvel</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedToggle = true, percentualCdiOverride, externalSim }: { limitRows?: number, showFinancials?: boolean, showCompletedToggle?: boolean, percentualCdiOverride?: number, externalSim?: SimResult }) {
   const {
     objetivo,
@@ -398,7 +455,9 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     saveDraft,
     mesesConcluidos,
     setMesesConcluidos,
-    dadosCalculados
+    dadosCalculados,
+    cenarioSimulacao,
+    setCenarioSimulacao,
   } = usePlanContext();
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
@@ -548,10 +607,19 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
 
   return (
     <div>
-      <div className="mb-3">
-        <h2 className="font-display text-xl font-light">Tabela mês a mês</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
+      <div className="mb-3 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="font-display text-xl font-light">Tabela mês a mês</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
+        </div>
+        <CenarioSelector value={cenarioSimulacao} onChange={setCenarioSimulacao} />
       </div>
+
+      {sim?.sugestoes && objetivo?.prazoMaxMeses && objetivo.prazoMaxMeses > 0 && (
+        <div className="mb-4">
+          <InfeasibilityAlert sugestoes={sim.sugestoes} prazoMaxMeses={objetivo.prazoMaxMeses} />
+        </div>
+      )}
 
       <div className="overflow-x-auto border border-border/50 rounded-xl shadow-sm bg-card relative">
         <table className="w-full text-xs">

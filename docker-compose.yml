@@ -20,6 +20,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      - Jwt__Key=${JWT_SECRET:?JWT_SECRET is required}
       - Jwt__Issuer=ImovPlanAPI
       - Jwt__Audience=ImovPlanClient
     depends_on:

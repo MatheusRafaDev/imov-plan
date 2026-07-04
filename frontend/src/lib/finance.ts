@@ -10,6 +10,15 @@ export type Aporte = {
   checked?: boolean;
 };
 
+export type CenarioSimulacao = "pessimista" | "realista" | "otimista";
+
+// Variação do CDI aplicada por cenário (pontos percentuais absolutos sobre taxaCdiAnual)
+const CENARIO_CDI_DELTA: Record<CenarioSimulacao, number> = {
+  pessimista: -2.0,
+  realista: 0,
+  otimista: 2.0,
+};
+
 export type SimInput = {
   valorImovel: number;
   percentualEntrada: number; // ex 20
@@ -24,6 +33,16 @@ export type SimInput = {
   mesesExtrasAposMeta?: number; // default 6, usado só para exibição
   dataInicio?: Date;
   tipoInvestimento?: string; // ex "poupanca", "cdb_100", "tesouro_selic"
+  cenario?: CenarioSimulacao; // default "realista"
+};
+
+export type Sugestoes = {
+  /** Aporte mensal adicional necessário para cumprir o prazo (R$) */
+  aumentoAporteNecessario: number;
+  /** Em quantos meses a meta seria atingida com o aporte atual */
+  novoPrazoNecessarioMeses: number;
+  /** Qual valor de imóvel se encaixa no prazo/aporte atuais */
+  reducaoImovelNecessaria: number;
 };
 
 export type SimRow = {
@@ -59,6 +78,9 @@ export type SimResult = {
   saldoFinal: number;
   totalInvestido: number;
   lucroLiquido: number;
+  cenario: CenarioSimulacao;
+  /** Populado apenas quando a meta não é atingida dentro de prazoMaxMeses */
+  sugestoes?: Sugestoes;
 };
 
 export function calcularEntrada(valorImovel: number, percentualEntrada: number) {
@@ -151,11 +173,13 @@ export function totalMesMaisRendimentoLiquido(totalMes: number, rendimentoLiquid
 }
 
 export function simular(input: SimInput): SimResult {
+  const cenario: CenarioSimulacao = input.cenario ?? "realista";
+  const taxaCdiEfetiva = Math.max(0, input.taxaCdiAnual + CENARIO_CDI_DELTA[cenario]);
   const meta = calcularMeta(input);
   const custosExtras = calcularCustosExtras(input.valorImovel, input.percentualCustosExtras);
   const valorEntrada = calcularEntrada(input.valorImovel, input.percentualEntrada);
   const faltava = Math.max(0, meta - input.valorJaGuardado);
-  const taxaMes = taxaMensalEfetiva(input.taxaCdiAnual, input.percentualCdi);
+  const taxaMes = taxaMensalEfetiva(taxaCdiEfetiva, input.percentualCdi);
   const padding = input.mesesExtrasAposMeta ?? 6;
   let prazoMax = (input.prazoMaxMeses ?? 600) + padding;
   let inicio: Date;
@@ -256,6 +280,36 @@ export function simular(input: SimInput): SimResult {
   }
 
 
+  // ── Sugestões quando a meta não é atingida no prazo ──
+  let sugestoes: Sugestoes | undefined;
+  if (!atingiuMeta && input.prazoMaxMeses && input.prazoMaxMeses > 0 && input.prazoMaxMeses < 600) {
+    // 1. Aporte adicional necessário para cumprir o prazo atual
+    const aporteNecessario = aporteNecessarioParaPrazo({
+      ...input,
+      taxaCdiAnual: taxaCdiEfetiva,
+      prazoMeses: input.prazoMaxMeses,
+    });
+    const aumentoAporteNecessario = Math.max(0, aporteNecessario - input.aporteMensalTotal);
+
+    // 2. Em quantos meses a meta seria atingida com o aporte atual
+    const simSemPrazo = simular({ ...input, cenario, prazoMaxMeses: 600, mesesExtrasAposMeta: 0 });
+    const novoPrazoNecessarioMeses = simSemPrazo.mesAtingiuMeta ?? 600;
+
+    // 3. Qual valor de imóvel se encaixa no prazo + aporte atual
+    // Busca binária: diminui valorImovel até que a meta seja atingida no prazo
+    const prazo = input.prazoMaxMeses;
+    let loV = 0;
+    let hiV = input.valorImovel;
+    for (let i = 0; i < 50; i++) {
+      const midV = (loV + hiV) / 2;
+      const t = simular({ ...input, cenario, valorImovel: midV, prazoMaxMeses: prazo, mesesExtrasAposMeta: 0 });
+      if (t.atingiuMeta) hiV = midV; else loV = midV;
+    }
+    const reducaoImovelNecessaria = Math.max(0, input.valorImovel - Math.floor(hiV));
+
+    sugestoes = { aumentoAporteNecessario, novoPrazoNecessarioMeses, reducaoImovelNecessaria };
+  }
+
   return {
     meta,
     custosExtras,
@@ -268,6 +322,8 @@ export function simular(input: SimInput): SimResult {
     saldoFinal: rows[rows.length - 1]?.saldoAcumulado ?? input.valorJaGuardado,
     totalInvestido: rows[rows.length - 1]?.totalInvestido ?? input.valorJaGuardado,
     lucroLiquido: (rows[rows.length - 1]?.saldoAcumulado ?? input.valorJaGuardado) - (rows[rows.length - 1]?.totalInvestido ?? input.valorJaGuardado),
+    cenario,
+    sugestoes,
   };
 }
 

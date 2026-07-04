@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect, useMemo } from "react";
-import type { SimInput, Aporte, SimResult, SimRow } from "@/lib/finance";
+import type { SimInput, Aporte, SimResult, SimRow, CenarioSimulacao } from "@/lib/finance";
 import { simular, percentualCdiPorTipoInvestimento, mesDaSimulacaoParaData } from "@/lib/finance";
 import Cookies from "js-cookie";
 import api from "@/lib/api";
@@ -57,7 +57,6 @@ export type DadosCalculados = {
 
 // Shape exata que o backend PlanoController espera (PlanoDraftDto)
 type PlanoDraftPayload = {
-  sessionId: string | null;
   usuarioId?: string;
   objetivo: {
     valorImovel: number;
@@ -87,11 +86,12 @@ type PlanContextType = {
   aportesExtras: Aporte[];
   setAportesExtras: React.Dispatch<React.SetStateAction<Aporte[]>>;
   planoId: string | null;
-  sessionId: string | null;
   bancoEscolhido: Banco | null;
   setBancoEscolhido: React.Dispatch<React.SetStateAction<Banco | null>>;
   cenario: CenarioCompra;
   setCenario: React.Dispatch<React.SetStateAction<CenarioCompra>>;
+  cenarioSimulacao: CenarioSimulacao;
+  setCenarioSimulacao: React.Dispatch<React.SetStateAction<CenarioSimulacao>>;
   aportesRegularesEditados: Record<number, number>;
   setAportesRegularesEditados: React.Dispatch<React.SetStateAction<Record<number, number>>>;
   aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
@@ -127,7 +127,8 @@ export function calcularDadosFinanceiros(
   pessoas: Pessoa[],
   aportesExtras: Aporte[],
   aportesRegularesEditados: Record<number, number>,
-  aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>
+  aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>,
+  cenarioSimulacao: CenarioSimulacao = "realista"
 ): DadosCalculados {
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
   const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
@@ -155,18 +156,22 @@ export function calcularDadosFinanceiros(
     for (let mes = 1; mes <= prazoMax; mes++) {
       let isEditedInMonth = false;
       let totalForMonth = 0;
+      const isLegacyEdited = aportesRegularesEditados[mes] !== undefined;
+      const defaultAporte = aporteTotal;
 
       pessoas.forEach(p => {
         const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[mes];
         if (editedValue !== undefined) {
           isEditedInMonth = true;
           totalForMonth += editedValue;
+        } else if (isLegacyEdited && defaultAporte > 0) {
+          totalForMonth += ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[mes] || 0);
         } else {
           totalForMonth += Number(p.aporte_mensal) || 0;
         }
       });
 
-      if (!isEditedInMonth && aportesRegularesEditados[mes] !== undefined) {
+      if (!isEditedInMonth && isLegacyEdited) {
         virtualMap[mes] = aportesRegularesEditados[mes];
       } else if (isEditedInMonth) {
         virtualMap[mes] = totalForMonth;
@@ -193,6 +198,7 @@ export function calcularDadosFinanceiros(
     dataInicio: objetivo?.dataInicio ?? new Date(),
     aportesExtras: combinedExtras,
     prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
+    cenario: cenarioSimulacao,
   }) : null;
 
   const perPersonStats = (() => {
@@ -375,8 +381,7 @@ export async function salvarNoBackend(
     aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
     mesesConcluidos: number[];
   },
-  planoId: string | null,
-  sessionId: string | null
+  planoId: string | null
 ): Promise<string | null> {
   const usuarioId = obterIdUsuario();
   if (!usuarioId) {
@@ -385,7 +390,6 @@ export async function salvarNoBackend(
   }
 
   const payload: PlanoDraftPayload = {
-    sessionId,
     usuarioId,
     objetivo: montarObjetivoDraft(dados.objetivo),
     pessoas: dados.pessoas || [],
@@ -443,6 +447,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [cenario, setCenario] = useState<CenarioCompra>(
     (Cookies.get("imovplan_cenario") as CenarioCompra) || "entrada"
   );
+  const [cenarioSimulacao, setCenarioSimulacao] = useState<CenarioSimulacao>("realista");
   const [aportesRegularesEditados, setAportesRegularesEditados] = useState<Record<number, number>>({});
   const [aportesRegularesEditadosPorPessoa, setAportesRegularesEditadosPorPessoa] = useState<Record<string, Record<number, number>>>({});
   const [mesesConcluidos, setMesesConcluidos] = useState<number[]>([]);
@@ -466,15 +471,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
   const ultimoCalculoRef = useRef<string>("");
-  const [sessionId, setSessionId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    let existente = Cookies.get("imovplan_sessionId");
-    if (!existente) {
-      existente = Math.random().toString(36).substring(2, 15);
-      Cookies.set("imovplan_sessionId", existente, { expires: 30 });
-    }
-    return existente;
-  });
 
   const definidores = {
     setObjetivo,
@@ -648,7 +644,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const usuarioId = obterIdUsuario();
     if (usuarioId) {
       try {
-        const novoId = await salvarNoBackend(dadosLocais, planoId, sessionId);
+        const novoId = await salvarNoBackend(dadosLocais, planoId, null);
         if (novoId && !planoId) {
           setPlanoId(novoId);
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
@@ -671,8 +667,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     aportesRegularesEditados,
     aportesRegularesEditadosPorPessoa,
     mesesConcluidos,
-    planoId,
-    sessionId
+    planoId
   ]);
 
   // saveDraft: aceita um patch parcial e salva imediatamente (evita bug de closure nas páginas)
@@ -698,7 +693,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const usuarioId = obterIdUsuario();
     if (usuarioId) {
       try {
-        const novoId = await salvarNoBackend(dadosFinal, planoId, sessionId);
+        const novoId = await salvarNoBackend(dadosFinal, planoId, null);
         if (novoId && !planoId) {
           setPlanoId(novoId);
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
@@ -713,7 +708,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   }, [
     objetivo, pessoas, bancoEscolhido, aportesExtras,
     aportesRegularesEditados, aportesRegularesEditadosPorPessoa,
-    mesesConcluidos, planoId, sessionId
+    mesesConcluidos, planoId
   ]);
 
   // Função para recalcular dados financeiros
@@ -723,10 +718,11 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       pessoas,
       aportesExtras,
       aportesRegularesEditados,
-      aportesRegularesEditadosPorPessoa
+      aportesRegularesEditadosPorPessoa,
+      cenarioSimulacao
     );
     setDadosCalculados(calculados);
-  }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa]);
+  }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, cenarioSimulacao]);
 
   // Função para executar simulação e cálculo no backend
   const calcularBackend = useCallback(async (planoIdOverride?: string | null) => {
@@ -849,11 +845,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       aportesExtras,
       setAportesExtras,
       planoId,
-      sessionId,
       bancoEscolhido,
       setBancoEscolhido,
       cenario,
       setCenario,
+      cenarioSimulacao,
+      setCenarioSimulacao,
       aportesRegularesEditados,
       setAportesRegularesEditados,
       aportesRegularesEditadosPorPessoa,

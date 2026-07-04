@@ -94,6 +94,8 @@ namespace ImovPlan.Application.Services
                 
                 bool isEditedInMonth = false;
                 decimal totalForMonth = 0m;
+                bool isLegacyEdited = aportesRegularesEditados.ContainsKey(meses);
+                var defaultAporte = totalAporteMensal;
 
                 foreach (var aporteRequest in request.AportesMensais)
                 {
@@ -102,6 +104,10 @@ namespace ImovPlan.Application.Services
                     {
                         isEditedInMonth = true;
                         totalForMonth += editedValue;
+                    }
+                    else if (isLegacyEdited && defaultAporte > 0)
+                    {
+                        totalForMonth += (aporteRequest.Valor / defaultAporte) * aportesRegularesEditados[meses];
                     }
                     else
                     {

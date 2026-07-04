@@ -255,7 +255,7 @@ export default function PlanejamentoPage() {
             </div>
 
             {/* Footer Summary / Actions */}
-            {novoAporte.valor > 0 && (
+            {Number(novoAporte.valor) > 0 && (
               <p className="text-xs text-muted-foreground text-center mb-4 italic">
                 Resumo: {brl(Number(novoAporte.valor))} em {novoAporte.data ? new Date(novoAporte.data + "T12:00:00").toLocaleDateString("pt-BR") : "data de hoje"} ({novoAporte.pessoa_id ? pessoas.find(p => p.id === novoAporte.pessoa_id)?.nome : "Conjunto"})
               </p>

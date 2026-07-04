@@ -39,13 +39,7 @@ namespace ImovPlan.Application.Services
             _historicoSimulacaoRepo = historicoSimulacaoRepo;
         }
 
-        public async Task<PlanoDraftDto?> GetDraftBySessionIdAsync(string sessionId)
-        {
-            var planejamento = await _planejamentoRepo.GetBySessionIdAsync(sessionId);
-            if (planejamento == null) return null;
 
-            return await BuildDraftDtoAsync(planejamento);
-        }
 
         public async Task<PlanoDraftDto?> GetDraftByUsuarioIdAsync(string usuarioId)
         {
@@ -76,57 +70,16 @@ namespace ImovPlan.Application.Services
             return await BuildDraftDtoAsync(planejamento);
         }
 
-        public async Task<bool> LinkPlanToUserAsync(string id, string usuarioId)
-        {
-            var planejamento = await _planejamentoRepo.GetByIdAsync(id);
-            if (planejamento == null) return false;
 
-            // Impede sobrescrever a posse de um plano que já pertence a OUTRO usuário.
-            if (!string.IsNullOrEmpty(planejamento.UsuarioId) && planejamento.UsuarioId != usuarioId)
-                return false;
 
-            planejamento.UsuarioId = usuarioId;
-            await _planejamentoRepo.UpdateAsync(id, planejamento);
-            return true;
-        }
-
-        public async Task<string> CreateDraftAsync(string sessionId)
-        {
-            var existing = await _planejamentoRepo.GetBySessionIdAsync(sessionId);
-            if (existing != null)
-            {
-                return existing.Id;
-            }
-
-            var planejamento = new Planejamento
-            {
-                SessionId = sessionId,
-                Status = "Draft"
-            };
-
-            await _planejamentoRepo.CreateAsync(planejamento);
-            return planejamento.Id;
-        }
-
-        public async Task<bool> UpdateDraftAsync(string id, PlanoDraftDto draftDto, string? usuarioIdAutenticado)
+        public async Task<bool> UpdateDraftAsync(string id, PlanoDraftDto draftDto, string usuarioIdAutenticado)
         {
             var existingPlanejamento = await _planejamentoRepo.GetByIdAsync(id);
             if (existingPlanejamento == null)
                 return false;
 
-            // Check authorization: for logged-in users, verify UsuarioId from JWT; for session-based, verify SessionId
-            if (!string.IsNullOrEmpty(existingPlanejamento.UsuarioId))
-            {
-                // Logged-in user plan: SÓ o dono autenticado pode editar.
-                if (string.IsNullOrEmpty(usuarioIdAutenticado) || existingPlanejamento.UsuarioId != usuarioIdAutenticado)
-                    return false;
-            }
-            else
-            {
-                // Session-based plan: verify SessionId matches
-                if (existingPlanejamento.SessionId != draftDto.SessionId)
-                    return false;
-            }
+            if (string.IsNullOrEmpty(usuarioIdAutenticado) || existingPlanejamento.UsuarioId != usuarioIdAutenticado)
+                return false;
 
             // ── Map Planejamento fields ──
             if (draftDto.Objetivo != null)
@@ -354,24 +307,15 @@ namespace ImovPlan.Application.Services
             return true;
         }
 
-        public async Task<PlanoDraftDto?> GetDraftAsync(string id, string? sessionId, string? usuarioIdAutenticado)
+        public async Task<PlanoDraftDto?> GetDraftAsync(string id, string usuarioIdAutenticado)
         {
             var planejamento = await _planejamentoRepo.GetByIdAsync(id);
             if (planejamento == null)
                 return null;
 
-            if (!string.IsNullOrEmpty(planejamento.UsuarioId))
-            {
-                // Só o dono autenticado pode ler.
-                if (string.IsNullOrEmpty(usuarioIdAutenticado) || planejamento.UsuarioId != usuarioIdAutenticado)
-                    return null;
-                return await BuildDraftDtoAsync(planejamento);
-            }
-
-            // For session-based plans, validate SessionId
-            if ((planejamento.SessionId ?? string.Empty) != (sessionId ?? string.Empty))
+            if (string.IsNullOrEmpty(usuarioIdAutenticado) || planejamento.UsuarioId != usuarioIdAutenticado)
                 return null;
-
+                
             return await BuildDraftDtoAsync(planejamento);
         }
 
