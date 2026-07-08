@@ -49,6 +49,7 @@ function backendToSimResult(backend: BackendSimulacaoResult, objetivo: Partial<S
     saldoFinal: backend.totalAcumulado,
     totalInvestido: backend.totalInvestido,
     lucroLiquido: backend.lucroLiquido,
+    cenario: (objetivo as any)?.cenario ?? "realista",
   };
 }
 

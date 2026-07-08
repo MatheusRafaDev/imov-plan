@@ -36,7 +36,7 @@ test("salvarNoBackend não chama a API quando o usuário não está autenticado"
     aportesRegularesEditados: {},
     aportesRegularesEditadosPorPessoa: {},
     mesesConcluidos: [],
-  }, null, null);
+  }, null);
 
   expect(result).toBeNull();
   expect(api.post).not.toHaveBeenCalled();

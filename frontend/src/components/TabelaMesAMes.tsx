@@ -377,11 +377,11 @@ function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: {
   );
 }
 
-function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
+function Th({ children, right }: { children?: React.ReactNode; right?: boolean }) {
   return <th className={`px-3 py-2.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{children}</th>;
 }
 
-function Td({ children, right, className = "", suppressHydrationWarning }: { children: React.ReactNode; right?: boolean; className?: string; suppressHydrationWarning?: boolean }) {
+function Td({ children, right, className = "", suppressHydrationWarning }: { children?: React.ReactNode; right?: boolean; className?: string; suppressHydrationWarning?: boolean }) {
   return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-[5px] num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 

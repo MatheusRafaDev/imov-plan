@@ -103,6 +103,7 @@ type PlanContextType = {
     objetivo?: Partial<SimInput> | null;
     pessoas?: Pessoa[];
     mesesConcluidos?: number[];
+    aportesExtras?: Aporte[];
     aportesRegularesEditados?: Record<number, number>;
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
   }) => Promise<string | null>;
@@ -644,7 +645,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const usuarioId = obterIdUsuario();
     if (usuarioId) {
       try {
-        const novoId = await salvarNoBackend(dadosLocais, planoId, null);
+        const novoId = await salvarNoBackend(dadosLocais, planoId);
         if (novoId && !planoId) {
           setPlanoId(novoId);
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
@@ -675,6 +676,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     objetivo?: Partial<SimInput> | null;
     pessoas?: Pessoa[];
     mesesConcluidos?: number[];
+    aportesExtras?: Aporte[];
     aportesRegularesEditados?: Record<number, number>;
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
   }): Promise<string | null> => {
@@ -682,7 +684,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       objetivo: patch?.objetivo !== undefined ? patch.objetivo : objetivo,
       pessoas: patch?.pessoas !== undefined ? patch.pessoas : pessoas,
       bancoEscolhido,
-      aportesExtras,
+      aportesExtras: patch?.aportesExtras !== undefined ? patch.aportesExtras : aportesExtras,
       aportesRegularesEditados: patch?.aportesRegularesEditados !== undefined ? patch.aportesRegularesEditados : aportesRegularesEditados,
       aportesRegularesEditadosPorPessoa: patch?.aportesRegularesEditadosPorPessoa !== undefined ? patch.aportesRegularesEditadosPorPessoa : aportesRegularesEditadosPorPessoa,
       mesesConcluidos: patch?.mesesConcluidos !== undefined ? patch.mesesConcluidos : mesesConcluidos,
@@ -693,7 +695,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const usuarioId = obterIdUsuario();
     if (usuarioId) {
       try {
-        const novoId = await salvarNoBackend(dadosFinal, planoId, null);
+        const novoId = await salvarNoBackend(dadosFinal, planoId);
         if (novoId && !planoId) {
           setPlanoId(novoId);
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });

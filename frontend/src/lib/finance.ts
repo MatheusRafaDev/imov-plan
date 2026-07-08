@@ -34,6 +34,9 @@ export type SimInput = {
   dataInicio?: Date;
   tipoInvestimento?: string; // ex "poupanca", "cdb_100", "tesouro_selic"
   cenario?: CenarioSimulacao; // default "realista"
+  /** Uso interno: pula o cálculo de sugestões para evitar recursão infinita
+   * quando simular() é chamado de dentro de aporteNecessarioParaPrazo/mesesParaMeta. */
+  pularSugestoes?: boolean;
 };
 
 export type Sugestoes = {
@@ -271,10 +274,8 @@ export function simular(input: SimInput): SimResult {
       dataAtingiu = dataRef.toISOString();
       if (padding === 0) {
         prazoMax = mes;
-      } else if (!input.prazoMaxMeses || input.prazoMaxMeses >= 600) {
-        prazoMax = Math.min(prazoMax, mes + padding);
       } else {
-        prazoMax = Math.max(input.prazoMaxMeses, mes + padding);
+        prazoMax = Math.min(prazoMax, mes + padding);
       }
     }
   }
@@ -282,7 +283,7 @@ export function simular(input: SimInput): SimResult {
 
   // ── Sugestões quando a meta não é atingida no prazo ──
   let sugestoes: Sugestoes | undefined;
-  if (!atingiuMeta && input.prazoMaxMeses && input.prazoMaxMeses > 0 && input.prazoMaxMeses < 600) {
+  if (!input.pularSugestoes && !atingiuMeta && input.prazoMaxMeses && input.prazoMaxMeses > 0 && input.prazoMaxMeses < 600) {
     // 1. Aporte adicional necessário para cumprir o prazo atual
     const aporteNecessario = aporteNecessarioParaPrazo({
       ...input,
@@ -292,7 +293,7 @@ export function simular(input: SimInput): SimResult {
     const aumentoAporteNecessario = Math.max(0, aporteNecessario - input.aporteMensalTotal);
 
     // 2. Em quantos meses a meta seria atingida com o aporte atual
-    const simSemPrazo = simular({ ...input, cenario, prazoMaxMeses: 600, mesesExtrasAposMeta: 0 });
+    const simSemPrazo = simular({ ...input, cenario, prazoMaxMeses: 600, mesesExtrasAposMeta: 0, pularSugestoes: true });
     const novoPrazoNecessarioMeses = simSemPrazo.mesAtingiuMeta ?? 600;
 
     // 3. Qual valor de imóvel se encaixa no prazo + aporte atual
@@ -302,7 +303,7 @@ export function simular(input: SimInput): SimResult {
     let hiV = input.valorImovel;
     for (let i = 0; i < 50; i++) {
       const midV = (loV + hiV) / 2;
-      const t = simular({ ...input, cenario, valorImovel: midV, prazoMaxMeses: prazo, mesesExtrasAposMeta: 0 });
+      const t = simular({ ...input, cenario, valorImovel: midV, prazoMaxMeses: prazo, mesesExtrasAposMeta: 0, pularSugestoes: true });
       if (t.atingiuMeta) hiV = midV; else loV = midV;
     }
     const reducaoImovelNecessaria = Math.max(0, input.valorImovel - Math.floor(hiV));
@@ -339,7 +340,7 @@ export function mesesEntre(inicioISO: string, fimISO: string): number {
 
 // Calcula em quantos meses o usuário atinge a meta dado o aporte total.
 export function mesesParaMeta(input: Omit<SimInput, "prazoMaxMeses">): number | null {
-  const r = simular({ ...input, prazoMaxMeses: 600, mesesExtrasAposMeta: 0 });
+  const r = simular({ ...input, prazoMaxMeses: 600, mesesExtrasAposMeta: 0, pularSugestoes: true });
   return r.mesAtingiuMeta ?? null;
 }
 
@@ -351,7 +352,7 @@ export function aporteNecessarioParaPrazo(input: Omit<SimInput, "aporteMensalTot
   let hi = Math.max(meta, 1);
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
-    const r = simular({ ...input, aporteMensalTotal: mid, prazoMaxMeses: input.prazoMeses, mesesExtrasAposMeta: 0 });
+    const r = simular({ ...input, aporteMensalTotal: mid, prazoMaxMeses: input.prazoMeses, mesesExtrasAposMeta: 0, pularSugestoes: true });
     const final = r.rows[r.rows.length - 1]?.saldoAcumulado ?? 0;
     if (final >= meta) hi = mid; else lo = mid;
   }
