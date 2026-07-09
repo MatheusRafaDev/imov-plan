@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -43,5 +44,8 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("totalAcumulado")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal TotalAcumulado { get; set; }
+
+        [BsonElement("participantes")]
+        public List<EvolucaoMensalParticipante> Participantes { get; set; } = new();
     }
 }

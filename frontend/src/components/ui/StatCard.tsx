@@ -1,0 +1,69 @@
+"use client";
+
+import React from "react";
+import { formatCurrency } from "@/utils/formatters";
+
+interface StatCardProps {
+  label: string;
+  value: number | string;
+  icon?: React.ReactNode;
+  variant?: "default" | "primary" | "success" | "muted";
+  prefix?: string;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+const variantStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
+  default: "bg-card border-border/50",
+  primary: "bg-primary/5 border-border/50",
+  success: "bg-[#3B6D11]/5 border-border/50",
+  muted: "bg-secondary/30 border-border/50",
+};
+
+const labelStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
+  default: "text-muted-foreground",
+  primary: "text-primary",
+  success: "text-[#3B6D11] dark:text-[#80B551]",
+  muted: "text-muted-foreground",
+};
+
+const valueStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
+  default: "text-foreground",
+  primary: "text-primary",
+  success: "text-[#3B6D11] dark:text-[#80B551]",
+  muted: "text-foreground",
+};
+
+/**
+ * StatCard - Componente genérico de card de estatística.
+ * O valor (number | string) é passado pronto — sem cálculos aqui.
+ */
+export function StatCard({
+  label,
+  value,
+  icon,
+  variant = "default",
+  prefix,
+  className = "",
+  children,
+}: StatCardProps) {
+  const displayValue =
+    typeof value === "number" ? formatCurrency(value) : value;
+
+  return (
+    <div
+      className={`p-4 rounded-xl border flex flex-col justify-center ${variantStyles[variant]} ${className}`}
+    >
+      <div
+        className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium mb-2 ${labelStyles[variant]}`}
+      >
+        {icon}
+        {label}
+      </div>
+      <p className={`font-display text-2xl num leading-tight ${valueStyles[variant]}`}>
+        {prefix}{displayValue}
+      </p>
+      {children && <div className="mt-3">{children}</div>}
+    </div>
+  );
+}

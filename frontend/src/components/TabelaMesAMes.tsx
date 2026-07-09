@@ -4,17 +4,24 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
-import { brl, simular, totalMesMaisRendimentoLiquido, mesDaSimulacaoParaData, type SimRow, type SimResult, type Sugestoes, type CenarioSimulacao } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
+import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
+import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 
-type EnrichedRow = SimRow & {
+type DisplayRow = {
+  mes: number;
+  data: string;
+  aporteRegular: number;
+  aportesExtras: number;
+  rendimentoBruto: number;
+  imposto: number;
+  rendimentoLiquido: number;
+  saldoAcumulado: number;
   atingiu: boolean;
   isExtra: boolean;
   aporteFinalPorPessoa: Record<string, number>;
-  saldosIndividuais: Record<string, number>;
-  saldoConjunto: number;
 };
+
 
 function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
   const diff = value - planned;
@@ -413,36 +420,9 @@ function CenarioSelector({ value, onChange }: { value: CenarioSimulacao; onChang
   );
 }
 
-// ─── Banner de Alerta de Inviabilidade ────────────────
-function InfeasibilityAlert({ sugestoes, prazoMaxMeses }: { sugestoes: Sugestoes; prazoMaxMeses: number }) {
-  return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 px-5 py-4 shadow-sm">
-      <div className="flex items-center gap-2.5 text-rose-500">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        <p className="text-sm font-semibold">Meta não atingida em {prazoMaxMeses} meses</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl bg-card border border-border/50 px-4 py-3 space-y-1">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Aumento de Aporte</p>
-          <p className="text-base font-bold text-rose-500">+{brl(sugestoes.aumentoAporteNecessario)}<span className="text-xs font-normal text-muted-foreground">/mês</span></p>
-          <p className="text-[11px] text-muted-foreground">para cumprir o prazo atual</p>
-        </div>
-        <div className="rounded-xl bg-card border border-border/50 px-4 py-3 space-y-1">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Novo Prazo</p>
-          <p className="text-base font-bold text-amber-500">{sugestoes.novoPrazoNecessarioMeses} meses</p>
-          <p className="text-[11px] text-muted-foreground">com o aporte atual</p>
-        </div>
-        <div className="rounded-xl bg-card border border-border/50 px-4 py-3 space-y-1">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Reduzir Meta</p>
-          <p className="text-base font-bold text-muted-foreground">−{brl(sugestoes.reducaoImovelNecessaria)}</p>
-          <p className="text-[11px] text-muted-foreground">no valor do imóvel</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Removido InfeasibilityAlert, movido para o backend ou removido do design
 
-export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedToggle = true, percentualCdiOverride, externalSim }: { limitRows?: number, showFinancials?: boolean, showCompletedToggle?: boolean, percentualCdiOverride?: number, externalSim?: SimResult }) {
+export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true }: { showFinancials?: boolean, showCompletedToggle?: boolean }) {
   const {
     objetivo,
     pessoas,
@@ -455,7 +435,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     saveDraft,
     mesesConcluidos,
     setMesesConcluidos,
-    dadosCalculados,
+    backendData,
     cenarioSimulacao,
     setCenarioSimulacao,
   } = usePlanContext();
@@ -469,8 +449,9 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
     });
   };
 
-  // Usar dados calculados centralizados do contexto
-  const { aporteTotal, totalGuardado, combinedExtras, virtualAportesRegularesEditados, simResult } = dadosCalculados;
+  const aporteTotal = backendData?.aporteMensalTotal ?? 0;
+  const totalGuardado = backendData?.valorJaGuardado ?? 0;
+  const sim = backendData;
 
   const inicio = objetivo?.dataInicio
     ? (typeof objetivo.dataInicio === "string"
@@ -478,107 +459,25 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
         : new Date(objetivo.dataInicio))
     : new Date();
 
-  // Usa dados externos (backend) se fornecidos, senão usa simResult centralizado
-  const sim = useMemo(() => {
-    if (externalSim) return externalSim;
-    return simResult;
-  }, [externalSim, simResult]);
-
-  const tableRows = useMemo((): EnrichedRow[] => {
-    if (!sim) return [];
-
-    const saldos = Object.fromEntries(pessoas.map(p => [p.nome, p.valorInicial ?? 0]));
-    let saldoConjunto = 0;
-    let saldoAnterior = totalGuardado;
-
-    return sim.rows.map(r => {
-      const isExtra = r.aportesExtras > 0;
-      const atingiu = sim.mesAtingiuMeta === r.mes;
-
-      const extrasMes = combinedExtras.filter(a => {
-        const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
-        return mesOffset === r.mes;
-      });
-
-      const extrasPorPessoa: Record<string, number> = {};
-      let extrasConjunto = 0;
-      extrasMes.forEach(a => {
-        if (a.pessoaId) extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
-        else extrasConjunto += Number(a.valor);
-      });
-
-      const saldoTotalAnterior = saldoAnterior;
-      const novosSaldos: Record<string, number> = {};
-      const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
-      const isLegacyEdited = aportesRegularesEditados[r.mes] !== undefined;
-
-      const aporteFinalPorPessoa: Record<string, number> = {};
-      
-      pessoas.forEach(p => {
-        if (r.mes === 0) {
-          aporteFinalPorPessoa[p.id] = 0;
-        } else {
-          const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[r.mes];
-          if (editedValue !== undefined) {
-            aporteFinalPorPessoa[p.id] = editedValue;
-          } else if (isLegacyEdited && defaultAporte > 0) {
-            aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[r.mes] || 0);
-          } else {
-            aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
-          }
-        }
-      });
-
-      let saldoTotalComAportes = 0;
-      pessoas.forEach(p => {
-        const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
-        const extra = extrasPorPessoa[p.id] || 0;
-        saldoTotalComAportes += (saldos[p.nome] || 0) + aporteFinal + extra;
-      });
-
-      pessoas.forEach(p => {
-        const aporteFinal = aporteFinalPorPessoa[p.id] || 0;
-        const extra = extrasPorPessoa[p.id] || 0;
-        const saldoAtualizado = (saldos[p.nome] || 0) + aporteFinal + extra;
-
-        const proporcao = saldoTotalComAportes > 0 ? saldoAtualizado / saldoTotalComAportes : 0;
-        const rendimentoPessoa = proporcao * r.rendimentoLiquido;
-        novosSaldos[p.nome] = saldoAtualizado + rendimentoPessoa;
-      });
-
-      const proporcaoConjunto = saldoTotalAnterior > 0 ? saldoConjunto / saldoTotalAnterior : 0;
-      const rendimentoConjunto = proporcaoConjunto * r.rendimentoLiquido;
-      const diffConjunto = isLegacyEdited && defaultAporte === 0 ? r.aporteRegular : 0;
-      const novoSaldoConjunto = saldoConjunto + extrasConjunto + rendimentoConjunto + diffConjunto;
-
-      pessoas.forEach(p => { saldos[p.nome] = novosSaldos[p.nome]; });
-      saldoConjunto = novoSaldoConjunto;
-      saldoAnterior = r.saldoAcumulado;
-
-      return {
-        ...r,
-        atingiu,
-        isExtra,
-        aporteFinalPorPessoa,
-        saldosIndividuais: novosSaldos,
-        saldoConjunto: novoSaldoConjunto,
-      };
-    });
-  }, [sim?.rows, pessoas, combinedExtras, inicio, sim?.mesAtingiuMeta, aporteTotal, totalGuardado, aportesRegularesEditadosPorPessoa, aportesRegularesEditados]);
-
-  const objectiveRowLimit = objetivo?.prazoMaxMeses && objetivo.prazoMaxMeses > 0 ? objetivo.prazoMaxMeses + 1 : undefined;
-  const effectiveLimit = limitRows !== undefined
-    ? objectiveRowLimit !== undefined
-      ? Math.min(limitRows, objectiveRowLimit)
-      : limitRows
-    : objectiveRowLimit;
-
-  // Filtrar por número de mês (evita bugs de fuso horário ao comparar datas)
-  const rowsFilteredByMes = objectiveRowLimit !== undefined
-    ? tableRows.filter(r => r.mes <= objectiveRowLimit - 1)
-    : tableRows;
-
-  const displayRows: EnrichedRow[] = effectiveLimit !== undefined ? rowsFilteredByMes.slice(0, effectiveLimit) : rowsFilteredByMes;
+  const displayRows = useMemo(() => {
+    if (!sim || !sim.detalhesMensais) return [];
+    
+    return sim.detalhesMensais.map(r => ({
+      mes: r.mes,
+      data: new Date(r.dataReferencia).toISOString(),
+      aporteRegular: r.aporteMensal,
+      aportesExtras: r.aportesExtras,
+      rendimentoBruto: r.rendimentoBruto,
+      imposto: r.imposto,
+      rendimentoLiquido: r.rendimentoLiquido,
+      saldoAcumulado: r.totalAcumulado,
+      atingiu: sim.mesesParaAtingir === r.mes && sim.atingiuMeta,
+      isExtra: r.aportesExtras > 0,
+      aporteFinalPorPessoa: Object.fromEntries(
+        (r.participantes || []).map(p => [p.participanteId, p.aporteMensal])
+      )
+    }));
+  }, [sim]);
 
   const totals = useMemo(() => {
     let aportePorPessoa: Record<string, number> = {};
@@ -615,11 +514,7 @@ export function TabelaMesAMes({ limitRows, showFinancials = true, showCompletedT
         <CenarioSelector value={cenarioSimulacao} onChange={setCenarioSimulacao} />
       </div>
 
-      {sim?.sugestoes && objetivo?.prazoMaxMeses && objetivo.prazoMaxMeses > 0 && (
-        <div className="mb-4">
-          <InfeasibilityAlert sugestoes={sim.sugestoes} prazoMaxMeses={objetivo.prazoMaxMeses} />
-        </div>
-      )}
+
 
       <div className="overflow-x-auto border border-border/50 rounded-xl shadow-sm bg-card relative">
         <table className="w-full text-xs">

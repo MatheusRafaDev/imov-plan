@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { brl, calcularEntrada, calcularCustosExtras, calcularMeta, mesesEntre } from "@/lib/finance";
+import { brl, mesesEntre } from "@/lib/finance";
 import { MonthYearInput } from "@/components/MonthYearInput";
 import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info } from "lucide-react";
 
@@ -149,13 +149,12 @@ export default function ObjetivoPage() {
   const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "" && dataFimValida;
 
   const prazoMeses = form.data_fim ? mesesEntre(form.data_inicio, form.data_fim) : 0;
-  const meta = calcularMeta({
-    valorImovel: Number(form.valor_imovel) || 0,
-    percentualEntrada: Number(form.percentual_entrada) || 0,
-    percentualCustosExtras: Number(form.percentual_custos_extras) || 0,
-  });
-  const entrada = calcularEntrada(Number(form.valor_imovel) || 0, Number(form.percentual_entrada) || 0);
-  const custos = calcularCustosExtras(Number(form.valor_imovel) || 0, Number(form.percentual_custos_extras) || 0);
+  const valorImovel = Number(form.valor_imovel) || 0;
+  const pctEntrada = Number(form.percentual_entrada) || 0;
+  const pctCustos = Number(form.percentual_custos_extras) || 0;
+  const entrada = valorImovel * pctEntrada / 100;
+  const custos = valorImovel * pctCustos / 100;
+  const meta = entrada + custos;
   const falta = Math.max(0, meta - (Number(form.valor_ja_guardado) || 0));
 
   const itbiInfo = calcularCustosITBI(Number(form.valor_imovel) || 0);

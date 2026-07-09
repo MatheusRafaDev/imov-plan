@@ -43,6 +43,17 @@ namespace ImovPlan.Application.DTOs
         public decimal Imposto { get; set; }
         public decimal RendimentoLiquido { get; set; }
         public decimal TotalAcumulado { get; set; }
+        public List<EvolucaoMensalParticipanteDto> Participantes { get; set; } = new();
+    }
+
+    public class EvolucaoMensalParticipanteDto
+    {
+        public string ParticipanteId { get; set; } = string.Empty;
+        public string Nome { get; set; } = string.Empty;
+        public decimal AporteMensal { get; set; }
+        public decimal AportesExtras { get; set; }
+        public decimal RendimentoLiquido { get; set; }
+        public decimal Saldo { get; set; }
     }
 
     public class ParticipanteSnapshotDto

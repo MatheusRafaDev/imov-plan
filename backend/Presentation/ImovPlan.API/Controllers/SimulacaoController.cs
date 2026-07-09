@@ -116,6 +116,15 @@ namespace ImovPlan.API.Controllers
                     Imposto = e.Imposto,
                     RendimentoLiquido = e.RendimentoLiquido,
                     TotalAcumulado = e.TotalAcumulado,
+                    Participantes = e.Participantes?.Select(p => new EvolucaoMensalParticipanteDto
+                    {
+                        ParticipanteId = p.ParticipanteId,
+                        Nome = p.Nome,
+                        AporteMensal = p.AporteMensal,
+                        AportesExtras = p.AportesExtras,
+                        RendimentoLiquido = p.RendimentoLiquido,
+                        Saldo = p.Saldo
+                    }).ToList() ?? new List<EvolucaoMensalParticipanteDto>()
                 }).ToList(),
                 ParticipantesSnapshot = h.ParticipantesSnapshot.Select(p => new ParticipanteSnapshotDto
                 {

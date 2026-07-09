@@ -23,6 +23,15 @@ export interface BackendSimulacaoResult {
   participantesSnapshot: BackendParticipanteSnapshot[];
 }
 
+export interface BackendEvolucaoMensalParticipante {
+  participanteId: string;
+  nome: string;
+  aporteMensal: number;
+  aportesExtras: number;
+  rendimentoLiquido: number;
+  saldo: number;
+}
+
 export interface BackendDetalheMensal {
   mes: number;
   dataReferencia: string;
@@ -32,6 +41,7 @@ export interface BackendDetalheMensal {
   imposto: number;
   rendimentoLiquido: number;
   totalAcumulado: number;
+  participantes: BackendEvolucaoMensalParticipante[];
 }
 
 export interface BackendParticipanteSnapshot {

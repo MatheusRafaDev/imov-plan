@@ -45,6 +45,7 @@ namespace ImovPlan.Infrastructure.Data
             modelBuilder.Entity<Planejamento>().OwnsOne(p => p.CustosCompra);
             modelBuilder.Entity<Participante>().OwnsOne(p => p.PatrimonioInicial);
             modelBuilder.Entity<HistoricoSimulacao>().OwnsMany(h => h.ParticipantesSnapshot);
+            modelBuilder.Entity<EvolucaoMensalSimulacao>().OwnsMany(e => e.Participantes);
 
             // Indexes for frequently queried collections
             modelBuilder.Entity<Participante>()

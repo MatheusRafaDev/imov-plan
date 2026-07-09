@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect, useMemo } from "react";
-import type { SimInput, Aporte, SimResult, SimRow, CenarioSimulacao } from "@/lib/finance";
-import { simular, percentualCdiPorTipoInvestimento, mesDaSimulacaoParaData } from "@/lib/finance";
+import type { SimInput, Aporte, CenarioSimulacao } from "@/lib/finance";
+import { percentualCdiPorTipoInvestimento } from "@/lib/finance";
 import Cookies from "js-cookie";
 import api from "@/lib/api";
 import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
@@ -32,27 +32,6 @@ export type Pessoa = {
   aporte_mensal: number;
   valorInicial?: number;
   tipoInvestimento?: string;
-};
-
-export type DadosCalculados = {
-  aporteTotal: number;
-  totalGuardado: number;
-  effectivePercentualCdi: number;
-  virtualAportesRegularesEditados: Record<number, number>;
-  combinedExtras: Aporte[];
-  simResult: SimResult | null;
-  perPersonStats: Array<{
-    id: string;
-    nome: string;
-    tipoInvestimento: string | undefined;
-    percentualCdiInvestimento: number;
-    valorInicial: number;
-    aporteTotal: number;
-    extrasTotal: number;
-    rendimentoTotal: number;
-    saldoFinal: number;
-    retornoInvestimento: number;
-  }>;
 };
 
 // Shape exata que o backend PlanoController espera (PlanoDraftDto)
@@ -108,8 +87,7 @@ type PlanContextType = {
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
   }) => Promise<string | null>;
   carregarPlano: () => Promise<void>;
-  dadosCalculados: DadosCalculados;
-  recalcular: () => void;
+
   backendData: BackendSimulacaoResult | null;
   calculating: boolean;
   backendError: string | null;
@@ -121,179 +99,6 @@ type PlanContextType = {
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
 const CHAVE_LOCAL = "imovplan_dados";
-
-// Função centralizada para calcular todos os dados financeiros
-export function calcularDadosFinanceiros(
-  objetivo: Partial<SimInput> | null,
-  pessoas: Pessoa[],
-  aportesExtras: Aporte[],
-  aportesRegularesEditados: Record<number, number>,
-  aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>,
-  cenarioSimulacao: CenarioSimulacao = "realista"
-): DadosCalculados {
-  const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
-  const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
-  const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
-
-  const effectivePercentualCdi = (() => {
-    const totalSaved = pessoas.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
-    if (totalSaved <= 0) {
-      return Number(objetivo?.percentualCdi ?? 100);
-    }
-    return pessoas.reduce((sum, p) => {
-      const tipoPercent = p.tipoInvestimento
-        ? percentualCdiPorTipoInvestimento(p.tipoInvestimento)
-        : Number(objetivo?.percentualCdi ?? 100);
-      return sum + tipoPercent * (Number(p.valorInicial ?? 0) / totalSaved);
-    }, 0);
-  })();
-
-  const combinedExtras = aportesExtras.map(a => ({ ...a, valor: Number(a.valor) }));
-
-  const virtualAportesRegularesEditados = (() => {
-    const virtualMap: Record<number, number> = {};
-    const prazoMax = objetivo?.prazoMaxMeses ?? 600;
-
-    for (let mes = 1; mes <= prazoMax; mes++) {
-      let isEditedInMonth = false;
-      let totalForMonth = 0;
-      const isLegacyEdited = aportesRegularesEditados[mes] !== undefined;
-      const defaultAporte = aporteTotal;
-
-      pessoas.forEach(p => {
-        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[mes];
-        if (editedValue !== undefined) {
-          isEditedInMonth = true;
-          totalForMonth += editedValue;
-        } else if (isLegacyEdited && defaultAporte > 0) {
-          totalForMonth += ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[mes] || 0);
-        } else {
-          totalForMonth += Number(p.aporte_mensal) || 0;
-        }
-      });
-
-      if (!isEditedInMonth && isLegacyEdited) {
-        virtualMap[mes] = aportesRegularesEditados[mes];
-      } else if (isEditedInMonth) {
-        virtualMap[mes] = totalForMonth;
-      }
-    }
-    return virtualMap;
-  })();
-
-  const inicio = objetivo?.dataInicio
-    ? (typeof objetivo.dataInicio === "string"
-      ? new Date(objetivo.dataInicio + "T12:00:00")
-      : new Date(objetivo.dataInicio))
-    : new Date();
-
-  const simResult = objetivo?.valorImovel ? simular({
-    valorImovel: Number(objetivo?.valorImovel ?? 0),
-    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-    valorJaGuardado: totalGuardado,
-    taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-    percentualCdi: effectivePercentualCdi,
-    aporteMensalTotal: aporteTotal,
-    aportesRegularesEditados: virtualAportesRegularesEditados,
-    dataInicio: objetivo?.dataInicio ?? new Date(),
-    aportesExtras: combinedExtras,
-    prazoMaxMeses: objetivo?.prazoMaxMeses ?? 600,
-    cenario: cenarioSimulacao,
-  }) : null;
-
-  const perPersonStats = (() => {
-    if (!simResult) return [];
-
-    const initialById = Object.fromEntries(pessoas.map(p => [p.id, Number(p.valorInicial ?? 0)]));
-    const aporteTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
-    const extrasTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
-    const rendimentoTotalById = Object.fromEntries(pessoas.map(p => [p.id, 0]));
-    const finalSaldoById: Record<string, number> = { ...initialById };
-
-    for (const row of simResult.rows) {
-      if (row.mes === 0) continue;
-
-      const defaultAporte = aporteTotal;
-      const isEditedMonth = aportesRegularesEditados[row.mes] !== undefined;
-      const aporteFinalPorPessoa: Record<string, number> = {};
-
-      pessoas.forEach(p => {
-        const editedValue = aportesRegularesEditadosPorPessoa[p.id]?.[row.mes];
-        if (editedValue !== undefined) {
-          aporteFinalPorPessoa[p.id] = editedValue;
-        } else if (isEditedMonth && defaultAporte > 0) {
-          aporteFinalPorPessoa[p.id] = ((Number(p.aporte_mensal) || 0) / defaultAporte) * (aportesRegularesEditados[row.mes] || 0);
-        } else {
-          aporteFinalPorPessoa[p.id] = Number(p.aporte_mensal) || 0;
-        }
-      });
-
-      const extrasMes = combinedExtras.filter(a => {
-        const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
-        return mesOffset === row.mes;
-      });
-
-      const extrasPorPessoa: Record<string, number> = {};
-      let extrasConjunto = 0;
-      extrasMes.forEach(a => {
-        if (a.pessoaId) {
-          extrasPorPessoa[a.pessoaId] = (extrasPorPessoa[a.pessoaId] || 0) + Number(a.valor);
-        } else {
-          extrasConjunto += Number(a.valor);
-        }
-      });
-
-      const weightedBalances = Object.fromEntries(
-        pessoas.map(p => {
-          const saldoAtual = (finalSaldoById[p.id] || 0) + (aporteFinalPorPessoa[p.id] || 0) + (extrasPorPessoa[p.id] || 0);
-          return [
-            p.id,
-            saldoAtual * (percentualCdiPorTipoInvestimento(p.tipoInvestimento) / 100),
-          ];
-        })
-      );
-      const totalWeighted = Object.values(weightedBalances).reduce((sum, value) => sum + value, 0);
-
-      pessoas.forEach(p => {
-        const balance = finalSaldoById[p.id] || 0;
-        const saldoAtual = balance + (aporteFinalPorPessoa[p.id] || 0) + (extrasPorPessoa[p.id] || 0);
-        const weight = totalWeighted > 0
-          ? (weightedBalances[p.id] || 0) / totalWeighted
-          : (row.saldoAcumulado > 0 ? saldoAtual / row.saldoAcumulado : 0);
-        const rendimentoPessoa = row.rendimentoLiquido * weight;
-
-        aporteTotalById[p.id] += aporteFinalPorPessoa[p.id];
-        extrasTotalById[p.id] += extrasPorPessoa[p.id] || 0;
-        rendimentoTotalById[p.id] += rendimentoPessoa;
-        finalSaldoById[p.id] = saldoAtual + rendimentoPessoa;
-      });
-    }
-
-    return pessoas.map(p => ({
-      id: p.id,
-      nome: p.nome,
-      tipoInvestimento: p.tipoInvestimento,
-      percentualCdiInvestimento: percentualCdiPorTipoInvestimento(p.tipoInvestimento),
-      valorInicial: Number(p.valorInicial ?? 0),
-      aporteTotal: aporteTotalById[p.id] || 0,
-      extrasTotal: extrasTotalById[p.id] || 0,
-      rendimentoTotal: rendimentoTotalById[p.id] || 0,
-      saldoFinal: finalSaldoById[p.id] || 0,
-      retornoInvestimento: (finalSaldoById[p.id] || 0) - (Number(p.valorInicial ?? 0) + (aporteTotalById[p.id] || 0) + (extrasTotalById[p.id] || 0)),
-    }));
-  })();
-
-  return {
-    aporteTotal,
-    totalGuardado,
-    effectivePercentualCdi,
-    virtualAportesRegularesEditados,
-    combinedExtras,
-    simResult,
-    perPersonStats,
-  };
-}
 
 function obterIdUsuario(): string | null {
   const cookieUsuario = Cookies.get("user");
@@ -404,28 +209,22 @@ export async function salvarNoBackend(
   try {
     if (planoId) {
       try {
-        // Tenta atualizar plano existente — PUT /api/plano/draft/{id}
         await api.put(`/plano/draft/${planoId}`, payload);
         return planoId;
       } catch (putError: any) {
         if (putError?.response?.status === 404) {
-          // Plano não existe mais no banco (ex: banco foi resetado).
-          // Limpa o ID inválido e cria um novo draft.
           console.warn(`Plano ${planoId} não encontrado no banco (404). Criando novo draft...`);
           Cookies.remove("imovplan_planoId");
-          // Cai no bloco de criação abaixo
         } else {
           throw putError;
         }
       }
     }
 
-    // Cria ou obtém draft para o usuário — POST /api/plano/draft-for-user?usuarioId=...
     const resposta = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`, {});
     const novoId: string | undefined = resposta.data?.id;
     if (novoId) {
       Cookies.set("imovplan_planoId", novoId, { expires: 30 });
-      // Agora salva os dados no draft recém-criado
       await api.put(`/plano/draft/${novoId}`, { ...payload });
       return novoId;
     }
@@ -453,16 +252,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [aportesRegularesEditadosPorPessoa, setAportesRegularesEditadosPorPessoa] = useState<Record<string, Record<number, number>>>({});
   const [mesesConcluidos, setMesesConcluidos] = useState<number[]>([]);
 
-  // Estado para dados calculados centralizados
-  const [dadosCalculados, setDadosCalculados] = useState<DadosCalculados>({
-    aporteTotal: 0,
-    totalGuardado: 0,
-    effectivePercentualCdi: 100,
-    virtualAportesRegularesEditados: {},
-    combinedExtras: [],
-    simResult: null,
-    perPersonStats: [],
-  });
 
   const [backendData, setBackendData] = useState<BackendSimulacaoResult | null>(null);
   const [calculating, setCalculating] = useState(false);
@@ -483,12 +272,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     setMesesConcluidos
   };
 
-  // Função para carregar o plano
   const carregarPlano = useCallback(async () => {
     const usuarioId = obterIdUsuario();
 
     if (!usuarioId) {
-      // Carrega do localStorage se não tiver usuário
       const local = localStorage.getItem(CHAVE_LOCAL);
       if (local) {
         try {
@@ -510,11 +297,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Tenta carregar do backend — rota correta: GET /api/plano/user/{usuarioId}
       const resposta = await api.get(`/plano/user/${usuarioId}`);
       if (resposta.status === 200 && resposta.data) {
         const draftData = resposta.data;
-        // O backend retorna um PlanoDraftDto, precisamos mapear para o formato do contexto
         const dadosMapeados = {
           objetivo: draftData.objetivo ? {
             nomePlano: draftData.objetivo.nomePlano,
@@ -596,14 +381,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       if (error.response?.status === 404) {
         console.warn("Plano não encontrado no backend (404). Limpando ID inválido e usando dados locais.");
-        // Limpa o planoId inválido — próximo save criará um novo draft
         setPlanoId(null);
         Cookies.remove("imovplan_planoId");
       } else {
         console.error("Erro ao carregar plano do backend:", error);
       }
 
-      // Tenta carregar do localStorage como fallback
       const local = localStorage.getItem(CHAVE_LOCAL);
       if (local) {
         try {
@@ -624,7 +407,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Função para salvar o plano (aceita um objetivo opcional para evitar bug de closure)
   const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
     const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;
     const dadosLocais = {
@@ -637,11 +419,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       mesesConcluidos,
     };
 
-    // Sempre salva no localStorage como backup
     salvarNoLocalStorage(dadosLocais);
     console.log("Dados salvos no localStorage");
 
-    // Se tiver usuário autenticado, salva no backend
     const usuarioId = obterIdUsuario();
     if (usuarioId) {
       try {
@@ -653,13 +433,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         console.log("Dados salvos no backend");
         return novoId || planoId;
       } catch (error) {
-        // O localStorage já tem os dados, então não bloqueamos o fluxo
         console.warn("Backup salvo no localStorage, falha no backend:", error);
         return planoId;
       }
     }
 
-    return planoId || "local-draft"; // Salvou localmente
+    return planoId || "local-draft";
   }, [
     objetivo,
     pessoas,
@@ -671,7 +450,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     planoId
   ]);
 
-  // saveDraft: aceita um patch parcial e salva imediatamente (evita bug de closure nas páginas)
   const saveDraft = useCallback(async (patch?: {
     objetivo?: Partial<SimInput> | null;
     pessoas?: Pessoa[];
@@ -713,20 +491,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     mesesConcluidos, planoId
   ]);
 
-  // Função para recalcular dados financeiros
-  const recalcular = useCallback(() => {
-    const calculados = calcularDadosFinanceiros(
-      objetivo,
-      pessoas,
-      aportesExtras,
-      aportesRegularesEditados,
-      aportesRegularesEditadosPorPessoa,
-      cenarioSimulacao
-    );
-    setDadosCalculados(calculados);
-  }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, cenarioSimulacao]);
-
-  // Função para executar simulação e cálculo no backend
   const calcularBackend = useCallback(async (planoIdOverride?: string | null) => {
     const id = planoIdOverride !== undefined ? planoIdOverride : planoId;
     if (!id || id.startsWith("local-draft-")) {
@@ -810,13 +574,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     });
   }, [carregarPlano]);
 
-  // Recalcula dados financeiros automaticamente quando dados base mudam (debounced 150ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      recalcular();
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, recalcular]);
+
 
   // Salva automaticamente quando os dados mudarem (debounced)
   useEffect(() => {
@@ -862,8 +620,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       salvarPlano,
       saveDraft,
       carregarPlano,
-      dadosCalculados,
-      recalcular,
       backendData,
       calculating,
       backendError,

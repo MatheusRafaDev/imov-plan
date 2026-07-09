@@ -37,23 +37,41 @@ namespace ImovPlan.Application.Services
             var taxaAnualEfetiva = (request.TaxaCDI / 100m) * (percentualCdi / 100m);
             var taxaMensal = (decimal)(Math.Pow((double)(1 + taxaAnualEfetiva), 1.0 / 12.0) - 1);
             
-            // Fetch per-person initial balances from Participante.PatrimonioInicial
-            var saldoInicialTotal = 0m;
+            // Fetch participants
+            var participantesDb = new Dictionary<string, Participante>();
+            var saldosIndividuais = new Dictionary<string, decimal>();
+            var nomesIndividuais = new Dictionary<string, string>();
+            
             foreach (var pid in planejamento.ParticipantesIds)
             {
-                var participante = await _participanteRepo.GetByIdAsync(pid);
-                if (participante?.PatrimonioInicial != null)
+                var p = await _participanteRepo.GetByIdAsync(pid);
+                if (p != null)
                 {
-                    saldoInicialTotal += participante.PatrimonioInicial.Valor;
+                    participantesDb[pid] = p;
+                    saldosIndividuais[pid] = p.PatrimonioInicial?.Valor ?? 0m;
+                    nomesIndividuais[pid] = p.Nome;
                 }
             }
+
+            var saldoInicialTotal = saldosIndividuais.Values.Sum();
             
             // Calculate ValorJaGuardado dynamically from participants; fallback to plan objective if none exists.
             var valorJaGuardado = saldoInicialTotal > 0
                 ? saldoInicialTotal
                 : planejamento.ValorJaGuardado ?? 0m;
-            var saldo = valorJaGuardado;
-            var totalInvestido = saldo;
+            
+            // Se não houver saldo individual mas houver valorJaGuardado global (fallback antigo), distribuímos igualmente (embora não devesse ocorrer no novo fluxo)
+            if (saldoInicialTotal == 0 && valorJaGuardado > 0 && participantesDb.Any())
+            {
+                var split = valorJaGuardado / participantesDb.Count;
+                foreach (var pid in participantesDb.Keys)
+                {
+                    saldosIndividuais[pid] = split;
+                }
+            }
+
+            var saldoConjunto = valorJaGuardado;
+            var totalInvestido = saldoConjunto;
 
             var totalAporteMensal = request.AportesMensais.Sum(a => a.Valor);
             var aportesRegularesEditados = request.AportesRegularesEditados ?? new Dictionary<int, decimal>();
@@ -69,6 +87,20 @@ namespace ImovPlan.Application.Services
                 : parametros.PrazoFinanciamentoPadraoMeses;
 
             // Registro inicial (Mês 0)
+            var partesMes0 = new List<EvolucaoMensalParticipante>();
+            foreach (var p in participantesDb.Keys)
+            {
+                partesMes0.Add(new EvolucaoMensalParticipante
+                {
+                    ParticipanteId = p,
+                    Nome = nomesIndividuais[p],
+                    AporteMensal = 0,
+                    AportesExtras = 0,
+                    RendimentoLiquido = 0,
+                    Saldo = saldosIndividuais[p]
+                });
+            }
+
             resultado.DetalhesMensais.Add(new DetalheMensal
             {
                 Mes = 0,
@@ -78,7 +110,8 @@ namespace ImovPlan.Application.Services
                 RendimentoBruto = 0,
                 Imposto = 0,
                 RendimentoLiquido = 0,
-                TotalAcumulado = saldo
+                TotalAcumulado = saldoConjunto,
+                Participantes = partesMes0
             });
 
             while (meses < limiteMeses)
@@ -86,64 +119,132 @@ namespace ImovPlan.Application.Services
                 meses++;
                 dataReferencia = dataReferencia.AddMonths(1);
 
-                var aporteExtraMes = request.AportesExtras
-                    .Where(a => a.Data.Year == dataReferencia.Year && a.Data.Month == dataReferencia.Month)
-                    .Sum(a => a.Valor);
-
-                var aporteRegular = aportesRegularesEditados.GetValueOrDefault(meses, totalAporteMensal);
+                // Aportes extras globais vs individuais
+                var extrasGlobaisMes = 0m;
+                var extrasPorPessoa = new Dictionary<string, decimal>();
                 
-                bool isEditedInMonth = false;
-                decimal totalForMonth = 0m;
+                foreach (var p in participantesDb.Keys) extrasPorPessoa[p] = 0m;
+
+                var aportesExtrasMes = request.AportesExtras
+                    .Where(a => a.Data.Year == dataReferencia.Year && a.Data.Month == dataReferencia.Month);
+                
+                foreach (var extra in aportesExtrasMes)
+                {
+                    if (!string.IsNullOrEmpty(extra.PessoaId) && extrasPorPessoa.ContainsKey(extra.PessoaId))
+                    {
+                        extrasPorPessoa[extra.PessoaId] += extra.Valor;
+                    }
+                    else
+                    {
+                        extrasGlobaisMes += extra.Valor;
+                    }
+                }
+
+                var totalExtrasMes = extrasPorPessoa.Values.Sum() + extrasGlobaisMes;
+
+                // Aportes regulares por pessoa
+                var aporteRegularPorPessoa = new Dictionary<string, decimal>();
+                foreach (var p in participantesDb.Keys) aporteRegularPorPessoa[p] = 0m;
+
                 bool isLegacyEdited = aportesRegularesEditados.ContainsKey(meses);
                 var defaultAporte = totalAporteMensal;
 
                 foreach (var aporteRequest in request.AportesMensais)
                 {
-                    if (aportesRegularesEditadosPorPessoa.TryGetValue(aporteRequest.PessoaId, out var dict) 
-                        && dict.TryGetValue(meses, out var editedValue))
+                    var pid = aporteRequest.PessoaId;
+                    if (!aporteRegularPorPessoa.ContainsKey(pid)) continue;
+
+                    if (aportesRegularesEditadosPorPessoa.TryGetValue(pid, out var dict) && dict.TryGetValue(meses, out var editedValue))
                     {
-                        isEditedInMonth = true;
-                        totalForMonth += editedValue;
+                        aporteRegularPorPessoa[pid] = editedValue;
                     }
                     else if (isLegacyEdited && defaultAporte > 0)
                     {
-                        totalForMonth += (aporteRequest.Valor / defaultAporte) * aportesRegularesEditados[meses];
+                        aporteRegularPorPessoa[pid] = (aporteRequest.Valor / defaultAporte) * aportesRegularesEditados[meses];
                     }
                     else
                     {
-                        totalForMonth += aporteRequest.Valor;
+                        aporteRegularPorPessoa[pid] = aporteRequest.Valor;
                     }
                 }
 
-                if (isEditedInMonth)
+                // Diff global (se houver legacy edit mas default aporte 0)
+                var aporteRegularGlobal = aporteRegularPorPessoa.Values.Sum();
+                if (isLegacyEdited && defaultAporte == 0)
                 {
-                    aporteRegular = totalForMonth;
+                    aporteRegularGlobal = aportesRegularesEditados[meses];
                 }
 
-                var aporteMes = aporteRegular + aporteExtraMes;
-                totalInvestido += aporteMes;
+                var aporteTotalMes = aporteRegularGlobal + totalExtrasMes;
+                totalInvestido += aporteTotalMes;
 
-                // Mirrors finance.ts: yield is calculated on (saldo + contributions) before compounding
-                var rendimentoMes = (saldo + aporteMes) * taxaMensal;
-                var imposto = CalcularIR(meses, rendimentoMes, parametros.AliquotasIr);
-                var rendimentoLiquido = rendimentoMes - imposto;
-                var novoSaldo = saldo + aporteMes + rendimentoLiquido;
+                // Rendimentos (saldos ainda não foram atualizados com o aporte do mês para efeito de base de cálculo? Não, no ImovPlan o juro roda APÓS o aporte do mês)
+                // Rendimento Global
+                var rendimentoMesGlobal = (saldoConjunto + aporteTotalMes) * taxaMensal;
+                var impostoGlobal = CalcularIR(meses, rendimentoMesGlobal, parametros.AliquotasIr);
+                var rendimentoLiquidoGlobal = rendimentoMesGlobal - impostoGlobal;
+
+                var novoSaldoConjunto = saldoConjunto + aporteTotalMes + rendimentoLiquidoGlobal;
+
+                // Rendimento por Pessoa
+                var proporcaoSaldosBase = saldoConjunto > 0 ? saldoConjunto : 1m; // evita divisão por zero
+                var evolucoesIndividuais = new List<EvolucaoMensalParticipante>();
+
+                foreach (var p in participantesDb.Keys)
+                {
+                    var saldoAnterior = saldosIndividuais[p];
+                    var aportePessoa = aporteRegularPorPessoa[p];
+                    var extraPessoa = extrasPorPessoa[p];
+                    
+                    // A parcela do aporte extra "global" e diff global não estão perfeitamente distribuídos, mas 
+                    // para manter consistência, a proporção do rendimento é tirada pelo saldo + aportes.
+                    // Para simplificar e bater perfeitamente com o global: distribuímos o rendimentoLíquidoGlobal proporcionalmente ao (Saldo + Aportes Individuais)
+                    var saldoPessoaComAportes = saldoAnterior + aportePessoa + extraPessoa;
+                    // Se houver saldoConjunto, a proporção exata é baseada em saldoPessoaComAportes / (saldoConjunto + somaDosAportesIndividuais)
+                    var somaSaldosComAportesIndividuais = saldosIndividuais.Values.Sum() + aporteRegularPorPessoa.Values.Sum() + extrasPorPessoa.Values.Sum();
+                    
+                    var proporcao = somaSaldosComAportesIndividuais > 0 ? saldoPessoaComAportes / somaSaldosComAportesIndividuais : 0m;
+                    
+                    // Atenção: O rendimento global gerado por "extras globais" também é rateado aqui com base na proporção das pessoas.
+                    var rendPessoa = proporcao * rendimentoLiquidoGlobal;
+                    var novoSaldoPessoa = saldoPessoaComAportes + rendPessoa;
+                    
+                    // Rateio dos extras/aportes globais que não têm dono para não dar diferença entre Soma dos Individuais e Conjunto
+                    if (extrasGlobaisMes > 0 || (isLegacyEdited && defaultAporte == 0))
+                    {
+                        var aporteGlobalOrfao = extrasGlobaisMes + (isLegacyEdited && defaultAporte == 0 ? aportesRegularesEditados[meses] : 0);
+                        novoSaldoPessoa += proporcao * aporteGlobalOrfao;
+                    }
+
+                    saldosIndividuais[p] = novoSaldoPessoa;
+
+                    evolucoesIndividuais.Add(new EvolucaoMensalParticipante
+                    {
+                        ParticipanteId = p,
+                        Nome = nomesIndividuais[p],
+                        AporteMensal = aportePessoa,
+                        AportesExtras = extraPessoa, // Não reflete orphans globais aqui, apenas os da pessoa
+                        RendimentoLiquido = rendPessoa,
+                        Saldo = novoSaldoPessoa
+                    });
+                }
 
                 resultado.DetalhesMensais.Add(new DetalheMensal
                 {
                     Mes = meses,
                     DataReferencia = dataReferencia,
-                    AporteMensal = aporteRegular,
-                    AportesExtras = aporteExtraMes,
-                    RendimentoBruto = rendimentoMes,
-                    Imposto = imposto,
-                    RendimentoLiquido = rendimentoLiquido,
-                    TotalAcumulado = novoSaldo
+                    AporteMensal = aporteRegularGlobal,
+                    AportesExtras = totalExtrasMes,
+                    RendimentoBruto = rendimentoMesGlobal,
+                    Imposto = impostoGlobal,
+                    RendimentoLiquido = rendimentoLiquidoGlobal,
+                    TotalAcumulado = novoSaldoConjunto,
+                    Participantes = evolucoesIndividuais
                 });
 
-                saldo = novoSaldo;
+                saldoConjunto = novoSaldoConjunto;
 
-                if (!mesAtingiu.HasValue && saldo >= totalNecessario)
+                if (!mesAtingiu.HasValue && saldoConjunto >= totalNecessario)
                 {
                     mesAtingiu = meses;
                     dataAtingiu = dataReferencia;
@@ -153,9 +254,9 @@ namespace ImovPlan.Application.Services
 
             resultado.MesesParaAtingir = mesAtingiu ?? meses;
             resultado.DataPrevistaAlvo = dataAtingiu ?? dataReferencia;
-            resultado.TotalAcumulado = saldo;
+            resultado.TotalAcumulado = saldoConjunto;
             resultado.TotalInvestido = totalInvestido;
-            resultado.LucroLiquido = saldo - totalInvestido;
+            resultado.LucroLiquido = saldoConjunto - totalInvestido;
 
             // Remover simulações anteriores para não poluir o banco e manter sempre apenas a mais recente
             await _historicoSimulacaoRepo.DeleteAllByPlanejamentoIdAsync(planejamento.Id);
@@ -165,7 +266,7 @@ namespace ImovPlan.Application.Services
             var participantesSnapshot = new List<ParticipanteSnapshot>();
             foreach (var aporte in request.AportesMensais)
             {
-                var participante = await _participanteRepo.GetByIdAsync(aporte.PessoaId);
+                var participante = participantesDb.GetValueOrDefault(aporte.PessoaId);
                 if (participante != null)
                 {
                     participantesSnapshot.Add(new ParticipanteSnapshot
@@ -199,8 +300,8 @@ namespace ImovPlan.Application.Services
                 TotalInvestido = resultado.TotalInvestido,
                 TotalAcumulado = resultado.TotalAcumulado,
                 LucroLiquido = resultado.LucroLiquido,
-                AtingiuMeta = saldo >= totalNecessario,
-                Falta = Math.Max(0, totalNecessario - saldo),
+                AtingiuMeta = saldoConjunto >= totalNecessario,
+                Falta = Math.Max(0, totalNecessario - saldoConjunto),
                 ParticipantesSnapshot = participantesSnapshot,
             };
 
@@ -218,6 +319,7 @@ namespace ImovPlan.Application.Services
                 Imposto = d.Imposto,
                 RendimentoLiquido = d.RendimentoLiquido,
                 TotalAcumulado = d.TotalAcumulado,
+                Participantes = d.Participantes
             });
 
             await _historicoSimulacaoRepo.AddEvolucaoAsync(evolucaoMensal);

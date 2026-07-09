@@ -23,5 +23,6 @@ namespace ImovPlan.Domain.Entities
         public decimal Imposto { get; set; }
         public decimal RendimentoLiquido { get; set; }
         public decimal TotalAcumulado { get; set; }
+        public List<EvolucaoMensalParticipante> Participantes { get; set; } = new();
     }
 }

@@ -3,14 +3,13 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext, type Pessoa } from "@/context/PlanContext";
-import { type Aporte } from "@/lib/finance";
+import { brl, mesesEntre, type Aporte } from "@/lib/finance";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { brl, calcularMeta, mesesParaMeta, aporteNecessarioParaPrazo, mesesEntre } from "@/lib/finance";
 import { DateInput } from "@/components/DateInput";
 import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
@@ -18,7 +17,7 @@ import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend } = usePlanContext();
+  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData } = usePlanContext();
   const router = useRouter();
 
   const prosseguir = async () => {
@@ -53,33 +52,18 @@ export default function PlanejamentoPage() {
     percent: totalGuardado ? ((p.valorInicial ?? 0) / totalGuardado) * 100 : 0,
   }));
 
-  const baseSim = useMemo(() => ({
-    valorImovel: Number(objetivo?.valorImovel ?? 0),
-    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-    valorJaGuardado: totalGuardado,
-    taxaCdiAnual: Number(objetivo?.taxaCdiAnual ?? 0),
-    percentualCdi: Number(objetivo?.percentualCdi ?? 100),
-    dataInicio: objetivo?.dataInicio
-      ? (typeof objetivo.dataInicio === "string"
-          ? new Date(objetivo.dataInicio + "T12:00:00")
-          : new Date(objetivo.dataInicio))
-      : new Date(),
-    aportesExtras,
-  }), [objetivo, aportesExtras, totalGuardado]);
-  
-  const meta = calcularMeta({
-    valorImovel: Number(objetivo?.valorImovel ?? 0),
-    percentualEntrada: Number(objetivo?.percentualEntrada ?? 0),
-    percentualCustosExtras: Number(objetivo?.percentualCustosExtras ?? 0),
-  });
+
+  const meta = objetivo?.valorImovel
+    ? Number(objetivo.valorImovel) * (Number(objetivo.percentualEntrada ?? 0) + Number(objetivo.percentualCustosExtras ?? 0)) / 100
+    : 0;
 
   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
-  const mesesEstimados = mesesParaMeta({ ...baseSim, aporteMensalTotal: aporteTotal });
+  // Usa os dados do backend se disponíveis, senão não exibe estimativa
+  const mesesEstimados = backendData?.mesesParaAtingir ?? null;
   const foraDoPrazo = mesesEstimados !== null && prazoMeses > 0 && mesesEstimados > prazoMeses;
-  const aporteAjustado = foraDoPrazo ? aporteNecessarioParaPrazo({ ...baseSim, prazoMeses }) : 0;
-  
-  const progressoPercent = Math.min(100, (totalGuardado / meta) * 100);
+  const aporteAjustado = backendData && !backendData.atingiuMeta ? backendData.aporteMensalTotal : 0;
+
+  const progressoPercent = Math.min(100, meta > 0 ? (totalGuardado / meta) * 100 : 0);
 
   const adicionarAporte = () => {
     if (!novoAporte.valor) return;
