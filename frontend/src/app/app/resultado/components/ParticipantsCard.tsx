@@ -41,7 +41,7 @@ export function ParticipantsCard({ participantes, totalAcumulado }: Participants
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Rendimento</p>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                <p className="text-sm font-medium text-success">
                   +<Currency value={p.rendimentoTotal} />
                 </p>
               </div>

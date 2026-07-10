@@ -31,7 +31,7 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
     >
       {brl(value)}
       {isEdited && (
-        <span className={`ml-1 text-[9px] font-bold ${diff > 0 ? "text-green-500" : "text-rose-500"}`}>
+        <span className={`ml-1 text-[9px] font-bold ${diff > 0 ? "text-success" : "text-destructive"}`}>
           {diff > 0 ? "▲" : "▼"}
         </span>
       )}
@@ -160,7 +160,7 @@ function RowActions({
                     className="h-9 text-sm bg-background border-border"
                   />
                   {diff !== 0 && (
-                    <div className={`text-[10px] font-semibold text-right ${diff > 0 ? "text-green-500" : "text-rose-500"}`}>
+                    <div className={`text-[10px] font-semibold text-right ${diff > 0 ? "text-success" : "text-destructive"}`}>
                       {diff > 0 ? `▲ +${brl(diff)}` : `▼ -${brl(Math.abs(diff))}`}
                     </div>
                   )}
@@ -363,7 +363,7 @@ function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: {
                         <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title="Editar">
                           <Edit2 className="h-3 w-3" />
                         </button>
-                        <button type="button" onClick={() => onDeleteExtra(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all" title="Excluir">
+                        <button type="button" onClick={() => onDeleteExtra(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" title="Excluir">
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
@@ -394,9 +394,9 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
 
 // ─── Seletor de Cenário ───────────────────────────────
 const CENARIOS: { value: CenarioSimulacao; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: "pessimista", label: "Pessimista", icon: <TrendingDown className="h-3.5 w-3.5" />, color: "text-rose-500 border-rose-500/30 bg-rose-500/5 data-[active=true]:bg-rose-500/15" },
+  { value: "pessimista", label: "Pessimista", icon: <TrendingDown className="h-3.5 w-3.5" />, color: "text-destructive border-destructive/30 bg-destructive/5 data-[active=true]:bg-destructive/15" },
   { value: "realista",   label: "Realista",   icon: <Minus className="h-3.5 w-3.5" />,        color: "text-foreground border-border/60 bg-secondary/40 data-[active=true]:bg-secondary" },
-  { value: "otimista",   label: "Otimista",   icon: <TrendingUp className="h-3.5 w-3.5" />,   color: "text-emerald-500 border-emerald-500/30 bg-emerald-500/5 data-[active=true]:bg-emerald-500/15" },
+  { value: "otimista",   label: "Otimista",   icon: <TrendingUp className="h-3.5 w-3.5" />,   color: "text-success border-success/30 bg-success/5 data-[active=true]:bg-success/15" },
 ];
 
 function CenarioSelector({ value, onChange }: { value: CenarioSimulacao; onChange: (v: CenarioSimulacao) => void }) {
@@ -422,7 +422,7 @@ function CenarioSelector({ value, onChange }: { value: CenarioSimulacao; onChang
 
 // Removido InfeasibilityAlert, movido para o backend ou removido do design
 
-export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true }: { showFinancials?: boolean, showCompletedToggle?: boolean }) {
+export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true, showCenarioSelector = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
   const {
     objetivo,
     pessoas,
@@ -511,7 +511,7 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
           <h2 className="font-display text-xl font-light">Tabela mês a mês</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
         </div>
-        <CenarioSelector value={cenarioSimulacao} onChange={setCenarioSimulacao} />
+        {showCenarioSelector && <CenarioSelector value={cenarioSimulacao} onChange={setCenarioSimulacao} />}
       </div>
 
 
@@ -549,25 +549,25 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
               return (
                 <tr
                   key={r.mes}
-                  className={`transition-colors duration-200 hover:bg-secondary/40 ${r.atingiu && showFinancials ? "bg-primary/10 shadow-[inset_3px_0_0_0_hsl(var(--primary))]" : ""} ${isConcluido && (!r.atingiu || !showFinancials) ? "bg-teal-500/5" : ""} ${r.isExtra && !r.atingiu && !isConcluido ? "bg-accent/5" : ""}`}
+                  className={`transition-colors duration-200 hover:bg-secondary/40 ${r.atingiu && showFinancials ? "bg-primary/10 shadow-[inset_3px_0_0_0_hsl(var(--primary))]" : ""} ${isConcluido && (!r.atingiu || !showFinancials) ? "bg-success/5" : ""} ${r.isExtra && !r.atingiu && !isConcluido ? "bg-accent/5" : ""}`}
                 >
                   <Td className="font-medium">
                     <div className="flex items-center gap-1.5">
                       {r.mes === 0 ? (
                         // Mês 0 = início, sempre marcado como concluído sem opção de toggle
-                        <div className="w-6 h-6 rounded flex items-center justify-center border shrink-0 bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400">
+                        <div className="w-6 h-6 rounded flex items-center justify-center border shrink-0 bg-success/20 border-success/50 text-success">
                           <Check className="h-4 w-4" />
                         </div>
                       ) : showCompletedToggle ? (
                         <button
                           onClick={() => toggleConcluido(r.mes)}
                           title={isConcluido ? "Desmarcar" : "Marcar como concluído"}
-                          className={`w-6 h-6 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-teal-600/20 border-teal-600/50 text-teal-600 dark:text-teal-400" : "border-border/50 hover:border-teal-500/50 hover:bg-teal-500/10"}`}
+                          className={`w-6 h-6 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-success/20 border-success/50 text-success" : "border-border/50 hover:border-success/50 hover:bg-success/10"}`}
                         >
                           {isConcluido && <Check className="h-4 w-4" />}
                         </button>
                       ) : null}
-                      <span className={r.mes === 0 || isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
+                      <span className={r.mes === 0 || isConcluido ? "text-success" : "text-muted-foreground"}>{r.mes}</span>
                       {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] uppercase font-bold tracking-wider shadow-sm">Meta</span>}
                     </div>
                   </Td>
@@ -646,7 +646,7 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
                         {brl(r.imposto)}
                       </Td>
 
-                      <Td right className="text-[#3B6D11] dark:text-[#80B551] font-medium">
+                      <Td right className="text-success font-medium">
                         {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
                       </Td>
 
@@ -713,7 +713,7 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
                 <>
                   <Td right className="bg-primary/5 text-muted-foreground">{brl(totals.rendBruto)}</Td>
                   <Td right className="bg-primary/5 text-muted-foreground/70">{brl(totals.ir)}</Td>
-                  <Td right className="bg-primary/5 text-[#3B6D11] dark:text-[#80B551]">
+                  <Td right className="bg-primary/5 text-success">
                     {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                   </Td>
                   <Td right className="bg-primary/5 py-2">

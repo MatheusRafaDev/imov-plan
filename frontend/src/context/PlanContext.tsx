@@ -48,6 +48,8 @@ type PlanoDraftPayload = {
     dataInicio: string | null;
     nomePlano: string;
     tipoInvestimento: string;
+    estado?: string;
+    cidade?: string;
   } | null;
   pessoas: Pessoa[];
   bancoEscolhido: Banco | null;
@@ -174,6 +176,8 @@ function montarObjetivoDraft(objetivo: Partial<SimInput> | null): PlanoDraftPayl
     dataInicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : null,
     nomePlano: (objetivo as any).nomePlano || "Imóvel",
     tipoInvestimento: (objetivo as any).tipoInvestimento || "",
+    estado: objetivo.estado || undefined,
+    cidade: objetivo.cidade || undefined,
   };
 }
 
@@ -312,6 +316,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             prazoMaxMeses: draftData.objetivo.prazoMaxMeses,
             dataInicio: draftData.objetivo.dataInicio ? new Date(draftData.objetivo.dataInicio) : new Date(),
             tipoInvestimento: draftData.objetivo.tipoInvestimento,
+            estado: draftData.objetivo.estado || undefined,
+            cidade: draftData.objetivo.cidade || undefined,
           } : null,
           pessoas: (draftData.pessoas || []).map((p: any) => ({
             id: p.id,

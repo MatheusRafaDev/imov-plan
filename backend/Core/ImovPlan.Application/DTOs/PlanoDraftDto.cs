@@ -37,6 +37,8 @@ namespace ImovPlan.Application.DTOs
         public string? DataInicio { get; set; } // ISO string from frontend
         public string? NomePlano { get; set; }
         public string? TipoInvestimento { get; set; }
+        public string? Estado { get; set; } // UF ex: "SP"
+        public string? Cidade { get; set; } // Cidade ex: "São Paulo"
     }
 
     public class PessoaDraftDto

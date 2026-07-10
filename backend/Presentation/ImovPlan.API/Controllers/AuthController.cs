@@ -27,42 +27,14 @@ namespace ImovPlan.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-                return BadRequest(new { message = "Email e senha são obrigatórios." });
-
             var existing = await _usuarioRepository.GetByEmailAsync(request.Email);
             if (existing != null)
                 return BadRequest(new { message = "Email já cadastrado." });
 
             DateTime? parsedNascimento = null;
-            if (!string.IsNullOrWhiteSpace(request.DataNascimento))
+            if (DateTime.TryParse(request.DataNascimento, out var parsed))
             {
-                if (!DateTime.TryParse(request.DataNascimento, out var parsed))
-                {
-                    return BadRequest(new { message = "Formato de data de nascimento inválido." });
-                }
-
-                var today = DateTime.Today;
-                var age = today.Year - parsed.Year;
-                if (parsed.Date > today.AddYears(-age)) age--;
-
-                if (parsed > today)
-                {
-                    return BadRequest(new { message = "A data de nascimento não pode ser no futuro." });
-                }
-                if (age < 18)
-                {
-                    return BadRequest(new { message = "Você precisa ter pelo menos 18 anos para se cadastrar." });
-                }
-                if (age > 120)
-                {
-                    return BadRequest(new { message = "Insira uma data de nascimento válida." });
-                }
                 parsedNascimento = parsed;
-            }
-            else
-            {
-                return BadRequest(new { message = "A data de nascimento é obrigatória." });
             }
 
             var user = new Usuario
@@ -88,10 +60,7 @@ namespace ImovPlan.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-            {
-                return BadRequest(new { message = "Email e senha são obrigatórios." });
-            }
+
 
             var user = await _usuarioRepository.GetByEmailAsync(request.Email);
             if (user == null)

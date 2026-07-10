@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePlanContext } from "@/context/PlanContext";
 import { Button } from "@/components/ui/button";
 
-const navPorCenario = {
+export const navPorCenario = {
   entrada: [
     { to: "/app/imovel", icon: Building2, label: "Imóvel" },
     { to: "/app/pessoas", icon: Users, label: "Perfil" },

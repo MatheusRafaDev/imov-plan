@@ -7,7 +7,7 @@ interface StatCardProps {
   label: string;
   value: number | string;
   icon?: React.ReactNode;
-  variant?: "default" | "primary" | "success" | "muted";
+  variant?: "default" | "primary" | "success" | "muted" | "accent";
   prefix?: string;
   className?: string;
   children?: React.ReactNode;
@@ -16,22 +16,25 @@ interface StatCardProps {
 const variantStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   default: "bg-card border-border/40",
   primary: "bg-primary/5 border-border/40",
-  success: "bg-[#3B6D11]/5 border-border/40",
+  success: "bg-success/5 border-border/40",
   muted: "bg-secondary/30 border-border/40",
+  accent: "bg-accent/5 border-accent/20",
 };
 
 const labelStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   default: "text-muted-foreground",
   primary: "text-primary",
-  success: "text-[#3B6D11] dark:text-[#80B551]",
+  success: "text-success",
   muted: "text-muted-foreground",
+  accent: "text-accent",
 };
 
 const valueStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   default: "text-foreground",
   primary: "text-primary",
-  success: "text-[#3B6D11] dark:text-[#80B551]",
+  success: "text-success",
   muted: "text-foreground",
+  accent: "text-accent",
 };
 
 /**

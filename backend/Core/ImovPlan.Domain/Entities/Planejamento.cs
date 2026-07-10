@@ -72,6 +72,12 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("tipoInvestimento")]
         public string? TipoInvestimento { get; set; }
 
+        [BsonElement("estado")]
+        public string? Estado { get; set; }
+
+        [BsonElement("cidade")]
+        public string? Cidade { get; set; }
+
         [BsonElement("status")]
         public string Status { get; set; } = "Draft"; // "Draft", "Completed"
 

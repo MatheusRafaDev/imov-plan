@@ -94,6 +94,8 @@ namespace ImovPlan.Application.Services
                 existingPlanejamento.PrazoMaxMeses = o.PrazoMaxMeses;
                 existingPlanejamento.NomePlano = string.IsNullOrWhiteSpace(o.NomePlano) ? "Imóvel" : o.NomePlano.Trim();
                 existingPlanejamento.TipoInvestimento = o.TipoInvestimento;
+                existingPlanejamento.Estado = string.IsNullOrWhiteSpace(o.Estado) ? null : o.Estado.Trim().ToUpperInvariant();
+                existingPlanejamento.Cidade = string.IsNullOrWhiteSpace(o.Cidade) ? null : o.Cidade.Trim();
 
                 if (!string.IsNullOrEmpty(o.DataInicio))
                 {
@@ -443,6 +445,8 @@ namespace ImovPlan.Application.Services
                     DataInicio = planejamento.DataInicio?.ToString("yyyy-MM-dd"),
                     NomePlano = planejamento.NomePlano,
                     TipoInvestimento = planejamento.TipoInvestimento,
+                    Estado = planejamento.Estado,
+                    Cidade = planejamento.Cidade,
                 },
                 Pessoas = participanteDtos,
                 BancoEscolhido = !string.IsNullOrEmpty(planejamento.BancoEscolhidoId)

@@ -14,7 +14,7 @@ export function FinancialSummaryCard({ summary }: FinancialSummaryCardProps) {
   if (!summary) return null;
 
   return (
-    <Card className="p-6 border-border/50 bg-secondary/20">
+    <Card className="p-6 border-border/50">
       <div className="flex items-center gap-2 mb-6">
         <Wallet className="w-5 h-5 text-muted-foreground" />
         <h3 className="font-display text-lg font-medium">Resumo Financeiro</h3>
@@ -33,14 +33,14 @@ export function FinancialSummaryCard({ summary }: FinancialSummaryCardProps) {
 
         <div className="flex justify-between items-center py-4 border-b border-border/40">
           <span className="text-muted-foreground">Rendimento Acumulado</span>
-          <span className="font-medium text-green-700 dark:text-green-400 bg-green-500/10 px-2.5 py-1 rounded-md text-sm">
+          <span className="font-medium text-success bg-success/10 px-2.5 py-1 rounded-md text-sm">
             +<Currency value={summary.lucroLiquido} />
           </span>
         </div>
 
         <div className="flex justify-between items-center pt-5">
           <span className="text-muted-foreground font-medium">Saldo Final Acumulado</span>
-          <span className="text-2xl font-display font-medium bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <span className="text-2xl font-display font-medium text-primary">
             <Currency value={summary.totalAcumulado} />
           </span>
         </div>

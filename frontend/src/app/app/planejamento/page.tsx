@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { navPorCenario } from "@/components/AppShell";
 import { usePlanContext, type Pessoa } from "@/context/PlanContext";
 import { brl, mesesEntre, type Aporte } from "@/lib/finance";
 import { toast } from "sonner";
@@ -17,8 +18,12 @@ import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData } = usePlanContext();
+  const { cenario, objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData } = usePlanContext();
   const router = useRouter();
+  const pathname = usePathname();
+  const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
+  const currentStep = nav.findIndex(n => pathname?.startsWith(n.to)) + 1;
+  const totalSteps = nav.length;
 
   const prosseguir = async () => {
     const savedId = await saveDraft();
@@ -106,7 +111,7 @@ export default function PlanejamentoPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-10">
       <div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">Etapa 3 de 4</p>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
         <h1 className="font-display text-4xl md:text-5xl mb-3 font-light">Acelere seu plano</h1>
         <p className="text-muted-foreground text-lg">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
@@ -163,8 +168,8 @@ export default function PlanejamentoPage() {
 
       {/* Modal Aportes Extras */}
       {isAportesExtrasModalOpen && (
-        <div className="fixed inset-0 z-[9999] grid min-h-screen place-items-center bg-slate-950/25 px-4 py-6 backdrop-blur-sm">
-          <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-md" />
+        <div className="fixed inset-0 z-[9999] grid min-h-screen place-items-center bg-primary/10 px-4 py-6 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
           <div className="relative z-[10000] w-full max-w-md overflow-hidden rounded-2xl border border-border/50 bg-card/95 p-6 text-card-foreground shadow-[0_45px_120px_-60px_rgba(15,23,42,0.8)] ring-1 ring-slate-900/10">
             
             {/* Header */}
@@ -263,7 +268,7 @@ export default function PlanejamentoPage() {
         <div className="space-y-4">
 
 
-          <div className="rounded-3xl border border-border/50 bg-card p-6 shadow-sm">
+          <div className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="font-display text-2xl font-light">Aportes extras</h2>
@@ -278,13 +283,13 @@ export default function PlanejamentoPage() {
             </div>
 
             {aportesExtras.length === 0 ? (
-              <div className="mt-6 rounded-3xl border border-dashed border-border/40 bg-secondary/10 p-8 text-center text-sm text-muted-foreground">
+              <div className="mt-6 rounded-xl border border-dashed border-border/40 bg-secondary/10 p-8 text-center text-sm text-muted-foreground">
                 Nenhum aporte extra adicionado ainda.
               </div>
             ) : (
               <div className="mt-6 space-y-3">
                 {aportesExtras.map((a, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-4 rounded-3xl border border-border/50 bg-background p-4 text-sm items-center">
+                  <div key={index} className="grid grid-cols-12 gap-4 rounded-xl border border-border/50 bg-background p-4 text-sm items-center">
                     <div className="col-span-12 sm:col-span-3 num font-semibold">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</div>
                     <div className="col-span-12 sm:col-span-4">
                       <p className="font-medium">{a.origem}</p>
@@ -308,7 +313,7 @@ export default function PlanejamentoPage() {
 
         <div className="space-y-4">
 
-          <TabelaMesAMes showFinancials={false} showCompletedToggle={false} />
+          <TabelaMesAMes showFinancials={false} showCompletedToggle={false} showCenarioSelector={false} />
         </div>
       </div>
 

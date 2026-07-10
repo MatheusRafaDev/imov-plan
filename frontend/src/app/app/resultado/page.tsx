@@ -4,7 +4,8 @@ import { useRef, useEffect } from "react";
 import React from "react";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { navPorCenario } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { SummaryCards } from "./components/SummaryCards";
@@ -20,6 +21,7 @@ import {
 
 export default function ResultadoPage() {
   const { 
+    cenario,
     objetivo, 
     pessoas, 
     saveDraft, 
@@ -32,6 +34,10 @@ export default function ResultadoPage() {
   } = usePlanContext();
   
   const router = useRouter();
+  const pathname = usePathname();
+  const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
+  const currentStep = nav.findIndex(n => pathname?.startsWith(n.to)) + 1;
+  const totalSteps = nav.length;
 
   // Save mesesConcluidos to database when it changes
   const isFirstRender = useRef(true);
@@ -65,7 +71,7 @@ export default function ResultadoPage() {
     return (
       <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-7">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa 4 de 4</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
           <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
           <p className="text-muted-foreground text-sm">Preencha as etapas anteriores para ver o resultado ou aguarde o cálculo.</p>
         </div>
@@ -78,43 +84,24 @@ export default function ResultadoPage() {
   }
 
   return (
-    <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-7">
+    <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa 4 de 4</p>
-          <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
+          <h1 className="font-display text-3xl md:text-4xl mb-1 font-light">Seu plano em números</h1>
           <p className="text-muted-foreground text-sm">O resultado de tudo o que você preencheu nas etapas anteriores.</p>
-        </div>
-
-        {/* Botão Calcular */}
-        <div className="flex items-center gap-3 shrink-0">
-          <Button
-            onClick={() => calcularBackend()}
-            disabled={calculating || loadingBackend}
-            className="flex items-center gap-2"
-            size="lg"
-          >
-            {calculating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {calculating ? "Calculando..." : "Calcular"}
-          </Button>
         </div>
       </div>
 
-      {/* Erro do backend */}
       {backendError && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-xs text-red-700 dark:text-red-400">
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-xs text-destructive">
           {backendError}
         </div>
       )}
 
-      {/* Loading */}
       {loadingBackend && (
-        <div className="flex items-center justify-center py-8">
+        <div className="flex items-center justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">Carregando simulação salva...</span>
         </div>
@@ -128,26 +115,14 @@ export default function ResultadoPage() {
         <InvestmentChart data={chartData} summary={summary} />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6 pt-4 border-t border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
-        <div className="lg:col-span-2 space-y-6">
-          <FinancialSummaryCard summary={summary} />
-          <ParticipantsCard participantes={participantes} totalAcumulado={summary.totalAcumulado} />
-        </div>
-
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="p-6 border-border/50 bg-secondary/10 flex flex-col justify-center h-full text-center">
-            <h3 className="font-display font-medium text-lg mb-2 text-muted-foreground">Adicione aportes extras</h3>
-            <p className="text-sm text-muted-foreground mb-4">Acelere sua meta registrando FGTS, décimo terceiro ou bônus.</p>
-            <Button onClick={() => router.push("/app/planejamento?tab=aportes-extras")} variant="outline" className="mx-auto">
-              Gerenciar Aportes Extras
-            </Button>
-          </Card>
-        </div>
+      <div className="grid lg:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+        <FinancialSummaryCard summary={summary} />
+        <ParticipantsCard participantes={participantes} totalAcumulado={summary.totalAcumulado} />
       </div>
 
-      <div className="pt-8 border-t border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500 fill-mode-both">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
         <TabelaMesAMes />
       </div>
     </div>
   );
-}
+}

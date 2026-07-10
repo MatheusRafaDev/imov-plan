@@ -11,63 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl, mesesEntre } from "@/lib/finance";
 import { MonthYearInput } from "@/components/MonthYearInput";
-import { Building2, Calendar, Percent, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info } from "lucide-react";
+import { Building2, MapPin, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info, Percent, Calendar } from "lucide-react";
+import { calcularCustosITBI } from "@/utils/itbi";
+import { estados, cidadesPorEstado } from "@/utils/ibge-estados-cidades";
 
-// ─── ITBI + Cartório Rule (SP 2025/2026) ─────────────────────────────────────
-function calcularCustosITBI(valorImovel: number): {
-  itbi: number;
-  cartorio: number;
-  total: number;
-  percentualTotal: number;
-  isento: boolean;
-  faixa: "isento" | "sfh" | "acima_sfh";
-} {
-  if (valorImovel <= 0) {
-    return { itbi: 0, cartorio: 0, total: 0, percentualTotal: 0, isento: false, faixa: "isento" };
-  }
-
-  const ISENCAO_SP = 335000;
-  const TETO_SFH = 1500000;
-  const ITBI_CHEIO = 0.03;
-  const ITBI_SFH = 0.005;
-
-  let itbi = 0;
-  let isento = false;
-  let faixa: "isento" | "sfh" | "acima_sfh";
-
-  if (valorImovel <= ISENCAO_SP) {
-    itbi = 0;
-    isento = true;
-    faixa = "isento";
-  } else if (valorImovel <= TETO_SFH) {
-    itbi = valorImovel * ITBI_SFH;
-    faixa = "sfh";
-  } else {
-    itbi = valorImovel * ITBI_CHEIO;
-    faixa = "acima_sfh";
-  }
-
-  let cartorio = 0;
-  if (valorImovel <= 100000) {
-    cartorio = 1500;
-  } else if (valorImovel <= 300000) {
-    cartorio = valorImovel * 0.015;
-  } else if (valorImovel <= 700000) {
-    cartorio = valorImovel * 0.013;
-  } else if (valorImovel <= 1500000) {
-    cartorio = valorImovel * 0.011;
-  } else {
-    cartorio = valorImovel * 0.009;
-  }
-
-  const totalBruto = itbi + cartorio;
-  const capAbsoluto = valorImovel * 0.04;
-  const total = Math.min(totalBruto, capAbsoluto);
-
-  const percentualTotal = (total / valorImovel) * 100;
-
-  return { itbi, cartorio, total, percentualTotal, isento, faixa };
-}
+// ITBI utility is now imported from @/utils/itbi
 
 const todayISO = () => {
   if (typeof window !== "undefined") {
@@ -118,6 +66,8 @@ export default function ObjetivoPage() {
     valor_ja_guardado: 0 as number | "",
     percentual_custos_extras: 0 as number | "",
     titular: "" as string | "",
+    estado: "SP",
+    cidade: "São Paulo",
   });
 
   useEffect(() => {
@@ -130,6 +80,8 @@ export default function ObjetivoPage() {
         data_inicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : form.data_inicio,
         valor_ja_guardado: objetivo.valorJaGuardado || 0,
         percentual_custos_extras: objetivo.percentualCustosExtras || 0,
+        estado: (objetivo as any).estado || "SP",
+        cidade: (objetivo as any).cidade || "São Paulo",
         data_fim: objetivo.prazoMaxMeses
           ? addMonthsISO(
               objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : todayISO(),
@@ -157,17 +109,20 @@ export default function ObjetivoPage() {
   const meta = entrada + custos;
   const falta = Math.max(0, meta - (Number(form.valor_ja_guardado) || 0));
 
-  const itbiInfo = calcularCustosITBI(Number(form.valor_imovel) || 0);
+  const itbiInfo = calcularCustosITBI(Number(form.valor_imovel) || 0, form.estado, form.cidade);
+  const cidadesDoEstado = cidadesPorEstado[form.estado] || [];
 
   const objetivoFromForm = (nextForm: typeof form) => ({
     ...(objetivo ?? {}),
-    nomePlano: nextForm.nome.trim() === "" ? "ImÃ³vel" : nextForm.nome.trim(),
+    nomePlano: nextForm.nome.trim() === "" ? "Imóvel" : nextForm.nome.trim(),
     valorImovel: Number(nextForm.valor_imovel) || 0,
     percentualEntrada: Number(nextForm.percentual_entrada) || 0,
     percentualCustosExtras: Number(nextForm.percentual_custos_extras) || 0,
     valorJaGuardado: Number(nextForm.valor_ja_guardado) || 0,
     dataInicio: nextForm.data_inicio ? new Date(`${nextForm.data_inicio}T12:00:00`) : undefined,
     prazoMaxMeses: nextForm.data_fim ? mesesEntre(nextForm.data_inicio, nextForm.data_fim) : 0,
+    estado: nextForm.estado,
+    cidade: nextForm.cidade,
   });
 
   const updateForm = (patch: Partial<typeof form>, syncObjective = false) => {
@@ -198,6 +153,8 @@ export default function ObjetivoPage() {
         valorJaGuardado: Number(form.valor_ja_guardado) || 0,
         dataInicio: form.data_inicio ? new Date(`${form.data_inicio}T12:00:00`) : undefined,
         prazoMaxMeses: prazoMeses,
+        estado: form.estado,
+        cidade: form.cidade,
       };
 
       // Atualiza o estado do contexto
@@ -309,7 +266,53 @@ export default function ObjetivoPage() {
               </button>
 
               {showAdvanced && (
-                <div className="grid sm:grid-cols-2 gap-6 mt-6 animate-fade-in-up p-5 rounded-xl bg-secondary/30 border border-border/50">
+                <div className="mt-6 animate-fade-in-up space-y-6">
+                  {/* ─── Localização do Imóvel ─── */}
+                  <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 space-y-4">
+                    <p className="flex items-center gap-2 text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Localização do Imóvel
+                    </p>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-muted-foreground text-xs">Estado (UF)</Label>
+                        <select
+                          value={form.estado}
+                          onChange={(e) => {
+                            const novoEstado = e.target.value;
+                            const primeirasCidades = cidadesPorEstado[novoEstado];
+                            const novaCidade = primeirasCidades?.[0]?.nome || "";
+                            updateForm({ estado: novoEstado, cidade: novaCidade }, true);
+                          }}
+                          className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer transition-colors hover:border-accent/40"
+                        >
+                          {estados.map((e) => (
+                            <option key={e.uf} value={e.uf}>{e.uf} — {e.nome}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-muted-foreground text-xs">Cidade</Label>
+                        <select
+                          value={form.cidade}
+                          onChange={(e) => updateForm({ cidade: e.target.value }, true)}
+                          className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer transition-colors hover:border-accent/40"
+                        >
+                          {cidadesDoEstado.map((c) => (
+                            <option key={c.nome} value={c.nome}>{c.nome}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {itbiInfo.descricaoRegra && (
+                      <p className="text-[11px] text-muted-foreground">
+                        📍 {itbiInfo.descricaoRegra}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ─── Valores Financeiros Avançados ─── */}
+                  <div className="grid sm:grid-cols-2 gap-6 p-5 rounded-xl bg-secondary/30 border border-border/50">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Já guardado</Label>
                     <MoneyInput
@@ -321,10 +324,10 @@ export default function ObjetivoPage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div className="flex justify-between items-center">
-                      <Label className="text-muted-foreground flex items-center gap-1.5">
-                        Custos extras (ITBI/Cartório) %
+                      <Label className="text-muted-foreground flex items-center gap-1">
+                        Custos Extras (ITBI/Cartório)
                         <button
                           type="button"
                           onClick={() => setShowITBIInfo((o) => !o)}
@@ -336,11 +339,11 @@ export default function ObjetivoPage() {
                       </Label>
                       <button
                         type="button"
-                        onClick={() => updateForm({ percentual_custos_extras: itbiInfo.isento ? 0 : parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
-                        className="group flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-accent transition-all duration-300 bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-full border border-accent/20 hover:border-accent/40 hover:shadow-[0_0_12px_var(--accent-glow,rgba(255,165,0,0.2))] active:scale-95"
+                        onClick={() => updateForm({ percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
+                        className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent px-2 py-0.5 rounded-md border border-accent/20 transition-all active:scale-95"
                       >
-                        <Sparkles className="h-3 w-3 text-accent group-hover:animate-pulse" />
-                        Sugerir {itbiInfo.isento ? "0" : itbiInfo.percentualTotal.toFixed(1)}%
+                        <Sparkles className="h-3 w-3" />
+                        Sugerir {itbiInfo.percentualTotal.toFixed(1)}%
                       </button>
                     </div>
 
@@ -353,19 +356,22 @@ export default function ObjetivoPage() {
                     />
 
                     {itbiInfo.isento && Number(form.valor_imovel) > 0 && (
-                      <p className="text-xs text-accent mt-1">
-                        ✓ ITBI isento — sugerimos 0%, mas você pode ajustar até 4% conforme desejar.
-                      </p>
+                      <div className="flex items-start gap-2 bg-success/10 border border-success/20 rounded-lg p-2.5 text-[11px] text-success font-medium">
+                        <span className="text-xs mt-0.5">✓</span>
+                        <span>
+                          <strong>ITBI Isento:</strong> sugerimos 0%, mas você pode ajustar até 4% conforme desejar.
+                        </span>
+                      </div>
                     )}
 
                     {showITBIInfo && (() => {
                       const valorImovel = Number(form.valor_imovel) || 0;
-                      const { itbi, cartorio, total, percentualTotal, isento, faixa } = calcularCustosITBI(valorImovel);
+                      const { itbi, cartorio, total, percentualTotal, isento, faixa, descricaoRegra } = calcularCustosITBI(valorImovel, form.estado, form.cidade);
 
                       return (
                         <div className="mt-2 p-3 rounded-lg bg-secondary/50 border border-border/60 text-[11px] space-y-2 animate-fade-in-up">
                           <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">
-                            Estimativa ITBI + Cartório (SP 2025/2026)
+                            Estimativa ITBI + Cartório — {form.cidade}/{form.estado}
                           </p>
 
                           {valorImovel <= 0 && (
@@ -375,8 +381,8 @@ export default function ObjetivoPage() {
                           {valorImovel > 0 && (
                             <>
                               {isento && (
-                                <div className="flex items-center gap-1.5 text-accent font-medium">
-                                  <span className="text-base">✓</span> Elegível para isenção de ITBI (valor abaixo de R$ 335.000)
+                                <div className="flex items-center gap-1.5 text-success font-medium">
+                                  <span className="text-base">✓</span> Elegível para isenção de ITBI
                                 </div>
                               )}
 
@@ -394,13 +400,7 @@ export default function ObjetivoPage() {
                               </div>
 
                               <p className="text-muted-foreground/70 text-[10px] pt-1 border-t border-border/40">
-                                {faixa === "isento" &&
-                                  "* Isenção para 1º imóvel / MCMV / HIS em SP. Cartório e registro estimados sobre o valor total."}
-                                {faixa === "sfh" &&
-                                  "* SFH: 0,5% de ITBI sobre o valor total + cartório escalonado. Teto SFH R$ 1.500.000."}
-                                {faixa === "acima_sfh" &&
-                                  "* Acima do teto SFH: 3% de ITBI sobre o valor total + cartório escalonado."}
-                                {" "}Total limitado a máx. 4% pelo sistema.
+                                {descricaoRegra} Total limitado a máx. 4% pelo sistema.
                               </p>
                             </>
                           )}
@@ -409,6 +409,7 @@ export default function ObjetivoPage() {
                     })()}
                   </div>
 
+                  </div>
                 </div>
               )}
             </div>

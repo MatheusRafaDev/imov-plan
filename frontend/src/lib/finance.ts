@@ -34,6 +34,8 @@ export type SimInput = {
   dataInicio?: Date;
   tipoInvestimento?: string; // ex "poupanca", "cdb_100", "tesouro_selic"
   cenario?: CenarioSimulacao; // default "realista"
+  estado?: string; // UF do imóvel ex: "SP"
+  cidade?: string; // Cidade do imóvel ex: "São Paulo"
   /** Uso interno: pula o cálculo de sugestões para evitar recursão infinita
    * quando simular() é chamado de dentro de aporteNecessarioParaPrazo/mesesParaMeta. */
   pularSugestoes?: boolean;

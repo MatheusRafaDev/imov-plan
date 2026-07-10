@@ -17,6 +17,8 @@ using ImovPlan.Domain.Interfaces;
 using ImovPlan.Application.Services;
 using ImovPlan.Application.Services.Interfaces;
 using ImovPlan.API.Services;
+using FluentValidation;
+using ImovPlan.API.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,7 +52,13 @@ builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 builder.Services.AddMemoryCache();
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => 
+{
+    options.Filters.Add<ValidationFilterAttribute>();
+});
+
+builder.Services.AddValidatorsFromAssemblyContaining<ImovPlan.Application.Validators.AporteExtraDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<ImovPlan.API.Validators.RegisterRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

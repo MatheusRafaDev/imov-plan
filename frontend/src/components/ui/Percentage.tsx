@@ -20,8 +20,8 @@ export function Percentage({
 }: PercentageProps) {
   let colorClass = "";
   if (colorCoded) {
-    if (value > 0) colorClass = "text-green-600 dark:text-green-400";
-    else if (value < 0) colorClass = "text-red-600 dark:text-red-400";
+    if (value > 0) colorClass = "text-success";
+    else if (value < 0) colorClass = "text-destructive";
   }
 
   return (
