@@ -71,10 +71,10 @@ namespace ImovPlan.Application.Validators
 
         public ObjetivoDraftDtoValidator()
         {
-            RuleFor(x => x.ValorImovel).GreaterThan(0).WithMessage("O valor do imóvel deve ser maior que zero.");
+            RuleFor(x => x.ValorImovel).GreaterThanOrEqualTo(0).WithMessage("O valor do imóvel não pode ser negativo.");
             RuleFor(x => x.PercentualEntrada).InclusiveBetween(0, 100).WithMessage("O percentual de entrada deve estar entre 0 e 100.");
             RuleFor(x => x.ValorJaGuardado).GreaterThanOrEqualTo(0).WithMessage("O valor já guardado não pode ser negativo.");
-            RuleFor(x => x.PrazoMaxMeses).GreaterThan(0).WithMessage("O prazo máximo em meses deve ser maior que zero.");
+            RuleFor(x => x.PrazoMaxMeses).GreaterThanOrEqualTo(0).WithMessage("O prazo máximo em meses não pode ser negativo.");
 
             When(x => !string.IsNullOrWhiteSpace(x.Estado), () =>
             {
