@@ -102,7 +102,12 @@ namespace ImovPlan.API.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            Response.Cookies.Delete("token");
+            Response.Cookies.Delete("token", new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None
+            });
             return Ok(new { message = "Logout com sucesso." });
         }
 
@@ -112,7 +117,7 @@ namespace ImovPlan.API.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
                 Expires = DateTime.UtcNow.AddDays(7)
             };
             Response.Cookies.Append("token", token, cookieOptions);
