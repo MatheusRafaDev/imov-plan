@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext, type Pessoa, type GastoDetalhado } from "@/context/PlanContext";
 import PessoaCard from "@/components/PessoaCard";
@@ -39,6 +39,13 @@ export default function PessoasPage() {
   
   const { user } = useAuth();
   const router = useRouter();
+  const wasInitialized = useRef(false);
+
+  useEffect(() => {
+    if (pessoas.length > 0) {
+      wasInitialized.current = true;
+    }
+  }, [pessoas.length]);
 
   // Redirect if missing step 1
   useEffect(() => {
@@ -64,7 +71,7 @@ export default function PessoasPage() {
   }, [pessoas.length, totalObjetivo, setPessoas]);
 
   useEffect(() => {
-    if (pessoas.length === 0 && user && planoId) {
+    if (pessoas.length === 0 && user && planoId && !wasInitialized.current) {
       const defaultPessoa: Pessoa = {
         id: generateObjectId(),
         nome: user.name || "Eu",

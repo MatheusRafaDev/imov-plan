@@ -432,7 +432,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     if (usuarioId) {
       try {
         const novoId = await salvarNoBackend(dadosLocais, planoId);
-        if (novoId && !planoId) {
+        if (novoId && novoId !== planoId) {
           setPlanoId(novoId);
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
         }
@@ -480,7 +480,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     if (usuarioId) {
       try {
         const novoId = await salvarNoBackend(dadosFinal, planoId);
-        if (novoId && !planoId) {
+        if (novoId && novoId !== planoId) {
           setPlanoId(novoId);
           Cookies.set("imovplan_planoId", novoId, { expires: 30 });
         }
