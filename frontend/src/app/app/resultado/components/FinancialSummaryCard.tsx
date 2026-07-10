@@ -20,27 +20,27 @@ export function FinancialSummaryCard({ summary }: FinancialSummaryCardProps) {
         <h3 className="font-display text-lg font-medium">Resumo Financeiro</h3>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex justify-between items-center pb-4 border-b border-border/50">
+      <div className="space-y-1">
+        <div className="flex justify-between items-center py-4 border-b border-border/40">
           <span className="text-muted-foreground">Valor Inicial</span>
           <span className="font-medium"><Currency value={summary.valorJaGuardado} /></span>
         </div>
         
-        <div className="flex justify-between items-center pb-4 border-b border-border/50">
+        <div className="flex justify-between items-center py-4 border-b border-border/40">
           <span className="text-muted-foreground">Aportes Regulares + Extras</span>
           <span className="font-medium"><Currency value={summary.totalInvestido - summary.valorJaGuardado} /></span>
         </div>
 
-        <div className="flex justify-between items-center pb-4 border-b border-border/50">
+        <div className="flex justify-between items-center py-4 border-b border-border/40">
           <span className="text-muted-foreground">Rendimento Acumulado</span>
-          <span className="font-medium text-green-600 dark:text-green-400">
+          <span className="font-medium text-green-700 dark:text-green-400 bg-green-500/10 px-2.5 py-1 rounded-md text-sm">
             +<Currency value={summary.lucroLiquido} />
           </span>
         </div>
 
-        <div className="flex justify-between items-center pt-2">
+        <div className="flex justify-between items-center pt-5">
           <span className="text-muted-foreground font-medium">Saldo Final Acumulado</span>
-          <span className="text-xl font-display font-medium text-primary">
+          <span className="text-2xl font-display font-medium bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             <Currency value={summary.totalAcumulado} />
           </span>
         </div>

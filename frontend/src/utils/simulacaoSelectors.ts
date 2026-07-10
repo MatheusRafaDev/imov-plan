@@ -30,38 +30,37 @@ export function extractParticipantesSummary(
 
   // Pega a última linha válida onde todos terminaram de aportar/render
   const lastRow = result.detalhesMensais[result.detalhesMensais.length - 1];
-  
+
   if (!lastRow.participantes || lastRow.participantes.length === 0) return [];
 
   const totalAcumuladoGlobal = lastRow.totalAcumulado > 0 ? lastRow.totalAcumulado : 1;
 
+  // Otimização: pré-calcular totais por participante em uma única passagem O(n)
+  const totaisPorParticipante = new Map<string, { aportadoTotal: number; rendimentoTotal: number }>();
+
+  result.detalhesMensais.forEach((row) => {
+    if (!row.participantes) return;
+    row.participantes.forEach((part) => {
+      const existing = totaisPorParticipante.get(part.participanteId) || { aportadoTotal: 0, rendimentoTotal: 0 };
+      totaisPorParticipante.set(part.participanteId, {
+        aportadoTotal: existing.aportadoTotal + part.aporteMensal + part.aportesExtras,
+        rendimentoTotal: existing.rendimentoTotal + part.rendimentoLiquido,
+      });
+    });
+  });
+
   // Usa o snapshot do inicio e os dados acumulados de cada um
   return lastRow.participantes.map((p) => {
-    // Para calcular os totais exatos acumulados até aquele mês, podemos somar as linhas
-    // Mas a API já nos diz o saldo da última linha.
-    // O snapshot nos diz o valor inicial
     const snapshot = result.participantesSnapshot?.find((s) => s.participanteId === p.participanteId);
     const valorInicial = snapshot?.valorInicial ?? 0;
-    
-    // A API só traz o aporte do *mês* na linha, e não o acumulado até aquele mês.
-    // Então, para saber "Aportado Total" até a última linha, vamos varrer os detalhesMensais.
-    let aportadoTotal = 0;
-    let rendimentoTotal = 0;
-    
-    result.detalhesMensais.forEach((row) => {
-      const part = row.participantes?.find((pRow) => pRow.participanteId === p.participanteId);
-      if (part) {
-        aportadoTotal += part.aporteMensal + part.aportesExtras;
-        rendimentoTotal += part.rendimentoLiquido;
-      }
-    });
+    const totais = totaisPorParticipante.get(p.participanteId) || { aportadoTotal: 0, rendimentoTotal: 0 };
 
     return {
       participanteId: p.participanteId,
       nome: p.nome,
       valorInicial,
-      aportadoTotal,
-      rendimentoTotal,
+      aportadoTotal: totais.aportadoTotal,
+      rendimentoTotal: totais.rendimentoTotal,
       saldoFinal: p.saldo,
       percentualDoTotal: (p.saldo / totalAcumuladoGlobal) * 100,
     };
@@ -73,18 +72,13 @@ export function extractChartData(
 ): ChartDataPoint[] {
   if (!result || !result.detalhesMensais) return [];
 
+  // Otimização: calcular acumulado em uma única passagem O(n) em vez de O(n²)
+  let investidoAcumulado = result.valorJaGuardado;
+
   return result.detalhesMensais.map((row) => {
-    // Calculamos o total investido (soma dos aportes até este mês + valor inicial)
-    // Para simplificar, como o chart precisa do total investido acumulado naquela linha,
-    // nós iteramos acumulando (o backend poderia enviar isso pronto no futuro, mas o front pode só somar os inputs)
-    let investidoAcumulado = result.valorJaGuardado;
-    
-    // Varremos até a linha atual para somar aportes
-    for (let i = 0; i <= row.mes; i++) {
-        const r = result.detalhesMensais[i];
-        if (r && i > 0) { // mes 0 não tem aporte, é só saldo inicial
-             investidoAcumulado += r.aporteMensal + r.aportesExtras;
-        }
+    // mes 0 não tem aporte, é só saldo inicial
+    if (row.mes > 0) {
+      investidoAcumulado += row.aporteMensal + row.aportesExtras;
     }
 
     return {

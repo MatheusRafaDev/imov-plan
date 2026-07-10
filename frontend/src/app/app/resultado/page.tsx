@@ -120,11 +120,15 @@ export default function ResultadoPage() {
         </div>
       )}
 
-      <SummaryCards summary={summary} />
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both">
+        <SummaryCards summary={summary} />
+      </div>
 
-      <InvestmentChart data={chartData} summary={summary} />
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
+        <InvestmentChart data={chartData} summary={summary} />
+      </div>
 
-      <div className="grid lg:grid-cols-3 gap-6 pt-4 border-t border-border/40">
+      <div className="grid lg:grid-cols-3 gap-6 pt-4 border-t border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
         <div className="lg:col-span-2 space-y-6">
           <FinancialSummaryCard summary={summary} />
           <ParticipantsCard participantes={participantes} totalAcumulado={summary.totalAcumulado} />
@@ -141,7 +145,7 @@ export default function ResultadoPage() {
         </div>
       </div>
 
-      <div className="pt-8 border-t border-border/40">
+      <div className="pt-8 border-t border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500 fill-mode-both">
         <TabelaMesAMes />
       </div>
     </div>

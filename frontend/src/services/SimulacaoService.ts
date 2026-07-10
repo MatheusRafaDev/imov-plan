@@ -80,6 +80,7 @@ export class SimulacaoService {
     aportesExtras: { pessoaId: string; valor: number; data: string; origem: string }[];
     aportesRegularesEditados?: Record<number, number>;
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
+    cenario?: string;
   }): Promise<BackendSimulacaoResult> {
     const response = await api.post(`/simulacao/${planoId}/calcular`, payload);
     return response.data;

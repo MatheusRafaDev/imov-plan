@@ -389,7 +389,7 @@ function Th({ children, right }: { children?: React.ReactNode; right?: boolean }
 }
 
 function Td({ children, right, className = "", suppressHydrationWarning }: { children?: React.ReactNode; right?: boolean; className?: string; suppressHydrationWarning?: boolean }) {
-  return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-[5px] num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
+  return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-3 num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
 // ─── Seletor de Cenário ───────────────────────────────
@@ -549,7 +549,7 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
               return (
                 <tr
                   key={r.mes}
-                  className={`transition-colors hover:bg-secondary/20 ${r.atingiu && showFinancials ? "bg-primary/10 shadow-[inset_3px_0_0_0_hsl(var(--primary))]" : ""} ${isConcluido && (!r.atingiu || !showFinancials) ? "bg-teal-500/5" : ""} ${r.isExtra && !r.atingiu && !isConcluido ? "bg-accent/5" : ""}`}
+                  className={`transition-colors duration-200 hover:bg-secondary/40 ${r.atingiu && showFinancials ? "bg-primary/10 shadow-[inset_3px_0_0_0_hsl(var(--primary))]" : ""} ${isConcluido && (!r.atingiu || !showFinancials) ? "bg-teal-500/5" : ""} ${r.isExtra && !r.atingiu && !isConcluido ? "bg-accent/5" : ""}`}
                 >
                   <Td className="font-medium">
                     <div className="flex items-center gap-1.5">
@@ -568,7 +568,7 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
                         </button>
                       ) : null}
                       <span className={r.mes === 0 || isConcluido ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground"}>{r.mes}</span>
-                      {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] uppercase font-bold tracking-wider">Meta</span>}
+                      {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] uppercase font-bold tracking-wider shadow-sm">Meta</span>}
                     </div>
                   </Td>
 
@@ -700,23 +700,23 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
               );
             })}
           </tbody>
-          <tfoot className="bg-primary/10 border-t-2 border-primary/30">
+          <tfoot className="bg-primary/5 border-t-2 border-primary/30 backdrop-blur-sm">
             <tr className="font-bold text-foreground">
-              <Td className="bg-primary/20">Total Geral</Td>
-              <Td className="bg-primary/20">{""}</Td>
+              <Td className="bg-primary/5">Total Geral</Td>
+              <Td className="bg-primary/5">{""}</Td>
               {pessoas.map(p => (
-                <Td key={p.id} right className="bg-primary/20">{brl(totals.aportePorPessoa[p.id])}</Td>
+                <Td key={p.id} right className="bg-primary/5">{brl(totals.aportePorPessoa[p.id])}</Td>
               ))}
-              <Td right className="bg-primary/20">{brl(totals.extras)}</Td>
-              <Td right className="bg-primary/20">{brl(totals.totalMes)}</Td>
+              <Td right className="bg-primary/5">{brl(totals.extras)}</Td>
+              <Td right className="bg-primary/5">{brl(totals.totalMes)}</Td>
               {showFinancials && (
                 <>
-                  <Td right className="bg-primary/20 text-muted-foreground">{brl(totals.rendBruto)}</Td>
-                  <Td right className="bg-primary/20 text-muted-foreground/70">{brl(totals.ir)}</Td>
-                  <Td right className="bg-primary/20 text-[#3B6D11] dark:text-[#80B551]">
+                  <Td right className="bg-primary/5 text-muted-foreground">{brl(totals.rendBruto)}</Td>
+                  <Td right className="bg-primary/5 text-muted-foreground/70">{brl(totals.ir)}</Td>
+                  <Td right className="bg-primary/5 text-[#3B6D11] dark:text-[#80B551]">
                     {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                   </Td>
-                  <Td right className="bg-primary/20 py-2">
+                  <Td right className="bg-primary/5 py-2">
                     <div className="flex flex-col items-end gap-1">
                       <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
                       <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
@@ -726,7 +726,7 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
                   </Td>
                 </>
               )}
-              <Td className="bg-primary/20"></Td>
+              <Td className="bg-primary/5"></Td>
             </tr>
           </tfoot>
         </table>

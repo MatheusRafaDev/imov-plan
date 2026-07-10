@@ -11,6 +11,7 @@ namespace ImovPlan.Application.DTOs
         public Dictionary<string, Dictionary<int, decimal>>? AportesRegularesEditadosPorPessoa { get; set; }
         public decimal TaxaCDI { get; set; }
         public decimal PercentualCdi { get; set; } = 100m;
+        public string Cenario { get; set; } = "realista"; // "pessimista", "realista", "otimista"
     }
 
     public class AporteMensalDto

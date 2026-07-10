@@ -14,10 +14,10 @@ interface StatCardProps {
 }
 
 const variantStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
-  default: "bg-card border-border/50",
-  primary: "bg-primary/5 border-border/50",
-  success: "bg-[#3B6D11]/5 border-border/50",
-  muted: "bg-secondary/30 border-border/50",
+  default: "bg-card border-border/40",
+  primary: "bg-primary/5 border-border/40",
+  success: "bg-[#3B6D11]/5 border-border/40",
+  muted: "bg-secondary/30 border-border/40",
 };
 
 const labelStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
@@ -52,7 +52,7 @@ export function StatCard({
 
   return (
     <div
-      className={`p-4 rounded-xl border flex flex-col justify-center ${variantStyles[variant]} ${className}`}
+      className={`p-4 rounded-xl border flex flex-col justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${variantStyles[variant]} ${className}`}
     >
       <div
         className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium mb-2 ${labelStyles[variant]}`}

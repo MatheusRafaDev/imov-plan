@@ -34,7 +34,16 @@ namespace ImovPlan.Application.Services
         {
             var parametros = await _parametrosRepo.GetAtivoAsync();
             var percentualCdi = request.PercentualCdi > 0 ? request.PercentualCdi : planejamento.PercentualCdi ?? parametros.PercentualCdiPadrao;
-            var taxaAnualEfetiva = (request.TaxaCDI / 100m) * (percentualCdi / 100m);
+            
+            decimal cenarioDelta = (request.Cenario?.ToLower()) switch
+            {
+                "pessimista" => -2.0m,
+                "otimista" => 2.0m,
+                _ => 0m
+            };
+            var taxaCdiEfetiva = Math.Max(0, request.TaxaCDI + cenarioDelta);
+
+            var taxaAnualEfetiva = (taxaCdiEfetiva / 100m) * (percentualCdi / 100m);
             var taxaMensal = (decimal)(Math.Pow((double)(1 + taxaAnualEfetiva), 1.0 / 12.0) - 1);
             
             // Fetch participants

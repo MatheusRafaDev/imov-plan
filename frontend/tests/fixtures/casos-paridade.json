@@ -17,7 +17,7 @@
       "meta": 75000,
       "atingiuMeta": true,
       "mesAtingiuMeta": 37,
-      "saldoFinal": 88935.64446595503,
+      "saldoFinal": 88496.49836197323,
       "totalInvestido": 74500
     }
   },
@@ -45,7 +45,7 @@
       "meta": 125000,
       "atingiuMeta": true,
       "mesAtingiuMeta": 6,
-      "saldoFinal": 200476.807104478,
+      "saldoFinal": 200362.27225399498,
       "totalInvestido": 190000
     }
   },
@@ -66,9 +66,9 @@
     "output": {
       "meta": 62500,
       "atingiuMeta": true,
-      "mesAtingiuMeta": 94,
-      "saldoFinal": 67831.27024876539,
-      "totalInvestido": 50000
+      "mesAtingiuMeta": 95,
+      "saldoFinal": 68245.85829343560,
+      "totalInvestido": 50500
     }
   }
 ]

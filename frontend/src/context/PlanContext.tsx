@@ -504,9 +504,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       aportesExtras,
       aportesRegularesEditados,
       aportesRegularesEditadosPorPessoa,
+      cenarioSimulacao,
     });
 
-    if (ultimoCalculoRef.current === hashAtual && backendData) {
+    if (ultimoCalculoRef.current === hashAtual) {
       console.log("calcularBackend: sem alterações, pulando chamada");
       return;
     }
@@ -546,6 +547,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         })),
         aportesRegularesEditados: aportesRegularesEditados,
         aportesRegularesEditadosPorPessoa: aportesRegularesEditadosPorPessoa,
+        cenario: cenarioSimulacao,
       });
 
       setBackendData(result);
@@ -558,7 +560,15 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     } finally {
       setCalculating(false);
     }
-  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, backendData, saveDraft]);
+  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, backendData, saveDraft, cenarioSimulacao]);
+
+  // Recalcula quando o cenário muda
+  useEffect(() => {
+    if (planoId && !planoId.startsWith("local-draft-") && backendData) {
+      calcularBackend();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cenarioSimulacao]);
 
   // Carrega o plano uma vez ao montar
   const inicializado = useRef(false);
