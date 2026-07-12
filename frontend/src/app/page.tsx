@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building2, Calculator, LineChart, Sparkles, Shield, TrendingUp } from "lucide-react";
+import { ArrowRight, Building2, Calculator, LineChart, Sparkles, Shield, TrendingUp, CheckCircle, Clock, Zap } from "lucide-react";
 
 export default function Index() {
   const { user } = useAuth();
@@ -23,6 +23,7 @@ export default function Index() {
         )}
       </header>
 
+      {/* Hero Section */}
       <section className="container grid lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
         <div className="space-y-6 animate-fade-in-up">
           <span className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-accent bg-accent/10 px-3 py-1.5 rounded-full">
@@ -50,6 +51,7 @@ export default function Index() {
             <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> Inteligente</span>
           </div>
         </div>
+        
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-warm blur-3xl opacity-20 rounded-full" />
           <div className="relative rounded-3xl bg-gradient-ink text-primary-foreground p-8 shadow-elevated">
@@ -67,6 +69,7 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Como Funciona Section */}
       <section id="como" className="container py-16 md:py-24 grid md:grid-cols-3 gap-6">
         {[
           { icon: Building2, title: "Defina o imóvel", text: "Valor, % de entrada, prazo e custos extras (ITBI, escritura, registro)." },
@@ -79,6 +82,56 @@ export default function Index() {
             <p className="text-sm text-muted-foreground">{s.text}</p>
           </div>
         ))}
+      </section>
+
+      {/* Mais Informações / Detalhes (Adicionado a pedido do usuário) */}
+      <section className="container py-16 md:py-24 border-t border-border/60">
+        <div className="max-w-3xl mx-auto text-center mb-12">
+          <h2 className="font-display text-4xl mb-4">Tudo que você precisa para tomar a melhor decisão</h2>
+          <p className="text-muted-foreground text-lg">
+            Planejar a compra de um imóvel envolve muitas variáveis. Nossa plataforma cuida da matemática complexa para que você foque apenas no seu objetivo final.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="rounded-2xl bg-card border border-border/60 p-8 shadow-soft">
+            <h3 className="font-display text-2xl mb-4 flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-accent" /> Paridade Matemática Exata
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              Diferente de simuladores comuns que arredondam valores, nosso motor de cálculo foi desenvolvido seguindo as exatas normas do sistema bancário (Price e SAC), garantindo que as projeções reflitam fielmente o mercado.
+            </p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Amortização Constante (SAC) e Prestações Fixas (PRICE)</li>
+              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Cálculo de Imposto de Renda Regressivo sobre investimentos</li>
+              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Rendimento composto via CDI atualizado</li>
+            </ul>
+          </div>
+
+          <div className="rounded-2xl bg-card border border-border/60 p-8 shadow-soft">
+            <h3 className="font-display text-2xl mb-4 flex items-center gap-2">
+              <Clock className="h-6 w-6 text-accent" /> Planejamento Flexível
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              Sabemos que a vida muda. Por isso, você pode adicionar aportes extras anuais, como seu 13º salário, férias ou saques do FGTS, e ver imediatamente o impacto disso na redução do seu tempo de espera.
+            </p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Injeção de valores irregulares (Bônus, PLR)</li>
+              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Composição de renda familiar inteligente</li>
+              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Rascunho salvo em nuvem automaticamente</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Final */}
+      <section className="container py-16 md:py-24 border-t border-border/60 text-center">
+        <h2 className="font-display text-4xl mb-6">Pronto para acelerar seu sonho?</h2>
+        <Button asChild size="lg" className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow h-12 px-10">
+          <Link href={user ? "/app/imovel" : "/auth"}>
+            Iniciar Simulador Agora <Zap className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </section>
 
       <footer className="container py-10 text-xs text-muted-foreground border-t border-border/60 flex items-center justify-between">
