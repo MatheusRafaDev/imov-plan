@@ -33,7 +33,7 @@ export default function Index() {
             O imóvel dos seus sonhos começa <em className="text-accent not-italic">aqui</em>.
           </h1>
           <p className="text-lg text-muted-foreground max-w-lg">
-            Informe o valor do imóvel e descubra exatamente quanto você precisa guardar por mês — com simulação de CDI, IR regressivo e aportes extras.
+            Informe o valor do imóvel e descubra exatamente quanto você precisa guardar por mês com simulação de CDI, IR regressivo e aportes extras.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button asChild size="lg" className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow h-12 px-7">
