@@ -1,82 +1,114 @@
-# Imov.Plan
+<div align="center">
+  <h1>🏡 Imov.Plan</h1>
+  <p><strong>A aplicação definitiva para o seu planejamento de aquisição imobiliária.</strong></p>
+  
+  ![Next JS](https://img.shields.io/badge/Next-black?style=for-the-badge&logo=next.js&logoColor=white)
+  ![.NET](https://img.shields.io/badge/.NET_9-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+  ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
+  ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+</div>
 
-Imov.Plan é uma aplicação completa de planejamento imobiliário que ajuda usuários a simular financiamentos, organizar metas de aquisição de imóveis e entender melhor sua capacidade financeira. 
+<br />
 
-## 🛠 Tecnologias
-
-O projeto é dividido em duas partes principais:
-
-### Frontend
-- **Framework:** Next.js (React)
-- **Estilização:** CSS / TailwindCSS (Visual Premium)
-- **Gerenciamento de Estado:** Context API
-- **Validação de Formulários:** Zod / React Hook Form
-- **Feedback Visual:** Componentes responsivos e com micro-interações para melhor UX.
-
-### Backend
-- **Plataforma:** .NET (C#)
-- **Banco de Dados:** MongoDB
-- **Arquitetura:** Clean Architecture (Domain, Application, Infrastructure, Presentation)
-- **Autenticação:** JWT
-
-## 🚀 Funcionalidades
-
-- **Autenticação de Usuários:** Registro e Login seguros com validação em tempo real e feedback visual amigável.
-- **Perfil Financeiro (Onboarding):** Coleta de dados como Renda Mensal, Regime de Trabalho, Estado Civil e Saldo FGTS, salvos diretamente no banco de dados.
-- **Simulador de Financiamento:**
-  - Inclusão de participantes na composição de renda (sincronizado automaticamente com os dados do usuário logado).
-  - Análise detalhada de capacidade de compra.
-  - Resultados interativos e informativos.
-- **Gestão de Sessões/Drafts:** Suporte para continuar simulações anteriores (via `PlanContext` e DTOs de Draft no backend).
-
-## 📂 Estrutura do Projeto
-
-```bash
-imov-plan/
-├── backend/            # API em .NET
-│   ├── Core/           # Domain & Application (Regras de negócio e DTOs)
-│   ├── Infrastructure/ # Repositórios e conexão com MongoDB
-│   └── Presentation/   # Controladores da API (ex: UsuarioController)
-└── frontend/           # Interface em Next.js
-    └── src/
-        ├── app/        # Páginas da aplicação (auth, onboarding, dashboard, etc.)
-        ├── components/ # Componentes reutilizáveis
-        ├── context/    # Contextos globais (AuthContext, PlanContext)
-        └── services/   # Integrações com a API (ex: UsuarioService)
-```
-
-## ⚙️ Como Executar
-
-### Pré-requisitos
-- Node.js (para o frontend)
-- .NET SDK (para o backend)
-- Instância do MongoDB rodando (local ou na nuvem)
-
-### Rodando o Backend
-1. Navegue até a pasta da API: `cd backend/Presentation/ImovPlan.API`
-2. Restaure as dependências: `dotnet restore`
-3. Inicie o servidor: `dotnet run`
-> *Nota: O backend roda por padrão na porta `5179`.*
-
-### Rodando o Frontend
-1. Navegue até a pasta do frontend: `cd frontend`
-2. Instale as dependências: `npm install`
-3. Inicie o servidor de desenvolvimento: `npm run dev`
-> *Nota: O frontend roda por padrão na porta `3000`.*
-
-## 🧪 Testes e Paridade
-
-O projeto contém testes automatizados para garantir a estabilidade e a paridade de cálculos financeiros entre o Frontend (TypeScript) e o Backend (C#).
-
-Para garantir que a fórmula de simulação seja a mesma em ambos os lados:
-1. Ao alterar qualquer regra em `frontend/src/lib/finance.ts`, gere novamente os cenários de paridade executando: `npx tsx scripts/gerar-casos-paridade.ts` dentro da pasta `frontend/`.
-2. Em seguida, rode os testes do backend para garantir que as mudanças em C# refletem os mesmos resultados: `dotnet test` na pasta do backend.
-
-## 📌 Melhorias Recentes
-
-- **Experiência de Erro Aprimorada:** Substituição de toasts intrusivos por banners amigáveis e bordas vermelhas (`border-destructive`) para melhor orientação do usuário.
-- **Onboarding Financeiro:** Novo fluxo persistente pós-registro para captura de dados complementares (FGTS, salário) integrando diretamente com o MongoDB.
-- **Sincronização:** Participantes do plano imobiliário são inicializados de forma automática com o perfil do usuário recém cadastrado.
+O **Imov.Plan** é uma plataforma inovadora que ajuda você a simular financiamentos (SAC e PRICE), organizar metas de aquisição de imóveis e obter uma avaliação inteligente (IA) baseada nas regras de mercado e no programa Minha Casa Minha Vida (MCMV) para entender sua capacidade real de compra.
 
 ---
-Desenvolvido com foco na melhor experiência de planejamento financeiro para aquisição de imóveis.
+
+## ✨ Destaques e Funcionalidades
+
+- 🧠 **Consultoria Inteligente com IA:** Integração nativa com o **Llama 3.3 70B** via API da Groq para análise automática e customizada do seu perfil financeiro em tempo real (Streaming SSE).
+- 🔄 **Paridade de Cálculos (Front & Back):** Motor de cálculo financeiro robusto construído em TypeScript e C#, garantindo total precisão (Amortizações SAC, PRICE, correções e juros).
+- 💾 **Sessões e Drafts:** Pare de simular quando quiser e continue depois. Tudo fica salvo automaticamente.
+- 👥 **Composição de Renda:** Adicione cônjuges e parentes, inclua variáveis como FGTS e Décimo Terceiro, e o simulador ajustará automaticamente sua capacidade de crédito.
+- 🎨 **Design Premium:** Interface moderna, limpa e altamente responsiva construída com Tailwind CSS. Micro-interações e *glassmorphism* oferecem uma experiência única.
+
+---
+
+## 🛠 Tecnologias e Arquitetura
+
+O Imov.Plan adota uma estrutura de microserviços/monorepo dividida em duas camadas principais:
+
+### 🌐 Frontend (Next.js)
+- **Framework:** Next.js (React) com App Router
+- **Estilização:** TailwindCSS (Focado em UI Premium)
+- **Estado Global:** Context API (`PlanContext`, `AuthContext`)
+- **Comunicação:** Axios e Fetch API nativo para *Server-Sent Events (SSE)* da IA.
+- **Formulários:** React Hook Form integrado com Zod.
+
+### ⚙️ Backend (.NET 9)
+- **Linguagem/Framework:** C# / ASP.NET Core 9
+- **Arquitetura:** Clean Architecture (Core, Domain, Infrastructure, Presentation)
+- **Banco de Dados:** MongoDB via driver oficial C#
+- **Integração de IA:** `GroqAiService` atuando como wrapper para LLMs (Llama 3.3) fornecendo aconselhamento de crédito imobiliário.
+- **Autenticação:** JWT (Json Web Tokens) com *cookies HttpOnly*.
+
+---
+
+## 🚀 Como Rodar Localmente
+
+Siga o passo a passo abaixo para rodar toda a stack no seu ambiente local.
+
+### 📌 Pré-requisitos
+- [Node.js](https://nodejs.org/en/) (v18+)
+- [.NET 9 SDK](https://dotnet.microsoft.com/)
+- [MongoDB](https://www.mongodb.com/) (Instância local ou Atlas)
+
+### 1️⃣ Configurando o Backend
+1. Navegue até o diretório do backend:
+   ```bash
+   cd backend/Presentation/ImovPlan.API
+   ```
+2. Crie ou edite o arquivo `.env` na raiz da pasta `backend/` e adicione suas credenciais:
+   ```env
+   # Exemplo de .env
+   Jwt:Key=SuaChaveSuperSecretaDe32CaracteresAqui
+   MongoDbSettings:ConnectionString=mongodb://localhost:27017
+   MongoDbSettings:DatabaseName=ImovPlanDB
+   Groq:ApiKey=gsk_sua_chave_groq_aqui
+   ```
+3. Restaure as dependências e inicie:
+   ```bash
+   dotnet restore
+   dotnet run
+   ```
+   *A API estará disponível por padrão em `http://localhost:5179`.*
+
+### 2️⃣ Configurando o Frontend
+1. Navegue até o diretório do frontend:
+   ```bash
+   cd frontend
+   ```
+2. Edite o arquivo `.env.local` na pasta `frontend/`:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:5179/api
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
+3. Instale as dependências e inicie o ambiente de desenvolvimento:
+   ```bash
+   npm install
+   npm run dev
+   ```
+   *A interface estará acessível em `http://localhost:3000`.*
+
+---
+
+## 🧪 Testes de Paridade (Garantia de Qualidade)
+
+Para ter certeza de que simulações feitas instantaneamente no lado do cliente (React) baterão centavo por centavo com a persistência no backend (C#), criamos uma rotina de teste de paridade.
+
+1. Se você alterar a regra de juros em `frontend/src/lib/finance.ts`, rode o gerador de casos:
+   ```bash
+   cd frontend
+   npx tsx scripts/gerar-casos-paridade.ts
+   ```
+2. Após o gerador atualizar os casos, vá para a pasta de testes no backend e verifique:
+   ```bash
+   cd backend
+   dotnet test
+   ```
+
+---
+
+<div align="center">
+  <sub>Construído com ❤️ e focado na jornada do comprador de imóveis.</sub>
+</div>
