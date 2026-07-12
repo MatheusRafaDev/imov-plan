@@ -392,35 +392,7 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
   return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-3 num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
-// ─── Seletor de Cenário ───────────────────────────────
-const CENARIOS: { value: CenarioSimulacao; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: "pessimista", label: "Pessimista", icon: <TrendingDown className="h-3.5 w-3.5" />, color: "text-destructive border-destructive/30 bg-destructive/5 data-[active=true]:bg-destructive/15" },
-  { value: "realista",   label: "Realista",   icon: <Minus className="h-3.5 w-3.5" />,        color: "text-foreground border-border/60 bg-secondary/40 data-[active=true]:bg-secondary" },
-  { value: "otimista",   label: "Otimista",   icon: <TrendingUp className="h-3.5 w-3.5" />,   color: "text-success border-success/30 bg-success/5 data-[active=true]:bg-success/15" },
-];
 
-function CenarioSelector({ value, onChange }: { value: CenarioSimulacao; onChange: (v: CenarioSimulacao) => void }) {
-  return (
-    <div className="flex items-center gap-1.5 p-1 rounded-xl border border-border/40 bg-card shadow-sm">
-      {CENARIOS.map(c => (
-        <button
-          key={c.value}
-          type="button"
-          data-active={value === c.value}
-          onClick={() => onChange(c.value)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all duration-150 ${c.color}`}
-        >
-          {c.icon}
-          {c.label}
-          {c.value === "pessimista" && <span className="text-[9px] opacity-70">CDI −2%</span>}
-          {c.value === "otimista"   && <span className="text-[9px] opacity-70">CDI +2%</span>}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// Removido InfeasibilityAlert, movido para o backend ou removido do design
 
 export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true, showCenarioSelector = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
   const {
@@ -511,7 +483,6 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
           <h2 className="font-display text-xl font-light">Tabela mês a mês</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
         </div>
-        {showCenarioSelector && <CenarioSelector value={cenarioSimulacao} onChange={setCenarioSimulacao} />}
       </div>
 
 

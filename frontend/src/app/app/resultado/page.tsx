@@ -125,6 +125,7 @@ export default function ResultadoPage() {
         <ScenarioComparison />
       </div>
 
+
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
         <TabelaMesAMes />
       </div>
