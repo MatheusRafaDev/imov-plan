@@ -27,4 +27,8 @@ export class UsuarioService {
   static async deleteAccount(id: string): Promise<void> {
     await api.delete(`/usuario/${id}`);
   }
+
+  static async changePassword(id: string, senhaAtual: string, novaSenha: string): Promise<void> {
+    await api.patch(`/usuario/${id}/senha`, { senhaAtual, novaSenha });
+  }
 }

@@ -18,15 +18,26 @@ import {
   CheckCircle2,
   Clock,
   Trash2,
-  Download,
-  Shield
+  KeyRound,
+  Eye,
+  EyeOff,
+  ChevronDown
 } from "lucide-react";
 
 export default function PerfilPage() {
   const { user, updateUser, deleteAccount } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [exportLoading, setExportLoading] = useState(false);
+
+  // Alterar senha
+  const [showPasswordCard, setShowPasswordCard] = useState(false);
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmSenha, setConfirmSenha] = useState("");
+  const [showSenhaAtual, setShowSenhaAtual] = useState(false);
+  const [showNovaSenha, setShowNovaSenha] = useState(false);
+  const [showConfirmSenha, setShowConfirmSenha] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -88,24 +99,28 @@ export default function PerfilPage() {
   const totalFields = 3;
   const completionPercent = Math.round((completedFields / totalFields) * 100);
 
-  const handleExportData = async () => {
+  const handleChangePassword = async () => {
     if (!user) return;
-    setExportLoading(true);
+    if (novaSenha !== confirmSenha) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+    if (novaSenha.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    setSavingPassword(true);
     try {
-      const response = await import("@/lib/api").then(m => m.default.get("/usuario/exportar", { responseType: "blob" }));
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/json" }));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `meus-dados-imovplan.json`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("Seus dados foram exportados com sucesso!");
+      await UsuarioService.changePassword(user.id, senhaAtual, novaSenha);
+      toast.success("Senha alterada com sucesso!");
+      setSenhaAtual("");
+      setNovaSenha("");
+      setConfirmSenha("");
+      setShowPasswordCard(false);
     } catch {
-      toast.error("Erro ao exportar dados. Tente novamente.");
+      toast.error("Senha atual incorreta ou erro ao alterar. Tente novamente.");
     } finally {
-      setExportLoading(false);
+      setSavingPassword(false);
     }
   };
 
@@ -159,33 +174,115 @@ export default function PerfilPage() {
             </div>
           </Card>
 
-          {/* LGPD & Account Management */}
-          <Card className="border border-border/50 bg-card p-6 shadow-sm space-y-4 rounded-2xl">
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Shield className="h-4 w-4 text-accent" />
-                Privacidade & LGPD
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Baixe todos os seus dados pessoais e de simulação salvos em nossos servidores.
-              </p>
-            </div>
-            
-            <Button
-              id="btn-exportar-dados"
-              variant="outline"
-              size="sm"
-              className="w-full text-xs rounded-xl"
-              onClick={handleExportData}
-              disabled={exportLoading}
+          {/* Alterar Senha */}
+          <Card className="border border-border/50 bg-card shadow-sm rounded-2xl overflow-hidden">
+            <button
+              id="btn-alterar-senha-toggle"
+              onClick={() => setShowPasswordCard(p => !p)}
+              className="w-full flex items-center justify-between p-5 text-left hover:bg-muted/30 transition-colors"
             >
-              {exportLoading ? (
-                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-3.5 w-3.5 mr-2" />
-              )}
-              {exportLoading ? "Exportando..." : "Exportar Meus Dados (JSON)"}
-            </Button>
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <KeyRound className="h-4 w-4 text-accent" />
+                Alterar Senha
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                  showPasswordCard ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showPasswordCard && (
+              <div className="px-5 pb-5 space-y-3 border-t border-border/40 pt-4">
+                {/* Senha atual */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Senha atual</label>
+                  <div className="relative">
+                    <Input
+                      id="senha-atual"
+                      type={showSenhaAtual ? "text" : "password"}
+                      value={senhaAtual}
+                      onChange={e => setSenhaAtual(e.target.value)}
+                      placeholder="••••••••"
+                      className="h-10 rounded-xl border border-border/70 bg-background pr-10 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSenhaAtual(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showSenhaAtual ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Nova senha */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nova senha</label>
+                  <div className="relative">
+                    <Input
+                      id="nova-senha"
+                      type={showNovaSenha ? "text" : "password"}
+                      value={novaSenha}
+                      onChange={e => setNovaSenha(e.target.value)}
+                      placeholder="••••••••"
+                      className="h-10 rounded-xl border border-border/70 bg-background pr-10 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNovaSenha(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showNovaSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirmar nova senha */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Confirmar nova senha</label>
+                  <div className="relative">
+                    <Input
+                      id="confirmar-senha"
+                      type={showConfirmSenha ? "text" : "password"}
+                      value={confirmSenha}
+                      onChange={e => setConfirmSenha(e.target.value)}
+                      placeholder="••••••••"
+                      className={`h-10 rounded-xl border bg-background pr-10 text-sm ${
+                        confirmSenha && confirmSenha !== novaSenha
+                          ? "border-destructive/60 focus:ring-destructive/20"
+                          : "border-border/70"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmSenha(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showConfirmSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {confirmSenha && confirmSenha !== novaSenha && (
+                    <p className="text-xs text-destructive">As senhas não coincidem.</p>
+                  )}
+                </div>
+
+                <Button
+                  id="btn-salvar-senha"
+                  size="sm"
+                  className="w-full text-xs rounded-xl mt-1"
+                  onClick={handleChangePassword}
+                  disabled={savingPassword || !senhaAtual || !novaSenha || !confirmSenha}
+                >
+                  {savingPassword ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                  ) : (
+                    <KeyRound className="h-3.5 w-3.5 mr-2" />
+                  )}
+                  {savingPassword ? "Salvando..." : "Salvar Nova Senha"}
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* Danger Zone */}
