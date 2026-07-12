@@ -17,7 +17,8 @@ export class ConsultoriaService {
     onChunk: (chunk: string) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const response = await fetch("/api/consultoria/analisar/stream", {
+    const url = `${api.defaults.baseURL}/consultoria/analisar/stream`;
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

@@ -158,6 +158,7 @@ DADOS DO SISTEMA E DO USUÁRIO (JSON):
             }
 
             HttpResponseMessage? response = null;
+            bool hasError = false;
             try
             {
                 var payload = await BuildPayloadAsync(request, stream: true);
@@ -173,15 +174,10 @@ DADOS DO SISTEMA E DO USUÁRIO (JSON):
             }
             catch
             {
-                foreach (var chunk in GetMockResponse().Split(' '))
-                {
-                    if (cancellationToken.IsCancellationRequested) yield break;
-                    yield return chunk + " ";
-                }
-                yield break;
+                hasError = true;
             }
 
-            if (!response.IsSuccessStatusCode)
+            if (hasError || response == null || !response.IsSuccessStatusCode)
             {
                 foreach (var chunk in GetMockResponse().Split(' '))
                 {

@@ -9,6 +9,7 @@ import { navPorCenario } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { SummaryCards } from "./components/SummaryCards";
+
 import { ParticipantsCard } from "./components/ParticipantsCard";
 import { FinancialSummaryCard } from "./components/FinancialSummaryCard";
 import { InvestmentChart } from "./components/InvestmentChart";
@@ -111,6 +112,8 @@ export default function ResultadoPage() {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both">
         <SummaryCards summary={summary} />
       </div>
+
+
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
         <InvestmentChart data={chartData} summary={summary} />
