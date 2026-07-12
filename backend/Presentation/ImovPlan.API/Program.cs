@@ -186,6 +186,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseHttpsRedirection();
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+    if (!context.Request.Host.Host.Contains("localhost"))
+    {
+        context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    }
+    await next();
+});
 app.UseCors("AllowFrontend");
 app.UseRateLimiter();
 app.UseAuthentication();

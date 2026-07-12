@@ -29,7 +29,7 @@ namespace ImovPlan.API.Controllers
         {
             var existing = await _usuarioRepository.GetByEmailAsync(request.Email);
             if (existing != null)
-                return BadRequest(new { message = "Email já cadastrado." });
+                return BadRequest(new { message = "Não foi possível concluir o cadastro. Verifique os dados informados." });
 
             DateTime? parsedNascimento = null;
             if (DateTime.TryParse(request.DataNascimento, out var parsed))
