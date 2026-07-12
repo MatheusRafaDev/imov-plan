@@ -76,9 +76,19 @@ namespace ImovPlan.API.Controllers
 
                 var success = await _planoService.UpdateDraftAsync(id, draftDto, usuarioIdClaim);
                 if (!success)
-                    return NotFound("Plano não encontrado ou não autorizado para atualização.");
+                    return NotFound(new { message = "Plano não encontrado ou não autorizado para atualização." });
 
                 return Ok();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Recurso não encontrado ao atualizar draft: {PlanoId}", id);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Argumento inválido ao atualizar draft: {PlanoId}", id);
+                return BadRequest(new { message = ex.Message });
             }
             catch (System.Exception ex)
             {

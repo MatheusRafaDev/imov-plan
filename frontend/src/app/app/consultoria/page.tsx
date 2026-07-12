@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
@@ -12,31 +12,43 @@ import { ConsultoriaService } from "@/services/ConsultoriaService";
 export default function ConsultoriaPage() {
   const { pessoas, objetivo } = usePlanContext();
   const router = useRouter();
-  
+
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const buildPayload = () => ({
+    pessoas: pessoas.map((p) => ({
+      nome: p.nome,
+      renda_mensal: p.renda_mensal,
+      renda_complementar: p.renda_complementar,
+      gastos_totais_calculados: p.gastos_mensais,
+      usa_gastos_detalhados: p.usar_gastos_detalhados,
+    })),
+    renda_total_bruta: pessoas.reduce(
+      (acc, p) => acc + Number(p.renda_mensal) + Number(p.renda_complementar || 0),
+      0
+    ),
+    imovel: objetivo,
+  });
 
   const requestAI = async () => {
+    // Cancela stream anterior se ainda estiver ativo
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
-    setReport(null);
+    setReport(""); // inicia string vazia para o streaming aparecer progressivamente
+
     try {
-      const data = await ConsultoriaService.analisar({
-        pessoas: pessoas.map(p => ({
-          nome: p.nome,
-          renda_mensal: p.renda_mensal,
-          renda_complementar: p.renda_complementar,
-          gastos_totais_calculados: p.gastos_mensais,
-          usa_gastos_detalhados: p.usar_gastos_detalhados
-        })),
-        renda_total_bruta: pessoas.reduce((acc, p) => acc + Number(p.renda_mensal) + Number(p.renda_complementar || 0), 0),
-        imovel: objetivo
-      });
-      if (data.text) {
-        setReport(data.text);
-      } else {
-        setReport("Houve um erro ao processar sua análise. Tente novamente mais tarde.");
-      }
-    } catch (err) {
+      await ConsultoriaService.analisarStream(
+        buildPayload(),
+        (chunk) => setReport((prev) => (prev ?? "") + chunk),
+        controller.signal
+      );
+    } catch (err: any) {
+      if (err?.name === "AbortError") return; // usuário cancelou
       setReport("Falha de conexão com a IA. Verifique sua rede e tente novamente.");
     } finally {
       setLoading(false);
@@ -73,33 +85,40 @@ export default function ConsultoriaPage() {
         </Card>
       )}
 
-      {loading && (
+      {loading && report === "" && (
         <Card className="p-12 text-center flex flex-col items-center justify-center space-y-6 shadow-soft bg-secondary/10">
           <Loader2 className="h-12 w-12 text-accent animate-spin-smooth" />
           <h3 className="font-display text-xl animate-pulse">A IA está cruzando seus dados com as tabelas bancárias...</h3>
-          <p className="text-sm text-muted-foreground">Isso pode levar alguns segundos.</p>
+          <p className="text-sm text-muted-foreground">O relatório aparecerá em instantes.</p>
         </Card>
       )}
 
-      {report && (
+      {/* Relatório aparece progressivamente enquanto o stream chega */}
+      {report !== null && report !== "" && (
         <div className="space-y-6 animate-fade-in-up">
           <Card className="p-8 shadow-elevated border-l-4 border-l-accent overflow-hidden relative">
             <div className="absolute -right-10 -top-10 opacity-5">
               <Building className="h-64 w-64" />
             </div>
-            
+
             <div className="prose prose-sm md:prose-base dark:prose-invert prose-headings:font-display prose-a:text-accent prose-h3:text-accent prose-strong:font-semibold max-w-none relative z-10">
               <ReactMarkdown>{report}</ReactMarkdown>
+              {/* Cursor piscante enquanto o stream ainda está ativo */}
+              {loading && (
+                <span className="inline-block w-2 h-4 bg-accent ml-0.5 animate-pulse align-middle" />
+              )}
             </div>
-            
-            <div className="mt-8 pt-6 border-t flex flex-wrap gap-4 items-center justify-between">
-              <Button variant="ghost" onClick={requestAI} className="text-muted-foreground">
-                <Sparkles className="mr-2 h-4 w-4" /> Gerar Novamente
-              </Button>
-              <Button size="lg" onClick={() => router.push("/app/bancos")} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
-                Ir para Escolha do Banco <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
+
+            {!loading && (
+              <div className="mt-8 pt-6 border-t flex flex-wrap gap-4 items-center justify-between">
+                <Button variant="ghost" onClick={requestAI} className="text-muted-foreground">
+                  <Sparkles className="mr-2 h-4 w-4" /> Gerar Novamente
+                </Button>
+                <Button size="lg" onClick={() => router.push("/app/bancos")} className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow">
+                  Ir para Escolha do Banco <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       )}

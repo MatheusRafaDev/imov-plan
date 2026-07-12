@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using ImovPlan.Application.DTOs;
@@ -22,18 +26,16 @@ namespace ImovPlan.Infrastructure.Services
         public GroqAiService(HttpClient httpClient, IConfiguration configuration, IFinanciamentoService financiamentoService, IParametrosFinanceirosRepository parametrosRepo)
         {
             _httpClient = httpClient;
-            _httpClient.Timeout = TimeSpan.FromSeconds(15); // Timeout curto para não travar a UX
             _financiamentoService = financiamentoService;
             _parametrosRepo = parametrosRepo;
-            
+
             // Tenta pegar do appsettings (GroqConfig:ApiKey) ou da variável de ambiente GROQ_API_KEY do .env
-            _apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") 
-                      ?? configuration["GroqConfig:ApiKey"] 
+            _apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY")
+                      ?? configuration["GroqConfig:ApiKey"]
                       ?? "";
 
             if (string.IsNullOrEmpty(_apiKey) || _apiKey == "mock-key" || _apiKey.Contains("cole_sua_chave_aqui"))
             {
-                // Key ausente ou padrão
                 _apiKey = "mock";
             }
             else
@@ -42,14 +44,10 @@ namespace ImovPlan.Infrastructure.Services
             }
         }
 
-        public async Task<string> GetConsultoriaAsync(ConsultoriaRequestDto request)
-        {
-            if (_apiKey == "mock")
-            {
-                return GetMockResponse();
-            }
+        // ─── Payload builder ──────────────────────────────────────────────────────
 
-            // Realizar simulação financeira real no backend para passar para a IA
+        private async Task<object> BuildPayloadAsync(ConsultoriaRequestDto request, bool stream)
+        {
             var parametros = await _parametrosRepo.GetAtivoAsync();
             object? simulacoes = null;
             decimal limiteParcela = request.Renda_Total_Bruta * parametros.LimiteComprometimentoRenda;
@@ -67,9 +65,11 @@ namespace ImovPlan.Infrastructure.Services
                 }
             }
 
-            var contextData = new {
+            var contextData = new
+            {
                 Perfil = request,
-                AnaliseFinanceira = new {
+                AnaliseFinanceira = new
+                {
                     LimiteParcela30Porcento = limiteParcela,
                     TaxaJurosEstimada = taxaAplicada,
                     SimulacoesSAC_e_PRICE = simulacoes
@@ -101,41 +101,122 @@ Obrigatório no seu laudo:
 DADOS DO SISTEMA E DO USUÁRIO (JSON):
 " + userDataString;
 
-            var payload = new
+            return new
             {
                 model = "llama-3.3-70b-versatile",
-                messages = new[]
-                {
-                    new { role = "system", content = systemPrompt }
-                },
-                temperature = 0.4
+                messages = new[] { new { role = "system", content = systemPrompt } },
+                temperature = 0.4,
+                stream
             };
+        }
 
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        // ─── Non-streaming (mantido para compatibilidade) ─────────────────────────
+
+        public async Task<string> GetConsultoriaAsync(ConsultoriaRequestDto request)
+        {
+            if (_apiKey == "mock") return GetMockResponse();
 
             try
             {
+                _httpClient.Timeout = TimeSpan.FromSeconds(30);
+                var payload = await BuildPayloadAsync(request, stream: false);
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync("https://api.groq.com/openai/v1/chat/completions", content);
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    return GetMockResponse();
-                }
+                if (!response.IsSuccessStatusCode) return GetMockResponse();
 
                 var responseString = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(responseString);
-                var resultText = doc.RootElement
-                                    .GetProperty("choices")[0]
-                                    .GetProperty("message")
-                                    .GetProperty("content")
-                                    .GetString();
-
-                return resultText ?? string.Empty;
+                return doc.RootElement
+                          .GetProperty("choices")[0]
+                          .GetProperty("message")
+                          .GetProperty("content")
+                          .GetString() ?? string.Empty;
             }
-            catch (Exception)
+            catch
             {
-                // Circuit breaker / fallback em caso de timeout ou erro de rede
                 return GetMockResponse();
+            }
+        }
+
+        // ─── Streaming via SSE ────────────────────────────────────────────────────
+
+        public async IAsyncEnumerable<string> GetConsultoriaStreamAsync(
+            ConsultoriaRequestDto request,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            if (_apiKey == "mock")
+            {
+                // Mock: entrega o fallback em chunks simulados
+                foreach (var chunk in GetMockResponse().Split(' '))
+                {
+                    if (cancellationToken.IsCancellationRequested) yield break;
+                    yield return chunk + " ";
+                    await Task.Delay(30, cancellationToken).ConfigureAwait(false);
+                }
+                yield break;
+            }
+
+            HttpResponseMessage? response = null;
+            try
+            {
+                var payload = await BuildPayloadAsync(request, stream: true);
+                var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions")
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+                };
+
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(TimeSpan.FromSeconds(60));
+
+                response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            }
+            catch
+            {
+                foreach (var chunk in GetMockResponse().Split(' '))
+                {
+                    if (cancellationToken.IsCancellationRequested) yield break;
+                    yield return chunk + " ";
+                }
+                yield break;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                foreach (var chunk in GetMockResponse().Split(' '))
+                {
+                    if (cancellationToken.IsCancellationRequested) yield break;
+                    yield return chunk + " ";
+                }
+                yield break;
+            }
+
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var reader = new StreamReader(stream);
+
+            while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(cancellationToken);
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (!line.StartsWith("data: ")) continue;
+
+                var data = line["data: ".Length..];
+                if (data == "[DONE]") break;
+
+                string? delta = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(data);
+                    var choices = doc.RootElement.GetProperty("choices");
+                    if (choices.GetArrayLength() == 0) continue;
+                    var deltaEl = choices[0].GetProperty("delta");
+                    if (deltaEl.TryGetProperty("content", out var contentEl))
+                        delta = contentEl.GetString();
+                }
+                catch { continue; }
+
+                if (!string.IsNullOrEmpty(delta))
+                    yield return delta;
             }
         }
 

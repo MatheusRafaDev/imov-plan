@@ -69,31 +69,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function initAuth() {
-      if (typeof window !== "undefined") {
-        const storedUser = Cookies.get("user");
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            
-            // Verifica se o usuário existe no banco de dados
-            const response = await api.get(`/usuario/${parsedUser.id}`);
-            const dbUser = response.data;
-            const updatedUser = {
-              id: dbUser.id,
-              email: dbUser.email,
-              name: dbUser.name,
-              dataNascimento: dbUser.dataNascimento
-            };
-            setUser(updatedUser);
-            Cookies.set("user", JSON.stringify(updatedUser), { expires: 7 });
-          } catch (err) {
-            console.error("Erro ao verificar usuário no banco de dados:", err);
-            clearAllData();
-          }
-        } else {
+      if (typeof window === "undefined") return;
+
+      const storedUser = Cookies.get("user");
+      if (!storedUser) {
+        // Sem cookie → garante limpeza e libera a tela imediatamente
+        clearAllData();
+        setLoading(false);
+        return;
+      }
+
+      // 1. Renderização otimista: hidrata o estado imediatamente a partir do cookie
+      //    → a UI já aparece sem esperar o round-trip ao banco
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch {
+        clearAllData();
+        setLoading(false);
+        return;
+      }
+      setLoading(false); // libera a tela antes da revalidação
+
+      // 2. Revalidação em background: confirma com o banco se o token ainda é válido
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const response = await api.get(`/usuario/${parsedUser.id}`);
+        const dbUser = response.data;
+        const updatedUser: User = {
+          id: dbUser.id,
+          email: dbUser.email,
+          name: dbUser.name,
+          dataNascimento: dbUser.dataNascimento,
+        };
+        setUser(updatedUser);
+        Cookies.set("user", JSON.stringify(updatedUser), { expires: 7 });
+      } catch (err: any) {
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          // Token expirado ou inválido → desloga
           clearAllData();
         }
-        setLoading(false);
+        // Erros de rede (5xx, timeout) são não-fatais: mantém o usuário logado
       }
     }
     initAuth();
