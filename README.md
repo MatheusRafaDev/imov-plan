@@ -10,105 +10,39 @@
 
 <br />
 
-O **Imov.Plan** é uma plataforma inovadora que ajuda você a simular financiamentos (SAC e PRICE), organizar metas de aquisição de imóveis e obter uma avaliação inteligente (IA) baseada nas regras de mercado e no programa Minha Casa Minha Vida (MCMV) para entender sua capacidade real de compra.
+O **Imov.Plan** é uma plataforma inovadora projetada para auxiliar futuros compradores na simulação, organização e execução de metas para a aquisição da casa própria. A ferramenta permite não apenas o cálculo preciso de financiamentos, mas o verdadeiro planejamento financeiro, combinando simulações reais (tabelas SAC e PRICE) e composições de renda, garantindo que o usuário compreenda exatamente sua capacidade de compra no longo prazo.
 
 ---
 
 ## ✨ Destaques e Funcionalidades
 
-- 🧠 **Consultoria Inteligente com IA:** Integração nativa com o **Llama 3.3 70B** via API da Groq para análise automática e customizada do seu perfil financeiro em tempo real (Streaming SSE).
-- 🔄 **Paridade de Cálculos (Front & Back):** Motor de cálculo financeiro robusto construído em TypeScript e C#, garantindo total precisão (Amortizações SAC, PRICE, correções e juros).
-- 💾 **Sessões e Drafts:** Pare de simular quando quiser e continue depois. Tudo fica salvo automaticamente.
-- 👥 **Composição de Renda:** Adicione cônjuges e parentes, inclua variáveis como FGTS e Décimo Terceiro, e o simulador ajustará automaticamente sua capacidade de crédito.
-- 🎨 **Design Premium:** Interface moderna, limpa e altamente responsiva construída com Tailwind CSS. Micro-interações e *glassmorphism* oferecem uma experiência única.
+- 🔄 **Paridade de Cálculos Financeiros:** Motor de cálculo unificado entre o Frontend e o Backend. Garante que os números que o usuário vê (como amortizações e projeções de juros) sejam matematicamente exatos.
+- 💾 **Gestão Contínua (Drafts e Sessões):** Ferramenta voltada para um planejamento em longo prazo. Pare a simulação onde quiser, e seus dados e evolução do plano estarão salvos em seu perfil.
+- 👥 **Composição Avançada de Renda:** Capacidade de adicionar múltiplos participantes (cônjuges, familiares), customizando variáveis detalhadas de cada um (como bônus, saldos FGTS e 13º salário) para analisar como isso acelera a meta principal.
+- 🎨 **Experiência de Usuário Elevada:** Design premium inspirado nos melhores produtos do mercado, focado em micro-interações, tipografia clara e fluidez.
 
 ---
 
-## 🛠 Tecnologias e Arquitetura
+## 🛠 Entendendo as Tecnologias
 
-O Imov.Plan adota uma estrutura de microserviços/monorepo dividida em duas camadas principais:
+A stack escolhida para o **Imov.Plan** combina as linguagens e frameworks mais modernos do mercado visando confiabilidade, flexibilidade e performance extrema.
 
-### 🌐 Frontend (Next.js)
-- **Framework:** Next.js (React) com App Router
-- **Estilização:** TailwindCSS (Focado em UI Premium)
-- **Estado Global:** Context API (`PlanContext`, `AuthContext`)
-- **Comunicação:** Axios e Fetch API nativo para *Server-Sent Events (SSE)* da IA.
-- **Formulários:** React Hook Form integrado com Zod.
+### 🌐 Frontend (O que o usuário vê)
+Nossa interface de usuário foi concebida para ser interativa, resiliente e visualmente engajadora.
+- **Next.js (App Router):** Utilizado pela sua robustez em roteamento, SSR (Renderização no Lado do Servidor) e capacidade extrema de indexação (SEO). A base do framework React mais forte atualmente.
+- **Tailwind CSS:** Para a criação de uma UI elegante sem sair do HTML. Garante consistência de componentes, suportando temas avançados e classes utilitárias para um design *glassmorphism* contemporâneo.
+- **Context API & React Hooks:** Faz a gestão de todo o estado dinâmico do simulador financeiro sem a necessidade de bibliotecas pesadas de terceiros (como Redux).
+- **Zod & React Hook Form:** Juntos, oferecem validação síncrona nos formulários complexos da aplicação, provendo um "Type-Safety" ponta a ponta com TypeScript.
 
-### ⚙️ Backend (.NET 9)
-- **Linguagem/Framework:** C# / ASP.NET Core 9
-- **Arquitetura:** Clean Architecture (Core, Domain, Infrastructure, Presentation)
-- **Banco de Dados:** MongoDB via driver oficial C#
-- **Integração de IA:** `GroqAiService` atuando como wrapper para LLMs (Llama 3.3) fornecendo aconselhamento de crédito imobiliário.
-- **Autenticação:** JWT (Json Web Tokens) com *cookies HttpOnly*.
-
----
-
-## 🚀 Como Rodar Localmente
-
-Siga o passo a passo abaixo para rodar toda a stack no seu ambiente local.
-
-### 📌 Pré-requisitos
-- [Node.js](https://nodejs.org/en/) (v18+)
-- [.NET 9 SDK](https://dotnet.microsoft.com/)
-- [MongoDB](https://www.mongodb.com/) (Instância local ou Atlas)
-
-### 1️⃣ Configurando o Backend
-1. Navegue até o diretório do backend:
-   ```bash
-   cd backend/Presentation/ImovPlan.API
-   ```
-2. Crie ou edite o arquivo `.env` na raiz da pasta `backend/` e adicione suas credenciais:
-   ```env
-   # Exemplo de .env
-   Jwt:Key=SuaChaveSuperSecretaDe32CaracteresAqui
-   MongoDbSettings:ConnectionString=mongodb://localhost:27017
-   MongoDbSettings:DatabaseName=ImovPlanDB
-   Groq:ApiKey=gsk_sua_chave_groq_aqui
-   ```
-3. Restaure as dependências e inicie:
-   ```bash
-   dotnet restore
-   dotnet run
-   ```
-   *A API estará disponível por padrão em `http://localhost:5179`.*
-
-### 2️⃣ Configurando o Frontend
-1. Navegue até o diretório do frontend:
-   ```bash
-   cd frontend
-   ```
-2. Edite o arquivo `.env.local` na pasta `frontend/`:
-   ```env
-   NEXT_PUBLIC_API_URL=http://localhost:5179/api
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
-   ```
-3. Instale as dependências e inicie o ambiente de desenvolvimento:
-   ```bash
-   npm install
-   npm run dev
-   ```
-   *A interface estará acessível em `http://localhost:3000`.*
-
----
-
-## 🧪 Testes de Paridade (Garantia de Qualidade)
-
-Para ter certeza de que simulações feitas instantaneamente no lado do cliente (React) baterão centavo por centavo com a persistência no backend (C#), criamos uma rotina de teste de paridade.
-
-1. Se você alterar a regra de juros em `frontend/src/lib/finance.ts`, rode o gerador de casos:
-   ```bash
-   cd frontend
-   npx tsx scripts/gerar-casos-paridade.ts
-   ```
-2. Após o gerador atualizar os casos, vá para a pasta de testes no backend e verifique:
-   ```bash
-   cd backend
-   dotnet test
-   ```
+### ⚙️ Backend (A inteligência por trás)
+Nosso servidor opera sob uma arquitetura de alta escala e com separação rigorosa de responsabilidades.
+- **.NET 9 (C#):** Framework super escalável e performático escolhido pelo seu compilador otimizado (JIT/AOT), ideal para lidar com a alta carga de cálculos financeiros mensais.
+- **Clean Architecture:** O projeto é segmentado em camadas independentes (Core, Domain, Infrastructure e Presentation). Essa arquitetura garante que regras de negócio vitais não se contaminem pelas tecnologias de persistência.
+- **MongoDB:** Banco de dados NoSQL escolhido pela alta flexibilidade na manipulação das diferentes simulações. Documentos JSON facilitam o armazenamento de rascunhos inacabados (*drafts*) que são extremamente mutáveis pelas decisões do usuário.
+- **Autenticação JWT:** Autenticação baseada em *Json Web Tokens*, encapsulados em *cookies HttpOnly*, oferecendo total segurança de sessão contra-ataques XSS na web.
 
 ---
 
 <div align="center">
-  <sub>Construído com ❤️ e focado na jornada do comprador de imóveis.</sub>
+  <sub>Construído com ❤️ e focado em descomplicar a jornada do comprador de imóveis.</sub>
 </div>
