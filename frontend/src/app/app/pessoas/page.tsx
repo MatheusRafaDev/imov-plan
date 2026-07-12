@@ -21,7 +21,7 @@ const generateObjectId = () => {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
-import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check } from "lucide-react";
+import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check, Briefcase, TrendingDown } from "lucide-react";
 
 const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados?: GastoDetalhado[]; gastos_mensais?: number | "" }) => {
   return p.usar_gastos_detalhados 
@@ -107,7 +107,10 @@ export default function PessoasPage() {
     renda_complementar: 0 as number | "", 
     gastos_mensais: 0 as number | "",
     usar_gastos_detalhados: false,
-    gastos_detalhados: [] as GastoDetalhado[]
+    gastos_detalhados: [] as GastoDetalhado[],
+    valorInicial: 0 as number | "",
+    tipoInvestimento: "",
+    aporte_mensal: 0 as number | "",
   });
   const [novoGastoForm, setNovoGastoForm] = useState({ nome: "", valor: 0 as number | "" });
   const [pessoaParaRemover, setPessoaParaRemover] = useState<string | null>(null);
@@ -138,16 +141,39 @@ export default function PessoasPage() {
     setForm({ ...form, gastos_detalhados: newGastos });
   };
 
+  const resetForm = () => ({
+    nome: "",
+    renda_mensal: 0 as number | "",
+    renda_complementar: 0 as number | "",
+    gastos_mensais: 0 as number | "",
+    usar_gastos_detalhados: false,
+    gastos_detalhados: [] as GastoDetalhado[],
+    valorInicial: 0 as number | "",
+    tipoInvestimento: "",
+    aporte_mensal: 0 as number | "",
+  });
+
   const adicionar = () => {
     if (!form.nome) return;
     const gastosTotais = calcularGastos(form);
-    const sobra = Math.max(0, (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais);
-    
-    const allPeople = [...pessoas];
-    const perPerson = (allPeople.length + 1) > 0 ? totalObjetivo / (allPeople.length + 1) : 0;
-    
-    const updatedPeople = allPeople.map(p => ({ ...p, valorInicial: perPerson }));
-    
+    const rendaTotal = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0);
+    const sobra = Math.max(0, rendaTotal - gastosTotais);
+
+    // If the user manually set valorInicial, keep it; otherwise distribute equally
+    const formValorInicial = Number(form.valorInicial) || 0;
+    let novoValorInicial: number;
+    let updatedPeople: Pessoa[];
+
+    if (formValorInicial > 0) {
+      // Keep each person's valorInicial unchanged, new person uses manual value
+      novoValorInicial = formValorInicial;
+      updatedPeople = [...pessoas];
+    } else {
+      const perPerson = totalObjetivo / (pessoas.length + 1);
+      novoValorInicial = perPerson;
+      updatedPeople = pessoas.map(p => ({ ...p, valorInicial: perPerson }));
+    }
+
     const novaPessoa: Pessoa = {
       id: generateObjectId(),
       nome: form.nome,
@@ -156,12 +182,13 @@ export default function PessoasPage() {
       gastos_mensais: form.usar_gastos_detalhados ? gastosTotais : (Number(form.gastos_mensais) || 0),
       usar_gastos_detalhados: form.usar_gastos_detalhados,
       gastos_detalhados: form.gastos_detalhados,
-      aporte_mensal: Math.round(sobra),
-      valorInicial: perPerson,
+      aporte_mensal: Number(form.aporte_mensal) || Math.round(sobra),
+      valorInicial: novoValorInicial,
+      tipoInvestimento: form.tipoInvestimento || undefined,
     };
-    
+
     setPessoas([...updatedPeople, novaPessoa]);
-    setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
+    setForm(resetForm());
     setNovoGastoForm({ nome: "", valor: 0 });
     setShowAddForm(false);
   };
@@ -316,7 +343,7 @@ export default function PessoasPage() {
             <button 
               onClick={() => {
                 setShowAddForm(false);
-                setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
+                setForm(resetForm());
               }}
               className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -418,6 +445,59 @@ export default function PessoasPage() {
                 )}
               </div>
 
+              {/* Já Guardado + Tipo de Investimento + Aporte */}
+              <div className="pt-2 border-t border-border/50 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Já Guardado */}
+                  <div className="bg-accent/5 rounded-xl p-3 border border-accent/10 space-y-2 col-span-2 sm:col-span-1">
+                    <Label className="text-xs font-medium text-accent flex items-center gap-1.5">
+                      <Wallet className="h-3 w-3" /> Já Guardado
+                    </Label>
+                    <MoneyInput
+                      variant="money"
+                      min={0}
+                      value={form.valorInicial}
+                      onChange={(v) => setForm({ ...form, valorInicial: v })}
+                      placeholder="R$ 0"
+                    />
+                    {Number(form.valorInicial) > 0 && (
+                      <div className="space-y-1 pt-1">
+                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Onde está guardado?</Label>
+                        <select
+                          value={form.tipoInvestimento}
+                          onChange={(e) => setForm({ ...form, tipoInvestimento: e.target.value })}
+                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <option value="">Selecione o tipo</option>
+                          <option value="poupanca">Poupança</option>
+                          <option value="cdb_100">CDB (100% CDI)</option>
+                          <option value="cdb_120">CDB 120% CDI</option>
+                          <option value="tesouro_selic">Tesouro Selic</option>
+                          <option value="lci_lca">LCI / LCA</option>
+                          <option value="fundo_di">Fundo DI</option>
+                          <option value="conta_corrente">Conta Corrente</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Aporte Mensal */}
+                  <div className="bg-primary/5 rounded-xl p-3 border border-primary/10 space-y-2 col-span-2 sm:col-span-1">
+                    <Label className="text-xs font-medium text-primary flex items-center gap-1.5">
+                      <TrendingDown className="h-3 w-3 rotate-180" /> Aporte Mensal
+                    </Label>
+                    <MoneyInput
+                      variant="money"
+                      min={0}
+                      value={form.aporte_mensal}
+                      onChange={(v) => setForm({ ...form, aporte_mensal: v })}
+                      placeholder="Automático"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Deixe em branco para usar a sobra mensal.</p>
+                  </div>
+                </div>
+              </div>
+
               {form.nome && (
                 <div className={`p-3 rounded-xl flex justify-between items-center transition-colors ${sobraForm >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                   <span className="text-xs font-medium uppercase tracking-wider">Sobra Estimada</span>
@@ -430,7 +510,7 @@ export default function PessoasPage() {
               <Button 
                 onClick={() => {
                   setShowAddForm(false);
-                  setForm({ nome: "", renda_mensal: 0, renda_complementar: 0, gastos_mensais: 0, usar_gastos_detalhados: false, gastos_detalhados: [] });
+                  setForm(resetForm());
                 }} 
                 variant="outline" 
                 className="flex-1"
