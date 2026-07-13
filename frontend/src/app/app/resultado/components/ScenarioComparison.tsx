@@ -49,10 +49,10 @@ export function ScenarioComparison() {
     const isSelected = cenario === cenarioSimulacao;
 
     return (
-      <Card 
+      <Card
         key={cenario}
         onClick={() => setCenarioSimulacao(cenario)}
-        className={`p-5 flex flex-col gap-3 relative overflow-hidden transition-all duration-300 cursor-pointer ${isSelected ? "border-accent ring-1 ring-accent/20 bg-accent/10 shadow-md scale-[1.02]" : "border-border/50 bg-secondary/10 hover:bg-secondary/20 hover:border-accent/40"}`}
+        className={`p-6 flex flex-col gap-4 relative overflow-hidden transition-all duration-300 cursor-pointer rounded-xl ${isSelected ? "border-accent ring-2 ring-accent/30 bg-card shadow-md scale-[1.02]" : "border-border/50 bg-card hover:border-accent/40"}`}
       >
         {isSelected && (
           <div className="absolute top-0 right-0 bg-accent text-accent-foreground text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg">
@@ -60,18 +60,20 @@ export function ScenarioComparison() {
           </div>
         )}
         <div>
-          <h3 className="font-display font-medium text-lg">{label}</h3>
-          <p className="text-xs text-muted-foreground">{desc}</p>
+          <h3 className="font-display font-semibold text-xl">{label}</h3>
+          <p className="text-xs text-muted-foreground mt-1">{desc}</p>
         </div>
-        
-        <div className="grid grid-cols-2 gap-4 mt-2">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Tempo p/ Meta</p>
-            <p className="font-semibold text-lg num">{r.mesAtingiuMeta !== undefined ? `${r.mesAtingiuMeta} meses` : "Não atinge"}</p>
+
+        <div className="space-y-3">
+          <div className="flex justify-between items-center py-2 border-b border-border/30">
+            <span className="text-xs text-muted-foreground">Tempo p/ Meta</span>
+            <span className={`font-semibold text-sm ${r.mesAtingiuMeta !== undefined ? "text-foreground" : "text-muted-foreground"}`}>
+              {r.mesAtingiuMeta !== undefined ? `${r.mesAtingiuMeta} meses` : "Não atinge"}
+            </span>
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Lucro c/ Juros</p>
-            <p className="font-semibold text-lg text-success num">{brl(r.lucroLiquido)}</p>
+          <div className="flex justify-between items-center py-2">
+            <span className="text-xs text-muted-foreground">Lucro c/ Juros</span>
+            <span className="font-semibold text-sm text-success">{brl(r.lucroLiquido)}</span>
           </div>
         </div>
       </Card>

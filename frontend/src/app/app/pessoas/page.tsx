@@ -59,13 +59,25 @@ export default function PessoasPage() {
     }
   }, [planoId, objetivo, cenario, router]);
 
-  // Pre-load distribution (50/50) if values are 0 (e.g., old drafts)
+  // Distribute valorInicial based on income proportion (profile-based)
   useEffect(() => {
     if (pessoas.length > 0 && totalObjetivo > 0) {
       const sum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
       if (sum === 0) {
-        const perPerson = totalObjetivo / pessoas.length;
-        setPessoas(prev => prev.map(p => ({ ...p, valorInicial: perPerson })));
+        // Calculate total income across all people
+        const totalRenda = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
+        if (totalRenda > 0) {
+          // Distribute based on income proportion
+          setPessoas(prev => prev.map(p => {
+            const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
+            const proporcao = rendaPessoa / totalRenda;
+            return { ...p, valorInicial: totalObjetivo * proporcao };
+          }));
+        } else {
+          // Fallback to equal distribution if no income
+          const perPerson = totalObjetivo / pessoas.length;
+          setPessoas(prev => prev.map(p => ({ ...p, valorInicial: perPerson })));
+        }
       }
     }
   }, [pessoas.length, totalObjetivo, setPessoas]);
@@ -119,26 +131,53 @@ export default function PessoasPage() {
 
   const adicionarGastoForm = () => {
     if (!novoGastoForm.nome || !novoGastoForm.valor) return;
+    const newGastos = [
+      ...form.gastos_detalhados,
+      { id: Math.random().toString(), nome: novoGastoForm.nome, valor: Number(novoGastoForm.valor) || 0 }
+    ];
+    const gastosTotais = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
+    const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais;
     setForm({
       ...form,
-      gastos_detalhados: [
-        ...form.gastos_detalhados,
-        { id: Math.random().toString(), nome: novoGastoForm.nome, valor: Number(novoGastoForm.valor) || 0 }
-      ]
+      gastos_detalhados: newGastos,
+      aporte_mensal: Math.max(0, novaSobra)
     });
     setNovoGastoForm({ nome: "", valor: 0 });
   };
 
   const removerGastoForm = (id: string) => {
+    const newGastos = form.gastos_detalhados.filter(g => g.id !== id);
+    const gastosTotais = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
+    const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais;
     setForm({
       ...form,
-      gastos_detalhados: form.gastos_detalhados.filter(g => g.id !== id)
+      gastos_detalhados: newGastos,
+      aporte_mensal: Math.max(0, novaSobra)
     });
   };
 
   const atualizarGastoForm = (gId: string, patch: Partial<GastoDetalhado>) => {
     const newGastos = form.gastos_detalhados.map(g => g.id === gId ? { ...g, ...patch } : g);
-    setForm({ ...form, gastos_detalhados: newGastos });
+    const gastosTotais = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
+    const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais;
+    setForm({ ...form, gastos_detalhados: newGastos, aporte_mensal: Math.max(0, novaSobra) });
+  };
+
+  const handleUpdateRendaForm = (field: 'renda_mensal' | 'renda_complementar', value: number | "") => {
+    const numValue = value === "" ? 0 : value;
+    const gastosTotais = form.usar_gastos_detalhados
+      ? form.gastos_detalhados.reduce((acc, g) => acc + Number(g.valor), 0)
+      : Number(form.gastos_mensais || 0);
+    const novaSobra = (field === 'renda_mensal' ? numValue : Number(form.renda_mensal || 0)) +
+                      (field === 'renda_complementar' ? numValue : Number(form.renda_complementar || 0)) -
+                      gastosTotais;
+    setForm({ ...form, [field]: numValue, aporte_mensal: Math.max(0, novaSobra) });
+  };
+
+  const handleUpdateGastosDiretosForm = (value: number | "") => {
+    const numValue = value === "" ? 0 : value;
+    const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - numValue;
+    setForm({ ...form, gastos_mensais: numValue, aporte_mensal: Math.max(0, novaSobra) });
   };
 
   const resetForm = () => ({
@@ -159,17 +198,30 @@ export default function PessoasPage() {
     const rendaTotal = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0);
     const sobra = Math.max(0, rendaTotal - gastosTotais);
 
-    // If the user manually set valorInicial, keep it; otherwise distribute equally
+    // If the user manually set valorInicial, add it to total and redistribute
     const formValorInicial = Number(form.valorInicial) || 0;
     let novoValorInicial: number;
     let updatedPeople: Pessoa[];
 
-    if (formValorInicial > 0) {
-      // Keep each person's valorInicial unchanged, new person uses manual value
-      novoValorInicial = formValorInicial;
-      updatedPeople = [...pessoas];
+    // Calculate total income including new person
+    const totalRendaAtual = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
+    const totalRendaNova = totalRendaAtual + rendaTotal;
+
+    // If manual value is set, add it to the total objective
+    const novoTotalObjetivo = formValorInicial > 0 ? totalObjetivo + formValorInicial : totalObjetivo;
+
+    if (totalRendaNova > 0) {
+      // Distribute based on income proportion
+      const proporcaoNovaPessoa = rendaTotal / totalRendaNova;
+      novoValorInicial = novoTotalObjetivo * proporcaoNovaPessoa;
+      updatedPeople = pessoas.map(p => {
+        const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
+        const proporcao = rendaPessoa / totalRendaNova;
+        return { ...p, valorInicial: novoTotalObjetivo * proporcao };
+      });
     } else {
-      const perPerson = totalObjetivo / (pessoas.length + 1);
+      // Fallback to equal distribution if no income
+      const perPerson = novoTotalObjetivo / (pessoas.length + 1);
       novoValorInicial = perPerson;
       updatedPeople = pessoas.map(p => ({ ...p, valorInicial: perPerson }));
     }
@@ -200,9 +252,27 @@ export default function PessoasPage() {
   const efetivarRemocao = () => {
     if (pessoaParaRemover) {
       const remainingPeople = pessoas.filter((p) => p.id !== pessoaParaRemover);
-      const perPerson = remainingPeople.length > 0 ? totalObjetivo / remainingPeople.length : 0;
-      
-      setPessoas(remainingPeople.map(p => ({ ...p, valorInicial: perPerson })));
+
+      if (remainingPeople.length > 0) {
+        // Calculate total income of remaining people
+        const totalRenda = remainingPeople.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
+
+        if (totalRenda > 0) {
+          // Distribute based on income proportion
+          setPessoas(remainingPeople.map(p => {
+            const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
+            const proporcao = rendaPessoa / totalRenda;
+            return { ...p, valorInicial: totalObjetivo * proporcao };
+          }));
+        } else {
+          // Fallback to equal distribution if no income
+          const perPerson = totalObjetivo / remainingPeople.length;
+          setPessoas(remainingPeople.map(p => ({ ...p, valorInicial: perPerson })));
+        }
+      } else {
+        setPessoas(remainingPeople);
+      }
+
       setPessoaParaRemover(null);
     }
   };
@@ -212,21 +282,39 @@ export default function PessoasPage() {
       const arr = [...prev];
       const idx = arr.findIndex(p => p.id === pId);
       if (idx === -1) return prev;
-      
+
       const updated = { ...arr[idx], ...patch };
-      
+
       if (updated.usar_gastos_detalhados && patch.gastos_detalhados !== undefined) {
         updated.gastos_mensais = calcularGastos(updated);
       } else if (patch.usar_gastos_detalhados !== undefined) {
         updated.gastos_mensais = calcularGastos(updated);
       }
-      
+
       if (patch.valorInicial !== undefined) {
-         updated.valorInicial = patch.valorInicial;
-         const newSum = arr.reduce((s, p, i) => s + (i === idx ? patch.valorInicial! : (p.valorInicial || 0)), 0);
-         setObjetivo(prev => prev ? { ...prev, valorJaGuardado: newSum } : null);
+        const novoValor = patch.valorInicial;
+        const valorAntigo = arr[idx].valorInicial || 0;
+
+        // Update the person's valorInicial first
+        updated.valorInicial = novoValor;
+
+        // Calculate new total
+        const newSum = arr.reduce((s, p, i) => s + (i === idx ? novoValor : (p.valorInicial || 0)), 0);
+        setObjetivo(prev => prev ? { ...prev, valorJaGuardado: newSum } : null);
+
+        // Redistribute based on income proportions (create new array to avoid mutation issues)
+        const totalRenda = arr.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
+        if (totalRenda > 0) {
+          const newArr = arr.map((p, i) => {
+            const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
+            const proporcao = rendaPessoa / totalRenda;
+            const novoValorInicial = newSum * proporcao;
+            return i === idx ? { ...p, ...patch, valorInicial: novoValorInicial } : { ...p, valorInicial: novoValorInicial };
+          });
+          return newArr;
+        }
       }
-      
+
       arr[idx] = updated;
       return arr;
     });
@@ -366,12 +454,12 @@ export default function PessoasPage() {
                 <div>
                   <Label className="text-xs">Renda Principal</Label>
                   <MoneyInput variant="money" min={0} value={form.renda_mensal}
-                    onChange={(v) => setForm({ ...form, renda_mensal: v })} placeholder="Salário" />
+                    onChange={(v) => handleUpdateRendaForm('renda_mensal', v)} placeholder="Salário" />
                 </div>
                 <div>
                   <Label className="text-xs">Renda Extra</Label>
                   <MoneyInput variant="money" min={0} value={form.renda_complementar}
-                    onChange={(v) => setForm({ ...form, renda_complementar: v })} placeholder="Freelance, etc" />
+                    onChange={(v) => handleUpdateRendaForm('renda_complementar', v)} placeholder="Freelance, etc" />
                 </div>
               </div>
 
@@ -379,14 +467,30 @@ export default function PessoasPage() {
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-sm font-medium">Como informar as despesas?</Label>
                   <div className="flex bg-secondary rounded-lg p-1">
-                    <button 
-                      onClick={() => setForm({ ...form, usar_gastos_detalhados: false })}
+                    <button
+                      onClick={() => {
+                        const novoModo = false;
+                        setForm({ ...form, usar_gastos_detalhados: novoModo });
+                        const gastosTotais = novoModo
+                          ? form.gastos_detalhados.reduce((acc, g) => acc + Number(g.valor), 0)
+                          : Number(form.gastos_mensais || 0);
+                        const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais;
+                        setForm(prev => ({ ...prev, aporte_mensal: Math.max(0, novaSobra) }));
+                      }}
                       className={`text-xs px-3 py-1.5 rounded-md transition-colors ${!form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
                     >
                       Valor Direto
                     </button>
-                    <button 
-                      onClick={() => setForm({ ...form, usar_gastos_detalhados: true })}
+                    <button
+                      onClick={() => {
+                        const novoModo = true;
+                        setForm({ ...form, usar_gastos_detalhados: novoModo });
+                        const gastosTotais = novoModo
+                          ? form.gastos_detalhados.reduce((acc, g) => acc + Number(g.valor), 0)
+                          : Number(form.gastos_mensais || 0);
+                        const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais;
+                        setForm(prev => ({ ...prev, aporte_mensal: Math.max(0, novaSobra) }));
+                      }}
                       className={`text-xs px-3 py-1.5 rounded-md transition-colors ${form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
                     >
                       Detalhado
@@ -398,7 +502,7 @@ export default function PessoasPage() {
                   <div>
                     <Label className="text-xs">Despesas Mensais (Total)</Label>
                     <MoneyInput variant="money" min={0} value={form.gastos_mensais}
-                      onChange={(v) => setForm({ ...form, gastos_mensais: v })} placeholder="Contas, lazer..." />
+                      onChange={(v) => handleUpdateGastosDiretosForm(v)} placeholder="Contas, lazer..." />
                   </div>
                 ) : (
                   <div className="space-y-3 bg-secondary/30 p-3 rounded-xl border border-border/50">
@@ -470,12 +574,7 @@ export default function PessoasPage() {
                         >
                           <option value="">Selecione o tipo</option>
                           <option value="poupanca">Poupança</option>
-                          <option value="cdb_100">CDB (100% CDI)</option>
-                          <option value="cdb_120">CDB 120% CDI</option>
-                          <option value="tesouro_selic">Tesouro Selic</option>
-                          <option value="lci_lca">LCI / LCA</option>
-                          <option value="fundo_di">Fundo DI</option>
-                          <option value="conta_corrente">Conta Corrente</option>
+                          <option value="cdb_100">CDB 100%</option>
                         </select>
                       </div>
                     )}

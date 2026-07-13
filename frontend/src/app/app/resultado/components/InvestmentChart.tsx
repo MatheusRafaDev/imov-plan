@@ -153,7 +153,7 @@ export function InvestmentChart({ data, summary }: InvestmentChartProps) {
   );
 
   return (
-    <Card className="p-6 border-border/50">
+    <Card className="p-6 border-border/50 rounded-xl">
       {/* Header com legenda inline */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-display text-lg font-medium">Projeção de Crescimento</h3>

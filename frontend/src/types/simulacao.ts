@@ -3,7 +3,6 @@
 // O frontend NUNCA recalcula valores financeiros — apenas exibe o que a API retorna.
 
 import type { BackendSimulacaoResult, BackendDetalheMensal, BackendEvolucaoMensalParticipante } from "@/services/SimulacaoService";
-import type { ProjecaoResult } from "@/utils/projecaoAuxiliar";
 
 // Re-export for convenience
 export type { BackendSimulacaoResult, BackendDetalheMensal, BackendEvolucaoMensalParticipante };
@@ -30,8 +29,6 @@ export interface SimulacaoSummary {
   mesesParaAtingir: number;
   dataPrevistaAlvo: string;
   falta: number;
-  /** Projeção auxiliar calculada no frontend quando atingiuMeta = false */
-  projecaoDataMeta: ProjecaoResult;
 }
 
 /** Dado de uma linha do gráfico */

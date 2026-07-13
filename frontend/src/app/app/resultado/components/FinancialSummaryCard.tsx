@@ -14,7 +14,7 @@ export function FinancialSummaryCard({ summary }: FinancialSummaryCardProps) {
   if (!summary) return null;
 
   return (
-    <Card className="p-6 border-border/50">
+    <Card className="p-6 border-border/50 rounded-xl">
       <div className="flex items-center gap-2 mb-6">
         <Wallet className="w-5 h-5 text-muted-foreground" />
         <h3 className="font-display text-lg font-medium">Resumo Financeiro</h3>

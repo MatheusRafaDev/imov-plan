@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
 import { usePlanContext, type Pessoa } from "@/context/PlanContext";
 import { brl, mesesEntre, type Aporte } from "@/lib/finance";
+import { formatDate } from "@/utils/formatters";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,8 +66,15 @@ export default function PlanejamentoPage() {
   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
   // Usa os dados do backend se disponíveis, senão não exibe estimativa
   const mesesEstimados = backendData?.mesesParaAtingir ?? null;
+  const atingiuMeta = backendData?.atingiuMeta ?? false;
   const foraDoPrazo = mesesEstimados !== null && prazoMeses > 0 && mesesEstimados > prazoMeses;
-  const aporteAjustado = backendData && !backendData.atingiuMeta ? backendData.aporteMensalTotal : 0;
+
+  // Calcula aporte necessário para atingir a meta no prazo (sem considerar juros para simplificar)
+  const faltaParaMeta = meta - totalGuardado;
+  const aporteNecessario = faltaParaMeta > 0 && prazoMeses > 0 ? faltaParaMeta / prazoMeses : 0;
+
+  // Usa a data projetada do backend para atingir a meta com aportes atuais
+  const dataAlcancavel = backendData?.dataPrevistaAlvo ? new Date(backendData.dataPrevistaAlvo) : null;
 
   const progressoPercent = Math.min(100, meta > 0 ? (totalGuardado / meta) * 100 : 0);
 
@@ -121,17 +129,34 @@ export default function PlanejamentoPage() {
           <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="font-semibold mb-1">Atenção ao seu prazo</p>
-            <p>Mantendo o ritmo atual, a meta será atingida em {mesesEstimados} meses, acima do prazo escolhido ({prazoMeses} meses). Para atingir o objetivo no prazo, o aporte necessário é de <strong>{brl(aporteAjustado)}</strong> por mês.</p>
+            <p>Mantendo o ritmo atual, a meta será atingida em {mesesEstimados} meses, acima do prazo escolhido ({prazoMeses} meses). Considere aumentar os aportes mensais ou adicionar aportes extras.</p>
           </div>
         </div>
       )}
 
       {/* Top Cards */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <Card className={`p-6 border-border/50 flex flex-col justify-center items-center text-center ${foraDoPrazo ? 'bg-destructive/5' : 'bg-primary/5'}`}>
+        <Card className={`p-6 border-border/50 flex flex-col justify-center items-center text-center rounded-xl ${!atingiuMeta || foraDoPrazo ? 'bg-destructive/5 border-destructive/30' : 'bg-success/5 border-success/30'}`}>
           <p className="text-sm font-medium text-muted-foreground mb-2">Tempo estimado</p>
-          <p className={`font-display text-6xl num ${foraDoPrazo ? 'text-destructive' : 'text-primary'}`}>{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
+          <p className={`font-display text-6xl num ${!atingiuMeta || foraDoPrazo ? 'text-destructive' : 'text-success'}`}>{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
           <p className="text-sm text-muted-foreground mt-2">{mesesEstimados ? "meses" : "Indefinido"}</p>
+          {mesesEstimados && (
+            <div className="mt-4 pt-4 border-t border-border/20 w-full">
+              {!atingiuMeta || foraDoPrazo ? (
+                <>
+                  <p className="text-xs text-destructive font-medium mb-1">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses} meses)` : ""}</p>
+                  <p className="text-xs text-muted-foreground">Aporte atual: <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span></p>
+                  <p className="text-xs text-muted-foreground mt-1">Necessário: <span className="font-semibold text-destructive">{brl(aporteNecessario)}/mês</span></p>
+     
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-success font-medium mb-1">Meta atingível no prazo</p>
+                  <p className="text-xs text-muted-foreground">Aporte atual: <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span></p>
+                </>
+              )}
+            </div>
+          )}
         </Card>
 
         <Card className="p-6 border-border/50 flex flex-col justify-center">
@@ -159,7 +184,7 @@ export default function PlanejamentoPage() {
             {pessoas.map(p => (
               <div key={p.id} className="flex justify-between text-sm items-center border-b border-border/40 pb-2 last:border-0 last:pb-0">
                 <span className="text-muted-foreground">{p.nome}</span>
-                <span className="num font-medium bg-background px-2 py-1 rounded-md border border-border/50">{brl(Number(p.aporte_mensal || 0))}</span>
+                <span className="num font-medium">{brl(Number(p.aporte_mensal || 0))}</span>
               </div>
             ))}
           </div>

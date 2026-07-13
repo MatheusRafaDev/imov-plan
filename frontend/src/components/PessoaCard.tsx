@@ -43,18 +43,39 @@ export default function PessoaCard({
   const handleAddGasto = () => {
     if (!novoGasto.nome || !novoGasto.valor) return;
     const newGastos = [...(p.gastos_detalhados || []), { id: Math.random().toString(), nome: novoGasto.nome, valor: novoGasto.valor }];
-    atualizarPessoa(p.id, { gastos_detalhados: newGastos });
+    const updatedGastos = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
+    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - updatedGastos;
+    atualizarPessoa(p.id, { gastos_detalhados: newGastos, aporte_mensal: Math.max(0, novaSobra) });
     setNovoGasto({ nome: "", valor: 0 });
   };
 
   const handleRemoveGasto = (id: string) => {
     const newGastos = (p.gastos_detalhados || []).filter(g => g.id !== id);
-    atualizarPessoa(p.id, { gastos_detalhados: newGastos });
+    const updatedGastos = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
+    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - updatedGastos;
+    atualizarPessoa(p.id, { gastos_detalhados: newGastos, aporte_mensal: Math.max(0, novaSobra) });
   };
 
   const handleUpdateGasto = (gId: string, patch: Partial<GastoDetalhado>) => {
     const newGastos = (p.gastos_detalhados || []).map(g => g.id === gId ? { ...g, ...patch } : g);
-    atualizarPessoa(p.id, { gastos_detalhados: newGastos });
+    const updatedGastos = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
+    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - updatedGastos;
+    atualizarPessoa(p.id, { gastos_detalhados: newGastos, aporte_mensal: Math.max(0, novaSobra) });
+  };
+
+  const handleUpdateRenda = (field: 'renda_mensal' | 'renda_complementar', value: number) => {
+    const gastosTotais = p.usar_gastos_detalhados
+      ? (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor), 0)
+      : Number(p.gastos_mensais || 0);
+    const novaSobra = (field === 'renda_mensal' ? value : Number(p.renda_mensal)) +
+                      (field === 'renda_complementar' ? value : Number(p.renda_complementar || 0)) -
+                      gastosTotais;
+    atualizarPessoa(p.id, { [field]: value, aporte_mensal: Math.max(0, novaSobra) });
+  };
+
+  const handleUpdateGastosDiretos = (value: number) => {
+    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - value;
+    atualizarPessoa(p.id, { gastos_mensais: value, aporte_mensal: Math.max(0, novaSobra) });
   };
 
   if (!isEditing) {
@@ -220,11 +241,11 @@ export default function PessoaCard({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Principal</Label>
-              <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => atualizarPessoa(p.id, { renda_mensal: v === "" ? 0 : v })} className="bg-background" />
+              <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => handleUpdateRenda('renda_mensal', v === "" ? 0 : v)} className="bg-background" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Extra</Label>
-              <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)} onChange={v => atualizarPessoa(p.id, { renda_complementar: v === "" ? 0 : v })} className="bg-background" />
+              <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)} onChange={v => handleUpdateRenda('renda_complementar', v === "" ? 0 : v)} className="bg-background" />
             </div>
           </div>
         </div>
@@ -235,7 +256,15 @@ export default function PessoaCard({
             <p className="text-[10px] uppercase tracking-widest text-destructive/80 font-medium flex items-center gap-1.5">
               <TrendingDown className="h-3 w-3" /> Despesas
             </p>
-            <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5 bg-background/50 hover:bg-background" onClick={() => atualizarPessoa(p.id, { usar_gastos_detalhados: !p.usar_gastos_detalhados })}>
+            <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5 bg-background/50 hover:bg-background" onClick={() => {
+              const novoModo = !p.usar_gastos_detalhados;
+              atualizarPessoa(p.id, { usar_gastos_detalhados: novoModo });
+              const gastosTotais = novoModo
+                ? (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor), 0)
+                : Number(p.gastos_mensais || 0);
+              const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - gastosTotais;
+              atualizarPessoa(p.id, { aporte_mensal: Math.max(0, novaSobra) });
+            }}>
               {p.usar_gastos_detalhados ? "Usar Valor Direto" : "Detalhar Gastos"}
             </Button>
           </div>
@@ -243,7 +272,7 @@ export default function PessoaCard({
           {!p.usar_gastos_detalhados ? (
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Despesa Mensal Total</Label>
-              <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)} onChange={v => atualizarPessoa(p.id, { gastos_mensais: v === "" ? 0 : v })} className="bg-background" />
+              <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)} onChange={v => handleUpdateGastosDiretos(v === "" ? 0 : v)} className="bg-background" />
             </div>
           ) : (
             <div className="space-y-3">
@@ -306,7 +335,7 @@ export default function PessoaCard({
                 >
                   <option value="">Selecione o tipo</option>
                   <option value="poupanca">Poupança</option>
-                  <option value="cdb_100">CDB (100% CDI)</option>
+                  <option value="cdb_100">CDB 100%</option>
                 </select>
 
               </div>
