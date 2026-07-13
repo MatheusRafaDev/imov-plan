@@ -48,12 +48,10 @@ namespace ImovPlan.Application.Validators
     {
         public PlanoDraftDtoValidator()
         {
-            RuleFor(x => x.Objetivo).NotNull().WithMessage("O objetivo é obrigatório.");
             When(x => x.Objetivo != null, () => {
                 RuleFor(x => x.Objetivo!).SetValidator(new ObjetivoDraftDtoValidator());
             });
             
-            RuleFor(x => x.Pessoas).NotEmpty().WithMessage("Ao menos uma pessoa deve ser informada no plano.");
             RuleForEach(x => x.Pessoas).SetValidator(new PessoaDraftDtoValidator());
             
             RuleForEach(x => x.AportesExtras).SetValidator(new AporteExtraDraftDtoValidator());

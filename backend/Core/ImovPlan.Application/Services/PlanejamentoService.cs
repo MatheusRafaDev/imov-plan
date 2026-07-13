@@ -195,7 +195,7 @@ namespace ImovPlan.Application.Services
             }
 
             // ── Upsert Participantes ──
-            if (draftDto.Pessoas != null && draftDto.Pessoas.Count > 0)
+            if (draftDto.Pessoas != null)
             {
                 // Load existing people for this plan
                 var existingPlanParticipantes = (await _participanteRepo.GetByPlanejamentoIdAsync(id)).ToList();
