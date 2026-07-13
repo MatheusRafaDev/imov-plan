@@ -28,6 +28,8 @@ export default function PerfilPage() {
   const { user, updateUser, deleteAccount } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Alterar senha
   const [showPasswordCard, setShowPasswordCard] = useState(false);
@@ -300,11 +302,7 @@ export default function PerfilPage() {
               variant="destructive" 
               size="sm"
               className="w-full text-xs rounded-xl"
-              onClick={async () => {
-                if (confirm("Tem certeza que deseja apagar sua conta permanentemente?")) {
-                  await deleteAccount();
-                }
-              }}
+              onClick={() => setShowDeleteModal(true)}
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" />
               Excluir Minha Conta
@@ -379,6 +377,52 @@ export default function PerfilPage() {
           </div>
         </Card>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md p-6 bg-card space-y-4 rounded-2xl shadow-xl border border-destructive/20 animate-in fade-in zoom-in-95">
+            <h3 className="text-lg font-semibold text-destructive flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Excluir Conta
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Tem certeza que deseja apagar sua conta permanentemente? Esta ação <strong className="text-foreground font-medium">não poderá ser desfeita</strong> e todos os seus dados serão perdidos.
+            </p>
+            <div className="flex justify-end gap-3 mt-6 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="rounded-xl h-10 px-4 text-xs font-medium"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await deleteAccount();
+                  } finally {
+                    setDeleting(false);
+                    setShowDeleteModal(false);
+                  }
+                }}
+                className="rounded-xl h-10 px-4 text-xs font-medium"
+              >
+                {deleting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                {deleting ? "Excluindo..." : "Excluir Conta"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
