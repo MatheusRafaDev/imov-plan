@@ -4,6 +4,7 @@ import {
   SimulacaoSummary,
   ChartDataPoint,
 } from "@/types/simulacao";
+import { projetarDataMeta } from "@/utils/projecaoAuxiliar";
 
 export function extractSimulacaoSummary(
   result: BackendSimulacaoResult | null
@@ -20,6 +21,7 @@ export function extractSimulacaoSummary(
     mesesParaAtingir: result.mesesParaAtingir,
     dataPrevistaAlvo: result.dataPrevistaAlvo,
     falta: result.falta,
+    projecaoDataMeta: projetarDataMeta(result),
   };
 }
 

@@ -7,10 +7,11 @@ interface StatCardProps {
   label: string;
   value: number | string;
   icon?: React.ReactNode;
-  variant?: "default" | "primary" | "success" | "muted" | "accent";
+  variant?: "default" | "primary" | "success" | "muted" | "accent" | "warning";
   prefix?: string;
   className?: string;
   children?: React.ReactNode;
+  subtitle?: string;
 }
 
 const variantStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
@@ -19,6 +20,7 @@ const variantStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   success: "bg-success/5 border-border/40",
   muted: "bg-secondary/30 border-border/40",
   accent: "bg-accent/5 border-accent/20",
+  warning: "bg-amber-500/5 border-amber-500/20",
 };
 
 const labelStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
@@ -27,6 +29,7 @@ const labelStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   success: "text-success",
   muted: "text-muted-foreground",
   accent: "text-accent",
+  warning: "text-amber-600 dark:text-amber-400",
 };
 
 const valueStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
@@ -35,6 +38,7 @@ const valueStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   success: "text-success",
   muted: "text-foreground",
   accent: "text-accent",
+  warning: "text-amber-700 dark:text-amber-300",
 };
 
 /**
@@ -49,6 +53,7 @@ export function StatCard({
   prefix,
   className = "",
   children,
+  subtitle,
 }: StatCardProps) {
   const displayValue =
     typeof value === "number" ? formatCurrency(value) : value;
@@ -66,6 +71,9 @@ export function StatCard({
       <p className={`font-display text-2xl num leading-tight ${valueStyles[variant]}`}>
         {prefix}{displayValue}
       </p>
+      {subtitle && (
+        <p className="mt-1.5 text-[11px] text-muted-foreground italic leading-snug">{subtitle}</p>
+      )}
       {children && <div className="mt-3">{children}</div>}
     </div>
   );

@@ -359,7 +359,7 @@ export default function ObjetivoPage() {
                       <div className="flex items-start gap-2 bg-success/10 border border-success/20 rounded-lg p-2.5 text-[11px] text-success font-medium">
                         <span className="text-xs mt-0.5">✓</span>
                         <span>
-                          <strong>ITBI Isento:</strong> sugerimos 0%, mas você pode ajustar até 4% conforme desejar.
+                          <strong>ITBI Isento:</strong> O percentual sugerido cobre apenas os custos de cartório. Você pode ajustar até 4% se desejar.
                         </span>
                       </div>
                     )}
