@@ -576,18 +576,31 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cenarioSimulacao]);
 
-  // Carrega o plano uma vez ao montar
-  const inicializado = useRef(false);
+  // Carrega o plano com base na sessão do usuário atual
   const readyForAutoSave = useRef(false);
+  const usuarioIdCarregado = useRef<string | null>(null);
 
   useEffect(() => {
-    if (inicializado.current) return;
-    inicializado.current = true;
-    carregarPlano().finally(() => {
-      setTimeout(() => {
-        readyForAutoSave.current = true;
-      }, 500);
-    });
+    const userIdAtual = obterIdUsuario();
+    if (usuarioIdCarregado.current !== userIdAtual) {
+      usuarioIdCarregado.current = userIdAtual;
+      carregarPlano().finally(() => {
+        setTimeout(() => {
+          readyForAutoSave.current = true;
+        }, 500);
+      });
+    }
+
+    const handleAuthChanged = () => {
+      const newUserId = obterIdUsuario();
+      if (usuarioIdCarregado.current !== newUserId) {
+        usuarioIdCarregado.current = newUserId;
+        carregarPlano();
+      }
+    };
+
+    window.addEventListener("imovplan:auth-changed", handleAuthChanged);
+    return () => window.removeEventListener("imovplan:auth-changed", handleAuthChanged);
   }, [carregarPlano]);
 
 

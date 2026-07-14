@@ -32,6 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const dispatchAuthEvent = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("imovplan:auth-changed"));
+    }
+  };
+
   const clearAllData = () => {
     setUser(null);
     const allCookies = Cookies.get();
@@ -141,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      dispatchAuthEvent();
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Erro ao registrar";
@@ -159,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { user: userData } = response.data;
       setUser(userData);
       Cookies.set("user", JSON.stringify(userData), { expires: 7 });
+      dispatchAuthEvent();
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Email ou senha inválidos";
@@ -176,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Erro no logout", e);
     }
     clearAllData();
+    dispatchAuthEvent();
     if (typeof window !== "undefined") {
       window.location.href = "/auth";
     }

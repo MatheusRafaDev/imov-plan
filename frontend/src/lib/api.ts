@@ -24,7 +24,12 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
-      if (typeof window !== 'undefined' && !url.includes('/auth/login') && !url.includes('/auth/register')) {
+      if (
+        typeof window !== 'undefined' && 
+        !url.includes('/auth/login') && 
+        !url.includes('/auth/register') &&
+        !url.includes('/usuario/')
+      ) {
         Cookies.remove('user');
         window.location.href = '/auth';
       }
