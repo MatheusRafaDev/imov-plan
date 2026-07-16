@@ -69,15 +69,8 @@ namespace ImovPlan.Application.Services
                 ? saldoInicialTotal
                 : planejamento.ValorJaGuardado ?? 0m;
             
-            // Se não houver saldo individual mas houver valorJaGuardado global (fallback antigo), distribuímos igualmente (embora não devesse ocorrer no novo fluxo)
-            if (saldoInicialTotal == 0 && valorJaGuardado > 0 && participantesDb.Any())
-            {
-                var split = valorJaGuardado / participantesDb.Count;
-                foreach (var pid in participantesDb.Keys)
-                {
-                    saldosIndividuais[pid] = split;
-                }
-            }
+            // A global balance remains unassigned until the user explicitly assigns
+            // it to a participant; never split it automatically.
 
             var saldoConjunto = valorJaGuardado;
             var totalInvestido = saldoConjunto;

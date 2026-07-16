@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Application.Services.Interfaces;
@@ -17,11 +18,16 @@ namespace ImovPlan.API.Controllers
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly ITokenService _tokenService;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(IUsuarioRepository usuarioRepository, ITokenService tokenService)
+        public AuthController(
+            IUsuarioRepository usuarioRepository,
+            ITokenService tokenService,
+            IConfiguration configuration)
         {
             _usuarioRepository = usuarioRepository;
             _tokenService = tokenService;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
@@ -102,25 +108,33 @@ namespace ImovPlan.API.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            Response.Cookies.Delete("token", new Microsoft.AspNetCore.Http.CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None
-            });
+            Response.Cookies.Delete("token", CreateTokenCookieOptions());
             return Ok(new { message = "Logout com sucesso." });
         }
 
         private void SetTokenCookie(string token)
         {
-            var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
+            var cookieOptions = CreateTokenCookieOptions();
+            cookieOptions.Expires = DateTime.UtcNow.AddDays(7);
+            Response.Cookies.Append("token", token, cookieOptions);
+        }
+
+        private Microsoft.AspNetCore.Http.CookieOptions CreateTokenCookieOptions()
+        {
+            // The browser reaches the API through the Next.js /api proxy. A Secure
+            // cookie is rejected when the app runs over HTTP (the local/Docker default).
+            // HTTPS deployments can force it with Auth__CookieSecure=true.
+            var configuredSecure = _configuration.GetValue<bool?>("Auth:CookieSecure");
+            var forwardedProto = Request.Headers["X-Forwarded-Proto"].ToString();
+            var isHttps = Request.IsHttps || string.Equals(forwardedProto, "https", StringComparison.OrdinalIgnoreCase);
+
+            return new Microsoft.AspNetCore.Http.CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
-                Expires = DateTime.UtcNow.AddDays(7)
+                Secure = configuredSecure ?? isHttps,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                Path = "/"
             };
-            Response.Cookies.Append("token", token, cookieOptions);
         }
 
         private static object MapUserResponse(Usuario user)

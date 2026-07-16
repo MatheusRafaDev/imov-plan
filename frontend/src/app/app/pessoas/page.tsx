@@ -21,7 +21,7 @@ const generateObjectId = () => {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
-import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check, Briefcase, TrendingDown } from "lucide-react";
+import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check, TrendingDown } from "lucide-react";
 
 const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados?: GastoDetalhado[]; gastos_mensais?: number | "" }) => {
   return p.usar_gastos_detalhados 
@@ -59,29 +59,6 @@ export default function PessoasPage() {
     }
   }, [planoId, objetivo, cenario, router]);
 
-  // Distribute valorInicial based on income proportion (profile-based)
-  useEffect(() => {
-    if (pessoas.length > 0 && totalObjetivo > 0) {
-      const sum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
-      if (sum === 0) {
-        // Calculate total income across all people
-        const totalRenda = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
-        if (totalRenda > 0) {
-          // Distribute based on income proportion
-          setPessoas(prev => prev.map(p => {
-            const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
-            const proporcao = rendaPessoa / totalRenda;
-            return { ...p, valorInicial: totalObjetivo * proporcao };
-          }));
-        } else {
-          // Fallback to equal distribution if no income
-          const perPerson = totalObjetivo / pessoas.length;
-          setPessoas(prev => prev.map(p => ({ ...p, valorInicial: perPerson })));
-        }
-      }
-    }
-  }, [pessoas.length, totalObjetivo, setPessoas]);
-
   useEffect(() => {
     if (pessoas.length === 0 && user && planoId && !wasInitialized.current) {
       const defaultPessoa: Pessoa = {
@@ -98,7 +75,7 @@ export default function PessoasPage() {
       setPessoas([defaultPessoa]);
       saveDraft({ pessoas: [defaultPessoa] });
     }
-  }, [user, pessoas.length, setPessoas, planoId, saveDraft]);
+  }, [user, pessoas.length, setPessoas, planoId, saveDraft, totalObjetivo]);
 
   const prosseguir = async () => {
     const savedId = await saveDraft();
@@ -198,33 +175,10 @@ export default function PessoasPage() {
     const rendaTotal = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0);
     const sobra = Math.max(0, rendaTotal - gastosTotais);
 
-    // If the user manually set valorInicial, add it to total and redistribute
+    // Balances are individually owned. Adding someone must not change the
+    // values already assigned to other participants.
     const formValorInicial = Number(form.valorInicial) || 0;
-    let novoValorInicial: number;
-    let updatedPeople: Pessoa[];
-
-    // Calculate total income including new person
-    const totalRendaAtual = pessoas.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
-    const totalRendaNova = totalRendaAtual + rendaTotal;
-
-    // If manual value is set, add it to the total objective
     const novoTotalObjetivo = formValorInicial > 0 ? totalObjetivo + formValorInicial : totalObjetivo;
-
-    if (totalRendaNova > 0) {
-      // Distribute based on income proportion
-      const proporcaoNovaPessoa = rendaTotal / totalRendaNova;
-      novoValorInicial = novoTotalObjetivo * proporcaoNovaPessoa;
-      updatedPeople = pessoas.map(p => {
-        const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
-        const proporcao = rendaPessoa / totalRendaNova;
-        return { ...p, valorInicial: novoTotalObjetivo * proporcao };
-      });
-    } else {
-      // Fallback to equal distribution if no income
-      const perPerson = novoTotalObjetivo / (pessoas.length + 1);
-      novoValorInicial = perPerson;
-      updatedPeople = pessoas.map(p => ({ ...p, valorInicial: perPerson }));
-    }
 
     const novaPessoa: Pessoa = {
       id: generateObjectId(),
@@ -235,11 +189,12 @@ export default function PessoasPage() {
       usar_gastos_detalhados: form.usar_gastos_detalhados,
       gastos_detalhados: form.gastos_detalhados,
       aporte_mensal: Number(form.aporte_mensal) || Math.round(sobra),
-      valorInicial: novoValorInicial,
+      valorInicial: formValorInicial,
       tipoInvestimento: form.tipoInvestimento || undefined,
     };
 
-    setPessoas([...updatedPeople, novaPessoa]);
+    setPessoas([...pessoas, novaPessoa]);
+    setObjetivo(prev => prev ? { ...prev, valorJaGuardado: novoTotalObjetivo } : prev);
     setForm(resetForm());
     setNovoGastoForm({ nome: "", valor: 0 });
     setShowAddForm(false);
@@ -253,25 +208,11 @@ export default function PessoasPage() {
     if (pessoaParaRemover) {
       const remainingPeople = pessoas.filter((p) => p.id !== pessoaParaRemover);
 
-      if (remainingPeople.length > 0) {
-        // Calculate total income of remaining people
-        const totalRenda = remainingPeople.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
-
-        if (totalRenda > 0) {
-          // Distribute based on income proportion
-          setPessoas(remainingPeople.map(p => {
-            const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
-            const proporcao = rendaPessoa / totalRenda;
-            return { ...p, valorInicial: totalObjetivo * proporcao };
-          }));
-        } else {
-          // Fallback to equal distribution if no income
-          const perPerson = totalObjetivo / remainingPeople.length;
-          setPessoas(remainingPeople.map(p => ({ ...p, valorInicial: perPerson })));
-        }
-      } else {
-        setPessoas(remainingPeople);
-      }
+      setPessoas(remainingPeople);
+      setObjetivo(prev => prev ? {
+        ...prev,
+        valorJaGuardado: remainingPeople.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0),
+      } : prev);
 
       setPessoaParaRemover(null);
     }
@@ -293,26 +234,10 @@ export default function PessoasPage() {
 
       if (patch.valorInicial !== undefined) {
         const novoValor = patch.valorInicial;
-        const valorAntigo = arr[idx].valorInicial || 0;
-
-        // Update the person's valorInicial first
         updated.valorInicial = novoValor;
 
-        // Calculate new total
         const newSum = arr.reduce((s, p, i) => s + (i === idx ? novoValor : (p.valorInicial || 0)), 0);
         setObjetivo(prev => prev ? { ...prev, valorJaGuardado: newSum } : null);
-
-        // Redistribute based on income proportions (create new array to avoid mutation issues)
-        const totalRenda = arr.reduce((s, p) => s + (Number(p.renda_mensal) + Number(p.renda_complementar || 0)), 0);
-        if (totalRenda > 0) {
-          const newArr = arr.map((p, i) => {
-            const rendaPessoa = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
-            const proporcao = rendaPessoa / totalRenda;
-            const novoValorInicial = newSum * proporcao;
-            return i === idx ? { ...p, ...patch, valorInicial: novoValorInicial } : { ...p, valorInicial: novoValorInicial };
-          });
-          return newArr;
-        }
       }
 
       arr[idx] = updated;
@@ -324,11 +249,18 @@ export default function PessoasPage() {
     const val = novoTotal === "" ? 0 : novoTotal;
     setObjetivo(prev => prev ? { ...prev, valorJaGuardado: val } : null);
     
-    const currentTotal = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0) || 1;
-    setPessoas(pessoas.map(p => {
-       const perc = (p.valorInicial ?? 0) / currentTotal;
-       return { ...p, valorInicial: val * perc };
-    }));
+    setPessoas(prev => {
+      if (prev.length === 1) {
+        return [{ ...prev[0], valorInicial: val }];
+      }
+
+      const currentTotal = prev.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
+      // Without a distribution already entered, never infer a split by income or equally.
+      if (currentTotal <= 0) return prev;
+
+      const factor = val / currentTotal;
+      return prev.map(p => ({ ...p, valorInicial: Number(p.valorInicial ?? 0) * factor }));
+    });
   };
 
   const gastosTotaisForm = calcularGastos(form);
@@ -381,7 +313,7 @@ export default function PessoasPage() {
         </div>
 
         <div className="relative z-10 flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {pessoas.map((p, idx) => {
+          {pessoas.map((p) => {
             const perc = totalObjetivo > 0 ? ((p.valorInicial ?? 0) / totalObjetivo) * 100 : 0;
             return (
               <div key={p.id} className="flex items-center gap-2 bg-background/80 border border-border/50 px-4 py-2.5 rounded-xl shadow-sm backdrop-blur-md transition-all hover:border-accent/40 hover:shadow-md">

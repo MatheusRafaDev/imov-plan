@@ -390,7 +390,10 @@ namespace ImovPlan.Application.Services
                 );
 
             // Calculate ValorJaGuardado dynamically from Participante.PatrimonioInicial
-            var valorJaGuardado = participantesDoPlano.Sum(p => p.PatrimonioInicial?.Valor ?? 0);
+            var saldoIndividualTotal = participantesDoPlano.Sum(p => p.PatrimonioInicial?.Valor ?? 0);
+            var valorJaGuardado = saldoIndividualTotal > 0
+                ? saldoIndividualTotal
+                : planejamento.ValorJaGuardado ?? 0m;
 
             // Fetch ALL gastos for this planejamento in a single query, then group in-memory
             var todosGastos = (await _gastoDetalhadoRepo.GetByPlanejamentoIdAsync(id))

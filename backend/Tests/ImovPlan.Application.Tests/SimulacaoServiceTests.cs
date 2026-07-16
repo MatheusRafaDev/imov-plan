@@ -130,5 +130,39 @@ namespace ImovPlan.Application.Tests
             // Verifica o AtingiuMeta passado pro repositório, mas como aqui temos o DTO podemos testar saldo >= totalNecessario
             Assert.True(resultado.TotalAcumulado >= totalNecessario);
         }
+
+        [Fact]
+        public async Task ExecutarSimulacao_SaldoGlobalSemTitular_NaoDeveDividirEntreParticipantes()
+        {
+            // Arrange
+            var planejamento = new Planejamento
+            {
+                Id = "plan1",
+                ValorJaGuardado = 1000m,
+                PrazoMaxMeses = 1,
+                ParticipantesIds = new List<string> { "p1", "p2" },
+                DataInicio = new DateTime(2025, 1, 1)
+            };
+            _participanteRepoMock.Setup(r => r.GetByIdAsync("p1")).ReturnsAsync(new Participante { Id = "p1", Nome = "Ana" });
+            _participanteRepoMock.Setup(r => r.GetByIdAsync("p2")).ReturnsAsync(new Participante { Id = "p2", Nome = "Bruno" });
+
+            var request = new SimulacaoRequestDto
+            {
+                PercentualCdi = 100m,
+                TaxaCDI = 0m,
+                AportesMensais = new List<AporteMensalDto>
+                {
+                    new() { PessoaId = "p1", Valor = 0m },
+                    new() { PessoaId = "p2", Valor = 0m },
+                }
+            };
+
+            // Act
+            var resultado = await _service.ExecutarSimulacaoAsync(request, planejamento, 100000m);
+
+            // Assert
+            Assert.Equal(1000m, resultado.DetalhesMensais[0].TotalAcumulado);
+            Assert.All(resultado.DetalhesMensais[0].Participantes, p => Assert.Equal(0m, p.Saldo));
+        }
     }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect, useMemo } from "react";
+import React, { createContext, useState, useContext, ReactNode, useCallback, useRef, useEffect } from "react";
 import type { SimInput, Aporte, CenarioSimulacao } from "@/lib/finance";
 import { percentualCdiPorTipoInvestimento } from "@/lib/finance";
 import Cookies from "js-cookie";
@@ -264,19 +264,20 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [loadingBackend, setLoadingBackend] = useState(false);
 
   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
+  const [planoHidratado, setPlanoHidratado] = useState(false);
   const ultimoCalculoRef = useRef<string>("");
 
-  const definidores = {
-    setObjetivo,
-    setPessoas,
-    setBancoEscolhido,
-    setAportesExtras,
-    setAportesRegularesEditados,
-    setAportesRegularesEditadosPorPessoa,
-    setMesesConcluidos
-  };
-
   const carregarPlano = useCallback(async () => {
+    setPlanoHidratado(false);
+    const definidores = {
+      setObjetivo,
+      setPessoas,
+      setBancoEscolhido,
+      setAportesExtras,
+      setAportesRegularesEditados,
+      setAportesRegularesEditadosPorPessoa,
+      setMesesConcluidos
+    };
     const usuarioId = obterIdUsuario();
 
     if (!usuarioId) {
@@ -297,6 +298,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           console.error("Erro ao carregar dados do localStorage:", error);
         }
       }
+      setPlanoHidratado(true);
       return;
     }
 
@@ -382,6 +384,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           }
         }
         console.log("Dados carregados do backend");
+        setPlanoHidratado(true);
         return;
       }
     } catch (error: any) {
@@ -411,6 +414,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         }
       }
     }
+    setPlanoHidratado(true);
   }, []);
 
   const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
@@ -535,10 +539,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       // Garantir que todos os dados do contexto (ex: prazos recém-alterados na tela)
       // estejam salvos no banco antes de mandar o backend calcular,
       // pois o backend lê o PrazoMaxMeses direto do banco.
-      await saveDraft();
+      const savedId = await saveDraft();
+      if (!savedId || savedId.startsWith("local-draft-")) {
+        setBackendError("Nao foi possivel salvar o plano antes do recalculo.");
+        return;
+      }
 
-      const result = await SimulacaoService.calcularSimulacao(id, {
-        objetivoId: id,
+      const result = await SimulacaoService.calcularSimulacao(savedId, {
+        objetivoId: savedId,
         taxaCDI: Number(objetivo?.taxaCdiAnual) || 10.5,
         percentualCdi: effectiveCdi,
         aportesMensais: pessoas.map(p => ({
@@ -566,15 +574,28 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     } finally {
       setCalculating(false);
     }
-  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, backendData, saveDraft, cenarioSimulacao]);
+  }, [planoId, objetivo, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, saveDraft, cenarioSimulacao]);
 
-  // Recalcula quando o cenário muda
+  // Any change that affects the projection (including extras and edited monthly
+  // contributions) is recalculated as soon as the latest draft is hydrated.
   useEffect(() => {
-    if (planoId && !planoId.startsWith("local-draft-") && backendData) {
+    if (!planoHidratado || !planoId || planoId.startsWith("local-draft-")) return;
+
+    const timer = window.setTimeout(() => {
       calcularBackend();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cenarioSimulacao]);
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    planoHidratado,
+    planoId,
+    objetivo,
+    pessoas,
+    aportesExtras,
+    aportesRegularesEditados,
+    aportesRegularesEditadosPorPessoa,
+    calcularBackend,
+  ]);
 
   // Carrega o plano com base na sessão do usuário atual
   const readyForAutoSave = useRef(false);
