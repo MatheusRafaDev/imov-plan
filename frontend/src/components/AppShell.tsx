@@ -49,8 +49,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-cream">
-      <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
+    <div className="flex flex-col bg-gradient-cream" style={{ height: '100dvh' }}>
+      <header className="shrink-0 border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
         <div className="container flex h-16 items-center justify-between gap-4">
           <Link href={homeHref} className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
@@ -124,7 +124,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
       </header>
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-background/80 backdrop-blur">
+      <main className="flex-1 overflow-y-auto">
+        <div className="container py-8 md:py-12 lg:pb-12">{children}</div>
+      </main>
+      <nav className="lg:hidden shrink-0 border-t border-border/60 bg-background/80 backdrop-blur">
         <div className="flex">
           {nav.map((n, index) => {
             const active = pathname?.startsWith(n.to) || false;
@@ -143,7 +146,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           })}
         </div>
       </nav>
-      <main className="container py-8 md:py-12 pb-28 lg:pb-12">{children}</main>
     </div>
   );
 };
