@@ -77,7 +77,7 @@ export default function FinanciamentoPage() {
         <div className="md:col-span-2">
           {resultado ? (
             <Card className="p-6 shadow-soft h-full flex flex-col">
-              <div className="flex gap-2 mb-6">
+              <div className="flex flex-col sm:flex-row gap-2 mb-6">
                 <Button
                   variant={sistemaAtivo === "sac" ? "default" : "outline"}
                   onClick={() => setSistemaAtivo("sac")}
@@ -94,7 +94,7 @@ export default function FinanciamentoPage() {
                 </Button>
               </div>
 
-              <div className="mb-6 grid grid-cols-2 gap-4">
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-secondary/40 p-4 rounded-xl border border-border">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
                     <Landmark className="h-3 w-3" /> Valor Financiado

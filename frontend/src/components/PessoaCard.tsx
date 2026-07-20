@@ -238,7 +238,7 @@ export default function PessoaCard({
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex items-center gap-1.5 mb-3">
             <Briefcase className="h-3 w-3" /> Receitas
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Principal</Label>
               <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => handleUpdateRenda('renda_mensal', v === "" ? 0 : v)} className="bg-background" />
@@ -278,9 +278,9 @@ export default function PessoaCard({
             <div className="space-y-3">
               {(p.gastos_detalhados || []).map(g => (
                 <div key={g.id} className="flex items-center gap-2 bg-background p-1.5 rounded-lg border border-border/40 shadow-sm">
-                  <Input value={g.nome} onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} className="h-9 text-sm flex-1 bg-transparent border-none focus-visible:ring-0" placeholder="Ex: Aluguel" />
+                  <Input value={g.nome} onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} className="flex-1 bg-transparent border-none focus-visible:ring-0" placeholder="Ex: Aluguel" />
                   <div className="w-28 shrink-0">
-                    <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="h-9 text-sm bg-transparent border-none focus-visible:ring-0 text-right" />
+                    <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="bg-transparent border-none focus-visible:ring-0 text-right" />
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleRemoveGasto(g.id)}>
                     <Trash2 className="h-4 w-4" />
@@ -290,13 +290,13 @@ export default function PessoaCard({
               <div className="flex flex-wrap sm:flex-nowrap gap-2 items-end pt-1">
                 <div className="flex-1 space-y-1.5">
                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Novo Gasto</Label>
-                  <Input placeholder="Ex: Mercado" className="h-9 text-sm bg-background" value={novoGasto.nome} onChange={e => setNovoGasto({ ...novoGasto, nome: e.target.value })} />
+                  <Input placeholder="Ex: Mercado" className="bg-background" value={novoGasto.nome} onChange={e => setNovoGasto({ ...novoGasto, nome: e.target.value })} />
                 </div>
                 <div className="w-28 shrink-0 space-y-1.5">
                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor</Label>
-                  <MoneyInput variant="money" min={0} placeholder="R$" className="h-9 text-sm bg-background" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} />
+                  <MoneyInput variant="money" min={0} placeholder="R$" className="bg-background" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} />
                 </div>
-                <Button size="icon" className="h-9 w-9 bg-primary text-primary-foreground shrink-0 shadow-sm hover:shadow-md transition-all" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
+                <Button size="icon" className="h-11 w-11 md:h-10 md:w-10 bg-primary text-primary-foreground shrink-0 shadow-sm hover:shadow-md transition-all" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -311,7 +311,7 @@ export default function PessoaCard({
         </div>
 
         {/* Investimentos & Aportes */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className={`bg-accent/5 rounded-xl p-4 border border-accent/10 space-y-2 flex flex-col justify-between ${valorInicial > 0 ? "col-span-2 sm:col-span-1" : ""}`}>
             <Label className="text-xs font-medium text-accent flex items-center gap-1.5">
               <Wallet className="h-3 w-3" /> Já Guardado

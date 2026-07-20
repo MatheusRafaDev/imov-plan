@@ -118,12 +118,12 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
     return (
       <div className="relative w-full">
         {variant === "money" && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base md:text-sm font-medium">
             R$
           </span>
         )}
         {variant === "percent" && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base md:text-sm font-medium">
             %
           </span>
         )}

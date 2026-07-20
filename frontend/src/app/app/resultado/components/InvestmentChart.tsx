@@ -157,7 +157,7 @@ export function InvestmentChart({ data, summary }: InvestmentChartProps) {
       {/* Header com legenda inline */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-display text-lg font-medium">Projeção de Crescimento</h3>
-        <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+        <div className="flex items-center flex-wrap gap-4 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#86efac" }} />
             Total Aportado

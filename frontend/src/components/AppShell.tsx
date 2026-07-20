@@ -143,7 +143,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
         </nav>
       </header>
-      <main className="container py-8 md:py-12">{children}</main>
+      <main className="container py-8 md:py-12 pb-24 lg:pb-12">{children}</main>
     </div>
   );
 };

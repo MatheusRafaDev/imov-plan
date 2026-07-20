@@ -258,7 +258,7 @@ export default function PlanosPage() {
 
                 {/* Conteúdo Comparativo */}
                 <div className="p-5 space-y-5">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Valor do Imóvel</p>
                       <p className="font-display text-lg">{plano.valorImovel > 0 ? brl(plano.valorImovel) : "-"}</p>

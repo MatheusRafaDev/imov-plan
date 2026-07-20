@@ -487,8 +487,9 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
         </div>
       </div>
 
-      <div className="overflow-x-auto border border-border/50 rounded-xl shadow-sm bg-card relative">
-        <table className="w-full text-xs">
+      <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-4 sm:pb-0">
+        <div className="border border-border/50 rounded-xl shadow-sm bg-card relative min-w-max sm:min-w-0">
+          <table className="w-full text-xs">
           <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-sm text-muted-foreground shadow-sm">
             <tr>
               <Th>Mês</Th>
@@ -701,6 +702,7 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -138,7 +138,7 @@ export default function PlantaPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Data início</Label>
                 <Input type="date" value={form.data}
@@ -155,7 +155,7 @@ export default function PlantaPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Valor</Label>
                 <MoneyInput variant="money" min={0} value={form.valor}

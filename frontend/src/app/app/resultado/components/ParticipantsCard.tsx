@@ -26,7 +26,7 @@ export function ParticipantsCard({ participantes, totalAcumulado }: Participants
       <div className="space-y-6">
         {participantes.map((p) => (
           <div key={p.participanteId} className="flex flex-col gap-2">
-            <div className="flex justify-between items-end">
+            <div className="flex flex-wrap justify-between items-end gap-2">
               <div>
                 <p className="font-medium">{p.nome}</p>
                 <p className="text-xs text-muted-foreground">

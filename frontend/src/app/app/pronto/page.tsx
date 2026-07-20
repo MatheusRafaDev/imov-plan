@@ -147,7 +147,7 @@ export default function ProntoPage() {
               )}
 
               {/* KPIs */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { label: "Valor Financiado", value: brl(valorFinanciado), icon: <Wallet className="h-4 w-4" /> },
                   { label: "Total a Pagar", value: brl(totalPago), icon: <Calculator className="h-4 w-4" /> },

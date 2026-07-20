@@ -382,7 +382,7 @@ export default function PessoasPage() {
                 <Input placeholder="Ex: João" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Renda Principal</Label>
                   <MoneyInput variant="money" min={0} value={form.renda_mensal}
@@ -483,7 +483,7 @@ export default function PessoasPage() {
 
               {/* Já Guardado + Tipo de Investimento + Aporte */}
               <div className="pt-2 border-t border-border/50 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Já Guardado */}
                   <div className="bg-accent/5 rounded-xl p-3 border border-accent/10 space-y-2 col-span-2 sm:col-span-1">
                     <Label className="text-xs font-medium text-accent flex items-center gap-1.5">
