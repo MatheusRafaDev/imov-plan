@@ -8,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Application.Services.Interfaces;
+using Google.Apis.Auth;
+
 
 namespace ImovPlan.API.Controllers
 {
@@ -113,6 +115,62 @@ namespace ImovPlan.API.Controllers
         {
             Response.Cookies.Delete("token", CreateTokenCookieOptions());
             return Ok(new { message = "Logout com sucesso." });
+        }
+
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleAuthRequest request)
+        {
+            try
+            {
+                var clientId = _configuration["Google:ClientId"];
+                if (string.IsNullOrEmpty(clientId))
+                {
+                    return StatusCode(500, new { message = "Google Client ID não configurado no servidor." });
+                }
+
+                var settings = new GoogleJsonWebSignature.ValidationSettings()
+                {
+                    Audience = new[] { clientId }
+                };
+
+                GoogleJsonWebSignature.Payload payload;
+                try
+                {
+                    payload = await GoogleJsonWebSignature.ValidateAsync(request.Token, settings);
+                }
+                catch (InvalidJwtException)
+                {
+                    return Unauthorized(new { message = "Token do Google inválido." });
+                }
+
+                var user = await _usuarioRepository.GetByEmailAsync(payload.Email);
+
+                if (user == null)
+                {
+                    // Registra o usuário
+                    user = new Usuario
+                    {
+                        Nome = payload.Name ?? "Usuário Google",
+                        Email = payload.Email,
+                        PasswordHash = "", // Sem senha para login social
+                        Role = "User"
+                    };
+
+                    await _usuarioRepository.CreateAsync(user);
+                }
+
+                var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User");
+                SetTokenCookie(token);
+
+                return Ok(new
+                {
+                    user = MapUserResponse(user)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro interno ao validar login com Google.", details = ex.Message });
+            }
         }
 
         private void SetTokenCookie(string token)
@@ -240,5 +298,10 @@ namespace ImovPlan.API.Controllers
         public string Email { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
         public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class GoogleAuthRequest
+    {
+        public string Token { get; set; } = string.Empty;
     }
 }

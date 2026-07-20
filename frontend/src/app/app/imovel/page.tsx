@@ -179,7 +179,7 @@ export default function ObjetivoPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
         <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
@@ -266,7 +266,7 @@ export default function ObjetivoPage() {
               </button>
 
               {showAdvanced && (
-                <div className="mt-6 animate-fade-in-up space-y-6">
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
                   {/* ─── Localização do Imóvel ─── */}
                   <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 space-y-4">
                     <p className="flex items-center gap-2 text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
 using ImovPlan.API.Extensions;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Domain.Interfaces;
@@ -19,15 +20,18 @@ namespace ImovPlan.API.Controllers
         private readonly ISimulacaoService _simulacaoService;
         private readonly IPlanejamentoRepository _planejamentoRepository;
         private readonly IHistoricoSimulacaoRepository _historicoRepository;
+        private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
         public SimulacaoController(
             ISimulacaoService simulacaoService,
             IPlanejamentoRepository planejamentoRepository,
-            IHistoricoSimulacaoRepository historicoRepository)
+            IHistoricoSimulacaoRepository historicoRepository,
+            Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
         {
             _simulacaoService = simulacaoService;
             _planejamentoRepository = planejamentoRepository;
             _historicoRepository = historicoRepository;
+            _cache = cache;
         }
 
         /// <summary>
@@ -66,6 +70,15 @@ namespace ImovPlan.API.Controllers
                 return NotFound(new { message = "Planejamento não encontrado" });
 
             var totalNecessario = planejamento.CustosCompra?.TotalNecessario ?? 0m;
+            
+            // Build cache key based on inputs that affect simulation
+            var requestHash = System.Text.Json.JsonSerializer.Serialize(request);
+            var cacheKey = $"simulacao_{planoId}_{planejamento.ValorImovel}_{totalNecessario}_{planejamento.ValorJaGuardado}_{planejamento.TaxaCdiAnual}_{requestHash.GetHashCode()}";
+
+            if (_cache.TryGetValue(cacheKey, out SimulacaoResultDto? cachedResult) && cachedResult != null)
+            {
+                return Ok(cachedResult);
+            }
 
             var resultado = await _simulacaoService.ExecutarSimulacaoAsync(
                 request,
@@ -80,6 +93,8 @@ namespace ImovPlan.API.Controllers
 
             var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
             var result = MapToDto(ultimoRegistro, evolucao);
+
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
 
             return Ok(result);
         }

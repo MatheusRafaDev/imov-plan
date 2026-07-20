@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { ChartDataPoint, SimulacaoSummary } from "@/types/simulacao";
 import { Card } from "@/components/ui/card";
 import {
@@ -141,7 +141,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-export function InvestmentChart({ data, summary }: InvestmentChartProps) {
+export const InvestmentChart = React.memo(function InvestmentChart({ data, summary }: InvestmentChartProps) {
   if (!data || data.length === 0 || !summary) return null;
 
   // Mostrar ~6 ticks no eixo X sem poluir
@@ -279,4 +279,4 @@ export function InvestmentChart({ data, summary }: InvestmentChartProps) {
       </div>
     </Card>
   );
-}
+});

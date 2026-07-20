@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { Loader2 } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-cream flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      <LoadingSpinner size="lg" />
     </div>
   );
 }

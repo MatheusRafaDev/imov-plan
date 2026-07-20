@@ -712,7 +712,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
     const timer = window.setTimeout(() => {
       calcularBackend();
-    }, 400);
+    }, 1200);
 
     return () => window.clearTimeout(timer);
   }, [

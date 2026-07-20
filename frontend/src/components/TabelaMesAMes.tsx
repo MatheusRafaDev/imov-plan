@@ -393,9 +393,7 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
   return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-3 num ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
-
-
-export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true, showCenarioSelector = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
+export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true, showCenarioSelector = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
   const {
     objetivo,
     pessoas,
@@ -453,150 +451,179 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
   }, [sim]);
 
   const totals = useMemo(() => {
-    let aportePorPessoa: Record<string, number> = {};
+    if (!displayRows.length) return { rendBruto: 0, ir: 0, rendLiquido: 0, aporteRegular: 0, extras: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
+    const rb = displayRows.reduce((a, b) => a + b.rendimentoBruto, 0);
+    const ir = displayRows.reduce((a, b) => a + b.imposto, 0);
+    const rl = displayRows.reduce((a, b) => a + b.rendimentoLiquido, 0);
+    const ap = displayRows.reduce((a, b) => a + b.aporteRegular, 0);
+    const ex = displayRows.reduce((a, b) => a + b.aportesExtras, 0);
+    
+    const aportePorPessoa: Record<string, number> = {};
     pessoas.forEach(p => aportePorPessoa[p.id] = 0);
-    let extras = 0;
-    let totalMes = 0;
-    let rendBruto = 0;
-    let ir = 0;
-    let rendLiquido = 0;
-    let saldoFinal = 0;
-
     displayRows.forEach(r => {
-      pessoas.forEach(p => {
-        aportePorPessoa[p.id] += r.aporteFinalPorPessoa?.[p.id] || 0;
+      Object.entries(r.aporteFinalPorPessoa).forEach(([pid, val]) => {
+        aportePorPessoa[pid] = (aportePorPessoa[pid] || 0) + val;
       });
-      extras += r.aportesExtras;
-      totalMes += r.aporteRegular + r.aportesExtras;
-      rendBruto += r.rendimentoBruto;
-      ir += r.imposto;
-      rendLiquido += r.rendimentoLiquido;
-      saldoFinal = r.saldoAcumulado;
     });
 
-    return { aportePorPessoa, extras, totalMes, rendBruto, ir, rendLiquido, saldoFinal };
+    return {
+      rendBruto: rb,
+      ir,
+      rendLiquido: rl,
+      aporteRegular: ap,
+      extras: ex,
+      totalMes: ap + ex,
+      saldoFinal: displayRows[displayRows.length - 1].saldoAcumulado,
+      aportePorPessoa
+    };
   }, [displayRows, pessoas]);
 
-  return (
-    <div>
-      <div className="mb-3 flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="font-display text-xl font-light">Tabela mês a mês</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
-          {showCenarioSelector && <ScenarioComparison />}
-        </div>
-      </div>
+  if (!displayRows.length) return null;
 
-      <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-4 sm:pb-0">
-        <div className="border border-border/50 rounded-xl shadow-sm bg-card relative min-w-max sm:min-w-0">
-          <table className="w-full text-xs">
-          <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-sm text-muted-foreground shadow-sm">
+  return (
+    <div className="space-y-4 relative w-full overflow-hidden">
+      {/* Container fixo para evitar reflows no pai */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <h3 className="font-display text-2xl">Mês a Mês</h3>
+            <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-medium shadow-soft">
+              {displayRows.length - 1} meses
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
+            {showCenarioSelector && (
+              <div className="bg-secondary/40 border border-border/50 rounded-xl p-1 flex shadow-soft relative overflow-hidden backdrop-blur-sm">
+                {(["pessimista", "base", "otimista"] as CenarioSimulacao[]).map((cen) => {
+                  const active = cenarioSimulacao === cen;
+                  return (
+                    <button
+                      key={cen}
+                      onClick={() => setCenarioSimulacao(cen)}
+                      className={`
+                        relative px-3 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all duration-300
+                        ${active ? "text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}
+                      `}
+                    >
+                      {active && (
+                        <div className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-glow animate-fade-in" />
+                      )}
+                      {cen}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      
+        {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
+        <div className="w-full overflow-x-auto rounded-xl border border-border/60 bg-card shadow-soft custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+        <table className="min-w-[800px] w-full text-sm font-sans border-collapse relative">
+          <thead className="bg-secondary/40 text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
               <Th>Mês</Th>
               <Th>Data</Th>
               {pessoas.map(p => (
-                <Th key={p.id} right>Aporte {p.nome.split(" ")[0]}</Th>
+                <Th key={p.id} right>{p.nome.split(" ")[0]}</Th>
               ))}
               <Th right>Extras</Th>
-              <Th right>Total Mês</Th>
+              <Th right>Aporte Mês</Th>
               {showFinancials && (
                 <>
                   <Th right>Rend. Bruto</Th>
                   <Th right>IR</Th>
                   <Th right>Rend. Líq.</Th>
-                  <Th right>Saldo</Th>
+                  <Th right>Acumulado</Th>
                 </>
               )}
               <Th></Th>
             </tr>
           </thead>
-          
           <tbody className="divide-y divide-border/40">
-            {displayRows.map(r => {
-              const defaultAporte = r.mes === 0 ? 0 : aporteTotal;
-              const isConcluido = mesesConcluidosSet.has(r.mes);
-              const totalExtras = r.aportesExtras;
-              const totalAporteMes = r.aporteRegular + totalExtras;
+            {displayRows.map((r) => {
+              const rowExtras = aportesExtras.filter(e => e.data && e.data.startsWith(r.data.split("T")[0])).map((e, idx) => ({ ...e, index: idx }));
+              
+              const totalAporteMes = r.aporteRegular + r.aportesExtras;
+              
+              const isMesConcluido = mesesConcluidosSet.has(r.mes);
+              const isZero = r.mes === 0;
 
               return (
-                <tr
-                  key={r.mes}
-                  className={`transition-colors duration-200 hover:bg-secondary/40 ${r.atingiu && showFinancials ? "bg-primary/10 shadow-[inset_3px_0_0_0_hsl(var(--primary))]" : ""} ${isConcluido && (!r.atingiu || !showFinancials) ? "bg-success/5" : ""} ${r.isExtra && !r.atingiu && !isConcluido ? "bg-accent/5" : ""}`}
+                <tr 
+                  key={r.mes} 
+                  className={`
+                    transition-colors hover:bg-secondary/10
+                    ${r.atingiu ? "bg-success/5" : ""} 
+                    ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
+                    ${isZero ? "bg-secondary/20" : ""}
+                  `}
                 >
-                  <Td className="font-medium">
-                    <div className="flex items-center gap-1.5">
-                      {r.mes === 0 ? (
-                        // Mês 0 = início, sempre marcado como concluído sem opção de toggle
-                        <div className="w-6 h-6 rounded flex items-center justify-center border shrink-0 bg-success/20 border-success/50 text-success">
-                          <Check className="h-4 w-4" />
-                        </div>
-                      ) : showCompletedToggle ? (
+                  <Td className="font-medium whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {showCompletedToggle && !isZero && (
                         <button
                           onClick={() => toggleConcluido(r.mes)}
-                          title={isConcluido ? "Desmarcar" : "Marcar como concluído"}
-                          className={`w-6 h-6 rounded flex items-center justify-center border transition-colors shrink-0 ${isConcluido ? "bg-success/20 border-success/50 text-success" : "border-border/50 hover:border-success/50 hover:bg-success/10"}`}
+                          className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                            isMesConcluido 
+                              ? 'bg-primary border-primary text-primary-foreground' 
+                              : 'border-border hover:border-primary/50'
+                          }`}
                         >
-                          {isConcluido && <Check className="h-4 w-4" />}
+                          {isMesConcluido && <Check className="w-3 h-3" />}
                         </button>
-                      ) : null}
-                      <span className={r.mes === 0 || isConcluido ? "text-success" : "text-muted-foreground"}>{r.mes}</span>
-                      {r.atingiu && <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] uppercase font-bold tracking-wider shadow-sm">Meta</span>}
+                      )}
+                      <span>
+                        {isZero ? "Início" : `Mês ${r.mes}`}
+                        {r.atingiu && (
+                          <span className="ml-2 inline-flex items-center bg-success/10 text-success text-[10px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
+                            Meta ✓
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </Td>
-
-                  <Td suppressHydrationWarning className="text-muted-foreground whitespace-nowrap">
+                  <Td suppressHydrationWarning className="text-muted-foreground whitespace-nowrap text-xs capitalize">
                     {new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
                   </Td>
-
+                  
                   {pessoas.map(p => {
-                    const defaultPessoaAporte = r.mes === 0 ? 0 : (Number(p.aporte_mensal) || 0);
-                    const currentValue = r.aporteFinalPorPessoa?.[p.id] || 0;
-                    const isEdited = currentValue !== defaultPessoaAporte;
-
+                    const planejado = Number(p.aporte_mensal) || 0;
+                    const real = isZero ? (Number(p.valorInicial) || 0) : r.aporteFinalPorPessoa[p.id] || 0;
+                    const wasEdited = isZero ? false : real !== planejado;
                     return (
                       <Td key={p.id} right>
-                        {r.mes === 0 ? (
-                          <div className="text-muted-foreground/40 text-right px-1.5 py-0.5">—</div>
+                        {isZero ? (
+                          <span className="text-muted-foreground">{brl(real)}</span>
                         ) : (
-                          <DisplayAporte
-                            value={currentValue}
-                            planned={defaultPessoaAporte}
-                            isEdited={isEdited}
-                          />
+                          <DisplayAporte value={real} planned={planejado} isEdited={wasEdited} />
                         )}
                       </Td>
                     );
                   })}
 
-                  <Td right>
+                  <Td right className="relative">
                     {(() => {
-                      const ctxItems: ContextExtra[] = aportesExtras
-                        .map((a, idx) => ({ a, idx }))
-                        .filter(({ a }) => {
-                          const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
-                          return mesOffset === r.mes;
-                        })
-                        .map(({ a, idx }) => ({ origem: a.origem, valor: Number(a.valor), pessoaNome: a.pessoaNome, index: idx }));
-
-                      const extrasTotal = ctxItems.reduce((sum, item) => sum + item.valor, 0);
-
+                      if (isZero) return <span className="text-muted-foreground">{brl(0)}</span>;
+                      
                       return (
                         <ExtrasCell
-                          contextItems={ctxItems}
-                          total={extrasTotal}
+                          total={r.aportesExtras}
+                          contextItems={rowExtras}
                           onEditExtra={(index, origem, valor) => {
                             setAportesExtras(prev => {
-                              const copy = [...prev];
-                              copy[index] = { ...copy[index], origem, valor };
-                              saveDraft({ aportesExtras: copy });
-                              return copy;
+                              const next = [...prev];
+                              next[index] = { ...next[index], origem, valor };
+                              saveDraft({ aportesExtras: next });
+                              return next;
                             });
                           }}
                           onDeleteExtra={(index) => {
                             setAportesExtras(prev => {
-                              const copy = prev.filter((_, i) => i !== index);
-                              saveDraft({ aportesExtras: copy });
-                              return copy;
+                              const next = prev.filter((_, i) => i !== index);
+                              saveDraft({ aportesExtras: next });
+                              return next;
                             });
                           }}
                         />
@@ -626,9 +653,8 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
                     </>
                   )}
                   
-                  {/* Actions Column */}
                   <Td right className="group">
-                    {r.mes > 0 && (
+                    {!isZero && (
                       <RowActions
                         mes={r.mes}
                         dataStr={r.data}
@@ -706,4 +732,4 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
       </div>
     </div>
   );
-}
+});

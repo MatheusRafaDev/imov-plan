@@ -7,18 +7,30 @@ import { Card } from "@/components/ui/card";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { TabelaMesAMes } from "@/components/TabelaMesAMes";
+import dynamic from "next/dynamic";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ChartSkeleton } from "@/components/ui/ChartSkeleton";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { SummaryCards } from "./components/SummaryCards";
-
 import { ParticipantsCard } from "./components/ParticipantsCard";
 import { FinancialSummaryCard } from "./components/FinancialSummaryCard";
-import { InvestmentChart } from "./components/InvestmentChart";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { 
   extractSimulacaoSummary, 
   extractParticipantesSummary, 
   extractChartData 
 } from "@/utils/simulacaoSelectors";
+
+// Lazy load heavy components
+const InvestmentChart = dynamic(() => import("./components/InvestmentChart").then(mod => ({ default: mod.InvestmentChart })), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
+
+const TabelaMesAMes = dynamic(() => import("@/components/TabelaMesAMes").then(mod => ({ default: mod.TabelaMesAMes })), {
+  loading: () => <TableSkeleton />,
+  ssr: false
+});
 
 export default function ResultadoPage() {
   const { 
@@ -103,8 +115,7 @@ export default function ResultadoPage() {
 
       {loadingBackend && (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">Carregando simulação salva...</span>
+          <LoadingSpinner size="md" text="Carregando simulação salva..." />
         </div>
       )}
 
@@ -128,4 +139,4 @@ export default function ResultadoPage() {
       </div>
     </div>
   );
-}
+}

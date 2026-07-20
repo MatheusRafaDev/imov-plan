@@ -18,6 +18,7 @@ type AuthContextType = {
   error: string | null;
   register: (email: string, password: string, name: string, dataNascimento?: string) => Promise<{ success: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (token: string) => Promise<{ success: boolean; error?: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   resetPassword: (email: string, token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -179,6 +180,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (token: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.post("/auth/google", { token });
+      const { user: userData } = response.data;
+      setUser(userData);
+      Cookies.set("user", JSON.stringify(userData), { expires: 7 });
+      
+      // If they had a local guest plan, link it to their new account
+      const localPlanoId = Cookies.get("imovplan_planoId");
+      if (localPlanoId && !localPlanoId.startsWith("local-draft-")) {
+        try {
+          await api.post(`/plano/${localPlanoId}/link-user?usuarioId=${userData.id}`);
+        } catch (e: any) {
+          if (e?.response?.status === 404) {
+            console.warn('Plano não encontrado ao vincular ao usuário; continuará sem vínculo.');
+          } else {
+            console.error('Falha ao vincular plano à conta', e);
+          }
+        }
+      }
+
+      dispatchAuthEvent();
+      return { success: true };
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Erro ao fazer login com Google";
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const forgotPassword = async (email: string) => {
     setLoading(true);
     setError(null);
@@ -259,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, forgotPassword, resetPassword, logout, deleteAccount, isAuthenticated, updateUser }}>
+    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, loginWithGoogle, forgotPassword, resetPassword, logout, deleteAccount, isAuthenticated, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
