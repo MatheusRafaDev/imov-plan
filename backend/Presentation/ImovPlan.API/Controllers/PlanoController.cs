@@ -28,7 +28,7 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> GetDraftByUsuario(string usuarioId)
         {
             var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+            if (string.IsNullOrEmpty(usuarioIdClaim) || !usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
                 return NotFound(new { message = "Não encontrado." });
 
             var draft = await _planoService.GetDraftByUsuarioIdAsync(usuarioId);
@@ -42,7 +42,7 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> GetOrCreateDraftForUser([FromQuery] string usuarioId)
         {
             var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+            if (string.IsNullOrEmpty(usuarioIdClaim) || !usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
                 return NotFound(new { message = "Não encontrado." });
 
             var draft = await _planoService.GetOrCreateDraftForUserAsync(usuarioId);
@@ -55,7 +55,7 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> GetTodosPlanos(string usuarioId)
         {
             var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+            if (string.IsNullOrEmpty(usuarioIdClaim) || !usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
                 return NotFound(new { message = "Não encontrado." });
 
             var planos = await _planoService.GetTodosResumosByUsuarioIdAsync(usuarioId);
@@ -66,7 +66,7 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> CriarNovoPlano(string usuarioId)
         {
             var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+            if (string.IsNullOrEmpty(usuarioIdClaim) || !usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
                 return NotFound(new { message = "Não encontrado." });
 
             var draft = await _planoService.CreateNewDraftForUserAsync(usuarioId);
@@ -91,7 +91,7 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> LinkUser(string id, [FromQuery] string usuarioId)
         {
             var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim) || usuarioIdClaim != usuarioId)
+            if (string.IsNullOrEmpty(usuarioIdClaim) || !usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
                 return Unauthorized(new { message = "Autenticação é obrigatória." });
 
             var success = await _planoService.LinkPlanoToUserAsync(id, usuarioId);

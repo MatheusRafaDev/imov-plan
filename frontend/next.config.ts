@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               scriptSrc,
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data:",
+              "img-src 'self' data: https://images.unsplash.com",
               "connect-src 'self'",
               "frame-ancestors 'none'",
             ].join("; "),
