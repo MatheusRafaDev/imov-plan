@@ -17,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="min-h-screen" suppressHydrationWarning>
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "missing_client_id"}>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "missing_client_id"} locale="pt-BR">
           <AuthProvider>
             {children}
             <Toaster richColors position="top-right" />

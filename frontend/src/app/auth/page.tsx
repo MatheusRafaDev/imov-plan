@@ -197,7 +197,6 @@ export default function AuthPage() {
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
               text="continue_with"
-              locale="pt-BR"
               width="100%"
               shape="rectangular"
             />
