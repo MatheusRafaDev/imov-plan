@@ -28,7 +28,15 @@ api.interceptors.response.use(
         typeof window !== 'undefined' && 
         !url.includes('/auth/login') && 
         !url.includes('/auth/register') &&
-        !url.includes('/usuario/')
+        !url.includes('/auth/forgot-password') &&
+        !url.includes('/auth/reset-password') &&
+        !url.includes('/usuario/') &&
+        // Chamadas ao /plano/* logo após criar conta ou entrar podem falhar com 401
+        // por uma corrida entre o cookie de sessão sendo aplicado e a chamada seguinte.
+        // Forçar logout aqui derrubava o usuário de volta para /auth no meio do cadastro
+        // do imóvel. As telas que usam essas chamadas já tratam falha localmente
+        // (fallback para localStorage + toast), então deixamos o erro seguir sem deslogar.
+        !url.includes('/plano/')
       ) {
         Cookies.remove('user');
         window.location.href = '/auth';

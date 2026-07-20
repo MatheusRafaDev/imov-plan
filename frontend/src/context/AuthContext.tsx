@@ -18,6 +18,8 @@ type AuthContextType = {
   error: string | null;
   register: (email: string, password: string, name: string, dataNascimento?: string) => Promise<{ success: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string, token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: () => boolean;
@@ -177,6 +179,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post("/auth/forgot-password", { email });
+      return { success: true };
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Erro ao solicitar recuperação de senha";
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string, token: string, newPassword: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post("/auth/reset-password", { email, token, newPassword });
+      return { success: true };
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Token inválido ou expirado.";
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await api.post("/auth/logout");
@@ -227,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, logout, deleteAccount, isAuthenticated, updateUser }}>
+    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, forgotPassword, resetPassword, logout, deleteAccount, isAuthenticated, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

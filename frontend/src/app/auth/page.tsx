@@ -324,6 +324,13 @@ export default function AuthPage() {
               )}
             </Button>
           </form>
+          {isLogin && (
+            <div className="mt-4 text-center text-sm">
+              <Link href="/auth/forgot-password" className="text-muted-foreground hover:text-foreground transition-colors">
+                Esqueci minha senha
+              </Link>
+            </div>
+          )}
           <div className="mt-6 text-center text-sm">
             <button type="button" onClick={handleToggleMode} className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               {isLogin ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}

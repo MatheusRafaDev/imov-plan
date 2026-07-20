@@ -7,6 +7,7 @@ import { usePlanContext } from "@/context/PlanContext";
 import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
 import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
+import { ScenarioComparison } from "@/app/app/resultado/components/ScenarioComparison";
 
 type DisplayRow = {
   mes: number;
@@ -182,7 +183,7 @@ function RowActions({
       )}
 
       {openExtra && typeof document !== "undefined" && createPortal(
-        <div ref={extraPopupRef} className="fixed z-50 rounded-xl border border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: 'calc(100vh - 16px)' }}>
+        <div ref={extraPopupRef} className="fixed z-50 rounded-b-xl border border-t-0 border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: 'calc(100vh - 16px)' }}>
           <div className="bg-secondary/60 px-3 py-2 border-b border-border/50">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Extra · Mês {mes}</p>
           </div>
@@ -482,10 +483,9 @@ export function TabelaMesAMes({ showFinancials = true, showCompletedToggle = tru
         <div>
           <h2 className="font-display text-xl font-light">Tabela mês a mês</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Clique no mês para marcá-lo como concluído. Clique em Extras para detalhar lançamentos. Aporte é editável.</p>
+          {showCenarioSelector && <ScenarioComparison />}
         </div>
       </div>
-
-
 
       <div className="overflow-x-auto border border-border/50 rounded-xl shadow-sm bg-card relative">
         <table className="w-full text-xs">

@@ -2,7 +2,6 @@
 
 import { usePlanContext } from "@/context/PlanContext";
 import { simular, CenarioSimulacao } from "@/lib/finance";
-import { Card } from "@/components/ui/card";
 import { brl, percentualCdiPorTipoInvestimento } from "@/lib/finance";
 
 export function ScenarioComparison() {
@@ -44,54 +43,39 @@ export function ScenarioComparison() {
     otimista: simular({ ...input, cenario: "otimista", pularSugestoes: true })
   };
 
-  const renderCard = (cenario: CenarioSimulacao, label: string, desc: string) => {
-    const r = results[cenario];
-    const isSelected = cenario === cenarioSimulacao;
+  const scenarios: { key: CenarioSimulacao; label: string; cdi: string }[] = [
+    { key: "pessimista", label: "Pessimista", cdi: "CDI −2%" },
+    { key: "realista",   label: "Realista",   cdi: "CDI atual" },
+    { key: "otimista",   label: "Otimista",   cdi: "CDI +2%" },
+  ];
 
-    return (
-      <Card
-        key={cenario}
-        onClick={() => setCenarioSimulacao(cenario)}
-        className={`p-6 flex flex-col gap-4 relative overflow-hidden transition-all duration-300 cursor-pointer rounded-xl ${isSelected ? "border-accent ring-2 ring-accent/30 bg-card shadow-md scale-[1.02]" : "border-border/50 bg-card hover:border-accent/40"}`}
-      >
-        {isSelected && (
-          <div className="absolute top-0 right-0 bg-accent text-accent-foreground text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg">
-            Atual
-          </div>
-        )}
-        <div>
-          <h3 className="font-display font-semibold text-xl">{label}</h3>
-          <p className="text-xs text-muted-foreground mt-1">{desc}</p>
-        </div>
+  const chipBase = "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-all duration-150 cursor-pointer whitespace-nowrap";
 
-        <div className="space-y-3">
-          <div className="flex justify-between items-center py-2 border-b border-border/30">
-            <span className="text-xs text-muted-foreground">Tempo p/ Meta</span>
-            <span className={`font-semibold text-sm ${r.mesAtingiuMeta !== undefined ? "text-foreground" : "text-muted-foreground"}`}>
-              {r.mesAtingiuMeta !== undefined ? `${r.mesAtingiuMeta} meses` : "Não atinge"}
-            </span>
-          </div>
-          <div className="flex justify-between items-center py-2">
-            <span className="text-xs text-muted-foreground">Lucro c/ Juros</span>
-            <span className="font-semibold text-sm text-success">{brl(r.lucroLiquido)}</span>
-          </div>
-        </div>
-      </Card>
-    );
+  const chipStyle = (key: CenarioSimulacao, isSelected: boolean) => {
+    if (!isSelected) return `${chipBase} border-border/40 text-muted-foreground/60 hover:border-border hover:text-muted-foreground`;
+    if (key === "pessimista") return `${chipBase} border-rose-500/50 bg-rose-500/8 text-rose-400`;
+    if (key === "realista")   return `${chipBase} border-accent/60 bg-accent/8 text-accent`;
+    return                           `${chipBase} border-emerald-500/50 bg-emerald-500/8 text-emerald-400`;
   };
 
   return (
-    <div className="space-y-4 pt-6 border-t border-border/40">
-      <div>
-        <h2 className="font-display text-2xl font-light mb-1">E se a economia mudar?</h2>
-        <p className="text-sm text-muted-foreground">Veja como as variações da taxa Selic/CDI impactam seu plano. Clique em um cenário para aplicá-lo em todo o planejamento.</p>
-      </div>
-      
-      <div className="grid md:grid-cols-3 gap-4">
-        {renderCard("pessimista", "Pessimista", "Rendimento CDI cai 2% a.a.")}
-        {renderCard("realista", "Realista", "CDI atual mantido constante")}
-        {renderCard("otimista", "Otimista", "Rendimento CDI sobe 2% a.a.")}
-      </div>
+    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+      <span className="text-[10px] text-muted-foreground/40 font-medium">Cenário:</span>
+      {scenarios.map(({ key, label, cdi }) => {
+        const r = results[key];
+        const isSelected = key === cenarioSimulacao;
+        return (
+          <button key={key} onClick={() => setCenarioSimulacao(key)} className={chipStyle(key, isSelected)}>
+            {isSelected && <span>✓</span>}
+            <span>{label}</span>
+            <span className="opacity-50">{cdi}</span>
+            <span className="opacity-30">·</span>
+            <span>{r.mesAtingiuMeta !== undefined ? `${r.mesAtingiuMeta}m` : "—"}</span>
+            <span className="opacity-30">·</span>
+            <span>{brl(r.lucroLiquido)}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

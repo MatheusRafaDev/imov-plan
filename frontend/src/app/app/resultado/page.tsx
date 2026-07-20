@@ -13,7 +13,6 @@ import { SummaryCards } from "./components/SummaryCards";
 import { ParticipantsCard } from "./components/ParticipantsCard";
 import { FinancialSummaryCard } from "./components/FinancialSummaryCard";
 import { InvestmentChart } from "./components/InvestmentChart";
-import { ScenarioComparison } from "./components/ScenarioComparison";
 import { Loader2, RefreshCw } from "lucide-react";
 import { 
   extractSimulacaoSummary, 
@@ -123,11 +122,6 @@ export default function ResultadoPage() {
         <FinancialSummaryCard summary={summary} />
         <ParticipantsCard participantes={participantes} totalAcumulado={summary.totalAcumulado} />
       </div>
-
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
-        <ScenarioComparison />
-      </div>
-
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
         <TabelaMesAMes />

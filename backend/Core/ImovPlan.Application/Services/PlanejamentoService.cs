@@ -49,6 +49,56 @@ namespace ImovPlan.Application.Services
             return await BuildDraftDtoAsync(planejamento);
         }
 
+        public async Task<List<PlanoResumoDto>> GetTodosResumosByUsuarioIdAsync(string usuarioId)
+        {
+            var planejamentos = await _planejamentoRepo.GetAllByUsuarioIdAsync(usuarioId);
+            return planejamentos.Select(p => new PlanoResumoDto
+            {
+                Id = p.Id,
+                NomePlano = string.IsNullOrWhiteSpace(p.NomePlano) ? "Imóvel" : p.NomePlano,
+                ValorImovel = p.ValorImovel ?? 0m,
+                PercentualEntrada = p.PercentualEntrada ?? 0m,
+                PrazoMaxMeses = p.PrazoMaxMeses,
+                Estado = p.Estado,
+                Cidade = p.Cidade,
+                Status = p.Status,
+                CreatedAt = p.CreatedAt,
+            }).ToList();
+        }
+
+        public async Task<PlanoDraftDto> CreateNewDraftForUserAsync(string usuarioId)
+        {
+            // Ao contrário de GetOrCreateDraftForUserAsync, aqui SEMPRE criamos um plano novo —
+            // usado pela tela "Meus Planos" quando o usuário pede explicitamente um novo plano.
+            var existentes = await _planejamentoRepo.GetAllByUsuarioIdAsync(usuarioId);
+            var proximoNumero = existentes.Count + 1;
+
+            var planejamento = new Planejamento
+            {
+                UsuarioId = usuarioId,
+                Status = "Draft",
+                NomePlano = existentes.Count == 0 ? "Imóvel" : $"Imóvel {proximoNumero}",
+            };
+
+            await _planejamentoRepo.CreateAsync(planejamento);
+            return await BuildDraftDtoAsync(planejamento);
+        }
+
+        public async Task<bool> LinkPlanoToUserAsync(string id, string usuarioId)
+        {
+            var planejamento = await _planejamentoRepo.GetByIdAsync(id);
+            if (planejamento == null)
+                return false;
+
+            // Só vincula planos "órfãos" (sem dono) para não sequestrar o plano de outro usuário.
+            if (!string.IsNullOrEmpty(planejamento.UsuarioId) && planejamento.UsuarioId != usuarioId)
+                return false;
+
+            planejamento.UsuarioId = usuarioId;
+            await _planejamentoRepo.UpdateAsync(id, planejamento);
+            return true;
+        }
+
         public async Task<PlanoDraftDto> GetOrCreateDraftForUserAsync(string usuarioId)
         {
             // Reutiliza o plano existente do usuário, se houver, em vez de criar um novo.
@@ -334,12 +384,30 @@ namespace ImovPlan.Application.Services
 
         public async Task DeleteAllUserDataAsync(string usuarioId)
         {
-            var planejamento = await _planejamentoRepo.GetByUsuarioIdAsync(usuarioId);
+            // Usuário pode ter mais de um plano (feature de múltiplos planos) — apagar TODOS,
+            // não só o mais recente, para não deixar planos órfãos ao excluir a conta.
+            var planejamentos = await _planejamentoRepo.GetAllByUsuarioIdAsync(usuarioId);
+            foreach (var planejamento in planejamentos)
+            {
+                await DeletePlanejamentoCascadeAsync(planejamento.Id);
+            }
+        }
+
+        public async Task<bool> DeletePlanoAsync(string id, string usuarioIdAutenticado)
+        {
+            var planejamento = await _planejamentoRepo.GetByIdAsync(id);
             if (planejamento == null)
-                return;
+                return false;
 
-            var planejamentoId = planejamento.Id;
+            if (string.IsNullOrEmpty(usuarioIdAutenticado) || planejamento.UsuarioId != usuarioIdAutenticado)
+                return false;
 
+            await DeletePlanejamentoCascadeAsync(id);
+            return true;
+        }
+
+        private async Task DeletePlanejamentoCascadeAsync(string planejamentoId)
+        {
             // Deletar Participantes e seus GastosDetalhados
             var participantes = await _participanteRepo.GetByPlanejamentoIdAsync(planejamentoId);
             foreach (var p in participantes)

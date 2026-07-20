@@ -19,15 +19,18 @@ namespace ImovPlan.API.Controllers
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly ITokenService _tokenService;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
         public AuthController(
             IUsuarioRepository usuarioRepository,
             ITokenService tokenService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IEmailService emailService)
         {
             _usuarioRepository = usuarioRepository;
             _tokenService = tokenService;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
@@ -174,10 +177,25 @@ namespace ImovPlan.API.Controllers
             user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
             await _usuarioRepository.UpdateAsync(user.Id, user);
 
-            // Simulação de envio de email
-            Console.WriteLine($"[SIMULAÇÃO DE EMAIL] Para resetar a senha de {user.Email}, use o token: {user.ResetPasswordToken}");
+            var frontendUrl = _configuration["FrontendUrl"] ?? "http://localhost:3000";
+            var resetLink = $"{frontendUrl}/auth/reset-password?token={user.ResetPasswordToken}&email={user.Email}";
+            
+            var subject = "Recuperação de Senha - ImovPlan";
+            var body = $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;'>
+                    <h2 style='color: #E63946;'>Recuperação de Senha</h2>
+                    <p>Olá,</p>
+                    <p>Recebemos uma solicitação para redefinir a senha da sua conta no <strong>ImovPlan</strong>.</p>
+                    <p>Se você não fez essa solicitação, pode ignorar este email.</p>
+                    <div style='margin: 30px 0;'>
+                        <a href='{resetLink}' style='background-color: #E63946; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'>Redefinir Minha Senha</a>
+                    </div>
+                    <p style='color: #666; font-size: 12px;'>Este link expira em 1 hora.</p>
+                </div>";
 
-            return Ok(new { message = "Se o email existir, um token de recuperação foi gerado (simulado no console)." });
+            await _emailService.SendEmailAsync(user.Email, subject, body, true);
+
+            return Ok(new { message = "Se o email existir, um token de recuperação foi gerado." });
         }
 
         [HttpPost("reset-password")]

@@ -59,6 +59,18 @@ type PlanoDraftPayload = {
   mesesConcluidos: number[];
 };
 
+export type PlanoResumo = {
+  id: string;
+  nomePlano: string;
+  valorImovel: number;
+  percentualEntrada: number;
+  prazoMaxMeses: number | null;
+  estado?: string;
+  cidade?: string;
+  status: string;
+  createdAt: string;
+};
+
 type PlanContextType = {
   objetivo: Partial<SimInput> | null;
   setObjetivo: React.Dispatch<React.SetStateAction<Partial<SimInput> | null>>;
@@ -89,6 +101,15 @@ type PlanContextType = {
     aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
   }) => Promise<string | null>;
   carregarPlano: () => Promise<void>;
+
+  // Suporte a múltiplos planos
+  planos: PlanoResumo[];
+  carregandoPlanos: boolean;
+  carregarListaPlanos: () => Promise<void>;
+  trocarPlanoAtivo: (id: string) => Promise<void>;
+  criarNovoPlano: () => Promise<string | null>;
+  excluirPlano: (id: string) => Promise<boolean>;
+  renomearPlano: (id: string, novoNome: string) => Promise<boolean>;
 
   backendData: BackendSimulacaoResult | null;
   calculating: boolean;
@@ -265,6 +286,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
   const [planoHidratado, setPlanoHidratado] = useState(false);
+  const [planos, setPlanos] = useState<PlanoResumo[]>([]);
+  const [carregandoPlanos, setCarregandoPlanos] = useState(false);
   const ultimoCalculoRef = useRef<string>("");
 
   const carregarPlano = useCallback(async () => {
@@ -303,9 +326,20 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const resposta = await api.get(`/plano/user/${usuarioId}`);
-      if (resposta.status === 200 && resposta.data) {
-        const draftData = resposta.data;
+      let draftData;
+      const currentPlanoId = Cookies.get("imovplan_planoId");
+
+      if (currentPlanoId) {
+        const resposta = await api.get(`/plano/draft/${currentPlanoId}`);
+        draftData = resposta.data;
+      } else {
+        const resposta = await api.get(`/plano/user/${usuarioId}`);
+        if (resposta.status === 200 && resposta.data) {
+          draftData = resposta.data;
+        }
+      }
+
+      if (draftData) {
         const dadosMapeados = {
           objetivo: draftData.objetivo ? {
             nomePlano: draftData.objetivo.nomePlano,
@@ -417,6 +451,115 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     setPlanoHidratado(true);
   }, []);
 
+  const carregarListaPlanos = useCallback(async () => {
+    const usuarioId = obterIdUsuario();
+    if (!usuarioId) {
+      setPlanos([]);
+      return;
+    }
+    setCarregandoPlanos(true);
+    try {
+      const resposta = await api.get(`/plano/user/${usuarioId}/todos`);
+      const lista: PlanoResumo[] = (resposta.data || []).map((p: any) => ({
+        id: p.id,
+        nomePlano: p.nomePlano || "Imóvel",
+        valorImovel: p.valorImovel || 0,
+        percentualEntrada: p.percentualEntrada || 0,
+        prazoMaxMeses: p.prazoMaxMeses ?? null,
+        estado: p.estado,
+        cidade: p.cidade,
+        status: p.status || "Draft",
+        createdAt: p.createdAt,
+      }));
+      setPlanos(lista);
+    } catch (error) {
+      console.error("Erro ao carregar lista de planos:", error);
+    } finally {
+      setCarregandoPlanos(false);
+    }
+  }, []);
+
+  const trocarPlanoAtivo = useCallback(async (id: string) => {
+    setPlanoId(id);
+    Cookies.set("imovplan_planoId", id, { expires: 30 });
+    await carregarPlano();
+  }, [carregarPlano]);
+
+  const criarNovoPlano = useCallback(async (): Promise<string | null> => {
+    const usuarioId = obterIdUsuario();
+    if (!usuarioId) return null;
+
+    try {
+      const resposta = await api.post(`/plano/user/${usuarioId}/novo`);
+      const novoId: string | undefined = resposta.data?.id;
+      if (!novoId) return null;
+
+      setPlanos((prev) => [
+        {
+          id: novoId,
+          nomePlano: resposta.data?.objetivo?.nomePlano || "Imóvel",
+          valorImovel: 0,
+          percentualEntrada: 0,
+          prazoMaxMeses: null,
+          status: "Draft",
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+
+      await trocarPlanoAtivo(novoId);
+      return novoId;
+    } catch (error) {
+      console.error("Erro ao criar novo plano:", error);
+      return null;
+    }
+  }, [trocarPlanoAtivo]);
+
+  const excluirPlano = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      await api.delete(`/plano/${id}`);
+      setPlanos((prev) => prev.filter((p) => p.id !== id));
+
+      if (id === planoId) {
+        Cookies.remove("imovplan_planoId");
+        setPlanoId(null);
+        await carregarPlano();
+      }
+      return true;
+    } catch (error) {
+      console.error("Erro ao excluir plano:", error);
+      return false;
+    }
+  }, [planoId, carregarPlano]);
+
+  const renomearPlano = useCallback(async (id: string, novoNome: string): Promise<boolean> => {
+    try {
+      // Pega o draft atual do backend para manter os outros campos intactos
+      const res = await api.get(`/plano/draft/${id}`);
+      const draft = res.data;
+      if (!draft) return false;
+
+      draft.objetivo = draft.objetivo || {};
+      draft.objetivo.nomePlano = novoNome;
+
+      // Atualiza o draft no backend
+      await api.put(`/plano/draft/${id}`, draft);
+
+      // Atualiza lista local
+      setPlanos((prev) => prev.map(p => p.id === id ? { ...p, nomePlano: novoNome } : p));
+
+      // Se for o plano ativo, atualiza o objetivo em memória também
+      if (id === planoId) {
+        setObjetivo(prev => prev ? { ...prev, nomePlano: novoNome } : null);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Erro ao renomear plano:", error);
+      return false;
+    }
+  }, [planoId]);
+
   const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
     const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;
     const dadosLocais = {
@@ -508,20 +651,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const hashAtual = JSON.stringify({
-      objetivo,
-      pessoas,
-      aportesExtras,
-      aportesRegularesEditados,
-      aportesRegularesEditadosPorPessoa,
-      cenarioSimulacao,
-    });
-
-    if (ultimoCalculoRef.current === hashAtual) {
-      console.log("calcularBackend: sem alterações, pulando chamada");
-      return;
-    }
-
     setCalculating(true);
     setBackendError(null);
 
@@ -567,7 +696,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       setBackendData(result);
       setSimSource("backend");
       setBackendError(null);
-      ultimoCalculoRef.current = hashAtual;
+
     } catch (err: any) {
       console.error("Erro ao calcular simulação no backend:", err);
       setBackendError(err?.response?.data?.message || "Erro ao calcular simulação no servidor");
@@ -583,7 +712,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
     const timer = window.setTimeout(() => {
       calcularBackend();
-    }, 200);
+    }, 400);
 
     return () => window.clearTimeout(timer);
   }, [
@@ -610,6 +739,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           readyForAutoSave.current = true;
         }, 500);
       });
+      carregarListaPlanos();
     }
 
     const handleAuthChanged = () => {
@@ -617,12 +747,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       if (usuarioIdCarregado.current !== newUserId) {
         usuarioIdCarregado.current = newUserId;
         carregarPlano();
+        carregarListaPlanos();
       }
     };
 
     window.addEventListener("imovplan:auth-changed", handleAuthChanged);
     return () => window.removeEventListener("imovplan:auth-changed", handleAuthChanged);
-  }, [carregarPlano]);
+  }, [carregarPlano, carregarListaPlanos]);
 
 
 
@@ -670,6 +801,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       salvarPlano,
       saveDraft,
       carregarPlano,
+      planos,
+      carregandoPlanos,
+      carregarListaPlanos,
+      trocarPlanoAtivo,
+      criarNovoPlano,
+      excluirPlano,
+      renomearPlano,
       backendData,
       calculating,
       backendError,

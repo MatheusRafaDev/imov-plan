@@ -172,6 +172,7 @@ builder.Services.AddScoped<ISimulacaoService, SimulacaoService>();
 builder.Services.AddScoped<IFinanciamentoService, FinanciamentoService>();
 builder.Services.AddScoped<IPlanoService, PlanejamentoService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IEmailService, ImovPlan.Infrastructure.Services.ResendEmailService>();
 builder.Services.AddHttpClient<IAiConsultingService, ImovPlan.Infrastructure.Services.GroqAiService>();
 
 // Background Services
