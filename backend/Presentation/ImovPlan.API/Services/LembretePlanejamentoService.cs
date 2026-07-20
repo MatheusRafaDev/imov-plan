@@ -39,14 +39,22 @@ namespace ImovPlan.API.Services
                 try
                 {
                     await ProcessarLembretesAsync(stoppingToken);
+                    await Task.Delay(_interval, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Shutdown normal — encerra o loop sem erro
+                    break;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "[LembretePlanejamento] Erro ao processar lembretes.");
+                    // Aguarda um pouco antes de tentar novamente para evitar loop infinito em erro
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
                 }
-
-                await Task.Delay(_interval, stoppingToken);
             }
+
+            _logger.LogInformation("[LembretePlanejamento] Serviço de lembretes encerrado.");
         }
 
         private async Task ProcessarLembretesAsync(CancellationToken cancellationToken)
