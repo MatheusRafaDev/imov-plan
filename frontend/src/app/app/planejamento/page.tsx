@@ -120,8 +120,8 @@ export default function PlanejamentoPage() {
     <div className="max-w-6xl mx-auto space-y-10">
       <div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
-        <h1 className="font-display text-4xl md:text-5xl mb-3 font-light">Acelere seu plano</h1>
-        <p className="text-muted-foreground text-lg">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
+        <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3 font-light">Acelere seu plano</h1>
+        <p className="text-muted-foreground">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
 
       {foraDoPrazo && (
@@ -314,21 +314,23 @@ export default function PlanejamentoPage() {
             ) : (
               <div className="mt-6 space-y-3">
                 {aportesExtras.map((a, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-4 rounded-xl border border-border/50 bg-background p-4 text-sm items-center">
-                    <div className="col-span-12 sm:col-span-3 num font-semibold">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</div>
-                    <div className="col-span-12 sm:col-span-4">
-                      <p className="font-medium">{a.origem}</p>
-                      <p className="text-xs text-muted-foreground">{a.pessoaNome ?? "Conjunto"}</p>
+                  <div key={index} className="rounded-xl border border-border/50 bg-background p-4 text-sm">
+                    {/* Mobile: card layout stacked */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <p className="font-semibold num">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">{a.origem} · {a.pessoaNome ?? "Conjunto"}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button size="icon" variant="ghost" onClick={() => editarAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary/80">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="col-span-12 sm:col-span-3 text-right font-semibold num">{brl(Number(a.valor))}</div>
-                    <div className="col-span-12 sm:col-span-2 flex justify-end gap-2">
-                      <Button size="icon" variant="ghost" onClick={() => editarAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary/80">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <p className="font-semibold num text-base">{brl(Number(a.valor))}</p>
                   </div>
                 ))}
               </div>
@@ -343,8 +345,8 @@ export default function PlanejamentoPage() {
       </div>
 
       {/* Botão Prosseguir */}
-      <div className="flex justify-end pt-8">
-        <Button onClick={prosseguir} size="lg" className="bg-primary text-primary-foreground px-8 h-12 text-base">
+      <div className="flex justify-center sm:justify-end pt-8">
+        <Button onClick={prosseguir} size="lg" className="w-full sm:w-auto bg-primary text-primary-foreground px-8 h-12 text-base">
           Ver resultado <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>

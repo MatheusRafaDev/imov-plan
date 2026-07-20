@@ -125,7 +125,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </div>
       </header>
       <main className="flex-1 overflow-y-auto">
-        <div className="container py-8 md:py-12 lg:pb-12">{children}</div>
+        <div className="container py-6 md:py-8 lg:py-12 pb-24 lg:pb-12">{children}</div>
       </main>
       <nav className="lg:hidden shrink-0 border-t border-border/60 bg-background/80 backdrop-blur">
         <div className="flex">

@@ -155,7 +155,7 @@ export function InvestmentChart({ data, summary }: InvestmentChartProps) {
   return (
     <Card className="p-6 border-border/50 rounded-xl">
       {/* Header com legenda inline */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-5">
         <h3 className="font-display text-lg font-medium">Projeção de Crescimento</h3>
         <div className="flex items-center flex-wrap gap-4 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
@@ -169,7 +169,7 @@ export function InvestmentChart({ data, summary }: InvestmentChartProps) {
         </div>
       </div>
 
-      <div className="h-[320px] w-full">
+      <div className="h-[240px] sm:h-[280px] md:h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 16, right: 8, left: 8, bottom: 0 }}>
             <defs>
@@ -221,7 +221,7 @@ export function InvestmentChart({ data, summary }: InvestmentChartProps) {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              width={72}
+              width={60}
             />
 
             <Tooltip

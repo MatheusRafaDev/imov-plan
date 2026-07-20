@@ -68,7 +68,7 @@ export function StatCard({
         {icon}
         {label}
       </div>
-      <p className={`font-display text-2xl num leading-tight ${valueStyles[variant]}`}>
+      <p className={`font-display text-xl md:text-2xl num leading-tight break-words ${valueStyles[variant]}`}>
         {prefix}{displayValue}
       </p>
       {subtitle && (

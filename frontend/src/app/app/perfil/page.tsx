@@ -134,17 +134,17 @@ export default function PerfilPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up pb-12">
       {/* Cabeçalho que respeita a identidade mas é compacto */}
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left">
         <div className="h-20 w-20 rounded-2xl bg-gradient-warm shadow-glow flex items-center justify-center shrink-0">
           <span className="font-display text-2xl font-bold text-white shadow-sm">
             {getInitials(name || "U")}
           </span>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-widest text-accent font-medium mb-1 flex items-center gap-1.5">
+          <p className="text-xs uppercase tracking-widest text-accent font-medium mb-1 flex items-center justify-center sm:justify-start gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5" /> Meu Perfil
           </p>
-          <h1 className="font-display text-3xl font-medium text-foreground">{name || "Usuário"}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-medium text-foreground">{name || "Usuário"}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
         </div>
       </div>

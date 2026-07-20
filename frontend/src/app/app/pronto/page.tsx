@@ -89,7 +89,7 @@ export default function ProntoPage() {
         <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2 flex items-center gap-2">
           <Key className="h-4 w-4" /> Simulação — Imóvel Pronto
         </p>
-        <h1 className="font-display text-4xl md:text-5xl mb-3">Financiamento bancário</h1>
+        <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3">Financiamento bancário</h1>
         <p className="text-muted-foreground">Preencha os dados do imóvel e veja a tabela SAC e PRICE atualizar automaticamente.</p>
       </div>
 
@@ -172,7 +172,7 @@ export default function ProntoPage() {
                   <Button variant={sistemaAtivo === "price" ? "default" : "outline"} size="sm"
                     className={sistemaAtivo === "price" ? "bg-gradient-warm text-accent-foreground" : ""}
                     onClick={() => setSistemaAtivo("price")}>Tabela PRICE</Button>
-                  <span className="text-xs text-muted-foreground ml-2">
+                  <span className="hidden sm:inline text-xs text-muted-foreground ml-2">
                     {sistemaAtivo === "sac" ? "Parcelas decrescentes — começa mais caro, termina mais barato." : "Parcelas fixas — mais previsível, mais juros totais."}
                   </span>
                 </div>

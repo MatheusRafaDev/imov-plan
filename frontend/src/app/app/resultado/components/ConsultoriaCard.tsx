@@ -53,7 +53,7 @@ export function ConsultoriaCard() {
   return (
     <div className="space-y-4 w-full">
       {!report && !loading && (
-        <Card className="p-8 text-center flex flex-col items-center justify-center space-y-4 shadow-soft border-dashed bg-secondary/30">
+        <Card className="p-5 md:p-8 text-center flex flex-col items-center justify-center space-y-4 shadow-soft border-dashed bg-secondary/30">
           <div className="h-12 w-12 rounded-xl bg-gradient-warm grid place-items-center shadow-glow mb-2">
             <Bot className="h-6 w-6 text-accent-foreground" />
           </div>
@@ -68,7 +68,7 @@ export function ConsultoriaCard() {
       )}
 
       {loading && report === "" && (
-        <Card className="p-8 text-center flex flex-col items-center justify-center space-y-4 shadow-soft bg-secondary/10">
+        <Card className="p-5 md:p-8 text-center flex flex-col items-center justify-center space-y-4 shadow-soft bg-secondary/10">
           <Loader2 className="h-8 w-8 text-accent animate-spin-smooth" />
           <h3 className="font-display text-lg animate-pulse">Analisando seus dados financeiros...</h3>
           <p className="text-xs text-muted-foreground">O relatório aparecerá em instantes.</p>

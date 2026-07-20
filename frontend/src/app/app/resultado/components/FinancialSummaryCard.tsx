@@ -21,26 +21,26 @@ export function FinancialSummaryCard({ summary }: FinancialSummaryCardProps) {
       </div>
 
       <div className="space-y-1">
-        <div className="flex justify-between items-center py-4 border-b border-border/40">
+        <div className="flex flex-wrap justify-between items-center gap-2 py-4 border-b border-border/40">
           <span className="text-muted-foreground">Valor Inicial</span>
           <span className="font-medium"><Currency value={summary.valorJaGuardado} /></span>
         </div>
         
-        <div className="flex justify-between items-center py-4 border-b border-border/40">
+        <div className="flex flex-wrap justify-between items-center gap-2 py-4 border-b border-border/40">
           <span className="text-muted-foreground">Aportes Regulares + Extras</span>
           <span className="font-medium"><Currency value={summary.totalInvestido - summary.valorJaGuardado} /></span>
         </div>
 
-        <div className="flex justify-between items-center py-4 border-b border-border/40">
+        <div className="flex flex-wrap justify-between items-center gap-2 py-4 border-b border-border/40">
           <span className="text-muted-foreground">Rendimento Acumulado</span>
           <span className="font-medium text-success bg-success/10 px-2.5 py-1 rounded-md text-sm">
             +<Currency value={summary.lucroLiquido} />
           </span>
         </div>
 
-        <div className="flex justify-between items-center pt-5">
+        <div className="flex flex-wrap justify-between items-center gap-2 pt-5">
           <span className="text-muted-foreground font-medium">Saldo Final Acumulado</span>
-          <span className="text-2xl font-display font-medium text-primary">
+          <span className="text-xl md:text-2xl font-display font-medium text-primary">
             <Currency value={summary.totalAcumulado} />
           </span>
         </div>

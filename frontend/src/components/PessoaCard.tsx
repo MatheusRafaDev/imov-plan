@@ -277,14 +277,16 @@ export default function PessoaCard({
           ) : (
             <div className="space-y-3">
               {(p.gastos_detalhados || []).map(g => (
-                <div key={g.id} className="flex items-center gap-2 bg-background p-1.5 rounded-lg border border-border/40 shadow-sm">
+                <div key={g.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-background p-2 rounded-lg border border-border/40 shadow-sm">
                   <Input value={g.nome} onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} className="flex-1 bg-transparent border-none focus-visible:ring-0" placeholder="Ex: Aluguel" />
-                  <div className="w-28 shrink-0">
-                    <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="bg-transparent border-none focus-visible:ring-0 text-right" />
+                  <div className="flex items-center gap-2 sm:gap-2">
+                    <div className="flex-1 sm:w-28 sm:flex-none">
+                      <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="bg-transparent border-none focus-visible:ring-0 text-right" />
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleRemoveGasto(g.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleRemoveGasto(g.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               ))}
               <div className="flex flex-wrap sm:flex-nowrap gap-2 items-end pt-1">

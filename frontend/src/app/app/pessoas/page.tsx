@@ -270,8 +270,8 @@ export default function PessoasPage() {
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">
       <div>
         <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 2 de 4</p>
-        <h1 className="font-display text-4xl md:text-5xl mb-2">Quem está nessa?</h1>
-        <p className="text-muted-foreground text-lg">Cadastre você e seu par. Peça mais informações e detalhe os gastos para maior precisão.</p>
+        <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-2">Quem está nessa?</h1>
+        <p className="text-muted-foreground">Cadastre você e seu par. Peça mais informações e detalhe os gastos para maior precisão.</p>
       </div>
 
       {/* Nova Barra de Resumo de Valor Guardado */}
@@ -348,7 +348,7 @@ export default function PessoasPage() {
         {!showAddForm ? (
           <Card 
             onClick={() => setShowAddForm(true)}
-            className="glass p-8 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[360px] text-muted-foreground hover:text-foreground group rounded-xl"
+            className="glass p-8 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[180px] md:min-h-[360px] text-muted-foreground hover:text-foreground group rounded-xl"
           >
             <div className="h-14 w-14 rounded-full bg-secondary/80 group-hover:bg-accent/10 grid place-items-center mb-4 transition-colors">
               <Plus className="h-6 w-6 text-muted-foreground group-hover:text-accent transition-colors" />

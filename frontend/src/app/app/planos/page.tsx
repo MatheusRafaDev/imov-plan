@@ -146,7 +146,7 @@ export default function PlanosPage() {
           <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2 flex items-center gap-2">
             <Building2 className="h-4 w-4" /> Comparador Inteligente
           </p>
-          <h1 className="font-display text-4xl md:text-5xl mb-3">Seus imóveis planejados</h1>
+          <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3">Seus imóveis planejados</h1>
           <p className="text-muted-foreground text-lg">Compare a viabilidade financeira e o tempo de cada plano.</p>
         </div>
         <Button onClick={handleCriarNovo} disabled={criando} className="bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow gap-2">
@@ -161,7 +161,7 @@ export default function PlanosPage() {
           Carregando seus planos...
         </div>
       ) : planos.length === 0 ? (
-        <Card className="p-10 text-center space-y-4 shadow-soft border-border/60 max-w-2xl mx-auto">
+        <Card className="p-6 sm:p-10 text-center space-y-4 shadow-soft border-border/60 max-w-2xl mx-auto">
           <p className="text-muted-foreground">Você ainda não tem nenhum plano salvo.</p>
           <Button onClick={handleCriarNovo} disabled={criando} className="bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow gap-2">
             {criando ? <Loader2 className="h-4 w-4 animate-spin-smooth" /> : <Plus className="h-4 w-4" />}
@@ -205,7 +205,7 @@ export default function PlanosPage() {
                         </button>
                       </div>
                     ) : (
-                      <h3 className="font-display text-2xl flex items-center gap-2">
+                      <h3 className="font-display text-xl sm:text-2xl flex flex-wrap items-center gap-2">
                         {plano.nomePlano}
                         {isAtivo && (
                           <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full shrink-0">

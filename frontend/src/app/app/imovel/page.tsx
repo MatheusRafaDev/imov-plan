@@ -184,13 +184,13 @@ export default function ObjetivoPage() {
         <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
         </p>
-        <h1 className="font-display text-4xl md:text-5xl mb-3">Qual é o imóvel?</h1>
-        <p className="text-muted-foreground text-lg">Defina o valor e a entrada. Calculamos sua meta automaticamente.</p>
+        <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3">Qual é o imóvel?</h1>
+        <p className="text-muted-foreground">Defina o valor e a entrada. Calculamos sua meta automaticamente.</p>
       </div>
 
-      <div className="grid lg:grid-cols-5 gap-8">
-        <div className="lg:col-span-3 space-y-6">
-          <Card className="p-6 md:p-8 space-y-6 shadow-soft border-border/60">
+      <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+        <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
+          <Card className="p-4 sm:p-6 md:p-8 space-y-6 shadow-soft border-border/60">
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="nome" className="text-muted-foreground">Apelido do plano</Label>
@@ -418,7 +418,7 @@ export default function ObjetivoPage() {
               <Button
                 onClick={salvar}
                 disabled={!isFormValid || salvando}
-                className="h-12 px-8 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow"
+                className="w-full sm:w-auto h-12 px-8 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow"
               >
                 {salvando ? "Salvando..." : "Salvar e Continuar"} <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -426,8 +426,8 @@ export default function ObjetivoPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="p-8 bg-gradient-ink text-primary-foreground shadow-elevated border-0 relative overflow-hidden group">
+        <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
+          <Card className="p-5 sm:p-8 bg-gradient-ink text-primary-foreground shadow-elevated border-0 relative overflow-hidden group">
             <div className="absolute -right-10 -top-10 h-40 w-40 bg-accent/20 rounded-full blur-3xl group-hover:bg-accent/30 transition-colors duration-700" />
 
             <div className="relative z-10">
@@ -435,24 +435,24 @@ export default function ObjetivoPage() {
               <p className="font-display text-5xl mt-2 mb-1">{brl(meta)}</p>
               <p className="text-sm text-primary-foreground/60 mb-8">Soma da Entrada + Custos Extras</p>
 
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 pt-6 border-t border-white/10">
                 <div>
                   <p className="text-xs text-primary-foreground/60 mb-1 flex items-center gap-1.5">
                     <Percent className="h-3 w-3" /> Entrada ({form.percentual_entrada}%)
                   </p>
-                  <p className="font-display text-2xl">{brl(entrada)}</p>
+                  <p className="font-display text-xl sm:text-2xl">{brl(entrada)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-primary-foreground/60 mb-1 flex items-center gap-1.5">
                     <Settings2 className="h-3 w-3" /> Custos ({form.percentual_custos_extras}%)
                   </p>
-                  <p className="font-display text-2xl">{brl(custos)}</p>
+                  <p className="font-display text-xl sm:text-2xl">{brl(custos)}</p>
                 </div>
               </div>
             </div>
           </Card>
 
-          <Card className="p-8 shadow-soft border-border/60">
+          <Card className="p-5 sm:p-8 shadow-soft border-border/60">
             <div className="flex items-center gap-3 mb-1">
               <div className="p-2 bg-accent/10 rounded-lg">
                 <Wallet className="h-5 w-5 text-accent" />
