@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowRight, Building2, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -26,9 +26,18 @@ export default function AuthPage() {
   const { login, register, loginWithGoogle, loading } = useAuth();
   const router = useRouter();
 
-  const handleGoogleSuccess = async (tokenResponse: any) => {
+  // Fluxo com ID Token (JWT) via componente oficial <GoogleLogin>.
+  // O backend (GoogleJsonWebSignature.ValidateAsync) espera um ID Token,
+  // não um access_token — por isso usamos "credential", não "access_token".
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     setGeneralError(null);
-    const result = await loginWithGoogle(tokenResponse.access_token);
+
+    if (!credentialResponse.credential) {
+      setGeneralError("Não foi possível obter o token do Google. Tente novamente.");
+      return;
+    }
+
+    const result = await loginWithGoogle(credentialResponse.credential);
     if (result.success) {
       toast.success("Login realizado com sucesso!");
       router.push("/app/imovel");
@@ -37,10 +46,9 @@ export default function AuthPage() {
     }
   };
 
-  const loginGoogle = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
-    onError: () => setGeneralError("Erro ao autenticar com o Google. Tente novamente."),
-  });
+  const handleGoogleError = () => {
+    setGeneralError("Erro ao autenticar com o Google. Tente novamente.");
+  };
 
   // Validações locais ao submeter
   const validateForm = () => {
@@ -76,7 +84,7 @@ export default function AuthPage() {
       } else {
         const parsedDate = new Date(dataNascimento);
         const today = new Date();
-        
+
         if (isNaN(parsedDate.getTime())) {
           errors.dataNascimento = "Formato de data inválido.";
         } else if (parsedDate > today) {
@@ -113,7 +121,7 @@ export default function AuthPage() {
       return;
     }
 
-    const result = isLogin 
+    const result = isLogin
       ? await login(email, password)
       : await register(email, password, name, dataNascimento || undefined);
 
@@ -182,33 +190,18 @@ export default function AuthPage() {
             </div>
           )}
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full mb-4 flex items-center justify-center gap-2"
-            disabled={loading}
-            onClick={() => loginGoogle()}
-          >
-            <svg viewBox="0 0 24 24" className="w-5 h-5">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
-              />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
-            </svg>
-            Continuar com o Google
-          </Button>
+          {/* Botão oficial do Google — retorna um ID Token (JWT) em "credential",
+              que é o formato que o backend (GoogleJsonWebSignature.ValidateAsync) espera. */}
+          <div className="w-full mb-4 flex justify-center [&>div]:w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              text="continue_with"
+              locale="pt-BR"
+              width="100%"
+              shape="rectangular"
+            />
+          </div>
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
@@ -269,7 +262,7 @@ export default function AuthPage() {
                 </div>
               </>
             )}
-            
+
             {/* Email */}
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>

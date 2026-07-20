@@ -32,13 +32,12 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5179/api";
-    // Proxy API requests to backend
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5179";
     if (apiUrl.startsWith("http")) {
       return [
         {
           source: "/api/:path*",
-          destination: `${apiUrl}/:path*`,
+          destination: `${apiUrl}/api/:path*`, // <- adiciona /api aqui
         },
       ];
     }
