@@ -123,27 +123,27 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </Button>
           </div>
         </div>
-        <nav className="lg:hidden border-t border-border/60 bg-background/70">
-          <div className="container flex">
-            {nav.map((n, index) => {
-              const active = pathname?.startsWith(n.to) || false;
-              const isDisabled = index > 0 && !isStep1Filled;
-              return isDisabled ? (
-                <div key={n.to} className="flex-1 py-2 grid place-items-center text-xs gap-0.5 text-muted-foreground/40 cursor-not-allowed opacity-50 select-none">
-                  <n.icon className="h-4 w-4" />
-                  {n.label}
-                </div>
-              ) : (
-                <Link key={n.to} href={n.to} onClick={(e) => handleNavClick(e, n.to)} className={`flex-1 py-2 grid place-items-center text-xs gap-0.5 ${active ? "text-accent" : "text-muted-foreground"}`}>
-                  <n.icon className="h-4 w-4" />
-                  {n.label}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
       </header>
-      <main className="container py-8 md:py-12 pb-24 lg:pb-12">{children}</main>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-background/80 backdrop-blur">
+        <div className="flex">
+          {nav.map((n, index) => {
+            const active = pathname?.startsWith(n.to) || false;
+            const isDisabled = index > 0 && !isStep1Filled;
+            return isDisabled ? (
+              <div key={n.to} className="flex-1 py-3 grid place-items-center text-xs gap-1 text-muted-foreground/40 cursor-not-allowed opacity-50 select-none">
+                <n.icon className="h-5 w-5" />
+                {n.label}
+              </div>
+            ) : (
+              <Link key={n.to} href={n.to} onClick={(e) => handleNavClick(e, n.to)} className={`flex-1 py-3 grid place-items-center text-xs gap-1 transition-colors ${active ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>
+                <n.icon className="h-5 w-5" />
+                {n.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+      <main className="container py-8 md:py-12 pb-28 lg:pb-12">{children}</main>
     </div>
   );
 };
