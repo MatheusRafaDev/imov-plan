@@ -31,12 +31,16 @@ namespace ImovPlan.API.Filters
                     if (validationContext != null)
                     {
                         var validationResult = validator.Validate(validationContext);
-                        
+
                         if (!validationResult.IsValid)
                         {
                             var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
-                            
-                            context.Result = new BadRequestObjectResult(new 
+
+                            // Log detailed validation errors
+                            var logger = context.HttpContext.RequestServices.GetService<Microsoft.Extensions.Logging.ILogger<ValidationFilterAttribute>>();
+                            logger?.LogWarning("Validation failed for {Type}: {Errors}", argumentType.Name, string.Join(", ", errors));
+
+                            context.Result = new BadRequestObjectResult(new
                             {
                                 message = "Erros de validação encontrados.",
                                 errors = errors

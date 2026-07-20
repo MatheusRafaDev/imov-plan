@@ -30,6 +30,9 @@ namespace ImovPlan.Application.Tests
                 PercentualCdiPadrao = 100m,
                 AliquotasIr = new List<AliquotaIrParametro>
                 {
+                    new AliquotaIrParametro { AteDias = 180, Aliquota = 0.225m },
+                    new AliquotaIrParametro { AteDias = 360, Aliquota = 0.20m },
+                    new AliquotaIrParametro { AteDias = 720, Aliquota = 0.175m },
                     new AliquotaIrParametro { AteDias = null, Aliquota = 0.15m }
                 }
             };
@@ -109,9 +112,11 @@ namespace ImovPlan.Application.Tests
             {
                 Id = "plan1",
                 PrazoMaxMeses = 120,
-                ParticipantesIds = new List<string>(),
+                ParticipantesIds = new List<string> { "p1" },
                 DataInicio = new DateTime(2025, 1, 1)
             };
+            _participanteRepoMock.Setup(r => r.GetByIdAsync("p1")).ReturnsAsync(new Participante { Id = "p1", Nome = "Test" });
+            
             // Aporte alto para atingir a meta rápido
             var request = CreateRequest(50000m);
             decimal totalNecessario = 200000m; 

@@ -74,8 +74,7 @@ namespace ImovPlan.Application.Tests
 
             foreach (var cenario in cenarios)
             {
-                // Setup mock do participante para o ValorJaGuardado
-                // No backend, ValorJaGuardado é somado a partir dos participantes. 
+                // Setup mock do participante com PatrimonioInicial para alinhar com frontend
                 var participanteId = "p1";
                 _participanteRepoMock.Setup(r => r.GetByIdAsync(participanteId))
                     .ReturnsAsync(new Participante { Id = participanteId, PatrimonioInicial = new PatrimonioInicial { Valor = cenario.Input.ValorJaGuardado } });

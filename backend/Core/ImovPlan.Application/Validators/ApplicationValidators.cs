@@ -91,7 +91,9 @@ namespace ImovPlan.Application.Validators
     {
         public PessoaDraftDtoValidator()
         {
-            RuleFor(x => x.Nome).NotEmpty().WithMessage("O nome da pessoa é obrigatório no rascunho.");
+            // Nome is optional for drafts to allow saving incomplete data
+            RuleFor(x => x.Nome).NotEmpty().When(x => x.Renda_mensal > 0 || x.Gastos_mensais > 0 || x.Aporte_mensal > 0 || x.ValorInicial > 0)
+                .WithMessage("O nome da pessoa é obrigatório quando há dados financeiros.");
             RuleFor(x => x.Renda_mensal).GreaterThanOrEqualTo(0).WithMessage("A renda mensal não pode ser negativa.");
             RuleFor(x => x.Gastos_mensais).GreaterThanOrEqualTo(0).WithMessage("Os gastos mensais não podem ser negativos.");
         }
@@ -101,8 +103,11 @@ namespace ImovPlan.Application.Validators
     {
         public AporteExtraDraftDtoValidator()
         {
-            RuleFor(x => x.Data).NotEmpty().WithMessage("A data do aporte extra é obrigatória.");
-            RuleFor(x => x.Valor).GreaterThan(0).WithMessage("O valor do aporte extra deve ser maior que zero.");
+            // Allow incomplete aportes extras for drafts
+            RuleFor(x => x.Data).NotEmpty().When(x => x.Valor > 0)
+                .WithMessage("A data do aporte extra é obrigatória quando o valor é informado.");
+            RuleFor(x => x.Valor).GreaterThan(0).When(x => !string.IsNullOrEmpty(x.Data))
+                .WithMessage("O valor do aporte extra deve ser maior que zero quando a data é informada.");
         }
     }
 
