@@ -18,7 +18,8 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               scriptSrc,
-              "style-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline' https://accounts.google.com",
+              "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com",
               "img-src 'self' data: https://images.unsplash.com",
               "connect-src 'self' https://accounts.google.com",
               "frame-src https://accounts.google.com",
@@ -27,6 +28,8 @@ const nextConfig: NextConfig = {
           },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
         ],
       },
     ];
@@ -37,7 +40,7 @@ const nextConfig: NextConfig = {
       return [
         {
           source: "/api/:path*",
-          destination: `${apiUrl}/api/:path*`, // <- adiciona /api aqui
+          destination: `${apiUrl}/api/:path*`,
         },
       ];
     }

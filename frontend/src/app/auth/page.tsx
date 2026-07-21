@@ -192,13 +192,15 @@ export default function AuthPage() {
 
           {/* Botão oficial do Google — retorna um ID Token (JWT) em "credential",
               que é o formato que o backend (GoogleJsonWebSignature.ValidateAsync) espera. */}
-          <div className="w-full mb-4 flex justify-center [&>div]:w-full">
+          <div className="w-full mb-4 flex justify-center">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
               text="continue_with"
-              width="100%"
               shape="rectangular"
+              containerProps={{
+                style: { width: "100%", display: "flex", justifyContent: "center" }
+              }}
             />
           </div>
 
