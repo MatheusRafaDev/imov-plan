@@ -6,8 +6,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   async headers() {
     const scriptSrc = isDev
-      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com"
-      : "script-src 'self' 'unsafe-inline' https://accounts.google.com";
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.googletagmanager.com"
+      : "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com";
 
     return [
       {
@@ -20,8 +20,8 @@ const nextConfig: NextConfig = {
               scriptSrc,
               "style-src 'self' 'unsafe-inline' https://accounts.google.com",
               "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com",
-              "img-src 'self' data: https://images.unsplash.com",
-              "connect-src 'self' https://accounts.google.com",
+              "img-src 'self' data: https://images.unsplash.com https://lh3.googleusercontent.com",
+              "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
               "frame-src https://accounts.google.com",
               "frame-ancestors 'none'",
             ].join("; "),

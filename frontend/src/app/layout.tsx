@@ -17,7 +17,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="min-h-screen" suppressHydrationWarning>
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "missing_client_id"} locale="pt-BR">
+        <GoogleOAuthProvider 
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "missing_client_id"} 
+          locale="pt-BR"
+          // Configuração para evitar conflitos com COOP
+          // O cookie será lido automaticamente pelo backend via withCredentials
+        >
           <AuthProvider>
             {children}
             <Toaster richColors position="top-right" />
