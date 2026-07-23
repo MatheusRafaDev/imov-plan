@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,22 +36,20 @@ export default function MapaArredores() {
     const [raio] = useState(2000);
     const [sugestoes, setSugestoes] = useState<any[]>([]);
     const [mostrandoSugestoes, setMostrandoSugestoes] = useState(false);
-    const [prevEndereco, setPrevEndereco] = useState(endereco);
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-    if (endereco !== prevEndereco) {
-        setPrevEndereco(endereco);
+    useEffect(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         if (!endereco.trim() || endereco.length < 3) {
             setSugestoes([]);
             setMostrandoSugestoes(false);
-        }
-    }
-
-    useEffect(() => {
-        if (!endereco.trim() || endereco.length < 3) {
             return;
         }
 
-        const timer = setTimeout(async () => {
+        debounceRef.current = setTimeout(async () => {
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&addressdetails=1&limit=5`);
                 const data = await res.json();
@@ -62,7 +60,11 @@ export default function MapaArredores() {
             }
         }, 1000);
 
-        return () => clearTimeout(timer);
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
     }, [endereco]);
 
     const selecionarSugestao = async (sugestao: any) => {
@@ -94,12 +96,20 @@ export default function MapaArredores() {
         buscarArredoresPorCoordenadas(lat, lng);
     };
 
+    const abortControllerRef = useRef<AbortController | null>(null);
+
     const buscarArredoresPorCoordenadas = async (lat: number, lon: number) => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
         setLoading(true);
         setPontos([]);
         try {
             const response = await api.get<PontoInteresse[]>('/Arredores/pontos-interesse', {
-                params: { lat, lng: lon, raio }
+                params: { lat, lng: lon, raio },
+                signal: abortControllerRef.current.signal
             });
             
             const data = response.data;
@@ -109,7 +119,11 @@ export default function MapaArredores() {
             } else {
                  toast.success(`${data.length} locais encontrados nos arredores.`);
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') {
+                console.log("Requisição anterior cancelada.");
+                return;
+            }
             console.error(error);
             toast.error("Falha ao buscar os dados da região.");
         } finally {
