@@ -58,14 +58,17 @@ namespace ImovPlan.Infrastructure.Services
             {
                 foreach (var element in overpassData.Elements)
                 {
-                    if (element.Type == "node")
-                    {
-                        var tagNome = element.Tags?.GetValueOrDefault("name") ?? "Desconhecido";
-                        var categoriaEncontrada = DeterminarCategoria(element.Tags, categoriasList);
+                    var tagNome = element.Tags?.GetValueOrDefault("name") ?? "Desconhecido";
+                    var categoriaEncontrada = DeterminarCategoria(element.Tags, categoriasList);
 
-                        if (categoriaEncontrada != null)
+                    if (categoriaEncontrada != null)
+                    {
+                        var elemLat = element.Type == "node" ? element.Lat : (element.Center?.Lat ?? 0);
+                        var elemLon = element.Type == "node" ? element.Lon : (element.Center?.Lon ?? 0);
+
+                        if (elemLat != 0 && elemLon != 0)
                         {
-                            var dist = HaversineDistance(latitude, longitude, element.Lat, element.Lon);
+                            var dist = HaversineDistance(latitude, longitude, elemLat, elemLon);
                             var tags = element.Tags ?? new Dictionary<string, string>();
                             tags["source"] = "osm";
                             
@@ -74,8 +77,8 @@ namespace ImovPlan.Infrastructure.Services
                                 IdOsm = element.Id.ToString(),
                                 Nome = tagNome,
                                 Categoria = categoriaEncontrada,
-                                Latitude = element.Lat,
-                                Longitude = element.Lon,
+                                Latitude = elemLat,
+                                Longitude = elemLon,
                                 DistanciaMetros = dist,
                                 Tags = tags
                             });
@@ -98,28 +101,28 @@ namespace ImovPlan.Infrastructure.Services
                 switch (cat.ToLower())
                 {
                     case "mercado":
-                        sb.AppendLine($"  node[\"shop\"~\"supermarket|convenience\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+                        sb.AppendLine($"  nwr[\"shop\"~\"supermarket|convenience\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
                         break;
                     case "farmacia":
-                        sb.AppendLine($"  node[\"amenity\"=\"pharmacy\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+                        sb.AppendLine($"  nwr[\"amenity\"=\"pharmacy\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
                         break;
                     case "escola":
-                        sb.AppendLine($"  node[\"amenity\"~\"school|kindergarten|university\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+                        sb.AppendLine($"  nwr[\"amenity\"~\"school|kindergarten|university\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
                         break;
                     case "padaria":
-                        sb.AppendLine($"  node[\"shop\"=\"bakery\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+                        sb.AppendLine($"  nwr[\"shop\"=\"bakery\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
                         break;
                     case "parque":
-                        sb.AppendLine($"  node[\"leisure\"=\"park\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+                        sb.AppendLine($"  nwr[\"leisure\"=\"park\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
                         break;
                     case "hospital":
-                        sb.AppendLine($"  node[\"amenity\"~\"hospital|clinic\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+                        sb.AppendLine($"  nwr[\"amenity\"~\"hospital|clinic\"](around:{radius},{lat.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lon.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
                         break;
                 }
             }
 
             sb.AppendLine(");");
-            sb.AppendLine("out body;");
+            sb.AppendLine("out center;");
             return sb.ToString();
         }
 
@@ -171,6 +174,13 @@ namespace ImovPlan.Infrastructure.Services
             public double Lat { get; set; }
             public double Lon { get; set; }
             public Dictionary<string, string> Tags { get; set; } = new();
+            public OverpassCenter? Center { get; set; }
+        }
+
+        private class OverpassCenter
+        {
+            public double Lat { get; set; }
+            public double Lon { get; set; }
         }
     }
 }
