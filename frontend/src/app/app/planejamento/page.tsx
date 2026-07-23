@@ -13,7 +13,7 @@ import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/DateInput";
-import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
@@ -293,44 +293,66 @@ export default function PlanejamentoPage() {
         <div className="space-y-4">
 
 
-          <div className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="rounded-2xl border border-border/40 bg-gradient-to-b from-card to-card/50 p-6 sm:p-8 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="font-display text-2xl font-light">Aportes extras</h2>
                 <p className="text-sm text-muted-foreground mt-1">Aportes pontuais que aceleram sua meta além do programado.</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="bg-background whitespace-nowrap">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar aporte
-                </Button>
-              </div>
+              {aportesExtras.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Button variant="default" onClick={() => setIsAportesExtrasModalOpen(true)} className="shadow-sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar aporte
+                  </Button>
+                </div>
+              )}
             </div>
 
             {aportesExtras.length === 0 ? (
-              <div className="mt-6 rounded-xl border border-dashed border-border/40 bg-secondary/10 p-8 text-center text-sm text-muted-foreground">
-                Nenhum aporte extra adicionado ainda.
+              <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/40 bg-muted/20 py-12 px-6 text-center transition-colors hover:bg-muted/40 group cursor-default">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 transition-transform group-hover:scale-110 duration-300">
+                  <Wallet className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="text-base font-medium text-foreground mb-1">Nenhum aporte extra adicionado</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                  Turbine o seu planejamento adicionando recursos extras (décimo terceiro, bônus, vendas) que entrarão ao longo do tempo.
+                </p>
+                <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="bg-background shadow-sm hover:border-primary/50 hover:text-primary transition-all">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar meu primeiro aporte
+                </Button>
               </div>
             ) : (
-              <div className="mt-6 space-y-3">
+              <div className="mt-8 space-y-3">
                 {aportesExtras.map((a, index) => (
-                  <div key={index} className="rounded-xl border border-border/50 bg-background p-4 text-sm">
-                    {/* Mobile: card layout stacked */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div>
-                        <p className="font-semibold num">{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                        <p className="text-muted-foreground text-xs mt-0.5">{a.origem} · {a.pessoaNome ?? "Conjunto"}</p>
+                  <div key={index} className="group relative rounded-xl border border-border/50 bg-background p-4 sm:p-5 transition-all duration-300 hover:shadow-md hover:border-primary/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                           <TrendingDown className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-semibold num text-lg text-foreground">{brl(Number(a.valor))}</p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground mt-1">
+                            <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" /> {new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="font-medium text-foreground/80">{a.origem}</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">{a.pessoaNome ?? "Conjunto"}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button size="icon" variant="ghost" onClick={() => editarAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary/80">
+                      
+                      <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto">
+                        <Button size="icon" variant="ghost" onClick={() => editarAporte(index)} className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                        <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    <p className="font-semibold num text-base">{brl(Number(a.valor))}</p>
                   </div>
                 ))}
               </div>
