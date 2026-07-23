@@ -10,22 +10,27 @@ interface DateInputProps {
 }
 
 export function DateInput({ value, onChange, className, placeholder = "DD/MM/AAAA", id }: DateInputProps) {
-  const [displayValue, setDisplayValue] = useState("");
+  const [displayValue, setDisplayValue] = useState(() => {
+    if (!value) return "";
+    const p = value.split("-");
+    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : "";
+  });
   const [error, setError] = useState(false);
+  const [prevValue, setPrevValue] = useState(value);
 
-  // Convert yyyy-mm-dd to dd/mm/yyyy for display
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value);
     if (!value) {
       setDisplayValue("");
       setError(false);
-      return;
+    } else {
+      const parts = value.split("-");
+      if (parts.length === 3) {
+        setDisplayValue(`${parts[2]}/${parts[1]}/${parts[0]}`);
+        setError(false);
+      }
     }
-    const parts = value.split("-");
-    if (parts.length === 3) {
-      setDisplayValue(`${parts[2]}/${parts[1]}/${parts[0]}`);
-      setError(false);
-    }
-  }, [value]);
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let rawValue = e.target.value.replace(/\D/g, ""); // Keep only digits

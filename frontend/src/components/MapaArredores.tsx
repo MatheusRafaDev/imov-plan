@@ -33,14 +33,21 @@ export default function MapaArredores() {
     const [center, setCenter] = useState<[number, number]>([-23.5505, -46.6333]); // SP base
     const [pontos, setPontos] = useState<PontoInteresse[]>([]);
     const [loading, setLoading] = useState(false);
-    const [raio, setRaio] = useState(2000);
+    const [raio] = useState(2000);
     const [sugestoes, setSugestoes] = useState<any[]>([]);
     const [mostrandoSugestoes, setMostrandoSugestoes] = useState(false);
+    const [prevEndereco, setPrevEndereco] = useState(endereco);
 
-    useEffect(() => {
+    if (endereco !== prevEndereco) {
+        setPrevEndereco(endereco);
         if (!endereco.trim() || endereco.length < 3) {
             setSugestoes([]);
             setMostrandoSugestoes(false);
+        }
+    }
+
+    useEffect(() => {
+        if (!endereco.trim() || endereco.length < 3) {
             return;
         }
 

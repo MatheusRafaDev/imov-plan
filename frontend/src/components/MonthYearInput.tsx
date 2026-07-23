@@ -24,12 +24,14 @@ export function MonthYearInput({ value, onChange, className }: MonthYearInputPro
 
   const [month, setMonth] = useState(() => parseDate(value).month);
   const [year, setYear] = useState(() => parseDate(value).year);
+  const [prevValue, setPrevValue] = useState(value);
 
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value);
     const parsed = parseDate(value);
     setMonth(parsed.month);
     setYear(parsed.year);
-  }, [value]);
+  }
 
   const emitChange = (m: string, y: string) => {
     const mm = m.padStart(2, "0");

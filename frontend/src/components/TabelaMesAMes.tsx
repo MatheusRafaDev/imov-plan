@@ -42,7 +42,6 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
 
 function RowActions({
   mes,
-  dataStr,
   pessoas,
   aportesPlanejados,
   aportesReais,
@@ -50,7 +49,6 @@ function RowActions({
   onAddExtra,
 }: {
   mes: number;
-  dataStr: string;
   pessoas: { id: string; nome: string }[];
   aportesPlanejados: Record<string, number>;
   aportesReais: Record<string, number>;
@@ -70,13 +68,16 @@ function RowActions({
 
   // Estado Modal Edit
   const [editDraft, setEditDraft] = useState<Record<string, string>>({});
-  useEffect(() => {
+  const [prevOpenEdit, setPrevOpenEdit] = useState(openEdit);
+
+  if (openEdit !== prevOpenEdit) {
+    setPrevOpenEdit(openEdit);
     if (openEdit) {
       const initial: Record<string, string> = {};
       pessoas.forEach(p => initial[p.id] = (aportesReais[p.id] || 0).toFixed(2));
       setEditDraft(initial);
     }
-  }, [openEdit, pessoas, aportesReais]);
+  }
 
   // Estado Modal Extra
   const [extraPessoa, setExtraPessoa] = useState<string>("conjunto");
@@ -657,7 +658,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     {!isZero && (
                       <RowActions
                         mes={r.mes}
-                        dataStr={r.data}
                         pessoas={pessoas.map(p => ({ id: p.id, nome: p.nome }))}
                         aportesPlanejados={Object.fromEntries(pessoas.map(p => [p.id, Number(p.aporte_mensal) || 0]))}
                         aportesReais={r.aporteFinalPorPessoa}

@@ -70,7 +70,10 @@ export default function ObjetivoPage() {
     cidade: "São Paulo",
   });
 
-  useEffect(() => {
+  const [prevObjetivo, setPrevObjetivo] = useState(objetivo);
+
+  if (objetivo !== prevObjetivo) {
+    setPrevObjetivo(objetivo);
     if (objetivo && objetivo.valorImovel !== undefined) {
       const nextForm = {
         ...form,
@@ -95,7 +98,7 @@ export default function ObjetivoPage() {
         data_fim: normalizeDataFim(nextForm.data_inicio, nextForm.data_fim),
       });
     }
-  }, [objetivo]);
+  }
 
   const dataFimValida = form.data_inicio !== "" && form.data_fim !== "" && mesesEntre(form.data_inicio, form.data_fim) >= MIN_PRAZO_MESES;
   const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "" && dataFimValida;

@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanContext } from "@/context/PlanContext";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -33,15 +32,7 @@ export default function ProntoPage() {
   const [loading, setLoading] = useState(false);
   const [sistemaAtivo, setSistemaAtivo] = useState<"sac" | "price">("sac");
 
-  // Simulate automatically when all fields are filled
-  useEffect(() => {
-    const { valorImovel, valorEntrada, taxaAnual, prazoMeses } = form;
-    if (valorImovel && taxaAnual && prazoMeses && Number(valorFinanciado) > 0) {
-      simular();
-    }
-  }, [form.valorImovel, form.valorEntrada, form.taxaAnual, form.prazoMeses]);
-
-  const simular = async () => {
+  const simular = useCallback(async () => {
     if (!form.taxaAnual || !form.prazoMeses || valorFinanciado <= 0) return;
     setLoading(true);
     try {
@@ -69,7 +60,16 @@ export default function ProntoPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [form.taxaAnual, form.prazoMeses, valorFinanciado]);
+
+  // Simulate automatically when all fields are filled
+  useEffect(() => {
+    const { valorImovel, taxaAnual, prazoMeses } = form;
+    if (valorImovel && taxaAnual && prazoMeses && Number(valorFinanciado) > 0) {
+      const t = setTimeout(() => simular(), 0);
+      return () => clearTimeout(t);
+    }
+  }, [form.valorImovel, form.valorEntrada, form.taxaAnual, form.prazoMeses, valorFinanciado, simular]);
 
   const dadosAtivos = resultado ? resultado[sistemaAtivo] : null;
   const parcelas = dadosAtivos?.parcelas ?? [];
