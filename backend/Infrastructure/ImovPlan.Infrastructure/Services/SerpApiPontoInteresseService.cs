@@ -40,13 +40,10 @@ namespace ImovPlan.Infrastructure.Services
             categoriasList.Sort();
 
             _logger.LogInformation("Buscando pontos no SerpAPI para lat:{Lat} lon:{Lon}", latitude, longitude);
-            
-            var resultados = new List<PontoInteresse>();
-
-            // Para cada categoria, fazemos uma busca no SerpAPI (Google Local API)
-            // Limitamos para evitar queimar as cotas rápido demais. Se houver muitas categorias, faremos em paralelo com cuidado.
-            foreach (var cat in categoriasList)
+            // Busca paralela
+            var tasks = categoriasList.Select(async cat =>
             {
+                var catResultados = new List<PontoInteresse>();
                 var latStr = latitude.ToString(CultureInfo.InvariantCulture);
                 var lonStr = longitude.ToString(CultureInfo.InvariantCulture);
                 var url = $"https://serpapi.com/search.json?engine=google_local&q={Uri.EscapeDataString(cat)}&ll=@{latStr},{lonStr},14z&api_key={_serpApiKey}";
@@ -71,7 +68,7 @@ namespace ImovPlan.Infrastructure.Services
                                     // Filtra pelo raio
                                     if (dist <= raioMetros)
                                     {
-                                        resultados.Add(new PontoInteresse
+                                        catResultados.Add(new PontoInteresse
                                         {
                                             IdOsm = place.PlaceId ?? Guid.NewGuid().ToString(),
                                             Nome = place.Title ?? "Desconhecido",
@@ -97,7 +94,11 @@ namespace ImovPlan.Infrastructure.Services
                 {
                     _logger.LogError(ex, "Erro ao buscar categoria {Categoria} no SerpAPI", cat);
                 }
-            }
+                return catResultados;
+            });
+
+            var resultadosArrays = await Task.WhenAll(tasks);
+            var resultados = resultadosArrays.SelectMany(r => r).ToList();
 
             // Remove duplicatas internas
             return resultados
