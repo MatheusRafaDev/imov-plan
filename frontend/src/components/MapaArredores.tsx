@@ -51,8 +51,8 @@ export default function MapaArredores() {
 
         debounceRef.current = setTimeout(async () => {
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&addressdetails=1&limit=5`);
-                const data = await res.json();
+                const res = await api.get(`/Location/search?q=${encodeURIComponent(endereco)}`);
+                const data = res.data;
                 setSugestoes(data);
                 setMostrandoSugestoes(true);
             } catch (e) {
@@ -82,8 +82,8 @@ export default function MapaArredores() {
         
         try {
             // Reverse Geocoding
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-            const data = await res.json();
+            const res = await api.get(`/Location/reverse?lat=${lat}&lon=${lng}`);
+            const data = res.data;
             if (data && data.display_name) {
                 setEndereco(data.display_name);
             } else {
@@ -161,8 +161,8 @@ export default function MapaArredores() {
         setLoading(true);
         try {
             // 1. Geocoding via Nominatim
-            const geocodeRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`);
-            const geocodeData = await geocodeRes.json();
+            const geocodeRes = await api.get(`/Location/search?q=${encodeURIComponent(endereco)}`);
+            const geocodeData = geocodeRes.data;
 
             if (!geocodeData || geocodeData.length === 0) {
                 toast.error("Endereço não encontrado.");

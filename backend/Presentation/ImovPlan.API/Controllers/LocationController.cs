@@ -27,5 +27,36 @@ namespace ImovPlan.API.Controllers
 
             return Ok(address);
         }
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string q)
+        {
+            if (string.IsNullOrWhiteSpace(q)) return BadRequest("Query is required");
+
+            using var httpClient = new System.Net.Http.HttpClient();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "CasalPlanner/1.0 (Contact: matheusrafadev@github)");
+
+            var url = $"https://nominatim.openstreetmap.org/search?format=json&q={System.Uri.EscapeDataString(q)}&addressdetails=1&limit=5";
+            var response = await httpClient.GetAsync(url);
+            
+            if (!response.IsSuccessStatusCode) return StatusCode((int)response.StatusCode, "Erro ao buscar no Nominatim");
+            
+            var content = await response.Content.ReadAsStringAsync();
+            return Content(content, "application/json");
+        }
+
+        [HttpGet("reverse")]
+        public async Task<IActionResult> Reverse([FromQuery] double lat, [FromQuery] double lon)
+        {
+            using var httpClient = new System.Net.Http.HttpClient();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "CasalPlanner/1.0 (Contact: matheusrafadev@github)");
+
+            var url = $"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat.ToString(System.Globalization.CultureInfo.InvariantCulture)}&lon={lon.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+            var response = await httpClient.GetAsync(url);
+            
+            if (!response.IsSuccessStatusCode) return StatusCode((int)response.StatusCode, "Erro ao buscar no Nominatim");
+            
+            var content = await response.Content.ReadAsStringAsync();
+            return Content(content, "application/json");
+        }
     }
 }
