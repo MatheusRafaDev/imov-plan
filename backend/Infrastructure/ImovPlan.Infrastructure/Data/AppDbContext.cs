@@ -7,41 +7,47 @@ namespace ImovPlan.Infrastructure.Data
     public class AppDbContext : DbContext
     {
         // Core collections
-        public DbSet<Participante> Participantes { get; init; }
-        public DbSet<Planejamento> Planejamentos { get; init; }
-        public DbSet<Usuario> Usuarios { get; init; }
+        public virtual DbSet<Participante> Participantes { get; init; }
+        public virtual DbSet<Planejamento> Planejamentos { get; init; }
+        public virtual DbSet<Usuario> Usuarios { get; init; }
 
         // Related collections
-        public DbSet<AporteExtra> AportesExtras { get; init; }
-        public DbSet<GastoDetalhado> GastosDetalhados { get; init; }
-        public DbSet<HistoricoAporte> HistoricosAportes { get; init; }
-        public DbSet<HistoricoSimulacao> HistoricosSimulacao { get; init; }
-        public DbSet<EvolucaoMensalSimulacao> EvolucoesMensaisSimulacao { get; init; }
-        public DbSet<ParametrosFinanceiros> ParametrosFinanceiros { get; init; }
-        public DbSet<PontoInteresseCache> PontosInteresseCache { get; init; }
+        public virtual DbSet<AporteExtra> AportesExtras { get; init; }
+        public virtual DbSet<GastoDetalhado> GastosDetalhados { get; init; }
+        public virtual DbSet<HistoricoAporte> HistoricosAportes { get; init; }
+        public virtual DbSet<HistoricoSimulacao> HistoricosSimulacao { get; init; }
+        public virtual DbSet<EvolucaoMensalSimulacao> EvolucoesMensaisSimulacao { get; init; }
+        public virtual DbSet<ParametrosFinanceiros> ParametrosFinanceiros { get; init; }
+        public virtual DbSet<PontoInteresseCache> PontosInteresseCache { get; init; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
-            Database.AutoTransactionBehavior = AutoTransactionBehavior.Never;
+            if (Database != null)
+            {
+                Database.AutoTransactionBehavior = AutoTransactionBehavior.Never;
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Core collection mappings
-            modelBuilder.Entity<Participante>().ToCollection("participantes");
-            modelBuilder.Entity<Planejamento>().ToCollection("planejamentos");
-            modelBuilder.Entity<Usuario>().ToCollection("usuarios");
+            if (Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                // Core collection mappings
+                modelBuilder.Entity<Participante>().ToCollection("participantes");
+                modelBuilder.Entity<Planejamento>().ToCollection("planejamentos");
+                modelBuilder.Entity<Usuario>().ToCollection("usuarios");
 
-            // Related collection mappings
-            modelBuilder.Entity<AporteExtra>().ToCollection("aportesExtras");
-            modelBuilder.Entity<GastoDetalhado>().ToCollection("gastosDetalhados");
-            modelBuilder.Entity<HistoricoAporte>().ToCollection("historicoAportes");
-            modelBuilder.Entity<HistoricoSimulacao>().ToCollection("historicoSimulacoes");
-            modelBuilder.Entity<EvolucaoMensalSimulacao>().ToCollection("evolucaoMensalSimulacoes");
-            modelBuilder.Entity<ParametrosFinanceiros>().ToCollection("parametrosFinanceiros");
-            modelBuilder.Entity<PontoInteresseCache>().ToCollection("pontosInteresseCache");
+                // Related collection mappings
+                modelBuilder.Entity<AporteExtra>().ToCollection("aportesExtras");
+                modelBuilder.Entity<GastoDetalhado>().ToCollection("gastosDetalhados");
+                modelBuilder.Entity<HistoricoAporte>().ToCollection("historicoAportes");
+                modelBuilder.Entity<HistoricoSimulacao>().ToCollection("historicoSimulacoes");
+                modelBuilder.Entity<EvolucaoMensalSimulacao>().ToCollection("evolucaoMensalSimulacoes");
+                modelBuilder.Entity<ParametrosFinanceiros>().ToCollection("parametrosFinanceiros");
+                modelBuilder.Entity<PontoInteresseCache>().ToCollection("pontosInteresseCache");
+            }
 
             // Owned entity mappings
             modelBuilder.Entity<Planejamento>().OwnsOne(p => p.CustosCompra);
