@@ -187,7 +187,7 @@ export default function MapaArredores() {
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] md:h-full gap-4 p-4 overflow-hidden">
             {/* Sidebar with Search and Results */}
-            <div className="order-2 md:order-1 w-full md:w-1/3 flex flex-col gap-4 overflow-hidden md:pr-2">
+            <div className="order-2 md:order-1 w-full md:w-1/3 flex flex-col flex-1 md:h-full gap-4 overflow-hidden md:pr-2">
                 <Card className="shadow-md border-border/50">
                     <div className="flex flex-col space-y-1.5 p-5 pb-3">
                         <h3 className="font-semibold leading-none tracking-tight text-xl bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Avaliar Região</h3>
