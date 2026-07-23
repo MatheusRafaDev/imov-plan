@@ -384,8 +384,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             const dataString = a.data
               ? typeof a.data === "string"
                 ? a.data
-                : a.data instanceof Date
-                  ? a.data.toISOString().slice(0, 10)
+                : (a.data as any) instanceof Date
+                  ? (a.data as any).toISOString().slice(0, 10)
                   : new Date(a.data).toISOString().slice(0, 10)
               : new Date().toISOString().slice(0, 10);
             return {
