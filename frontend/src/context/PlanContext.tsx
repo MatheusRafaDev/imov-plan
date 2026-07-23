@@ -366,7 +366,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             tipoInvestimento: draftData.objetivo.tipoInvestimento,
             estado: draftData.objetivo.estado || undefined,
             cidade: draftData.objetivo.cidade || undefined,
-          } : null,
+          } : undefined,
           pessoas: (draftData.pessoas || []).map((p: Pessoa) => ({
             id: p.id,
             nome: p.nome,
