@@ -93,7 +93,19 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         opt.QueueLimit = 0;
     });
+    options.AddFixedWindowLimiter("geocode", opt =>
+    {
+        opt.PermitLimit = 1;
+        opt.Window = TimeSpan.FromSeconds(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
     options.RejectionStatusCode = 429;
+});
+
+builder.Services.AddHttpClient("Nominatim", client =>
+{
+    client.DefaultRequestHeaders.Add("User-Agent", "CasalPlanner/1.0 (Contact: matheusrafadev@github)");
 });
 
 // Configure JWT Authentication
