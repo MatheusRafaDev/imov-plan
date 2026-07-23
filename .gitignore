@@ -23,3 +23,6 @@ desktop.ini
 
 # ── Next.js build output ────────────────────────────
 .next/
+
+# ── Scripts ─────────────────────────────────────────
+backend/*.csx
