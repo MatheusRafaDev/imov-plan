@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Application.Services.Interfaces;
@@ -22,17 +23,20 @@ namespace ImovPlan.API.Controllers
         private readonly ITokenService _tokenService;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             IUsuarioRepository usuarioRepository,
             ITokenService tokenService,
             IConfiguration configuration,
-            IEmailService emailService)
+            IEmailService emailService,
+            ILogger<AuthController> logger)
         {
             _usuarioRepository = usuarioRepository;
             _tokenService = tokenService;
             _configuration = configuration;
             _emailService = emailService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -169,7 +173,8 @@ namespace ImovPlan.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erro interno ao validar login com Google.", details = ex.Message });
+                _logger.LogError(ex, "Erro interno ao validar login com Google.");
+                return StatusCode(500, new { message = "Erro interno ao processar a solicitação." });
             }
         }
 
