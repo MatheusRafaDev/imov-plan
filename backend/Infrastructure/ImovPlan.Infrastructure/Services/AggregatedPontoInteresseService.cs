@@ -76,8 +76,12 @@ namespace ImovPlan.Infrastructure.Services
 
             // Deduplicate
             var mergedResults = DeduplicatePoints(allResults);
-
-            mergedResults = mergedResults.OrderBy(r => r.DistanciaMetros).ToList();
+            // Limit to top 5 closest per category to avoid excess data
+            mergedResults = mergedResults
+                .GroupBy(r => r.Categoria)
+                .SelectMany(g => g.OrderBy(r => r.DistanciaMetros).Take(5))
+                .OrderBy(r => r.DistanciaMetros)
+                .ToList();
 
             // Save to cache
             var novoCache = new PontoInteresseCache
