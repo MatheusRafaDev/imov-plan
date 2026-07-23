@@ -35,10 +35,19 @@ namespace ImovPlan.Infrastructure.Services
             categoriasList.Sort();
             var categoriasHash = string.Join(",", categoriasList);
 
-            // Check cache (desabilitado a pedido do usuario para simplificar e focar em velocidade)
-            // var cacheKey = await _dbContext.PontosInteresseCache
-            //     .FirstOrDefaultAsync(c => c.LatitudeBusca == latBusca && ...
+            // Check cache
+            var cache = await _dbContext.PontosInteresseCache
+                .FirstOrDefaultAsync(c => c.LatitudeBusca == latBusca &&
+                                          c.LongitudeBusca == lonBusca &&
+                                          c.RaioMetros == raioMetros &&
+                                          c.CategoriasHash == categoriasHash);
             
+            if (cache != null && cache.Resultados != null)
+            {
+                _logger.LogInformation("Pontos de interesse carregados do cache para lat:{Lat} lon:{Lon}", latitude, longitude);
+                return cache.Resultados;
+            }
+
             _logger.LogInformation("Buscando pontos de interesse em {Count} provedores para lat:{Lat} lon:{Lon}", _providers.Count(), latitude, longitude);
 
             // Fetch from all providers concurrently
@@ -52,9 +61,18 @@ namespace ImovPlan.Infrastructure.Services
 
             mergedResults = mergedResults.OrderBy(r => r.DistanciaMetros).ToList();
 
-            // Save to cache (desabilitado)
-            // _dbContext.PontosInteresseCache.Add(novoCache);
-            // await _dbContext.SaveChangesAsync();
+            // Save to cache
+            var novoCache = new PontoInteresseCache
+            {
+                LatitudeBusca = latBusca,
+                LongitudeBusca = lonBusca,
+                RaioMetros = raioMetros,
+                CategoriasHash = categoriasHash,
+                Resultados = mergedResults,
+                CreatedAt = DateTime.UtcNow
+            };
+            _dbContext.PontosInteresseCache.Add(novoCache);
+            await _dbContext.SaveChangesAsync();
 
             return mergedResults;
         }

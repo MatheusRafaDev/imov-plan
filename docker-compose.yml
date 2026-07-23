@@ -1,9 +1,10 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:latest
     container_name: imovplan_mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-admin123}
     ports:
       - "27017:27017"
     volumes:
@@ -23,6 +24,7 @@ services:
       - Jwt__Key=${JWT_SECRET:?JWT_SECRET is required}
       - Jwt__Issuer=ImovPlanAPI
       - Jwt__Audience=ImovPlanClient
+      - MongoDbSettings__ConnectionString=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/?authSource=admin
     depends_on:
       - mongodb
     restart: unless-stopped

@@ -133,8 +133,18 @@ function obterIdUsuario(): string | null {
   }
 }
 
+interface DadosCarga {
+  objetivo?: Partial<SimInput>;
+  pessoas?: Pessoa[];
+  bancoEscolhido?: Banco | null;
+  aportesExtras?: (Aporte & { data?: string | Date })[];
+  aportesRegularesEditados?: Record<number, number>;
+  aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
+  mesesConcluidos?: number[];
+}
+
 function aplicarDados(
-  dados: any,
+  dados: DadosCarga | null | undefined,
   definidores: {
     setObjetivo: PlanContextType["setObjetivo"];
     setPessoas: PlanContextType["setPessoas"];
@@ -154,14 +164,14 @@ function aplicarDados(
   if (dados.pessoas) definidores.setPessoas(dados.pessoas);
   if (dados.bancoEscolhido) definidores.setBancoEscolhido(dados.bancoEscolhido);
   if (dados.aportesExtras) {
-    definidores.setAportesExtras(dados.aportesExtras.map((a: any) => ({
+    definidores.setAportesExtras(dados.aportesExtras.map((a) => ({
       ...a,
       data: typeof a.data === "string"
         ? a.data
         : a.data instanceof Date
           ? a.data.toISOString().slice(0, 10)
-          : new Date(a.data).toISOString().slice(0, 10),
-    })));
+          : a.data ? new Date(a.data).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    })) as Aporte[]);
   }
   if (dados.aportesRegularesEditados) definidores.setAportesRegularesEditados(dados.aportesRegularesEditados);
   if (dados.aportesRegularesEditadosPorPessoa) definidores.setAportesRegularesEditadosPorPessoa(dados.aportesRegularesEditadosPorPessoa);
@@ -195,8 +205,8 @@ function montarObjetivoDraft(objetivo: Partial<SimInput> | null): PlanoDraftPayl
     percentualCdi: Number(objetivo.percentualCdi) || 100,
     prazoMaxMeses: Number(objetivo.prazoMaxMeses) || 0,
     dataInicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : null,
-    nomePlano: (objetivo as any).nomePlano || "Imóvel",
-    tipoInvestimento: (objetivo as any).tipoInvestimento || "",
+    nomePlano: (objetivo as Partial<SimInput> & { nomePlano?: string }).nomePlano || "Imóvel",
+    tipoInvestimento: (objetivo as Partial<SimInput> & { tipoInvestimento?: string }).tipoInvestimento || "",
     estado: objetivo.estado || undefined,
     cidade: objetivo.cidade || undefined,
   };
@@ -236,12 +246,13 @@ export async function salvarNoBackend(
       try {
         await api.put(`/plano/draft/${planoId}`, payload);
         return planoId;
-      } catch (putError: any) {
+      } catch (err: unknown) {
+        const putError = err as { response?: { status?: number } };
         if (putError?.response?.status === 404) {
           console.warn(`Plano ${planoId} não encontrado no banco (404). Criando novo draft...`);
           Cookies.remove("imovplan_planoId");
         } else {
-          throw putError;
+          throw err;
         }
       }
     }
@@ -254,13 +265,14 @@ export async function salvarNoBackend(
       return novoId;
     }
     return null;
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as { response?: { status?: number; data?: unknown }; message?: string };
     if (error?.response?.status === 500) {
       console.warn("Salvar no backend falhou com 500. Dados continuam salvos localmente.", error?.response?.data || error.message);
       return null;
     }
-    console.error("Erro ao salvar no backend:", error);
-    throw error;
+    console.error("Erro ao salvar no backend:", err);
+    throw err;
   }
 }
 
@@ -355,7 +367,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             estado: draftData.objetivo.estado || undefined,
             cidade: draftData.objetivo.cidade || undefined,
           } : null,
-          pessoas: (draftData.pessoas || []).map((p: any) => ({
+          pessoas: (draftData.pessoas || []).map((p: Pessoa) => ({
             id: p.id,
             nome: p.nome,
             renda_mensal: p.renda_mensal,
@@ -368,7 +380,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
             tipoInvestimento: p.tipoInvestimento,
           })),
           bancoEscolhido: draftData.bancoEscolhido || null,
-          aportesExtras: (draftData.aportesExtras || []).map((a: any) => {
+          aportesExtras: (draftData.aportesExtras || []).map((a: Aporte & { data?: string | Date }) => {
             const dataString = a.data
               ? typeof a.data === "string"
                 ? a.data
@@ -421,13 +433,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         setPlanoHidratado(true);
         return;
       }
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number } };
       if (error.response?.status === 404) {
         console.warn("Plano não encontrado no backend (404). Limpando ID inválido e usando dados locais.");
         setPlanoId(null);
         Cookies.remove("imovplan_planoId");
       } else {
-        console.error("Erro ao carregar plano do backend:", error);
+        console.error("Erro ao carregar plano do backend:", err);
       }
 
       const local = localStorage.getItem(CHAVE_LOCAL);
@@ -460,8 +473,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     setCarregandoPlanos(true);
     try {
       const resposta = await api.get(`/plano/user/${usuarioId}/todos`);
-      const lista: PlanoResumo[] = (resposta.data || []).map((p: any) => ({
-        id: p.id,
+      const lista: PlanoResumo[] = (resposta.data || []).map((p: Partial<PlanoResumo>) => ({
+        id: p.id || "",
         nomePlano: p.nomePlano || "Imóvel",
         valorImovel: p.valorImovel || 0,
         percentualEntrada: p.percentualEntrada || 0,
@@ -697,9 +710,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       setSimSource("backend");
       setBackendError(null);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       console.error("Erro ao calcular simulação no backend:", err);
-      setBackendError(err?.response?.data?.message || "Erro ao calcular simulação no servidor");
+      setBackendError(error?.response?.data?.message || "Erro ao calcular simulação no servidor");
     } finally {
       setCalculating(false);
     }
