@@ -70,7 +70,7 @@ export default function ObjetivoPage() {
     cidade: "São Paulo",
   });
 
-  const [prevObjetivo, setPrevObjetivo] = useState(objetivo);
+  const [prevObjetivo, setPrevObjetivo] = useState<any>(null);
 
   if (objetivo !== prevObjetivo) {
     setPrevObjetivo(objetivo);
