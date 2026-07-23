@@ -9,7 +9,7 @@ namespace ImovPlan.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    // [Authorize]
+    [Authorize]
     public class ArredoresController : ControllerBase
     {
         private readonly IPontoInteresseService _pontoInteresseService;
@@ -31,6 +31,11 @@ namespace ImovPlan.API.Controllers
                 return BadRequest("Latitude e Longitude são obrigatórios.");
             }
 
+            if (raio > 5000)
+            {
+                return BadRequest("O raio máximo permitido é 5000 metros.");
+            }
+
             var cats = categorias.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
             var resultados = await _pontoInteresseService.BuscarPontosInteresseAsync(lat, lng, raio, cats);
 
@@ -38,6 +43,7 @@ namespace ImovPlan.API.Controllers
         }
 
         [HttpPost("avaliar-regiao")]
+        [EnableRateLimiting("ia")]
         public async Task<ActionResult<string>> AvaliarRegiao(
             [FromServices] IAiConsultingService aiService,
             [FromBody] ImovPlan.Application.DTOs.AvaliacaoRegiaoRequestDto dto)
