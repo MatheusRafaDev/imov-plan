@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Search, MapPin, ShoppingCart, Cross, BookOpen, Coffee, TreePine, Stethoscope, Navigation } from "lucide-react";
+import { Search, MapPin, ShoppingCart, Cross, BookOpen, Coffee, TreePine, Stethoscope, Navigation, Loader2 } from "lucide-react";
 import type { PontoInteresse } from "@/types/mapa";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -323,6 +323,14 @@ export default function MapaArredores() {
             {/* Map Area */}
             <div className="order-1 md:order-2 w-full md:w-2/3 h-[40vh] md:h-full shrink-0 bg-muted rounded-lg overflow-hidden border shadow-sm relative z-0">
                 <DynamicMap center={center} pontos={pontos} raio={raio} onMapClick={handleMapClick} />
+                {loading && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+                        <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <span className="text-sm font-medium text-foreground">Buscando arredores...</span>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
