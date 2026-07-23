@@ -132,9 +132,6 @@ export default function MapaArredores() {
     };
 
     useEffect(() => {
-        // Dispara a busca inicial imediatamente usando o centro padrão
-        buscarArredoresPorCoordenadas(center[0], center[1]);
-
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -145,9 +142,15 @@ export default function MapaArredores() {
                     toast.success("Localização encontrada!");
                 },
                 (error) => {
-                    console.log("Geolocalização não permitida ou falhou.", error);
-                }
+                    console.log("Geolocalização não permitida, falhou ou expirou.", error);
+                    toast.info("Mostrando região de São Paulo — permita a localização para ver a sua região.", { duration: 5000 });
+                    buscarArredoresPorCoordenadas(-23.5505, -46.6333);
+                },
+                { timeout: 3000 }
             );
+        } else {
+            toast.info("Mostrando região de São Paulo — permita a localização para ver a sua região.", { duration: 5000 });
+            buscarArredoresPorCoordenadas(-23.5505, -46.6333);
         }
     }, []);
 
