@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid } from "lucide-react";
+import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid, MapPin } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePlanContext } from "@/context/PlanContext";
 import { Button } from "@/components/ui/button";
@@ -110,6 +110,12 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
                 <LayoutGrid className="h-4 w-4" />
                 <span className="hidden sm:inline">Meus Planos</span>
+              </Button>
+            </Link>
+            <Link href="/app/arredores">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Arredores</span>
               </Button>
             </Link>
             <Link href="/app/perfil">

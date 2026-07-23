@@ -139,6 +139,37 @@ DADOS DO SISTEMA E DO USUÁRIO (JSON):
             }
         }
 
+        public async Task<string> GetAvaliacaoRegiaoAsync(string prompt)
+        {
+            if (_apiKey == "mock") return "Avaliando pelo Mock: Essa região apresenta uma infraestrutura básica com alguns comércios ao redor. Excelente opção para quem busca conveniência no dia a dia.";
+
+            var payload = new
+            {
+                model = "llama-3.3-70b-versatile",
+                messages = new[] { new { role = "user", content = prompt } },
+                temperature = 0.4
+            };
+
+            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            try
+            {
+                var response = await _httpClient.PostAsync("https://api.groq.com/openai/v1/chat/completions", content);
+                if (!response.IsSuccessStatusCode) return "Não foi possível avaliar a região no momento (API indisponível).";
+
+                var responseString = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(responseString);
+                return doc.RootElement
+                          .GetProperty("choices")[0]
+                          .GetProperty("message")
+                          .GetProperty("content")
+                          .GetString() ?? string.Empty;
+            }
+            catch
+            {
+                return "Não foi possível avaliar a região no momento (Erro de conexão).";
+            }
+        }
+
         // ─── Streaming via SSE ────────────────────────────────────────────────────
 
         public async IAsyncEnumerable<string> GetConsultoriaStreamAsync(

@@ -9,5 +9,6 @@ namespace ImovPlan.Application.Services.Interfaces
     {
         Task<string> GetConsultoriaAsync(ConsultoriaRequestDto request);
         IAsyncEnumerable<string> GetConsultoriaStreamAsync(ConsultoriaRequestDto request, CancellationToken cancellationToken = default);
+        Task<string> GetAvaliacaoRegiaoAsync(string prompt);
     }
 }

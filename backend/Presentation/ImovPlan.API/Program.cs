@@ -141,6 +141,14 @@ var mongoClient = new MongoClient(mongoSettings.ConnectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMongoDB(mongoClient, mongoSettings.DatabaseName));
 
+// Configurar índice TTL para cache de pontos de interesse (15 dias)
+var mongoDatabase = mongoClient.GetDatabase(mongoSettings.DatabaseName);
+var cacheCollection = mongoDatabase.GetCollection<MongoDB.Bson.BsonDocument>("pontosInteresseCache");
+var indexKeysDefinition = Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("createdAt");
+var indexOptions = new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(15) };
+var indexModel = new CreateIndexModel<MongoDB.Bson.BsonDocument>(indexKeysDefinition, indexOptions);
+cacheCollection.Indexes.CreateOne(indexModel);
+
 builder.Services.AddHealthChecks()
     .AddAsyncCheck("mongodb", async () =>
     {
@@ -174,6 +182,10 @@ builder.Services.AddScoped<IPlanoService, PlanejamentoService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IEmailService, ImovPlan.Infrastructure.Services.ResendEmailService>();
 builder.Services.AddHttpClient<IAiConsultingService, ImovPlan.Infrastructure.Services.GroqAiService>();
+builder.Services.AddHttpClient<ImovPlan.Application.Services.Interfaces.IPontoInteresseProvider, ImovPlan.Infrastructure.Services.OverpassPontoInteresseService>();
+builder.Services.AddScoped<IPontoInteresseService, ImovPlan.Infrastructure.Services.AggregatedPontoInteresseService>();
+builder.Services.AddHttpClient<IFinancialRatesProvider, ImovPlan.Infrastructure.Services.BrasilApiFinancialProvider>();
+builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Services.BrasilApiLocationProvider>();
 
 // Background Services
 builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoService>();

@@ -18,6 +18,7 @@ namespace ImovPlan.Infrastructure.Data
         public DbSet<HistoricoSimulacao> HistoricosSimulacao { get; init; }
         public DbSet<EvolucaoMensalSimulacao> EvolucoesMensaisSimulacao { get; init; }
         public DbSet<ParametrosFinanceiros> ParametrosFinanceiros { get; init; }
+        public DbSet<PontoInteresseCache> PontosInteresseCache { get; init; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -40,12 +41,14 @@ namespace ImovPlan.Infrastructure.Data
             modelBuilder.Entity<HistoricoSimulacao>().ToCollection("historicoSimulacoes");
             modelBuilder.Entity<EvolucaoMensalSimulacao>().ToCollection("evolucaoMensalSimulacoes");
             modelBuilder.Entity<ParametrosFinanceiros>().ToCollection("parametrosFinanceiros");
+            modelBuilder.Entity<PontoInteresseCache>().ToCollection("pontosInteresseCache");
 
             // Owned entity mappings
             modelBuilder.Entity<Planejamento>().OwnsOne(p => p.CustosCompra);
             modelBuilder.Entity<Participante>().OwnsOne(p => p.PatrimonioInicial);
             modelBuilder.Entity<HistoricoSimulacao>().OwnsMany(h => h.ParticipantesSnapshot);
             modelBuilder.Entity<EvolucaoMensalSimulacao>().OwnsMany(e => e.Participantes);
+            modelBuilder.Entity<PontoInteresseCache>().OwnsMany(c => c.Resultados);
 
             // Indexes for frequently queried collections
             modelBuilder.Entity<Participante>()
