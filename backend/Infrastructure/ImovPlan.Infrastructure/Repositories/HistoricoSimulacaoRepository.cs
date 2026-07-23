@@ -71,7 +71,12 @@ namespace ImovPlan.Infrastructure.Repositories
             if (existingSims.Any())
             {
                 var simIds = existingSims.Select(s => s.Id).ToList();
-                var existingEvolutions = await _context.EvolucoesMensaisSimulacao.Where(e => simIds.Contains(e.SimulacaoId)).ToListAsync();
+                var existingEvolutions = new List<EvolucaoMensalSimulacao>();
+                foreach (var simId in simIds)
+                {
+                    var evolucoes = await _context.EvolucoesMensaisSimulacao.Where(e => e.SimulacaoId == simId).ToListAsync();
+                    existingEvolutions.AddRange(evolucoes);
+                }
                 
                 if (existingEvolutions.Any())
                 {

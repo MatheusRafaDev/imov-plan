@@ -75,7 +75,8 @@ namespace ImovPlan.Application.Services
             var saldoConjunto = valorJaGuardado;
             var totalInvestido = saldoConjunto;
 
-            var totalAporteMensal = request.AportesMensais.Sum(a => a.Valor);
+            var aportesMensaisRequest = request.AportesMensais ?? new List<AporteMensalDto>();
+            var totalAporteMensal = aportesMensaisRequest.Sum(a => a.Valor);
             var aportesRegularesEditados = request.AportesRegularesEditados ?? new Dictionary<int, decimal>();
             var aportesRegularesEditadosPorPessoa = request.AportesRegularesEditadosPorPessoa ?? new Dictionary<string, Dictionary<int, decimal>>();
 
@@ -128,7 +129,8 @@ namespace ImovPlan.Application.Services
                 
                 foreach (var p in participantesDb.Keys) extrasPorPessoa[p] = 0m;
 
-                var aportesExtrasMes = request.AportesExtras
+                var aportesExtrasRequest = request.AportesExtras ?? new List<AporteExtraDto>();
+                var aportesExtrasMes = aportesExtrasRequest
                     .Where(a => a.Data.Year == dataReferencia.Year && a.Data.Month == dataReferencia.Month);
                 
                 foreach (var extra in aportesExtrasMes)
@@ -152,7 +154,7 @@ namespace ImovPlan.Application.Services
                 bool isLegacyEdited = aportesRegularesEditados.ContainsKey(meses);
                 var defaultAporte = totalAporteMensal;
 
-                foreach (var aporteRequest in request.AportesMensais)
+                foreach (var aporteRequest in aportesMensaisRequest)
                 {
                     var pid = aporteRequest.PessoaId;
                     if (!aporteRegularPorPessoa.ContainsKey(pid)) continue;
@@ -267,7 +269,7 @@ namespace ImovPlan.Application.Services
 
             // Persistir registro da simulação
             var participantesSnapshot = new List<ParticipanteSnapshot>();
-            foreach (var aporte in request.AportesMensais)
+            foreach (var aporte in aportesMensaisRequest)
             {
                 var participante = participantesDb.GetValueOrDefault(aporte.PessoaId);
                 if (participante != null)
