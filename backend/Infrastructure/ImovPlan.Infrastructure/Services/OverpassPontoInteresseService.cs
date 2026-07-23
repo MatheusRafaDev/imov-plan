@@ -126,24 +126,31 @@ namespace ImovPlan.Infrastructure.Services
             return sb.ToString();
         }
 
-        private string? DeterminarCategoria(Dictionary<string, string>? tags, List<string> categoriasBuscadas)
+        public static string? DeterminarCategoria(Dictionary<string, string>? tags, List<string> categoriasBuscadas)
         {
             if (tags == null) return null;
 
-            if (categoriasBuscadas.Contains("mercado") && tags.TryGetValue("shop", out var shop) && (shop == "supermarket" || shop == "convenience"))
+            bool HasValue(string key, params string[] values)
+            {
+                if (!tags.TryGetValue(key, out var tagValue)) return false;
+                var splitValues = tagValue.Split(';');
+                return splitValues.Any(v => values.Contains(v.Trim()));
+            }
+
+            if (categoriasBuscadas.Contains("mercado") && HasValue("shop", "supermarket", "convenience"))
                 return "mercado";
-            if (categoriasBuscadas.Contains("farmacia") && tags.TryGetValue("amenity", out var amenity1) && amenity1 == "pharmacy")
+            if (categoriasBuscadas.Contains("farmacia") && HasValue("amenity", "pharmacy"))
                 return "farmacia";
-            if (categoriasBuscadas.Contains("escola") && tags.TryGetValue("amenity", out var amenity2) && (amenity2 == "school" || amenity2 == "kindergarten" || amenity2 == "university"))
+            if (categoriasBuscadas.Contains("escola") && HasValue("amenity", "school", "kindergarten", "university"))
                 return "escola";
-            if (categoriasBuscadas.Contains("padaria") && tags.TryGetValue("shop", out var shop2) && shop2 == "bakery")
+            if (categoriasBuscadas.Contains("padaria") && HasValue("shop", "bakery"))
                 return "padaria";
-            if (categoriasBuscadas.Contains("parque") && tags.TryGetValue("leisure", out var leisure) && leisure == "park")
+            if (categoriasBuscadas.Contains("parque") && HasValue("leisure", "park"))
                 return "parque";
-            if (categoriasBuscadas.Contains("hospital") && tags.TryGetValue("amenity", out var amenity3) && (amenity3 == "hospital" || amenity3 == "clinic"))
+            if (categoriasBuscadas.Contains("hospital") && HasValue("amenity", "hospital", "clinic"))
                 return "hospital";
 
-            return categoriasBuscadas.FirstOrDefault(); // fallback
+            return null;
         }
 
         private double HaversineDistance(double lat1, double lon1, double lat2, double lon2)
