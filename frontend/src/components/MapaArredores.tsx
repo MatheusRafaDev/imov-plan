@@ -132,6 +132,9 @@ export default function MapaArredores() {
     };
 
     useEffect(() => {
+        // Dispara a busca inicial imediatamente usando o centro padrão
+        buscarArredoresPorCoordenadas(center[0], center[1]);
+
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -143,12 +146,8 @@ export default function MapaArredores() {
                 },
                 (error) => {
                     console.log("Geolocalização não permitida ou falhou.", error);
-                    // Fallback para o centro padrão caso o usuário negue
-                    buscarArredoresPorCoordenadas(-23.5505, -46.6333);
                 }
             );
-        } else {
-            buscarArredoresPorCoordenadas(-23.5505, -46.6333);
         }
     }, []);
 
