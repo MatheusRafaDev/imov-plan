@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -54,20 +54,26 @@ const getCategoryColor = (categoria: string) => {
   }
 }
 
-const createCustomIcon = (categoria: string) => {
-  const color = getCategoryColor(categoria);
-  const svg = `<svg viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5" style="width: 32px; height: 32px; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.3));"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3" fill="white"></circle></svg>`;
-  
-  return L.divIcon({
-      className: 'bg-transparent border-0',
-      html: svg,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
-  });
+const iconCache: Record<string, L.DivIcon> = {};
+
+const getCustomIcon = (categoria: string) => {
+  const catLower = categoria.toLowerCase();
+  if (!iconCache[catLower]) {
+    const color = getCategoryColor(catLower);
+    const svg = `<svg viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5" style="width: 32px; height: 32px; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.3));"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3" fill="white"></circle></svg>`;
+    
+    iconCache[catLower] = L.divIcon({
+        className: 'bg-transparent border-0',
+        html: svg,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+    });
+  }
+  return iconCache[catLower];
 }
 
-export default function DynamicMap({ 
+const DynamicMapComponent = ({ 
   center, 
   pontos, 
   raio,
@@ -77,7 +83,7 @@ export default function DynamicMap({
   pontos: PontoInteresse[],
   raio: number,
   onMapClick?: (lat: number, lng: number) => void
-}) {
+}) => {
   return (
     <MapContainer center={center} zoom={14} style={{ height: "100%", width: "100%", zIndex: 0 }}>
       <TileLayer
@@ -94,7 +100,7 @@ export default function DynamicMap({
         <Marker 
           key={ponto.idOsm} 
           position={[ponto.latitude, ponto.longitude]}
-          icon={createCustomIcon(ponto.categoria)}
+          icon={getCustomIcon(ponto.categoria)}
         >
           <Popup>
             <div className="font-semibold">{ponto.nome}</div>
@@ -106,3 +112,10 @@ export default function DynamicMap({
     </MapContainer>
   );
 }
+
+export default React.memo(DynamicMapComponent, (prevProps, nextProps) => {
+  return prevProps.center[0] === nextProps.center[0] && 
+         prevProps.center[1] === nextProps.center[1] && 
+         prevProps.raio === nextProps.raio && 
+         prevProps.pontos === nextProps.pontos;
+});
