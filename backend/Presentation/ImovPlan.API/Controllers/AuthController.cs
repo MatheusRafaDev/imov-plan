@@ -147,6 +147,11 @@ namespace ImovPlan.API.Controllers
                     return Unauthorized(new { message = "Token do Google inválido." });
                 }
 
+                if (!payload.EmailVerified)
+                {
+                    return Unauthorized(new { message = "E-mail do Google não verificado." });
+                }
+
                 var user = await _usuarioRepository.GetByEmailAsync(payload.Email);
 
                 if (user == null)
