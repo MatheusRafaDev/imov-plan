@@ -48,6 +48,14 @@ namespace ImovPlan.API.Controllers
             [FromServices] IAiConsultingService aiService,
             [FromBody] ImovPlan.Application.DTOs.AvaliacaoRegiaoRequestDto dto)
         {
+            var locaisSanitizados = (dto.PrincipaisLocais ?? new List<string>())
+                .Take(10)
+                .Select(loc => {
+                    var limpo = System.Text.RegularExpressions.Regex.Replace(loc, @"[\r\n\t]", " ");
+                    return limpo.Length > 60 ? limpo.Substring(0, 60) : limpo;
+                })
+                .ToList();
+
             var prompt = $@"Você é um consultor imobiliário especialista no Brasil.
 Eu estou analisando uma rua para possivelmente comprar uma casa ou apartamento. Num raio de 2km, encontrei:
 - {dto.QuantidadeMercados} mercados
@@ -56,7 +64,7 @@ Eu estou analisando uma rua para possivelmente comprar uma casa ou apartamento. 
 - {dto.QuantidadeHospitais} hospitais/clínicas
 - {dto.QuantidadeParques} parques
 
-Alguns dos principais locais encontrados são: {string.Join(", ", dto.PrincipaisLocais)}.
+Alguns dos principais locais encontrados são: {string.Join(", ", locaisSanitizados)}.
 
 Com base nisso, escreva uma avaliação rápida (em 1 parágrafo animado e direto) sobre a infraestrutura e conveniência dessa região para um casal morar. Destaque se é bem servida ou se falta algo.";
 
