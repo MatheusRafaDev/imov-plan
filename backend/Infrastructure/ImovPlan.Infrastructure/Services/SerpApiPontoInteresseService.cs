@@ -28,7 +28,7 @@ namespace ImovPlan.Infrastructure.Services
             _serpApiKey = configuration["SERPAPI_KEY"] ?? string.Empty;
         }
 
-        public async Task<IEnumerable<PontoInteresse>> FetchAsync(double latitude, double longitude, double raioMetros, IEnumerable<string> categorias)
+        public async Task<IEnumerable<PontoInteresse>> FetchAsync(double latitude, double longitude, double raioMetros, IEnumerable<string> categorias, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(_serpApiKey))
             {
@@ -50,7 +50,7 @@ namespace ImovPlan.Infrastructure.Services
                 
                 try
                 {
-                    var response = await _httpClient.GetAsync(url);
+                    var response = await _httpClient.GetAsync(url, cancellationToken);
                     if (response.IsSuccessStatusCode)
                     {
                         var json = await response.Content.ReadAsStringAsync();

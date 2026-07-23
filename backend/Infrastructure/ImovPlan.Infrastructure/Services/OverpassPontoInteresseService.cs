@@ -23,7 +23,7 @@ namespace ImovPlan.Infrastructure.Services
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "CasalPlanner/1.0 (Contact: matheusrafadev@github)");
         }
 
-        public async Task<IEnumerable<PontoInteresse>> FetchAsync(double latitude, double longitude, double raioMetros, IEnumerable<string> categorias)
+        public async Task<IEnumerable<PontoInteresse>> FetchAsync(double latitude, double longitude, double raioMetros, IEnumerable<string> categorias, System.Threading.CancellationToken cancellationToken = default)
         {
             var categoriasList = categorias.ToList();
             categoriasList.Sort();
@@ -33,7 +33,7 @@ namespace ImovPlan.Infrastructure.Services
             var query = BuildOverpassQuery(latitude, longitude, raioMetros, categoriasList);
             var content = new StringContent(query, Encoding.UTF8, "application/x-www-form-urlencoded");
 
-            var response = await _httpClient.PostAsync("https://overpass-api.de/api/interpreter", content);
+            var response = await _httpClient.PostAsync("https://overpass-api.de/api/interpreter", content, cancellationToken);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -44,7 +44,7 @@ namespace ImovPlan.Infrastructure.Services
             OverpassResponse? overpassData = null;
             try 
             {
-                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
                 overpassData = JsonSerializer.Deserialize<OverpassResponse>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
             catch (Exception ex)

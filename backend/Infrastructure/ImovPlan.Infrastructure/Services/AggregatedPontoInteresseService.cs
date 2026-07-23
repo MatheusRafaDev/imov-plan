@@ -50,8 +50,26 @@ namespace ImovPlan.Infrastructure.Services
 
             _logger.LogInformation("Buscando pontos de interesse em {Count} provedores para lat:{Lat} lon:{Lon}", _providers.Count(), latitude, longitude);
 
-            // Fetch from all providers concurrently
-            var tasks = _providers.Select(p => p.FetchAsync(latitude, longitude, raioMetros, categoriasList));
+            // Fetch from all providers concurrently with timeout
+            var tasks = _providers.Select(async p =>
+            {
+                using var cts = new System.Threading.CancellationTokenSource(System.TimeSpan.FromSeconds(8));
+                try
+                {
+                    return await p.FetchAsync(latitude, longitude, raioMetros, categoriasList, cts.Token);
+                }
+                catch (System.OperationCanceledException)
+                {
+                    _logger.LogWarning("Timeout ao buscar dados no provedor {Provider}", p.GetType().Name);
+                    return Enumerable.Empty<PontoInteresse>();
+                }
+                catch (System.Exception ex)
+                {
+                    _logger.LogError(ex, "Erro no provedor {Provider}", p.GetType().Name);
+                    return Enumerable.Empty<PontoInteresse>();
+                }
+            });
+
             var resultsArray = await Task.WhenAll(tasks);
             
             var allResults = resultsArray.SelectMany(r => r).ToList();

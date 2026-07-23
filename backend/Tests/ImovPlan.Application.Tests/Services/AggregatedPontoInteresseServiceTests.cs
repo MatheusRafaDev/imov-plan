@@ -28,7 +28,7 @@ namespace ImovPlan.Application.Tests.Services
             mockDbContext.Setup(db => db.PontosInteresseCache).Returns(mockDbSet.Object);
             
             var mockProvider = new Mock<IPontoInteresseProvider>();
-            mockProvider.Setup(p => p.FetchAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<IEnumerable<string>>()))
+            mockProvider.Setup(p => p.FetchAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<IEnumerable<string>>(), It.IsAny<System.Threading.CancellationToken>()))
                 .ReturnsAsync(new List<PontoInteresse> 
                 { 
                     new PontoInteresse { IdOsm = "1", Nome = "Mercado Mock", Categoria = "mercado" }
@@ -60,8 +60,47 @@ namespace ImovPlan.Application.Tests.Services
             Assert.Single(result1);
             Assert.Single(result2);
             
-            // The provider should have been called exactly once
-            mockProvider.Verify(p => p.FetchAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<IEnumerable<string>>()), Times.Once);
+            // Deve ter chamado o provedor apenas 1 vez (na primeira busca)
+            mockProvider.Verify(p => p.FetchAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<IEnumerable<string>>(), It.IsAny<System.Threading.CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task BuscarPontosInteresseAsync_ShouldTimeoutSlowProvidersAndReturnIn8Seconds()
+        {
+            // Arrange
+            var mockDbContext = new Mock<AppDbContext>(new DbContextOptions<AppDbContext>());
+            var mockDbSet = new List<PontoInteresseCache>().BuildMockDbSet();
+            mockDbContext.Setup(db => db.PontosInteresseCache).Returns(mockDbSet.Object);
+
+            var fastProvider = new Mock<IPontoInteresseProvider>();
+            fastProvider.Setup(p => p.FetchAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<PontoInteresse> { new PontoInteresse { IdOsm = "fast", Categoria = "mercado" } });
+
+            var slowProvider = new Mock<IPontoInteresseProvider>();
+            slowProvider.Setup(p => p.FetchAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+                .Returns(async (double lat, double lon, double r, IEnumerable<string> cat, CancellationToken ct) => 
+                {
+                    await Task.Delay(15000, ct); // Should trigger cancellation
+                    return new List<PontoInteresse> { new PontoInteresse { IdOsm = "slow" } };
+                });
+
+            var providers = new List<IPontoInteresseProvider> { fastProvider.Object, slowProvider.Object };
+            var mockLogger = new Mock<ILogger<AggregatedPontoInteresseService>>();
+
+            var service = new AggregatedPontoInteresseService(providers, mockDbContext.Object, mockLogger.Object);
+            
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            // Act
+            var result = await service.BuscarPontosInteresseAsync(0, 0, 1000, new[] { "mercado" });
+
+            sw.Stop();
+
+            // Assert
+            // It should take around 8 seconds. We give it some tolerance.
+            Assert.True(sw.Elapsed.TotalSeconds >= 7 && sw.Elapsed.TotalSeconds <= 10, $"Esperado ~8s, mas levou {sw.Elapsed.TotalSeconds}s");
+            Assert.Single(result); // Apenas o resultado do fastProvider
+            Assert.Equal("fast", result.First().IdOsm);
         }
     }
 }
