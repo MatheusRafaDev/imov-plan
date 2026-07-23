@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import NextTopLoader from "nextjs-toploader";
 
 export const metadata: Metadata = {
   title: "Imov.Plan - Planeje a entrada do seu imóvel",
@@ -24,6 +25,7 @@ export default function RootLayout({
           // O cookie será lido automaticamente pelo backend via withCredentials
         >
           <AuthProvider>
+            <NextTopLoader color="#e15b31" height={3} showSpinner={false} shadow="0 0 10px #e15b31,0 0 5px #e15b31" />
             {children}
             <Toaster richColors position="top-right" />
           </AuthProvider>

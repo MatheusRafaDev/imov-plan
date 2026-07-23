@@ -496,7 +496,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
             {showCenarioSelector && (
               <div className="bg-secondary/40 border border-border/50 rounded-xl p-1 flex shadow-soft relative overflow-hidden backdrop-blur-sm">
-                {(["pessimista", "base", "otimista"] as CenarioSimulacao[]).map((cen) => {
+                {(["pessimista", "realista", "otimista"] as CenarioSimulacao[]).map((cen) => {
                   const active = cenarioSimulacao === cen;
                   return (
                     <button
@@ -510,7 +510,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                       {active && (
                         <div className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-glow animate-fade-in" />
                       )}
-                      {cen}
+                      {cen === "realista" ? "base" : cen}
                     </button>
                   );
                 })}

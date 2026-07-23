@@ -23,7 +23,7 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse bg-muted/60 ${roundedMap[rounded]} ${className}`}
+      className={`animate-shimmer ${roundedMap[rounded]} ${className}`}
       style={{ width, height }}
       aria-hidden="true"
     />
