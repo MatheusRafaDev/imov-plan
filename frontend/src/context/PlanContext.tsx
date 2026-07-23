@@ -164,7 +164,7 @@ function aplicarDados(
   if (dados.pessoas) definidores.setPessoas(dados.pessoas);
   if (dados.bancoEscolhido) definidores.setBancoEscolhido(dados.bancoEscolhido);
   if (dados.aportesExtras) {
-    definidores.setAportesExtras(dados.aportesExtras.map((a) => ({
+    definidores.setAportesExtras(dados.aportesExtras.map((a: any) => ({
       ...a,
       data: typeof a.data === "string"
         ? a.data
