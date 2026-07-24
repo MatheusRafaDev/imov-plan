@@ -46,9 +46,10 @@ namespace ImovPlan.Domain.Entities
 
         /// <summary>
         /// Indica se o token de recuperação já foi utilizado, impedindo reutilização do link.
+        /// Nullable para compatibilidade com documentos existentes sem este campo (null == false).
         /// </summary>
         [BsonElement("resetPasswordTokenUsed")]
-        public bool ResetPasswordTokenUsed { get; set; } = false;
+        public bool? ResetPasswordTokenUsed { get; set; }
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

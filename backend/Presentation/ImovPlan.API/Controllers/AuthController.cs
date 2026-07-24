@@ -45,7 +45,7 @@ namespace ImovPlan.API.Controllers
         {
             var existing = await _usuarioRepository.GetByEmailAsync(request.Email);
             if (existing != null)
-                return BadRequest(new { message = "Não foi possível concluir o cadastro. Verifique os dados informados." });
+                return BadRequest(new { message = "Nao foi possivel concluir o cadastro. Verifique os dados informados." });
 
             DateTime? parsedNascimento = null;
             if (DateTime.TryParse(request.DataNascimento, out var parsed))
@@ -77,10 +77,9 @@ namespace ImovPlan.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-
             var user = await _usuarioRepository.GetByEmailAsync(request.Email);
             if (user == null)
-                return Unauthorized(new { message = "Email ou senha inválidos." });
+                return Unauthorized(new { message = "Email ou senha invalidos." });
 
             var passwordHash = user.PasswordHash ?? string.Empty;
             bool senhaValida = false;
@@ -93,7 +92,7 @@ namespace ImovPlan.API.Controllers
                 }
                 else
                 {
-                    // Hash legado (SHA-256 + salt fixo) — valida e migra para bcrypt.
+                    // Hash legado (SHA-256 + salt fixo) - valida e migra para bcrypt.
                     senhaValida = passwordHash == LegacyHashPassword(request.Password);
                     if (senhaValida)
                     {
@@ -104,7 +103,7 @@ namespace ImovPlan.API.Controllers
             }
 
             if (!senhaValida)
-                return Unauthorized(new { message = "Email ou senha inválidos." });
+                return Unauthorized(new { message = "Email ou senha invalidos." });
 
             var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User");
             SetTokenCookie(token);
@@ -130,7 +129,7 @@ namespace ImovPlan.API.Controllers
                 var clientId = _configuration["Google:ClientId"];
                 if (string.IsNullOrEmpty(clientId))
                 {
-                    return StatusCode(500, new { message = "Google Client ID não configurado no servidor." });
+                    return StatusCode(500, new { message = "Google Client ID nao configurado no servidor." });
                 }
 
                 var settings = new GoogleJsonWebSignature.ValidationSettings()
@@ -145,29 +144,28 @@ namespace ImovPlan.API.Controllers
                 }
                 catch (InvalidJwtException)
                 {
-                    return Unauthorized(new { message = "Token do Google inválido." });
+                    return Unauthorized(new { message = "Token do Google invalido." });
                 }
 
                 if (!payload.EmailVerified)
                 {
-                    return Unauthorized(new { message = "E-mail do Google não verificado." });
+                    return Unauthorized(new { message = "E-mail do Google nao verificado." });
                 }
 
                 var user = await _usuarioRepository.GetByEmailAsync(payload.Email);
 
                 if (user == null)
                 {
-                    // Novo usuário via Google — provider exclusivamente Google
+                    // Novo usuario via Google - provider exclusivamente Google
                     user = new Usuario
                     {
-                        Nome = payload.Name ?? "Usuário Google",
+                        Nome = payload.Name ?? "Usuario Google",
                         Email = payload.Email,
                         PasswordHash = "", // Sem senha para login social
                         Role = "User",
                         Provider = "google"
                     };
 
-                    // Try to extract birth date from Google payload if available
                     var birthDate = payload.GetType().GetProperty("birthdate")?.GetValue(payload)?.ToString();
                     if (!string.IsNullOrEmpty(birthDate) && DateTime.TryParse(birthDate, out var parsedBirthDate))
                     {
@@ -178,7 +176,7 @@ namespace ImovPlan.API.Controllers
                 }
                 else if (user.Provider == "local" || string.IsNullOrEmpty(user.Provider))
                 {
-                    // Usuário local que agora também usa Google → conta híbrida
+                    // Usuario local que agora tambem usa Google - conta hibrida
                     user.Provider = "both";
                     await _usuarioRepository.UpdateAsync(user.Id, user);
                 }
@@ -195,13 +193,13 @@ namespace ImovPlan.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro interno ao validar login com Google.");
-                return StatusCode(500, new { message = "Erro interno ao processar a solicitação." });
+                return StatusCode(500, new { message = "Erro interno ao processar a solicitacao." });
             }
         }
 
         /// <summary>
-        /// Solicita recuperação de senha. Gera token seguro e envia link por email.
-        /// Retorna 404 se o email não existir e 400 se a conta for exclusivamente Google.
+        /// Solicita recuperacao de senha. Gera token seguro e envia link por email.
+        /// Retorna 404 se o email nao existir e 400 se a conta for exclusivamente Google.
         /// </summary>
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
@@ -210,7 +208,7 @@ namespace ImovPlan.API.Controllers
 
             if (user == null)
             {
-                return NotFound(new { message = "Não encontramos nenhuma conta vinculada a esse e-mail. Verifique o endereço informado." });
+                return NotFound(new { message = "Nao encontramos nenhuma conta vinculada a esse e-mail. Verifique o endereco informado." });
             }
 
             // Bloquear contas exclusivamente Google (sem senha local)
@@ -218,7 +216,7 @@ namespace ImovPlan.API.Controllers
             {
                 return BadRequest(new
                 {
-                    message = "Esta conta utiliza autenticação pelo Google. Para acessar, clique em \"Entrar com Google\" na tela de login.",
+                    message = "Esta conta utiliza autenticacao pelo Google. Para acessar, clique em \"Entrar com Google\" na tela de login.",
                     provider = "google"
                 });
             }
@@ -232,30 +230,30 @@ namespace ImovPlan.API.Controllers
             // Persistir apenas o hash SHA-256 do token (nunca o token bruto)
             var tokenHash = ComputeSha256Hash(rawToken);
 
-            // Invalidar qualquer token anterior e salvar o novo (só um token válido por vez)
+            // Invalidar qualquer token anterior e salvar o novo (so um token valido por vez)
             user.ResetPasswordToken = tokenHash;
             user.ResetPasswordExpiry = DateTime.UtcNow.AddMinutes(30);
-            user.ResetPasswordTokenUsed = false;
+            user.ResetPasswordTokenUsed = null; // null == false == nao usado
             await _usuarioRepository.UpdateAsync(user.Id, user);
 
             var frontendUrl = _configuration["FrontendUrl"] ?? _configuration["FrontendUrl2"] ?? "http://localhost:3000";
             frontendUrl = frontendUrl.TrimEnd('/');
             var resetLink = $"{frontendUrl}/auth/reset-password?token={Uri.EscapeDataString(rawToken)}";
 
-            var subject = "Redefinição de Senha — ImovPlan";
+            var subject = "Redefinicao de Senha - ImovPlan";
             var body = $@"
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9;'>
                     <div style='background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);'>
-                        <h2 style='color: #E63946; margin-top: 0;'>Redefinição de Senha</h2>
-                        <p>Olá, <strong>{user.Nome}</strong>!</p>
-                        <p>Recebemos uma solicitação para redefinir a senha da sua conta no <strong>ImovPlan</strong>.</p>
-                        <p>Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>30 minutos</strong> e só pode ser usado uma vez.</p>
+                        <h2 style='color: #E63946; margin-top: 0;'>Redefinicao de Senha</h2>
+                        <p>Ola, <strong>{user.Nome}</strong>!</p>
+                        <p>Recebemos uma solicitacao para redefinir a senha da sua conta no <strong>ImovPlan</strong>.</p>
+                        <p>Clique no botao abaixo para criar uma nova senha. O link e valido por <strong>30 minutos</strong> e so pode ser usado uma vez.</p>
                         <div style='margin: 32px 0; text-align: center;'>
                             <a href='{resetLink}' style='background-color: #E63946; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;'>Redefinir minha senha</a>
                         </div>
-                        <p style='color: #666; font-size: 13px;'>Se você não solicitou a redefinição de senha, ignore este e-mail. Sua senha permanece a mesma.</p>
+                        <p style='color: #666; font-size: 13px;'>Se voce nao solicitou a redefinicao de senha, ignore este e-mail. Sua senha permanece a mesma.</p>
                         <hr style='border: none; border-top: 1px solid #eee; margin: 24px 0;'>
-                        <p style='color: #999; font-size: 12px;'>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:<br>
+                        <p style='color: #999; font-size: 12px;'>Se o botao nao funcionar, copie e cole o link abaixo no seu navegador:<br>
                         <a href='{resetLink}' style='color: #E63946; word-break: break-all;'>{resetLink}</a></p>
                     </div>
                 </div>";
@@ -266,41 +264,42 @@ namespace ImovPlan.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Falha ao enviar email de recuperação para {Email}", user.Email);
-                return StatusCode(500, new { message = "Não foi possível enviar o e-mail de recuperação. Tente novamente em instantes." });
+                _logger.LogError(ex, "Falha ao enviar email de recuperacao para {Email}", user.Email);
+                return StatusCode(500, new { message = "Nao foi possivel enviar o e-mail de recuperacao. Tente novamente em instantes." });
             }
 
-            return Ok(new { message = "Link de recuperação enviado com sucesso. Verifique sua caixa de entrada (e a pasta de spam)." });
+            return Ok(new { message = "Link de recuperacao enviado com sucesso. Verifique sua caixa de entrada (e a pasta de spam)." });
         }
 
         /// <summary>
-        /// Valida se um token de reset ainda é válido (não expirado, não usado).
-        /// Usado pelo frontend antes de exibir o formulário de nova senha.
+        /// Valida se um token de reset ainda e valido (nao expirado, nao usado).
+        /// Usado pelo frontend antes de exibir o formulario de nova senha.
         /// </summary>
         [HttpGet("validate-reset-token")]
         public async Task<IActionResult> ValidateResetToken([FromQuery] string token)
         {
             if (string.IsNullOrWhiteSpace(token))
-                return BadRequest(new { message = "Token inválido." });
+                return BadRequest(new { message = "Token invalido." });
 
             var tokenHash = ComputeSha256Hash(token);
             var user = await _usuarioRepository.GetByResetTokenHashAsync(tokenHash);
 
             if (user == null)
-                return BadRequest(new { message = "Link de recuperação inválido ou já utilizado." });
+                return BadRequest(new { message = "Link de recuperacao invalido ou ja utilizado." });
 
-            if (user.ResetPasswordTokenUsed)
-                return BadRequest(new { message = "Este link já foi utilizado. Solicite um novo link de recuperação." });
+            // null == nao usado (compatibilidade com documentos existentes)
+            if (user.ResetPasswordTokenUsed == true)
+                return BadRequest(new { message = "Este link ja foi utilizado. Solicite um novo link de recuperacao." });
 
             if (user.ResetPasswordExpiry == null || user.ResetPasswordExpiry < DateTime.UtcNow)
-                return BadRequest(new { message = "Este link expirou. Solicite um novo link de recuperação." });
+                return BadRequest(new { message = "Este link expirou. Solicite um novo link de recuperacao." });
 
-            return Ok(new { message = "Token válido.", email = user.Email });
+            return Ok(new { message = "Token valido.", email = user.Email });
         }
 
         /// <summary>
         /// Redefine a senha usando o token recebido por email.
-        /// O token identifica o usuário — email não é necessário na requisição.
+        /// O token identifica o usuario - email nao e necessario na requisicao.
         /// </summary>
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
@@ -309,38 +308,39 @@ namespace ImovPlan.API.Controllers
             var user = await _usuarioRepository.GetByResetTokenHashAsync(tokenHash);
 
             if (user == null)
-                return BadRequest(new { message = "Link de recuperação inválido ou já utilizado." });
+                return BadRequest(new { message = "Link de recuperacao invalido ou ja utilizado." });
 
-            if (user.ResetPasswordTokenUsed)
-                return BadRequest(new { message = "Este link já foi utilizado. Solicite um novo link de recuperação." });
+            // null == nao usado (compatibilidade com documentos existentes)
+            if (user.ResetPasswordTokenUsed == true)
+                return BadRequest(new { message = "Este link ja foi utilizado. Solicite um novo link de recuperacao." });
 
             if (user.ResetPasswordExpiry == null || user.ResetPasswordExpiry < DateTime.UtcNow)
-                return BadRequest(new { message = "Este link expirou. Solicite um novo link de recuperação." });
+                return BadRequest(new { message = "Este link expirou. Solicite um novo link de recuperacao." });
 
-            // Validação de força da senha (backup além do FluentValidation)
+            // Validacao de forca da senha (backup alem do FluentValidation)
             if (!IsPasswordStrong(request.NewPassword))
-                return BadRequest(new { message = "A senha deve ter pelo menos 8 caracteres, incluindo letras e números." });
+                return BadRequest(new { message = "A senha deve ter pelo menos 8 caracteres, incluindo letras e numeros." });
 
             // Atualizar hash da senha com BCrypt
             user.PasswordHash = HashPassword(request.NewPassword);
 
-            // Se a conta era somente Google e agora define senha local, torna-se híbrida
+            // Se a conta era somente Google e agora define senha local, torna-se hibrida
             if (user.Provider == "google")
                 user.Provider = "both";
 
-            // Invalidar token de uso único (marcar como usado e limpar)
+            // Invalidar token de uso unico (marcar como usado e limpar)
             user.ResetPasswordTokenUsed = true;
             user.ResetPasswordToken = null;
             user.ResetPasswordExpiry = null;
 
             await _usuarioRepository.UpdateAsync(user.Id, user);
 
-            _logger.LogInformation("Senha redefinida com sucesso para usuário {UserId}", user.Id);
+            _logger.LogInformation("Senha redefinida com sucesso para usuario {UserId}", user.Id);
 
-            return Ok(new { message = "Senha redefinida com sucesso! Você já pode fazer login com a nova senha." });
+            return Ok(new { message = "Senha redefinida com sucesso! Voce ja pode fazer login com a nova senha." });
         }
 
-        // ── Helpers ─────────────────────────────────────────────────────────────
+        // -- Helpers -----------------------------------------------------------------
 
         private void SetTokenCookie(string token)
         {
@@ -351,9 +351,6 @@ namespace ImovPlan.API.Controllers
 
         private Microsoft.AspNetCore.Http.CookieOptions CreateTokenCookieOptions()
         {
-            // The browser reaches the API through the Next.js /api proxy. A Secure
-            // cookie is rejected when the app runs over HTTP (the local/Docker default).
-            // HTTPS deployments can force it with Auth__CookieSecure=true.
             var configuredSecure = _configuration.GetValue<bool?>("Auth:CookieSecure");
             var forwardedProto = Request.Headers["X-Forwarded-Proto"].ToString();
             var isHttps = Request.IsHttps || string.Equals(forwardedProto, "https", StringComparison.OrdinalIgnoreCase);
@@ -382,7 +379,7 @@ namespace ImovPlan.API.Controllers
 
         private static bool VerifyPassword(string password, string hash) => BCrypt.Net.BCrypt.Verify(password, hash);
 
-        // Mantido apenas para migração de hashes legados
+        // Mantido apenas para migracao de hashes legados
         private static string LegacyHashPassword(string password)
         {
             using var sha256 = SHA256.Create();
@@ -392,7 +389,7 @@ namespace ImovPlan.API.Controllers
 
         /// <summary>
         /// Computa hash SHA-256 do token bruto para armazenamento seguro no banco.
-        /// O token bruto nunca é persistido.
+        /// O token bruto nunca e persistido.
         /// </summary>
         private static string ComputeSha256Hash(string rawToken)
         {
@@ -402,12 +399,12 @@ namespace ImovPlan.API.Controllers
         }
 
         /// <summary>
-        /// Valida se a senha tem pelo menos 8 caracteres, 1 letra e 1 número.
+        /// Valida se a senha tem pelo menos 8 caracteres, 1 letra e 1 numero.
         /// </summary>
         private static bool IsPasswordStrong(string password)
         {
             if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
-            var hasLetter = Regex.IsMatch(password, @"[a-zA-ZÀ-ÿ]");
+            var hasLetter = Regex.IsMatch(password, @"[a-zA-Z\u00C0-\u00FF]");
             var hasDigit = Regex.IsMatch(password, @"[0-9]");
             return hasLetter && hasDigit;
         }
