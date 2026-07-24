@@ -265,7 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAllData();
     dispatchAuthEvent();
     if (typeof window !== "undefined") {
-      window.location.href = "/auth";
+      window.location.href = "/";
     }
   };
 

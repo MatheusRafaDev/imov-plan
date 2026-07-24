@@ -50,14 +50,18 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="flex flex-col bg-gradient-cream" style={{ height: '100dvh' }}>
-      <header className="shrink-0 border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
-        <div className="container flex h-16 items-center justify-between gap-4">
-          <Link href={homeHref} className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
-              <Building2 className="h-4 w-4 text-accent-foreground" />
+      {/* ── Header ── */}
+      <header className="safe-top shrink-0 border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
+        <div className="container flex h-14 lg:h-16 items-center justify-between gap-2 lg:gap-4">
+          <Link href={homeHref} className="flex items-center gap-2 min-w-0">
+            <div className="h-7 w-7 lg:h-8 lg:w-8 shrink-0 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
+              <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-accent-foreground" />
             </div>
-            <span className="font-display text-xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
+            <span className="font-display text-lg lg:text-xl font-semibold truncate">
+              Imov<span className="text-accent">.</span>Plan
+            </span>
           </Link>
+
           <nav className="hidden lg:flex items-center bg-secondary/40 rounded-full px-2 py-1.5 border border-border/50">
             {nav.map((n, index) => {
               const activeIndex = nav.findIndex(item => pathname?.startsWith(item.to));
@@ -103,8 +107,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               );
             })}
           </nav>
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-2">{user?.name?.split(' ')[0] || user?.email}</span>
+
+          <div className="flex items-center gap-1 lg:gap-2">
+            <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-1 lg:mr-2 truncate max-w-[100px]">
+              {user?.name?.split(' ')[0] || user?.email}
+            </span>
 
             <Link href="/app/planos">
               <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
@@ -130,23 +137,41 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto">
-        <div className="container py-6 md:py-8 lg:py-12 pb-24 lg:pb-12">{children}</div>
+
+      {/* ── Main ── */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="container py-6 md:py-8 lg:py-12 pb-28 lg:pb-12">{children}</div>
       </main>
-      <nav className="lg:hidden shrink-0 border-t border-border/60 bg-background/80 backdrop-blur">
+
+      {/* ── Bottom Nav (mobile) ── */}
+      <nav className="safe-bottom safe-x lg:hidden shrink-0 border-t border-border/60 bg-background/80 backdrop-blur">
         <div className="flex">
           {nav.map((n, index) => {
             const active = pathname?.startsWith(n.to) || false;
             const isDisabled = index > 0 && !isStep1Filled;
             return isDisabled ? (
-              <div key={n.to} className="flex-1 py-3 grid place-items-center text-xs gap-1 text-muted-foreground/40 cursor-not-allowed opacity-50 select-none">
+              <div
+                key={n.to}
+                className="flex-1 min-w-0 py-3 grid place-items-center text-xs gap-1 text-muted-foreground/40 cursor-not-allowed opacity-50 select-none"
+              >
                 <n.icon className="h-5 w-5" />
-                {n.label}
+                <span className="truncate w-full text-center px-1">{n.label}</span>
               </div>
             ) : (
-              <Link key={n.to} href={n.to} onClick={(e) => handleNavClick(e, n.to)} className={`flex-1 py-3 grid place-items-center text-xs gap-1 transition-colors ${active ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}>
+              <Link
+                key={n.to}
+                href={n.to}
+                onClick={(e) => handleNavClick(e, n.to)}
+                className={`relative flex-1 min-w-0 py-3 grid place-items-center text-xs gap-1 transition-colors active:scale-95 ${
+                  active ? "text-accent" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {/* Active indicator bar */}
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-accent" />
+                )}
                 <n.icon className="h-5 w-5" />
-                {n.label}
+                <span className="truncate w-full text-center px-1">{n.label}</span>
               </Link>
             );
           })}
