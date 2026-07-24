@@ -8,8 +8,10 @@ namespace ImovPlan.Domain.Interfaces
     {
         Task<Usuario?> GetByIdAsync(string id);
         Task<Usuario?> GetByEmailAsync(string email);
+        Task<Usuario?> GetByResetTokenHashAsync(string tokenHash);
         Task<Usuario> CreateAsync(Usuario usuario);
         Task UpdateAsync(string id, Usuario usuario);
         Task DeleteAsync(string id);
     }
 }
+

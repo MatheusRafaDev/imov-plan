@@ -26,6 +26,11 @@ namespace ImovPlan.Infrastructure.Repositories
             return await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
         }
 
+        public async Task<Usuario?> GetByResetTokenHashAsync(string tokenHash)
+        {
+            return await _context.Usuarios.FirstOrDefaultAsync(u => u.ResetPasswordToken == tokenHash);
+        }
+
         public async Task<Usuario> CreateAsync(Usuario usuario)
         {
             _context.Usuarios.Add(usuario);
@@ -43,6 +48,12 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.PasswordHash = usuario.PasswordHash;
                 existing.DataNascimento = usuario.DataNascimento;
                 existing.TipoInvestimento = usuario.TipoInvestimento;
+                existing.Role = usuario.Role;
+                existing.Provider = usuario.Provider;
+                // Campos de recuperação de senha
+                existing.ResetPasswordToken = usuario.ResetPasswordToken;
+                existing.ResetPasswordExpiry = usuario.ResetPasswordExpiry;
+                existing.ResetPasswordTokenUsed = usuario.ResetPasswordTokenUsed;
                 _context.Usuarios.Update(existing);
                 await _context.SaveChangesAsync();
             }
@@ -59,3 +70,4 @@ namespace ImovPlan.Infrastructure.Repositories
         }
     }
 }
+

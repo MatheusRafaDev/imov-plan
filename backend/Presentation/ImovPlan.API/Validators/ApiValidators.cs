@@ -69,9 +69,12 @@ namespace ImovPlan.API.Validators
     {
         public ResetPasswordRequestValidator()
         {
-            RuleFor(x => x.Email).NotEmpty().WithMessage("Email é obrigatório.").EmailAddress().WithMessage("Formato de email inválido.");
             RuleFor(x => x.Token).NotEmpty().WithMessage("Token é obrigatório.");
-            RuleFor(x => x.NewPassword).NotEmpty().WithMessage("Nova senha é obrigatória.");
+            RuleFor(x => x.NewPassword)
+                .NotEmpty().WithMessage("Nova senha é obrigatória.")
+                .MinimumLength(8).WithMessage("A senha deve ter pelo menos 8 caracteres.")
+                .Matches(@"[a-zA-ZÀ-ÿ]").WithMessage("A senha deve conter pelo menos uma letra.")
+                .Matches(@"[0-9]").WithMessage("A senha deve conter pelo menos um número.");
         }
     }
 

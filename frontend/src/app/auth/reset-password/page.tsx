@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,36 +8,137 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Building2, Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Loader2,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 
+// ── Indicador de Força da Senha ────────────────────────────────────────────────
+function PasswordStrengthIndicator({ password }: { password: string }) {
+  const checks = [
+    { label: "Mínimo 8 caracteres", ok: password.length >= 8 },
+    { label: "Pelo menos uma letra", ok: /[a-zA-ZÀ-ÿ]/.test(password) },
+    { label: "Pelo menos um número", ok: /[0-9]/.test(password) },
+  ];
+
+  const passed = checks.filter((c) => c.ok).length;
+  const strengthColor =
+    passed === 0
+      ? ""
+      : passed === 1
+      ? "bg-destructive"
+      : passed === 2
+      ? "bg-yellow-500"
+      : "bg-green-500";
+
+  if (!password) return null;
+
+  return (
+    <div className="mt-2 space-y-1.5 animate-fade-in">
+      <div className="flex gap-1 h-1">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={`flex-1 rounded-full transition-all duration-300 ${
+              i < passed ? strengthColor : "bg-border"
+            }`}
+          />
+        ))}
+      </div>
+      <ul className="space-y-0.5">
+        {checks.map((c) => (
+          <li
+            key={c.label}
+            className={`flex items-center gap-1.5 text-xs transition-colors ${
+              c.ok ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+            }`}
+          >
+            {c.ok ? (
+              <CheckCircle2 className="h-3 w-3 shrink-0" />
+            ) : (
+              <XCircle className="h-3 w-3 shrink-0" />
+            )}
+            {c.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ── Formulário de Redefinição ──────────────────────────────────────────────────
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { resetPassword, loading } = useAuth();
+  const { validateResetToken, resetPassword, loading } = useAuth();
 
-  const [email, setEmail] = useState(searchParams.get("email") || "");
-  const [token, setToken] = useState(searchParams.get("token") || "");
+  const token = searchParams.get("token") || "";
+
+  type TokenState = "validating" | "valid" | "invalid";
+  const [tokenState, setTokenState] = useState<TokenState>("validating");
+  const [tokenError, setTokenError] = useState<string>("");
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
 
+  // Valida o token assim que a página carrega
+  useEffect(() => {
+    if (!token) {
+      setTokenState("invalid");
+      setTokenError("Link de recuperação inválido. Verifique o link recebido por email.");
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const result = await validateResetToken(token);
+      if (cancelled) return;
+      if (result.valid) {
+        setTokenState("valid");
+      } else {
+        setTokenState("invalid");
+        setTokenError(result.error || "Link de recuperação inválido ou expirado.");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
 
-    if (!email) errors.email = "O email é obrigatório.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Insira um endereço de email válido.";
+    if (!newPassword) {
+      errors.newPassword = "A nova senha é obrigatória.";
+    } else if (newPassword.length < 8) {
+      errors.newPassword = "A senha deve ter pelo menos 8 caracteres.";
+    } else if (!/[a-zA-ZÀ-ÿ]/.test(newPassword)) {
+      errors.newPassword = "A senha deve conter pelo menos uma letra.";
+    } else if (!/[0-9]/.test(newPassword)) {
+      errors.newPassword = "A senha deve conter pelo menos um número.";
+    }
 
-    if (!token) errors.token = "Informe o código recebido por email.";
-
-    if (!newPassword) errors.newPassword = "A nova senha é obrigatória.";
-    else if (newPassword.length < 6) errors.newPassword = "A senha deve ter pelo menos 6 caracteres.";
-
-    if (!confirmPassword) errors.confirmPassword = "Confirme a nova senha.";
-    else if (newPassword !== confirmPassword) errors.confirmPassword = "As senhas não coincidem.";
+    if (!confirmPassword) {
+      errors.confirmPassword = "Confirme a nova senha.";
+    } else if (newPassword !== confirmPassword) {
+      errors.confirmPassword = "As senhas não coincidem.";
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -48,38 +149,74 @@ function ResetPasswordForm() {
     setFormErrors({});
     setGeneralError(null);
 
-    if (!validateForm()) {
-      setGeneralError("Por favor, corrija os erros sinalizados no formulário.");
-      return;
-    }
+    if (!validateForm()) return;
 
-    const result = await resetPassword(email, token, newPassword);
+    const result = await resetPassword(token, newPassword);
     if (result.success) {
       setSucesso(true);
       toast.success("Senha redefinida com sucesso!");
-      setTimeout(() => router.push("/auth"), 2000);
+      setTimeout(() => router.push("/auth"), 2500);
     } else {
-      setGeneralError(result.error || "Token inválido ou expirado. Solicite um novo link.");
+      setGeneralError(result.error || "Não foi possível redefinir a senha. Tente novamente.");
     }
   };
 
-  if (sucesso) {
+  // ── Estados de renderização ─────────────────────────────────────────────────
+
+  if (tokenState === "validating") {
     return (
-      <div className="space-y-4 text-center">
-        <div className="mx-auto h-12 w-12 rounded-full bg-accent/10 grid place-items-center">
-          <CheckCircle2 className="h-6 w-6 text-accent" />
-        </div>
-        <h2 className="font-display text-2xl">Senha redefinida!</h2>
-        <p className="text-sm text-muted-foreground">Redirecionando para o login...</p>
+      <div className="flex flex-col items-center gap-4 py-6">
+        <Loader2 className="h-8 w-8 animate-spin-smooth text-accent" />
+        <p className="text-sm text-muted-foreground">Verificando link de recuperação...</p>
       </div>
     );
   }
 
+  if (tokenState === "invalid") {
+    return (
+      <div className="space-y-4 text-center animate-fade-in">
+        <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 grid place-items-center">
+          <XCircle className="h-6 w-6 text-destructive" />
+        </div>
+        <h2 className="font-display text-2xl">Link inválido</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed">{tokenError}</p>
+        <Link
+          href="/auth/forgot-password"
+          className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-md bg-gradient-warm text-accent-foreground font-medium text-sm shadow-glow hover:opacity-95 transition-opacity"
+        >
+          Solicitar novo link
+        </Link>
+        <Link
+          href="/auth"
+          className="inline-flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar para o login
+        </Link>
+      </div>
+    );
+  }
+
+  if (sucesso) {
+    return (
+      <div className="space-y-4 text-center animate-fade-in">
+        <div className="mx-auto h-12 w-12 rounded-full bg-green-500/10 grid place-items-center">
+          <ShieldCheck className="h-6 w-6 text-green-500" />
+        </div>
+        <h2 className="font-display text-2xl">Senha redefinida!</h2>
+        <p className="text-sm text-muted-foreground">
+          Sua senha foi alterada com sucesso. Redirecionando para o login...
+        </p>
+        <Loader2 className="h-5 w-5 animate-spin-smooth mx-auto text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // ── Formulário de nova senha ────────────────────────────────────────────────
   return (
     <>
       <h2 className="font-display text-2xl mb-2">Redefinir senha</h2>
       <p className="text-sm text-muted-foreground mb-6">
-        Informe o código recebido por email e escolha uma nova senha.
+        Escolha uma nova senha segura para a sua conta.
       </p>
 
       {generalError && (
@@ -93,48 +230,7 @@ function ResetPasswordForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (formErrors.email) setFormErrors((p) => ({ ...p, email: "" }));
-            }}
-            disabled={loading}
-            placeholder="voce@exemplo.com"
-            className={formErrors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}
-          />
-          {formErrors.email && (
-            <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-              <AlertCircle className="h-3.5 w-3.5" /> {formErrors.email}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="token">Código de recuperação</Label>
-          <Input
-            id="token"
-            type="text"
-            value={token}
-            onChange={(e) => {
-              setToken(e.target.value);
-              if (formErrors.token) setFormErrors((p) => ({ ...p, token: "" }));
-            }}
-            disabled={loading}
-            placeholder="Cole aqui o código recebido por email"
-            className={formErrors.token ? "border-destructive focus-visible:ring-destructive/30" : ""}
-          />
-          {formErrors.token && (
-            <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-              <AlertCircle className="h-3.5 w-3.5" /> {formErrors.token}
-            </p>
-          )}
-        </div>
-
+        {/* Nova Senha */}
         <div className="space-y-1.5">
           <Label htmlFor="newPassword">Nova senha</Label>
           <div className="relative">
@@ -147,7 +243,7 @@ function ResetPasswordForm() {
                 if (formErrors.newPassword) setFormErrors((p) => ({ ...p, newPassword: "" }));
               }}
               disabled={loading}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
               className={`pr-10 ${formErrors.newPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
             />
             <button
@@ -159,6 +255,7 @@ function ResetPasswordForm() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordStrengthIndicator password={newPassword} />
           {formErrors.newPassword && (
             <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
               <AlertCircle className="h-3.5 w-3.5" /> {formErrors.newPassword}
@@ -166,20 +263,39 @@ function ResetPasswordForm() {
           )}
         </div>
 
+        {/* Confirmar Senha */}
         <div className="space-y-1.5">
           <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
-          <Input
-            id="confirmPassword"
-            type={showPassword ? "text" : "password"}
-            value={confirmPassword}
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              if (formErrors.confirmPassword) setFormErrors((p) => ({ ...p, confirmPassword: "" }));
-            }}
-            disabled={loading}
-            placeholder="Repita a nova senha"
-            className={formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}
-          />
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirm ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (formErrors.confirmPassword)
+                  setFormErrors((p) => ({ ...p, confirmPassword: "" }));
+              }}
+              disabled={loading}
+              placeholder="Repita a nova senha"
+              className={`pr-10 ${
+                formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(!showConfirm)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              tabIndex={-1}
+            >
+              {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          {confirmPassword && newPassword && confirmPassword === newPassword && (
+            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5 mt-1 animate-fade-in">
+              <CheckCircle2 className="h-3.5 w-3.5" /> As senhas coincidem
+            </p>
+          )}
           {formErrors.confirmPassword && (
             <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
               <AlertCircle className="h-3.5 w-3.5" /> {formErrors.confirmPassword}
@@ -187,7 +303,11 @@ function ResetPasswordForm() {
           )}
         </div>
 
-        <Button type="submit" className="w-full mt-2 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow" disabled={loading}>
+        <Button
+          type="submit"
+          className="w-full mt-2 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow"
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin-smooth" /> Aguarde...
@@ -201,7 +321,10 @@ function ResetPasswordForm() {
       </form>
 
       <div className="mt-6 text-center text-sm">
-        <Link href="/auth" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium">
+        <Link
+          href="/auth"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
+        >
           <ArrowLeft className="h-4 w-4" /> Voltar para o login
         </Link>
       </div>
@@ -209,6 +332,7 @@ function ResetPasswordForm() {
   );
 }
 
+// ── Página ─────────────────────────────────────────────────────────────────────
 export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
@@ -217,11 +341,20 @@ export default function ResetPasswordPage() {
           <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
             <Building2 className="h-4 w-4 text-accent-foreground" />
           </div>
-          <span className="font-display text-xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
+          <span className="font-display text-xl font-semibold">
+            Imov<span className="text-accent">.</span>Plan
+          </span>
         </Link>
 
         <Card className="p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95">
-          <Suspense fallback={<Loader2 className="h-5 w-5 animate-spin-smooth mx-auto" />}>
+          <Suspense
+            fallback={
+              <div className="flex flex-col items-center gap-4 py-6">
+                <Loader2 className="h-8 w-8 animate-spin-smooth text-accent" />
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              </div>
+            }
+          >
             <ResetPasswordForm />
           </Suspense>
         </Card>
@@ -230,7 +363,9 @@ export default function ResetPasswordPage() {
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
         <div className="relative z-10 max-w-md text-center space-y-4">
           <h2 className="font-display text-4xl leading-tight font-semibold">Quase lá.</h2>
-          <p className="text-primary-foreground/70 text-base">Escolha uma nova senha para voltar a acessar seu planejamento.</p>
+          <p className="text-primary-foreground/70 text-base">
+            Escolha uma nova senha para voltar a acessar seu planejamento.
+          </p>
         </div>
       </div>
     </div>

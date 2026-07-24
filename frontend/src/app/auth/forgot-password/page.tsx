@@ -6,18 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Building2, Loader2, MailCheck, AlertCircle } from "lucide-react";
+import { ArrowLeft, Building2, Loader2, MailCheck, AlertCircle, ChromeIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [googleAccountError, setGoogleAccountError] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const { forgotPassword, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError(null);
+    setGoogleAccountError(false);
 
     if (!email) {
       setEmailError("Informe seu email.");
@@ -29,10 +31,12 @@ export default function ForgotPasswordPage() {
     }
 
     const result = await forgotPassword(email);
-    // Por segurança, sempre mostramos a mesma mensagem de sucesso,
-    // exista ou não uma conta com esse email (evita expor quais emails estão cadastrados).
+
     if (result.success) {
       setEnviado(true);
+    } else if (result.provider === "google") {
+      // Conta exclusivamente Google — mostrar aviso especial
+      setGoogleAccountError(true);
     } else {
       setEmailError(result.error || "Não foi possível processar o pedido. Tente novamente.");
     }
@@ -56,12 +60,38 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="font-display text-2xl">Verifique seu email</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Se houver uma conta cadastrada com <strong>{email}</strong>, enviamos um link para
-                redefinir sua senha. Confira sua caixa de entrada (e o spam).
+                Enviamos um link de redefinição para <strong>{email}</strong>. Confira sua caixa de
+                entrada (e a pasta de spam). O link é válido por <strong>30 minutos</strong>.
               </p>
               <Link href="/auth" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2">
                 <ArrowLeft className="h-4 w-4" /> Voltar para o login
               </Link>
+            </div>
+          ) : googleAccountError ? (
+            <div className="space-y-4 text-center animate-fade-in">
+              <div className="mx-auto h-12 w-12 rounded-full bg-blue-500/10 grid place-items-center">
+                <ChromeIcon className="h-6 w-6 text-blue-500" />
+              </div>
+              <h2 className="font-display text-2xl">Conta Google</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Esta conta foi criada com o Google. Não é possível redefinir a senha aqui.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Para acessar, clique em <strong>&quot;Entrar com Google&quot;</strong> na tela de login.
+              </p>
+              <Link
+                href="/auth"
+                className="inline-flex items-center justify-center gap-2 w-full mt-2 py-2.5 px-4 rounded-md bg-gradient-warm text-accent-foreground font-medium text-sm shadow-glow hover:opacity-95 transition-opacity"
+              >
+                Ir para o login
+              </Link>
+              <button
+                type="button"
+                onClick={() => setGoogleAccountError(false)}
+                className="block mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors mt-2"
+              >
+                Tentar com outro email
+              </button>
             </div>
           ) : (
             <>

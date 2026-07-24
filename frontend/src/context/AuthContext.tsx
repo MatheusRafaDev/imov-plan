@@ -19,8 +19,9 @@ type AuthContextType = {
   register: (email: string, password: string, name: string, dataNascimento?: string) => Promise<{ success: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (token: string) => Promise<{ success: boolean; error?: string }>;
-  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
-  resetPassword: (email: string, token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string; provider?: string }>;
+  validateResetToken: (token: string) => Promise<{ valid: boolean; error?: string }>;
+  resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: () => boolean;
@@ -222,18 +223,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Erro ao solicitar recuperação de senha";
+      const provider = err.response?.data?.provider as string | undefined;
       setError(errorMsg);
-      return { success: false, error: errorMsg };
+      return { success: false, error: errorMsg, provider };
     } finally {
       setLoading(false);
     }
   };
 
-  const resetPassword = async (email: string, token: string, newPassword: string) => {
+  const validateResetToken = async (token: string) => {
+    try {
+      await api.get(`/auth/validate-reset-token?token=${encodeURIComponent(token)}`);
+      return { valid: true };
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Link de recuperação inválido ou expirado.";
+      return { valid: false, error: errorMsg };
+    }
+  };
+
+  const resetPassword = async (token: string, newPassword: string) => {
     setLoading(true);
     setError(null);
     try {
-      await api.post("/auth/reset-password", { email, token, newPassword });
+      await api.post("/auth/reset-password", { token, newPassword });
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Token inválido ou expirado.";
@@ -294,7 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, loginWithGoogle, forgotPassword, resetPassword, logout, deleteAccount, isAuthenticated, updateUser }}>
+    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, loginWithGoogle, forgotPassword, validateResetToken, resetPassword, logout, deleteAccount, isAuthenticated, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

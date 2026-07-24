@@ -28,13 +28,30 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("role")]
         public string? Role { get; set; }
 
+        /// <summary>
+        /// Origem da conta: "local" (senha), "google" (somente Google), "both" (Google + senha local).
+        /// Usuários existentes sem este campo são tratados como "local".
+        /// </summary>
+        [BsonElement("provider")]
+        public string? Provider { get; set; }
+
+        /// <summary>
+        /// Hash SHA-256 do token de recuperação de senha (nunca armazenado em texto puro).
+        /// </summary>
         [BsonElement("resetPasswordToken")]
         public string? ResetPasswordToken { get; set; }
 
         [BsonElement("resetPasswordExpiry")]
         public DateTime? ResetPasswordExpiry { get; set; }
 
+        /// <summary>
+        /// Indica se o token de recuperação já foi utilizado, impedindo reutilização do link.
+        /// </summary>
+        [BsonElement("resetPasswordTokenUsed")]
+        public bool ResetPasswordTokenUsed { get; set; } = false;
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
+
