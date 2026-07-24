@@ -50,42 +50,35 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
-            var existingEvolutions = await _context.EvolucoesMensaisSimulacao.Where(e => e.SimulacaoId == id).ToListAsync();
-            if (existingEvolutions.Any())
-            {
-                _context.EvolucoesMensaisSimulacao.RemoveRange(existingEvolutions);
-            }
+            // ExecuteDeleteAsync bypassa o change tracker — evita DbUpdateConcurrencyException
+            await _context.EvolucoesMensaisSimulacao
+                .Where(e => e.SimulacaoId == id)
+                .ExecuteDeleteAsync();
 
-            var existing = await _context.HistoricosSimulacao.FirstOrDefaultAsync(s => s.Id == id);
-            if (existing != null)
-            {
-                _context.HistoricosSimulacao.Remove(existing);
-            }
-
-            await _context.SaveChangesAsync();
+            await _context.HistoricosSimulacao
+                .Where(s => s.Id == id)
+                .ExecuteDeleteAsync();
         }
 
         public async Task DeleteAllByPlanejamentoIdAsync(string planejamentoId)
         {
-            var existingSims = await _context.HistoricosSimulacao.Where(s => s.PlanejamentoId == planejamentoId).ToListAsync();
-            if (existingSims.Any())
-            {
-                var simIds = existingSims.Select(s => s.Id).ToList();
-                var existingEvolutions = new List<EvolucaoMensalSimulacao>();
-                foreach (var simId in simIds)
-                {
-                    var evolucoes = await _context.EvolucoesMensaisSimulacao.Where(e => e.SimulacaoId == simId).ToListAsync();
-                    existingEvolutions.AddRange(evolucoes);
-                }
-                
-                if (existingEvolutions.Any())
-                {
-                    _context.EvolucoesMensaisSimulacao.RemoveRange(existingEvolutions);
-                }
+            // 1. Obtemos os IDs das simulacoes para este planejamento
+            var simIds = await _context.HistoricosSimulacao
+                .Where(s => s.PlanejamentoId == planejamentoId)
+                .Select(s => s.Id)
+                .ToListAsync();
 
-                _context.HistoricosSimulacao.RemoveRange(existingSims);
-                await _context.SaveChangesAsync();
-            }
+            if (!simIds.Any()) return;
+
+            // 2. ExecuteDeleteAsync bypassa o change tracker do EF Core e envia
+            //    o delete diretamente ao MongoDB — sem conflitos de concorrencia.
+            await _context.EvolucoesMensaisSimulacao
+                .Where(e => simIds.Contains(e.SimulacaoId))
+                .ExecuteDeleteAsync();
+
+            await _context.HistoricosSimulacao
+                .Where(s => s.PlanejamentoId == planejamentoId)
+                .ExecuteDeleteAsync();
         }
 
         public async Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao)
@@ -95,3 +88,4 @@ namespace ImovPlan.Infrastructure.Repositories
         }
     }
 }
+
