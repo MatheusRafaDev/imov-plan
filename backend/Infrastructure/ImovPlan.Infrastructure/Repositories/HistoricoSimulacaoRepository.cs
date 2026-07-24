@@ -50,19 +50,37 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
-            // ExecuteDeleteAsync bypassa o change tracker — evita DbUpdateConcurrencyException
-            await _context.EvolucoesMensaisSimulacao
-                .Where(e => e.SimulacaoId == id)
-                .ExecuteDeleteAsync();
+            // Limpa o tracker para evitar DbUpdateConcurrencyException
+            _context.ChangeTracker.Clear();
 
-            await _context.HistoricosSimulacao
-                .Where(s => s.Id == id)
-                .ExecuteDeleteAsync();
+            var evolucoes = await _context.EvolucoesMensaisSimulacao
+                .Where(e => e.SimulacaoId == id)
+                .ToListAsync();
+
+            if (evolucoes.Any())
+            {
+                _context.EvolucoesMensaisSimulacao.RemoveRange(evolucoes);
+                await _context.SaveChangesAsync();
+                _context.ChangeTracker.Clear();
+            }
+
+            var historico = await _context.HistoricosSimulacao
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (historico != null)
+            {
+                _context.HistoricosSimulacao.Remove(historico);
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task DeleteAllByPlanejamentoIdAsync(string planejamentoId)
         {
-            // 1. Obter os IDs das simulacoes para este planejamento
+            // Limpa o tracker antes de comecar para evitar DbUpdateConcurrencyException.
+            // MongoDB EF Core nao suporta ExecuteDeleteAsync — unico caminho e
+            // ToList + RemoveRange + SaveChangesAsync, com tracker limpo a cada ciclo.
+            _context.ChangeTracker.Clear();
+
             var simIds = await _context.HistoricosSimulacao
                 .Where(s => s.PlanejamentoId == planejamentoId)
                 .Select(s => s.Id)
@@ -70,20 +88,31 @@ namespace ImovPlan.Infrastructure.Repositories
 
             if (!simIds.Any()) return;
 
-            // 2. Deletar evolucoes de cada simulacao individualmente.
-            //    MongoDB EF Core nao suporta ExecuteDeleteAsync com Contains (WHERE IN),
-            //    apenas com predicados de igualdade simples.
+            // Deleta evolucoes por simulacao, salvando e limpando o tracker a cada lote
             foreach (var simId in simIds)
             {
-                await _context.EvolucoesMensaisSimulacao
+                var evolucoes = await _context.EvolucoesMensaisSimulacao
                     .Where(e => e.SimulacaoId == simId)
-                    .ExecuteDeleteAsync();
+                    .ToListAsync();
+
+                if (evolucoes.Any())
+                {
+                    _context.EvolucoesMensaisSimulacao.RemoveRange(evolucoes);
+                    await _context.SaveChangesAsync();
+                    _context.ChangeTracker.Clear();
+                }
             }
 
-            // 3. Deletar os registros de historico (predicado simples — suportado)
-            await _context.HistoricosSimulacao
+            // Deleta os historicos de simulacao
+            var historicos = await _context.HistoricosSimulacao
                 .Where(s => s.PlanejamentoId == planejamentoId)
-                .ExecuteDeleteAsync();
+                .ToListAsync();
+
+            if (historicos.Any())
+            {
+                _context.HistoricosSimulacao.RemoveRange(historicos);
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao)
@@ -93,4 +122,3 @@ namespace ImovPlan.Infrastructure.Repositories
         }
     }
 }
-
