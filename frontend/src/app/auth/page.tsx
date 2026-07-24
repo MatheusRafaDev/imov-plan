@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowRight, Building2, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,32 +22,55 @@ export default function AuthPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
-  const { login, register, loginWithGoogle, loading } = useAuth();
+  const [googleInitialized, setGoogleInitialized] = useState(false);
+  const { login, register, loginWithGoogle, loading, user, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  // Fluxo com ID Token (JWT) via componente oficial <GoogleLogin>.
-  // O backend (GoogleJsonWebSignature.ValidateAsync) espera um ID Token,
-  // não um access_token — por isso usamos "credential", não "access_token".
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    setGeneralError(null);
-
-    if (!credentialResponse.credential) {
-      setGeneralError("Não foi possível obter o token do Google. Tente novamente.");
-      return;
-    }
-
-    const result = await loginWithGoogle(credentialResponse.credential);
-    if (result.success) {
-      toast.success("Login realizado com sucesso!");
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated() && user) {
       router.push("/app/imovel");
-    } else {
-      setGeneralError(result.error || "Erro ao tentar realizar a operação. Tente novamente.");
     }
-  };
+  }, [isAuthenticated, user, router]);
 
-  const handleGoogleError = () => {
-    setGeneralError("Erro ao autenticar com o Google. Tente novamente.");
-  };
+  // Initialize Google Identity Services once
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !googleInitialized) {
+      const google = (window as any).google;
+      if (google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+        google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          callback: async (response: any) => {
+            if (response.credential) {
+              const result = await loginWithGoogle(response.credential);
+              if (result.success) {
+                toast.success("Login realizado com sucesso!");
+                router.push("/app/imovel");
+              } else {
+                setGeneralError(result.error || "Erro ao fazer login com Google");
+              }
+            }
+          },
+        });
+
+        // Render the official Google button
+        const buttonDiv = document.getElementById('google-signin-button');
+        if (buttonDiv) {
+          google.accounts.id.renderButton(buttonDiv, {
+            theme: 'outline',
+            size: 'medium',
+            type: 'standard',
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: 300
+          });
+        }
+
+        setGoogleInitialized(true);
+      }
+    }
+  }, [googleInitialized, loginWithGoogle, router]);
 
   // Validações locais ao submeter
   const validateForm = () => {
@@ -167,42 +189,37 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
-      <div className="p-4 sm:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
-        <Link href="/" className="flex items-center gap-2 mb-8 w-fit transition-transform hover:scale-105">
+      <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
+        <Link href="/" className="flex items-center gap-2 mb-6 sm:mb-8 w-fit transition-transform hover:scale-105">
           <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
             <Building2 className="h-4 w-4 text-accent-foreground" />
           </div>
           <span className="font-display text-xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
         </Link>
-        <Card className="p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95">
-          <h2 className="font-display text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
-          <p className="text-sm text-muted-foreground mb-6">
+        <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95">
+          <h2 className="font-display text-xl sm:text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-6">
             {isLogin ? "Acesse seu planejamento." : "Comece a planejar a entrada do seu imóvel."}
           </p>
 
           {generalError && (
-            <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-3 animate-fade-in">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs sm:text-sm flex items-start gap-2 sm:gap-3 animate-fade-in">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-destructive">Atenção</h4>
-                <p className="text-destructive/95 mt-0.5 leading-relaxed">{generalError}</p>
+                <h4 className="font-semibold text-destructive text-xs sm:text-sm">Atenção</h4>
+                <p className="text-destructive/95 mt-0.5 leading-relaxed text-xs sm:text-sm">{generalError}</p>
               </div>
             </div>
           )}
 
-          {/* Botão oficial do Google — retorna um ID Token (JWT) em "credential",
-              que é o formato que o backend (GoogleJsonWebSignature.ValidateAsync) espera. */}
-          <div className="w-full mb-4 flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              text="continue_with"
-              shape="rectangular"
-              containerProps={{
-                style: { width: "100%", display: "flex", justifyContent: "center" }
-              }}
-            />
-          </div>
+          {/* Botão oficial do Google */}
+          <div id="google-signin-button" className="w-full mb-4 flex justify-center"></div>
+
+          {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+            <p className="text-xs text-muted-foreground mb-4 text-center">
+              Login com Google desabilitado: configure NEXT_PUBLIC_GOOGLE_CLIENT_ID no .env.local
+            </p>
+          )}
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
@@ -213,12 +230,12 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {!isLogin && (
               <>
                 {/* Nome */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="name">Seu nome</Label>
+                  <Label htmlFor="name" className="text-xs sm:text-sm">Seu nome</Label>
                   <Input
                     id="name"
                     type="text"
@@ -230,18 +247,18 @@ export default function AuthPage() {
                     }}
                     disabled={loading}
                     placeholder="João Silva"
-                    className={`transition-all ${formErrors.name ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                    className={`h-10 sm:h-11 text-sm transition-all ${formErrors.name ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                   />
                   {formErrors.name && (
                     <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                      <AlertCircle className="h-3.5 w-3.5" />
+                      <AlertCircle className="h-3 w-3" />
                       {formErrors.name}
                     </p>
                   )}
                 </div>
                 {/* Data de Nascimento */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+                  <Label htmlFor="dataNascimento" className="text-xs sm:text-sm">Data de Nascimento</Label>
                   <Input
                     id="dataNascimento"
                     type="date"
@@ -252,11 +269,11 @@ export default function AuthPage() {
                       if (generalError) setGeneralError(null);
                     }}
                     disabled={loading}
-                    className={`transition-all ${formErrors.dataNascimento ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                    className={`h-10 sm:h-11 text-sm transition-all ${formErrors.dataNascimento ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                   />
                   {formErrors.dataNascimento && (
                     <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                      <AlertCircle className="h-3.5 w-3.5" />
+                      <AlertCircle className="h-3 w-3" />
                       {formErrors.dataNascimento}
                     </p>
                   )}
@@ -266,7 +283,7 @@ export default function AuthPage() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -278,11 +295,11 @@ export default function AuthPage() {
                 }}
                 disabled={loading}
                 placeholder="voce@exemplo.com"
-                className={`transition-all ${formErrors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                className={`h-10 sm:h-11 text-sm transition-all ${formErrors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
               />
               {formErrors.email && (
                 <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                  <AlertCircle className="h-3.5 w-3.5" />
+                  <AlertCircle className="h-3 w-3" />
                   {formErrors.email}
                 </p>
               )}
@@ -290,7 +307,7 @@ export default function AuthPage() {
 
             {/* Senha */}
             <div className="space-y-1.5">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-xs sm:text-sm">Senha</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -303,7 +320,7 @@ export default function AuthPage() {
                   }}
                   disabled={loading}
                   placeholder="Mínimo 6 caracteres"
-                  className={`pr-10 transition-all ${formErrors.password ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                  className={`pr-10 h-10 sm:h-11 text-sm transition-all ${formErrors.password ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                 />
                 <button
                   type="button"
@@ -316,7 +333,7 @@ export default function AuthPage() {
               </div>
               {formErrors.password && (
                 <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                  <AlertCircle className="h-3.5 w-3.5" />
+                  <AlertCircle className="h-3 w-3" />
                   {formErrors.password}
                 </p>
               )}
@@ -325,7 +342,7 @@ export default function AuthPage() {
             {/* Confirmar Senha */}
             {!isLogin && (
               <div className="space-y-1.5">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Label htmlFor="confirmPassword" className="text-xs sm:text-sm">Confirmar Senha</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
@@ -338,7 +355,7 @@ export default function AuthPage() {
                     }}
                     disabled={loading}
                     placeholder="Repita sua senha"
-                    className={`pr-10 transition-all ${formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                    className={`pr-10 h-10 sm:h-11 text-sm transition-all ${formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                   />
                   <button
                     type="button"
@@ -351,14 +368,14 @@ export default function AuthPage() {
                 </div>
                 {formErrors.confirmPassword && (
                   <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertCircle className="h-3 w-3" />
                     {formErrors.confirmPassword}
                   </p>
                 )}
               </div>
             )}
 
-            <Button type="submit" className="w-full mt-4 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow" disabled={loading}>
+            <Button type="submit" className="w-full mt-4 h-10 sm:h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-sm sm:text-base" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin-smooth" />
@@ -373,24 +390,24 @@ export default function AuthPage() {
             </Button>
           </form>
           {isLogin && (
-            <div className="mt-4 text-center text-sm">
+            <div className="mt-4 text-center text-xs sm:text-sm">
               <Link href="/auth/forgot-password" className="text-muted-foreground hover:text-foreground transition-colors">
                 Esqueci minha senha
               </Link>
             </div>
           )}
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm">
             <button type="button" onClick={handleToggleMode} className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               {isLogin ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
             </button>
           </div>
         </Card>
       </div>
-      <div className="hidden lg:flex flex-col justify-center items-center p-12 bg-gradient-ink text-primary-foreground relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-center items-center p-8 lg:p-12 bg-gradient-ink text-primary-foreground relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
         <div className="relative z-10 max-w-md text-center space-y-4">
-          <h2 className="font-display text-4xl leading-tight font-semibold">A chave do seu imóvel mais perto do que você imagina.</h2>
-          <p className="text-primary-foreground/70 text-base">O Imov.Plan ajuda você a organizar a vida financeira para realizar o sonho do imóvel próprio, de forma simples e visual.</p>
+          <h2 className="font-display text-3xl sm:text-4xl leading-tight font-semibold">A chave do seu imóvel mais perto do que você imagina.</h2>
+          <p className="text-primary-foreground/70 text-sm sm:text-base">O Imov.Plan ajuda você a organizar a vida financeira para realizar o sonho do imóvel próprio, de forma simples e visual.</p>
         </div>
       </div>
     </div>

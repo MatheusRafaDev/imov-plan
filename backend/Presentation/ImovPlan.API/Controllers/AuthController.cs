@@ -165,6 +165,14 @@ namespace ImovPlan.API.Controllers
                         Role = "User"
                     };
 
+                    // Try to extract birth date from Google payload if available
+                    // Google payload has properties that can be accessed directly
+                    var birthDate = payload.GetType().GetProperty("birthdate")?.GetValue(payload)?.ToString();
+                    if (!string.IsNullOrEmpty(birthDate) && DateTime.TryParse(birthDate, out var parsedBirthDate))
+                    {
+                        user.DataNascimento = parsedBirthDate;
+                    }
+
                     await _usuarioRepository.CreateAsync(user);
                 }
 

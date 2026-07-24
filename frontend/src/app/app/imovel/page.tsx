@@ -14,6 +14,7 @@ import { MonthYearInput } from "@/components/MonthYearInput";
 import { Building2, MapPin, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info, Percent, Calendar } from "lucide-react";
 import { calcularCustosITBI } from "@/utils/itbi";
 import { estados, cidadesPorEstado } from "@/utils/ibge-estados-cidades";
+import { ImovelFormSkeleton, MetaCardSkeleton, FaltaJuntarSkeleton } from "@/components/Skeleton";
 
 // ITBI utility is now imported from @/utils/itbi
 
@@ -56,6 +57,7 @@ export default function ObjetivoPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showITBIInfo, setShowITBIInfo] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [form, setForm] = useState({
     nome: "Imóvel",
@@ -71,6 +73,14 @@ export default function ObjetivoPage() {
   });
 
   const [prevObjetivo, setPrevObjetivo] = useState<any>(null);
+
+  useEffect(() => {
+    // Simulate loading or wait for data to be ready
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (objetivo !== prevObjetivo) {
     setPrevObjetivo(objetivo);
@@ -102,6 +112,11 @@ export default function ObjetivoPage() {
 
   const dataFimValida = form.data_inicio !== "" && form.data_fim !== "" && mesesEntre(form.data_inicio, form.data_fim) >= MIN_PRAZO_MESES;
   const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "" && dataFimValida;
+  
+  // Verifica se as datas têm mês selecionado (formato yyyy-mm-dd)
+  const dataInicioCompleta = form.data_inicio && form.data_inicio.match(/^\d{4}-\d{2}-\d{2}$/);
+  const dataFimCompleta = form.data_fim && form.data_fim.match(/^\d{4}-\d{2}-\d{2}$/);
+  const isFormValidComplete = isFormValid && dataInicioCompleta && dataFimCompleta;
 
   const prazoMeses = form.data_fim ? mesesEntre(form.data_inicio, form.data_fim) : 0;
   const valorImovel = Number(form.valor_imovel) || 0;
@@ -181,6 +196,31 @@ export default function ObjetivoPage() {
     }
   };
 
+  // Skeleton loading state
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header skeleton */}
+        <div className="space-y-2">
+          <div className="h-5 w-24 animate-shimmer rounded" />
+          <div className="h-10 w-64 animate-shimmer rounded" />
+          <div className="h-5 w-80 animate-shimmer rounded" />
+        </div>
+
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+          <div className="lg:col-span-3 space-y-6">
+            <ImovelFormSkeleton />
+          </div>
+
+          <div className="lg:col-span-2 space-y-6">
+            <MetaCardSkeleton />
+            <FaltaJuntarSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
@@ -250,9 +290,14 @@ export default function ObjetivoPage() {
                     onChange={(v) => updateForm({ data_fim: v }, true)}
                   />
                   {!dataFimValida && form.data_inicio && form.data_fim ? (
-                    <p className="text-xs text-rose-500">A data limite precisa ser pelo menos {MIN_PRAZO_MESES} meses após a data de início.</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-2">
+                      <span className="text-amber-500">⚠</span>
+                      A data limite precisa ser pelo menos {MIN_PRAZO_MESES} meses após a data de início.
+                    </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">O limite define até quando a tabela mês a mês deve ser exibida.</p>
+                    <p className="text-xs text-muted-foreground mt-2 min-h-[1.25rem]">
+                      O limite define até quando a tabela mês a mês deve ser exibida.
+                    </p>
                   )}
                 </div>
               </div>
@@ -316,102 +361,101 @@ export default function ObjetivoPage() {
 
                   {/* ─── Valores Financeiros Avançados ─── */}
                   <div className="grid sm:grid-cols-2 gap-6 p-5 rounded-xl bg-secondary/30 border border-border/50">
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Já guardado</Label>
-                    <MoneyInput
-                      variant="money"
-                      min={0}
-                      max={form.valor_imovel === "" ? undefined : form.valor_imovel}
-                      value={form.valor_ja_guardado}
-                      onChange={(v) => updateForm({ valor_ja_guardado: v }, true)}
-                    />
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-muted-foreground flex items-center gap-1">
-                        Custos Extras (ITBI/Cartório)
-                        <button
-                          type="button"
-                          onClick={() => setShowITBIInfo((o) => !o)}
-                          className="text-muted-foreground/60 hover:text-accent transition-colors"
-                          title="Ver regras do ITBI"
-                        >
-                          <Info className="h-3.5 w-3.5" />
-                        </button>
-                      </Label>
-                      <button
-                        type="button"
-                        onClick={() => updateForm({ percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
-                        className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent px-2 py-0.5 rounded-md border border-accent/20 transition-all active:scale-95"
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Sugerir {itbiInfo.percentualTotal.toFixed(1)}%
-                      </button>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Já guardado</Label>
+                      <MoneyInput
+                        variant="money"
+                        min={0}
+                        max={form.valor_imovel === "" ? undefined : form.valor_imovel}
+                        value={form.valor_ja_guardado}
+                        onChange={(v) => updateForm({ valor_ja_guardado: v }, true)}
+                      />
                     </div>
 
-                    <MoneyInput
-                      variant="percent"
-                      min={0}
-                      max={4}
-                      value={form.percentual_custos_extras}
-                      onChange={(v) => updateForm({ percentual_custos_extras: Math.min(4, Number(v)) }, true)}
-                    />
-
-                    {itbiInfo.isento && Number(form.valor_imovel) > 0 && (
-                      <div className="flex items-start gap-2 bg-success/10 border border-success/20 rounded-lg p-2.5 text-[11px] text-success font-medium">
-                        <span className="text-xs mt-0.5">✓</span>
-                        <span>
-                          <strong>ITBI Isento:</strong> O percentual sugerido cobre apenas os custos de cartório. Você pode ajustar até 4% se desejar.
-                        </span>
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-muted-foreground flex items-center gap-1">
+                          Custos Extras (ITBI/Cartório)
+                          <button
+                            type="button"
+                            onClick={() => setShowITBIInfo((o) => !o)}
+                            className="text-muted-foreground/60 hover:text-accent transition-colors"
+                            title="Ver regras do ITBI"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => updateForm({ percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
+                          className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent px-2 py-0.5 rounded-md border border-accent/20 transition-all active:scale-95"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Sugerir {itbiInfo.percentualTotal.toFixed(1)}%
+                        </button>
                       </div>
-                    )}
 
-                    {showITBIInfo && (() => {
-                      const valorImovel = Number(form.valor_imovel) || 0;
-                      const { itbi, cartorio, total, percentualTotal, isento, faixa, descricaoRegra } = calcularCustosITBI(valorImovel, form.estado, form.cidade);
+                      <MoneyInput
+                        variant="percent"
+                        min={0}
+                        max={4}
+                        value={form.percentual_custos_extras}
+                        onChange={(v) => updateForm({ percentual_custos_extras: Math.min(4, Number(v)) }, true)}
+                      />
 
-                      return (
-                        <div className="mt-2 p-3 rounded-lg bg-secondary/50 border border-border/60 text-[11px] space-y-2 animate-fade-in-up">
-                          <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">
-                            Estimativa ITBI + Cartório — {form.cidade}/{form.estado}
-                          </p>
-
-                          {valorImovel <= 0 && (
-                            <p className="text-muted-foreground">Preencha o valor do imóvel para ver a estimativa.</p>
-                          )}
-
-                          {valorImovel > 0 && (
-                            <>
-                              {isento && (
-                                <div className="flex items-center gap-1.5 text-success font-medium">
-                                  <span className="text-base">✓</span> Elegível para isenção de ITBI
-                                </div>
-                              )}
-
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground pt-1">
-                                <span>ITBI estimado:</span>
-                                <span className="text-right font-medium text-foreground">
-                                  {isento ? "R$ 0,00 (isento)" : brl(itbi)}
-                                </span>
-                                <span>Cartório + Registro:</span>
-                                <span className="text-right font-medium text-foreground">{brl(cartorio)}</span>
-                                <span className="font-semibold text-foreground pt-1 border-t border-border/40">Total estimado:</span>
-                                <span className="text-right font-bold text-accent pt-1 border-t border-border/40">
-                                  {brl(total)} ({percentualTotal.toFixed(2)}%)
-                                </span>
-                              </div>
-
-                              <p className="text-muted-foreground/70 text-[10px] pt-1 border-t border-border/40">
-                                {descricaoRegra} Total limitado a máx. 4% pelo sistema.
-                              </p>
-                            </>
-                          )}
+                      {itbiInfo.isento && Number(form.valor_imovel) > 0 && (
+                        <div className="flex items-start gap-2 bg-success/10 border border-success/20 rounded-lg p-2.5 text-[11px] text-success font-medium">
+                          <span className="text-xs mt-0.5">✓</span>
+                          <span>
+                            <strong>ITBI Isento:</strong> O percentual sugerido cobre apenas os custos de cartório. Você pode ajustar até 4% se desejar.
+                          </span>
                         </div>
-                      );
-                    })()}
-                  </div>
+                      )}
 
+                      {showITBIInfo && (() => {
+                        const valorImovel = Number(form.valor_imovel) || 0;
+                        const { itbi, cartorio, total, percentualTotal, isento, faixa, descricaoRegra } = calcularCustosITBI(valorImovel, form.estado, form.cidade);
+
+                        return (
+                          <div className="mt-2 p-3 rounded-lg bg-secondary/50 border border-border/60 text-[11px] space-y-2 animate-fade-in-up">
+                            <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">
+                              Estimativa ITBI + Cartório — {form.cidade}/{form.estado}
+                            </p>
+
+                            {valorImovel <= 0 && (
+                              <p className="text-muted-foreground">Preencha o valor do imóvel para ver a estimativa.</p>
+                            )}
+
+                            {valorImovel > 0 && (
+                              <>
+                                {isento && (
+                                  <div className="flex items-center gap-1.5 text-success font-medium">
+                                    <span className="text-base">✓</span> Elegível para isenção de ITBI
+                                  </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground pt-1">
+                                  <span>ITBI estimado:</span>
+                                  <span className="text-right font-medium text-foreground">
+                                    {isento ? "R$ 0,00 (isento)" : brl(itbi)}
+                                  </span>
+                                  <span>Cartório + Registro:</span>
+                                  <span className="text-right font-medium text-foreground">{brl(cartorio)}</span>
+                                  <span className="font-semibold text-foreground pt-1 border-t border-border/40">Total estimado:</span>
+                                  <span className="text-right font-bold text-accent pt-1 border-t border-border/40">
+                                    {brl(total)} ({percentualTotal.toFixed(2)}%)
+                                  </span>
+                                </div>
+
+                                <p className="text-muted-foreground/70 text-[10px] pt-1 border-t border-border/40">
+                                  {descricaoRegra} Total limitado a máx. 4% pelo sistema.
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               )}
@@ -420,7 +464,7 @@ export default function ObjetivoPage() {
             <div className="flex flex-wrap items-center gap-4 pt-6">
               <Button
                 onClick={salvar}
-                disabled={!isFormValid || salvando}
+                disabled={!isFormValidComplete || salvando}
                 className="w-full sm:w-auto h-12 px-8 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow"
               >
                 {salvando ? "Salvando..." : "Salvar e Continuar"} <ArrowRight className="ml-2 h-5 w-5" />
