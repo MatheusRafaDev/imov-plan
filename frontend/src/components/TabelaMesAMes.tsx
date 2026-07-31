@@ -521,7 +521,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       
         {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
                 
-        <div className="overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm lg:border lg:border-border/30">
+        <div className="overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40">
         <table className="w-full text-sm font-sans border-collapse relative">
           <thead className="bg-card text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
