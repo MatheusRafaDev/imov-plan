@@ -23,7 +23,7 @@ interface InvestmentChartProps {
 function formatDateLabel(isoDate: string): string {
   try {
     const d = new Date(isoDate.includes("T") ? isoDate : isoDate + "T12:00:00");
-    return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
   } catch {
     return isoDate;
   }
