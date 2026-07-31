@@ -290,7 +290,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [cenario, setCenario] = useState<CenarioCompra>(
     (Cookies.get("imovplan_cenario") as CenarioCompra) || "entrada"
   );
-  const [cenarioSimulacao, setCenarioSimulacao] = useState<CenarioSimulacao>("realista");
+
   const [aportesRegularesEditados, setAportesRegularesEditados] = useState<Record<number, number>>({});
   const [aportesRegularesEditadosPorPessoa, setAportesRegularesEditadosPorPessoa] = useState<Record<string, Record<number, number>>>({});
   const [mesesConcluidos, setMesesConcluidos] = useState<number[]>([]);
@@ -301,6 +301,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [backendError, setBackendError] = useState<string | null>(null);
   const [simSource, setSimSource] = useState<"backend" | "client">("client");
   const [loadingBackend, setLoadingBackend] = useState(false);
+
+  const [cenarioSimulacao, _setCenarioSimulacao] = useState<CenarioSimulacao>("realista");
+  const setCenarioSimulacao = useCallback((val: React.SetStateAction<CenarioSimulacao>) => {
+    setCalculating(true);
+    _setCenarioSimulacao(val);
+  }, []);
 
   const [planoId, setPlanoId] = useState<string | null>(() => Cookies.get("imovplan_planoId") || null);
   const [planoHidratado, setPlanoHidratado] = useState(false);
