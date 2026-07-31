@@ -29,6 +29,7 @@ export default function PlanosPage() {
   const [editandoNome, setEditandoNome] = useState<string | null>(null);
   const [nomeTemp, setNomeTemp] = useState("");
   const [salvandoNome, setSalvandoNome] = useState(false);
+  const [planoAExcluir, setPlanoAExcluir] = useState<{id: string, nome: string} | null>(null);
   const [simulacoes, setSimulacoes] = useState<Record<string, BackendSimulacaoResult>>({});
   const [carregandoSimulacoes, setCarregandoSimulacoes] = useState(false);
 
@@ -89,16 +90,20 @@ export default function PlanosPage() {
     }
   };
 
-  const handleExcluir = async (id: string, nome: string) => {
-    if (!window.confirm(`Excluir o plano "${nome}"? Essa ação não pode ser desfeita.`)) return;
-    setExcluindo(id);
+  const handleExcluir = (id: string, nome: string) => {
+    setPlanoAExcluir({ id, nome });
+  };
+
+  const confirmarExcluir = async () => {
+    if (!planoAExcluir) return;
+    setExcluindo(planoAExcluir.id);
     try {
-      const ok = await excluirPlano(id);
+      const ok = await excluirPlano(planoAExcluir.id);
       if (ok) {
         toast.success("Plano excluído.");
         setSimulacoes(prev => {
           const updated = { ...prev };
-          delete updated[id];
+          delete updated[planoAExcluir.id];
           return updated;
         });
       } else {
@@ -106,6 +111,7 @@ export default function PlanosPage() {
       }
     } finally {
       setExcluindo(null);
+      setPlanoAExcluir(null);
     }
   };
 
@@ -317,6 +323,30 @@ export default function PlanosPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {planoAExcluir && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <Card className="max-w-md w-full p-6 shadow-glow border-border animate-in zoom-in-95 duration-200">
+            <h3 className="font-display text-xl mb-2 flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" /> 
+              Excluir plano
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Tem certeza que deseja excluir o plano <strong className="text-foreground">"{planoAExcluir.nome}"</strong>? Essa ação não pode ser desfeita.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <Button variant="outline" onClick={() => setPlanoAExcluir(null)} disabled={excluindo === planoAExcluir.id}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={confirmarExcluir} disabled={excluindo === planoAExcluir.id}>
+                {excluindo === planoAExcluir.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {excluindo === planoAExcluir.id ? "Excluindo..." : "Excluir"}
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
     </div>
