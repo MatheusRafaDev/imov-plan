@@ -319,7 +319,7 @@ function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: {
       {open && canOpen && typeof document !== "undefined" && createPortal(
         <div
           ref={popupRef}
-          className="fixed z-50 w-72 bg-card border border-border rounded-xl shadow-xl p-3 space-y-3"
+          className="fixed z-50 w-72 max-h-[300px] overflow-y-auto custom-scrollbar bg-card border border-border rounded-xl shadow-xl p-3 space-y-3"
           style={{ top: `${portalPos.top + 4}px`, left: `${Math.max(8, portalPos.left)}px` }}
         >
           {hasExtras && (
