@@ -523,7 +523,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 
         <div className="overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm lg:border lg:border-border/30">
         <table className="w-full text-sm font-sans border-collapse relative">
-          <thead className="bg-secondary/40 text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
+          <thead className="bg-card text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
               <Th className="w-px">Mês</Th>
               <Th>Data</Th>
@@ -559,7 +559,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     transition-colors hover:bg-secondary/10 bg-card
                     ${r.atingiu ? "bg-success/5" : ""} 
                     ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
-                    ${isZero ? "bg-secondary/20" : ""}
+                    ${isZero ? "" : ""}
                   `}
                 >
                   <Td className="font-medium whitespace-nowrap w-px">
