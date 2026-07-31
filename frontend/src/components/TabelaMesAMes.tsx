@@ -520,7 +520,131 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         </div>
       
         {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
-        <div className="w-full overflow-x-auto rounded-xl border border-border/60 bg-card shadow-soft custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                {/* Mobile View */}
+        <div className="flex flex-col space-y-4 md:hidden mt-4">
+          {displayRows.map((r) => {
+            const rowExtras = aportesExtras.filter(e => e.data && e.data.startsWith(r.data.split("T")[0])).map((e, idx) => ({ ...e, index: idx }));
+            const totalAporteMes = r.aporteRegular + r.aportesExtras;
+            const isMesConcluido = mesesConcluidosSet.has(r.mes);
+            const isZero = r.mes === 0;
+
+            return (
+              <div 
+                key={r.mes} 
+                className={`flex flex-col p-4 rounded-xl border ${r.atingiu ? "border-success/50 bg-success/5" : "border-border/60 bg-card"} ${isMesConcluido ? "opacity-60" : ""} shadow-sm relative overflow-hidden`}
+              >
+                {isZero && <div className="absolute top-0 right-0 px-2 py-0.5 bg-secondary text-secondary-foreground text-[10px] font-bold uppercase rounded-bl-lg">Início</div>}
+                
+                <div className="flex items-center justify-between mb-3 border-b border-border/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    {showCompletedToggle && !isZero && (
+                      <button
+                        onClick={() => toggleConcluido(r.mes)}
+                        className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                          isMesConcluido 
+                            ? 'bg-primary border-primary text-primary-foreground' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {isMesConcluido && <Check className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-foreground text-sm flex items-center gap-2">
+                        {isZero ? "Início" : `Mês ${r.mes}`}
+                        {r.atingiu && (
+                          <span className="bg-success/10 text-success text-[9px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
+                            Meta ✓
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground capitalize">
+                        {new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" })}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Acumulado</span>
+                    <span className="font-medium text-primary text-sm">{brl(r.saldoAcumulado)}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  {pessoas.map(p => {
+                    const planejado = Number(p.aporte_mensal) || 0;
+                    const real = isZero ? (Number(p.valorInicial) || 0) : r.aporteFinalPorPessoa[p.id] || 0;
+                    const wasEdited = isZero ? false : real !== planejado;
+                    return (
+                      <div key={p.id} className="flex justify-between items-center py-1">
+                        <span className="text-muted-foreground text-xs">{p.nome.split(" ")[0]}</span>
+                        <div className="flex items-center gap-2">
+                          {isZero ? (
+                            <span className="font-medium">{brl(real)}</span>
+                          ) : (
+                            <DisplayAporte value={real} planned={planejado} isEdited={wasEdited} />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {!isZero && (
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-muted-foreground text-xs">Extras</span>
+                      <ExtrasCell
+                          total={r.aportesExtras}
+                          contextItems={rowExtras}
+                          onEditExtra={(index, origem, valor) => {
+                            setAportesExtras(prev => {
+                              const next = [...prev];
+                              next[index] = { ...next[index], origem, valor };
+                              saveDraft({ aportesExtras: next });
+                              return next;
+                            });
+                          }}
+                          onDeleteExtra={(index) => {
+                            setAportesExtras(prev => {
+                              const next = prev.filter((_, i) => i !== index);
+                              saveDraft({ aportesExtras: next });
+                              return next;
+                            });
+                          }}
+                        />
+                    </div>
+                  )}
+
+                  {!isZero && (
+                    <div className="flex justify-between items-center py-1 border-t border-border/40 mt-1 pt-2">
+                      <span className="text-foreground font-medium text-xs">Total Mês</span>
+                      <span className="font-semibold">{brl(totalAporteMes)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {showFinancials && !isZero && (
+                  <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground">Rend. Bruto</span>
+                      <span className="text-muted-foreground">{brl(r.rendimentoBruto)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground">IR</span>
+                      <span className="text-muted-foreground">{brl(r.imposto)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground">Rend. Líquido</span>
+                      <span className="text-success font-medium">{r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block w-full overflow-x-auto rounded-xl border border-border/60 bg-card shadow-soft custom-scrollbar">
         <table className="min-w-[800px] w-full text-sm font-sans border-collapse relative">
           <thead className="bg-secondary/40 text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
