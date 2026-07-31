@@ -380,7 +380,7 @@ export default function PlanejamentoPage() {
       </div>
 
       {/* Botão Prosseguir */}
-      <div className="pt-6">
+      <div className="pt-3">
         <Button
           onClick={prosseguir}
           disabled={calculating}
