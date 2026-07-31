@@ -196,4 +196,21 @@ export function PlanejamentoPageSkeleton() {
       </div>
     </div>
   );
+}
+
+// Skeleton para o Seletor de Cenário (Pessimista, Base, Otimista)
+export function CenarioSelectorSkeleton() {
+  return (
+    <div className="inline-flex bg-secondary/40 p-1 rounded-xl w-full sm:w-auto">
+      {[1, 2, 3].map(i => (
+        <div 
+          key={i} 
+          className="px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5"
+          style={{ width: "84px", height: "32px" }}
+        >
+          <div className="h-3 w-12 animate-shimmer rounded bg-secondary/80" />
+        </div>
+      ))}
+    </div>
+  );
 }
