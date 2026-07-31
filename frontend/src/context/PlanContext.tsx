@@ -204,7 +204,13 @@ function montarObjetivoDraft(objetivo: Partial<SimInput> | null): PlanoDraftPayl
     taxaCdiAnual: Number(objetivo.taxaCdiAnual) || 10.5,
     percentualCdi: Number(objetivo.percentualCdi) || 100,
     prazoMaxMeses: Number(objetivo.prazoMaxMeses) || 0,
-    dataInicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : null,
+    dataInicio: objetivo.dataInicio ? (() => {
+      const d = new Date(objetivo.dataInicio as string | Date);
+      if (isNaN(d.getTime())) return null;
+      const y = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, "0");
+      return `${y}-${mo}-01`; // always 1st of month for plans
+    })() : null,
     nomePlano: (objetivo as Partial<SimInput> & { nomePlano?: string }).nomePlano || "Imóvel",
     tipoInvestimento: (objetivo as Partial<SimInput> & { tipoInvestimento?: string }).tipoInvestimento || "",
     estado: objetivo.estado || undefined,

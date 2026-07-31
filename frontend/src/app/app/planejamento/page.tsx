@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
 import { usePlanContext, type Pessoa } from "@/context/PlanContext";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/DateInput";
 import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
+import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
@@ -25,6 +26,14 @@ export default function PlanejamentoPage() {
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
   const currentStep = nav.findIndex(n => pathname?.startsWith(n.to)) + 1;
   const totalSteps = nav.length;
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Show skeleton briefly to avoid empty field flash on hydration
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 350);
+    return () => clearTimeout(timer);
+  }, []);
 
   const prosseguir = async () => {
     const savedId = await saveDraft();
@@ -115,6 +124,10 @@ export default function PlanejamentoPage() {
   const removerAporte = (index: number) => {
     setAportesExtras(aportesExtras.filter((_, i) => i !== index));
   };
+
+  if (isLoading) {
+    return <PlanejamentoPageSkeleton />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 lg:space-y-10">

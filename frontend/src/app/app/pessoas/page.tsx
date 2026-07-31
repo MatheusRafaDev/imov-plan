@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
 import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check, TrendingDown } from "lucide-react";
+import { PessoasPageSkeleton } from "@/components/Skeleton";
 
 const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados?: GastoDetalhado[]; gastos_mensais?: number | "" }) => {
   return p.usar_gastos_detalhados 
@@ -37,9 +38,17 @@ export default function PessoasPage() {
   const sumValores = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
   const diffTotal = totalObjetivo - sumValores;
   
+  const [isLoading, setIsLoading] = useState(true);
+
   const { user } = useAuth();
   const router = useRouter();
   const wasInitialized = useRef(false);
+
+  useEffect(() => {
+    // Wait a tick for context to hydrate before rendering inputs
+    const timer = setTimeout(() => setIsLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (pessoas.length > 0) {
@@ -265,6 +274,10 @@ export default function PessoasPage() {
 
   const gastosTotaisForm = calcularGastos(form);
   const sobraForm = ((Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0)) - gastosTotaisForm;
+
+  if (isLoading) {
+    return <PessoasPageSkeleton />;
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">

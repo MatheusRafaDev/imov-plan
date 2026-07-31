@@ -524,7 +524,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         <table className="min-w-[800px] w-full text-sm font-sans border-collapse relative">
           <thead className="bg-secondary/40 text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
-              <Th>Mês</Th>
+              <Th className="sticky left-0 z-30 bg-secondary/90 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Mês</Th>
               <Th>Data</Th>
               {pessoas.map(p => (
                 <Th key={p.id} right>{p.nome.split(" ")[0]}</Th>
@@ -555,13 +555,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 <tr 
                   key={r.mes} 
                   className={`
-                    transition-colors hover:bg-secondary/10
+                    transition-colors hover:bg-secondary/10 bg-card
                     ${r.atingiu ? "bg-success/5" : ""} 
                     ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
                     ${isZero ? "bg-secondary/20" : ""}
                   `}
                 >
-                  <Td className="font-medium whitespace-nowrap">
+                  <Td className="sticky left-0 z-20 bg-inherit shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] font-medium whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       {showCompletedToggle && !isZero && (
                         <button

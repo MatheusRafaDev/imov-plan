@@ -20,9 +20,25 @@ import { ImovelFormSkeleton, MetaCardSkeleton, FaltaJuntarSkeleton } from "@/com
 
 const todayISO = () => {
   if (typeof window !== "undefined") {
-    return new Date().toISOString().slice(0, 10);
+    const d = new Date();
+    // Use local date parts to avoid UTC timezone shift
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   }
   return "2026-01-01";
+};
+
+// Extract YYYY-MM-DD from a Date using LOCAL time (avoids UTC timezone shift)
+const dateToLocalISO = (date: Date | string | undefined | null): string => {
+  if (!date) return todayISO();
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return todayISO();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
 
 const addMonthsISO = (iso: string, months: number) => {
@@ -90,14 +106,14 @@ export default function ObjetivoPage() {
         nome: (objetivo as any).nomePlano || "Imóvel",
         valor_imovel: objetivo.valorImovel || 0,
         percentual_entrada: objetivo.percentualEntrada || 20,
-        data_inicio: objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : form.data_inicio,
+        data_inicio: objetivo.dataInicio ? dateToLocalISO(objetivo.dataInicio) : form.data_inicio,
         valor_ja_guardado: objetivo.valorJaGuardado || 0,
         percentual_custos_extras: objetivo.percentualCustosExtras || 0,
         estado: (objetivo as any).estado || "SP",
         cidade: (objetivo as any).cidade || "São Paulo",
         data_fim: objetivo.prazoMaxMeses
           ? addMonthsISO(
-              objetivo.dataInicio ? new Date(objetivo.dataInicio).toISOString().slice(0, 10) : todayISO(),
+              objetivo.dataInicio ? dateToLocalISO(objetivo.dataInicio) : todayISO(),
               objetivo.prazoMaxMeses
             )
           : form.data_fim,
