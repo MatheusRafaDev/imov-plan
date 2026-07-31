@@ -387,11 +387,11 @@ function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: {
 }
 
 function Th({ children, right, className = "" }: { children?: React.ReactNode; right?: boolean; className?: string }) {
-  return <th className={`px-1 py-1 sm:px-3 sm:py-2.5 text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap text-center ${className}`}>{children}</th>;
+  return <th className={`px-2.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
 }
 
 function Td({ children, right, className = "", suppressHydrationWarning }: { children?: React.ReactNode; right?: boolean; className?: string; suppressHydrationWarning?: boolean }) {
-  return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-1 py-1 sm:px-3 sm:py-3 num text-[10px] sm:text-xs text-center ${className}`}>{children}</td>;
+  return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-2.5 py-2.5 num text-xs sm:text-sm text-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
 export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true, showCenarioSelector = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
@@ -522,7 +522,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
                 
         <div className="w-full overflow-x-auto bg-card rounded-xl shadow-sm border border-border/30 custom-scrollbar">
-        <table className="w-full min-w-[900px] text-sm font-sans border-collapse relative">
+        <table className="w-full min-w-max text-sm font-sans border-collapse relative">
           <thead className="bg-secondary/40 text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
               <Th>Mês</Th>
