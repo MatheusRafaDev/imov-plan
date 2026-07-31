@@ -386,8 +386,8 @@ function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: {
   );
 }
 
-function Th({ children, right }: { children?: React.ReactNode; right?: boolean }) {
-  return <th className={`px-3 py-2.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{children}</th>;
+function Th({ children, right, className = "" }: { children?: React.ReactNode; right?: boolean; className?: string }) {
+  return <th className={`px-3 py-2.5 text-[10px] font-medium uppercase tracking-wider whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
 }
 
 function Td({ children, right, className = "", suppressHydrationWarning }: { children?: React.ReactNode; right?: boolean; className?: string; suppressHydrationWarning?: boolean }) {
