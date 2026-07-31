@@ -701,7 +701,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           </tbody>
           <tfoot className="bg-primary/5 border-t-2 border-primary/30 backdrop-blur-sm">
             <tr className="font-bold text-foreground">
-              <Td className="bg-primary/5">Total Geral</Td>
+              <Td className="bg-primary/5 whitespace-nowrap">Total Geral</Td>
               <Td className="bg-primary/5">{""}</Td>
               {pessoas.map(p => (
                 <Td key={p.id} right className="bg-primary/5">{brl(totals.aportePorPessoa[p.id])}</Td>
