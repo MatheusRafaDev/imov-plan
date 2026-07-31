@@ -579,7 +579,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                       <span>
                         {isZero ? "Início" : `Mês ${r.mes}`}
                         {r.atingiu && (
-                          <span className="ml-2 inline-flex items-center bg-success/10 text-success text-[10px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
+                          <span className="ml-2 hidden sm:inline-flex items-center bg-success/10 text-success text-[10px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
                             Meta ✓
                           </span>
                         )}
