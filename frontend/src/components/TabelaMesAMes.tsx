@@ -121,7 +121,7 @@ function RowActions({
       <button
         type="button"
         onClick={() => setOpenMenu(o => !o)}
-        className={`w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ${openMenu || openEdit || openExtra ? "opacity-100 bg-secondary" : "opacity-0 group-hover:opacity-100 focus:opacity-100"}`}
+        className={`w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ${openMenu || openEdit || openExtra ? "opacity-100 bg-secondary" : "opacity-40 hover:opacity-100 focus:opacity-100"}`}
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
