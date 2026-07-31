@@ -3,9 +3,10 @@
 import { usePlanContext } from "@/context/PlanContext";
 import { simular, CenarioSimulacao } from "@/lib/finance";
 import { brl, percentualCdiPorTipoInvestimento } from "@/lib/finance";
+import { Loader2 } from "lucide-react";
 
 export function ScenarioComparison() {
-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, cenarioSimulacao, setCenarioSimulacao } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, cenarioSimulacao, setCenarioSimulacao, calculating } = usePlanContext();
 
   if (!objetivo || !objetivo.valorImovel) return null;
 
@@ -52,10 +53,13 @@ export function ScenarioComparison() {
   const chipBase = "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-all duration-150 cursor-pointer whitespace-nowrap";
 
   const chipStyle = (key: CenarioSimulacao, isSelected: boolean) => {
-    if (!isSelected) return `${chipBase} border-border/40 text-muted-foreground/60 hover:border-border hover:text-muted-foreground`;
-    if (key === "pessimista") return `${chipBase} border-rose-500/50 bg-rose-500/8 text-rose-400`;
-    if (key === "realista")   return `${chipBase} border-accent/60 bg-accent/8 text-accent`;
-    return                           `${chipBase} border-emerald-500/50 bg-emerald-500/8 text-emerald-400`;
+    let base = chipBase;
+    if (calculating && !isSelected) base += " opacity-50 cursor-not-allowed";
+    
+    if (!isSelected) return `${base} border-border/40 text-muted-foreground/60 hover:border-border hover:text-muted-foreground`;
+    if (key === "pessimista") return `${base} border-rose-500/50 bg-rose-500/8 text-rose-400`;
+    if (key === "realista")   return `${base} border-accent/60 bg-accent/8 text-accent`;
+    return                           `${base} border-emerald-500/50 bg-emerald-500/8 text-emerald-400`;
   };
 
   return (
@@ -65,8 +69,9 @@ export function ScenarioComparison() {
         const r = results[key];
         const isSelected = key === cenarioSimulacao;
         return (
-          <button key={key} onClick={() => setCenarioSimulacao(key)} className={chipStyle(key, isSelected)}>
-            {isSelected && <span>✓</span>}
+          <button key={key} onClick={() => setCenarioSimulacao(key)} disabled={calculating} className={chipStyle(key, isSelected)}>
+            {isSelected && !calculating && <span>✓</span>}
+            {isSelected && calculating && <Loader2 className="w-3 h-3 animate-spin" />}
             <span>{label}</span>
             <span className="opacity-50">{cdi}</span>
             <span className="opacity-30">·</span>

@@ -5,7 +5,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 import { ScenarioComparison } from "@/app/app/resultado/components/ScenarioComparison";
 
@@ -410,6 +410,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     backendData,
     cenarioSimulacao,
     setCenarioSimulacao,
+    calculating,
   } = usePlanContext();
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
@@ -502,15 +503,18 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     <button
                       key={cen}
                       onClick={() => setCenarioSimulacao(cen)}
+                      disabled={calculating}
                       className={`
-                        relative px-3 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all duration-300
+                        flex items-center justify-center gap-1.5 relative px-3 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all duration-300
                         ${active ? "text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}
+                        ${calculating && !active ? "opacity-50 cursor-not-allowed" : ""}
                       `}
                     >
                       {active && (
                         <div className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-glow animate-fade-in" />
                       )}
-                      {cen === "realista" ? "base" : cen}
+                      <span>{cen === "realista" ? "base" : cen}</span>
+                      {active && calculating && <Loader2 className="w-3 h-3 animate-spin" />}
                     </button>
                   );
                 })}
@@ -521,7 +525,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       
         {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
                 
-        <div className="overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40">
+        <div className={`overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40 transition-opacity duration-300 ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
         <table className="w-full text-sm font-sans border-collapse relative">
           <thead className="bg-card text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
