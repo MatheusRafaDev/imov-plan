@@ -586,8 +586,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                       </span>
                     </div>
                   </Td>
-                  <Td suppressHydrationWarning className="text-muted-foreground whitespace-nowrap text-xs capitalize">
-                    {new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" })}
+                  <Td suppressHydrationWarning className="text-muted-foreground text-xs uppercase">
+                    {new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " ")}
                   </Td>
                   
                   {pessoas.map(p => {
