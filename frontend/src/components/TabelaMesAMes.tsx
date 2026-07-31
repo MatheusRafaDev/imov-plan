@@ -521,8 +521,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       
         {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
                 
-        <div className="w-full overflow-x-auto bg-card shadow-soft custom-scrollbar -mx-4 sm:mx-0">
-        <table className="w-full min-w-max sm:min-w-[800px] text-sm font-sans border-collapse relative">
+        <div className="w-full overflow-x-auto bg-card rounded-xl shadow-sm border border-border/30 custom-scrollbar">
+        <table className="w-full min-w-[900px] text-sm font-sans border-collapse relative">
           <thead className="bg-secondary/40 text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
             <tr>
               <Th>Mês</Th>
@@ -543,7 +543,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               <Th></Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/20">
+          <tbody className="divide-y divide-border/10">
             {displayRows.map((r) => {
               const rowExtras = aportesExtras.filter(e => e.data && e.data.startsWith(r.data.split("T")[0])).map((e, idx) => ({ ...e, index: idx }));
               
@@ -587,7 +587,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     </div>
                   </Td>
                   <Td suppressHydrationWarning className="text-muted-foreground whitespace-nowrap text-xs capitalize">
-                    {new Date(r.data).toLocaleDateString("pt-BR", { month: "2-digit", year: "2-digit", timeZone: "UTC" })}
+                    {new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" })}
                   </Td>
                   
                   {pessoas.map(p => {
