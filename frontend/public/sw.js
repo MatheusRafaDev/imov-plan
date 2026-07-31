@@ -84,7 +84,9 @@ async function networkFirstNavigate(request) {
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
-    return caches.match(OFFLINE_URL);
+    const offlineHtml = await caches.match(OFFLINE_URL);
+    if (offlineHtml) return offlineHtml;
+    return new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
   }
 }
 
@@ -97,7 +99,9 @@ async function staleWhileRevalidate(request, cacheName) {
       if (response.ok) cache.put(request, response.clone());
       return response;
     })
-    .catch(() => null);
+    .catch(() => {
+      return new Response("Network Error", { status: 503, headers: { "Content-Type": "text/plain" } });
+    });
 
   return cached || fetchPromise;
 }

@@ -20,7 +20,7 @@ import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { cenario, objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData } = usePlanContext();
+  const { cenario, objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData, calculating } = usePlanContext();
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -39,7 +39,7 @@ export default function PlanejamentoPage() {
     const savedId = await saveDraft();
     if (savedId) {
       if (!savedId.startsWith("local-draft")) {
-        calcularBackend(savedId);
+        await calcularBackend(savedId);
       }
       router.push("/app/resultado");
     } else {
@@ -381,8 +381,8 @@ export default function PlanejamentoPage() {
 
       {/* Botão Prosseguir */}
       <div className="flex justify-center sm:justify-end pt-6 sm:pt-8">
-        <Button onClick={prosseguir} size="lg" className="w-full sm:w-auto bg-primary text-primary-foreground px-6 sm:px-8 h-10 sm:h-12 text-sm sm:text-base">
-          Ver resultado <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+        <Button onClick={prosseguir} disabled={calculating} size="lg" className="w-full sm:w-auto bg-primary text-primary-foreground px-6 sm:px-8 h-10 sm:h-12 text-sm sm:text-base">
+          {calculating ? "Calculando..." : "Ver resultado"} <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </div>
     </div>

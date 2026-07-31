@@ -31,7 +31,7 @@ const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId, calcularBackend } = usePlanContext();
+  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating } = usePlanContext();
   
   const [isEditingTotal, setIsEditingTotal] = useState(false);
   const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
@@ -90,7 +90,7 @@ export default function PessoasPage() {
     const savedId = await saveDraft();
     if (savedId) {
       if (!savedId.startsWith("local-draft")) {
-        calcularBackend(savedId);
+        await calcularBackend(savedId);
       }
       router.push("/app/planejamento");
     } else {
@@ -576,8 +576,8 @@ export default function PessoasPage() {
             <p className="font-display text-3xl md:text-4xl num mt-1">{brl(sobraTotal)}</p>
             <p className="text-xs opacity-70 mt-1">Este valor será usado como base para os aportes no plano.</p>
           </div>
-          <Button onClick={prosseguir} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-12 px-6">
-            Ir para o Plano <ArrowRight className="ml-2 h-4 w-4" />
+          <Button onClick={prosseguir} disabled={calculating} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-12 px-6">
+            {calculating ? "Salvando..." : "Ir para o Plano"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Card>
       )}
