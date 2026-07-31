@@ -73,7 +73,7 @@ namespace ImovPlan.API.Controllers
             
             // Build cache key based on inputs that affect simulation
             var requestHash = System.Text.Json.JsonSerializer.Serialize(request);
-            var cacheKey = $"simulacao_{planoId}_{planejamento.ValorImovel}_{totalNecessario}_{planejamento.ValorJaGuardado}_{planejamento.TaxaCdiAnual}_{requestHash.GetHashCode()}";
+            var cacheKey = $"simulacao_{planoId}_{planejamento.ValorImovel}_{totalNecessario}_{planejamento.ValorJaGuardado}_{planejamento.TaxaCdiAnual}_{planejamento.DataInicio?.Ticks}_{planejamento.PrazoMaxMeses}_{requestHash.GetHashCode()}";
 
             if (_cache.TryGetValue(cacheKey, out SimulacaoResultDto? cachedResult) && cachedResult != null)
             {
