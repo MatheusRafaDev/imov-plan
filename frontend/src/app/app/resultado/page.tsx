@@ -82,7 +82,7 @@ export default function ResultadoPage() {
   // Se não tem nenhum dado, mostrar estado vazio
   if (!summary || !backendData) {
     return (
-      <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-7">
+      <div className="max-w-screen-2xl w-full mx-auto space-y-7 px-4 md:px-6">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
           <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
@@ -97,9 +97,9 @@ export default function ResultadoPage() {
   }
 
   return (
-    <div className="max-w-screen-2xl w-full px-4 md:px-6 mx-auto space-y-4">
+    <div className="max-w-screen-2xl w-full mx-auto space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between px-4 sm:px-6 md:px-8">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
           <h1 className="font-display text-3xl md:text-4xl mb-1 font-light">Seu plano em números</h1>
@@ -108,7 +108,7 @@ export default function ResultadoPage() {
       </div>
 
       {backendError && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-xs text-destructive">
+        <div className="mx-4 sm:mx-6 md:mx-8 bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-xs text-destructive">
           {backendError}
         </div>
       )}
@@ -119,17 +119,15 @@ export default function ResultadoPage() {
         </div>
       )}
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both px-4 sm:px-6 md:px-8">
         <SummaryCards summary={summary} />
       </div>
 
-
-
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both px-4 sm:px-6 md:px-8">
         <InvestmentChart data={chartData} summary={summary} />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+      <div className="grid lg:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both px-4 sm:px-6 md:px-8">
         <FinancialSummaryCard summary={summary} />
         <ParticipantsCard participantes={participantes} totalAcumulado={summary.totalAcumulado} />
       </div>
