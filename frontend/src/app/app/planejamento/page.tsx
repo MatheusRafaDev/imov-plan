@@ -379,10 +379,22 @@ export default function PlanejamentoPage() {
         </div>
       </div>
 
-      {/* Botão Prosseguir */}
-      <div className="flex justify-center sm:justify-end pt-6 sm:pt-8">
-        <Button onClick={prosseguir} disabled={calculating} size="lg" className="w-full sm:w-auto bg-primary text-primary-foreground px-6 sm:px-8 h-10 sm:h-12 text-sm sm:text-base">
-          {calculating ? "Calculando..." : "Ver resultado"} <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+      {/* Botão Prosseguir – fixed acima da barra inferior no mobile */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-2 lg:hidden">
+        <Button
+          onClick={prosseguir}
+          disabled={calculating}
+          className="w-full h-12 text-sm font-semibold rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all active:scale-[0.98]"
+        >
+          {calculating ? "Calculando..." : "Ver resultado"}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Botão Desktop */}
+      <div className="hidden lg:flex justify-end pt-6">
+        <Button onClick={prosseguir} disabled={calculating} size="lg" className="bg-primary text-primary-foreground px-8 h-12">
+          {calculating ? "Calculando..." : "Ver resultado"} <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </div>
