@@ -482,7 +482,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
   if (!displayRows.length) return null;
 
   return (
-    <div className="space-y-4 relative w-full overflow-hidden">
+    <div className="space-y-4 relative w-full">
       {/* Container fixo para evitar reflows no pai */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
