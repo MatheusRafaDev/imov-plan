@@ -223,7 +223,7 @@ export default function PerfilPage() {
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Para sua seguranca, enviaremos um link por e-mail para voce redefinir sua senha.
-                  O processo e identico ao <strong>&quot;Esqueci minha senha&quot;</strong> — sem
+                  O processo e identico ao <strong>&quot;Esqueci minha senha&quot;</strong> sem
                   precisar informar a senha atual.
                 </p>
 
