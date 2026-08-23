@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://accounts.google.com",
               "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com",
               "img-src 'self' data: https://images.unsplash.com https://lh3.googleusercontent.com https://*.tile.openstreetmap.org https://unpkg.com https://logo.clearbit.com https://www.google.com https://*.gstatic.com",
-              "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://nominatim.openstreetmap.org",
+              "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://nominatim.openstreetmap.org https://images.unsplash.com",
               "frame-src https://accounts.google.com",
               "frame-ancestors 'none'",
             ].join("; "),
