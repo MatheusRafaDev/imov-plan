@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -10,14 +10,14 @@ namespace ImovPlan.Infrastructure.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<BrevoEmailService> _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly HttpClient _httpClient;
         private const string SITE_URL = "https://imov-plan.vercel.app";
 
-        public BrevoEmailService(IConfiguration configuration, ILogger<BrevoEmailService> logger, IHttpClientFactory httpClientFactory)
+        public BrevoEmailService(IConfiguration configuration, ILogger<BrevoEmailService> logger, HttpClient httpClient)
         {
             _configuration = configuration;
             _logger = logger;
-            _httpClientFactory = httpClientFactory;
+            _httpClient = httpClient;
         }
 
         // ── IEmailService ────────────────────────────────────────────────────────
@@ -45,14 +45,17 @@ namespace ImovPlan.Infrastructure.Services
 
             try
             {
-                var client = _httpClientFactory.CreateClient();
-                client.DefaultRequestHeaders.Add("api-key", apiKey);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                // Configurando os headers apenas se não existirem
+                if (!_httpClient.DefaultRequestHeaders.Contains("api-key"))
+                {
+                    _httpClient.DefaultRequestHeaders.Add("api-key", apiKey);
+                    _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+                }
 
                 var json = JsonSerializer.Serialize(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await client.PostAsync("https://api.brevo.com/v3/smtp/email", content);
+                var response = await _httpClient.PostAsync("https://api.brevo.com/v3/smtp/email", content);
                 var responseBody = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
