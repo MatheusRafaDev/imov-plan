@@ -199,7 +199,7 @@ builder.Services.AddScoped<ISimulacaoService, SimulacaoService>();
 builder.Services.AddScoped<IFinanciamentoService, FinanciamentoService>();
 builder.Services.AddScoped<IPlanoService, PlanejamentoService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
-builder.Services.AddScoped<IEmailService, ImovPlan.Infrastructure.Services.ResendEmailService>();
+builder.Services.AddHttpClient<IEmailService, ImovPlan.Infrastructure.Services.BrevoEmailService>();
 builder.Services.AddHttpClient<IAiConsultingService, ImovPlan.Infrastructure.Services.GroqAiService>();
 builder.Services.AddHttpClient<ImovPlan.Application.Services.Interfaces.IPontoInteresseProvider, ImovPlan.Infrastructure.Services.OverpassPontoInteresseService>();
 builder.Services.AddScoped<IPontoInteresseService, ImovPlan.Infrastructure.Services.AggregatedPontoInteresseService>();
