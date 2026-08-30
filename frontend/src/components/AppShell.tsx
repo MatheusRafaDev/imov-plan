@@ -113,16 +113,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               {user?.name?.split(' ')[0] || user?.email}
             </span>
 
-            <Link href="/app/lancar-aporte">
-              <Button variant="default" size="sm" className="gap-2 bg-primary/90 hover:bg-primary text-primary-foreground shadow-sm">
-                <span className="hidden sm:inline">Lançar Aporte</span>
-              </Button>
-            </Link>
-
             <Link href="/app/sincronizar">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground hidden sm:flex">
+              <Button variant="default" size="sm" className="gap-2 bg-primary/90 hover:bg-primary text-primary-foreground shadow-sm">
                 <ListChecks className="h-4 w-4" />
-                <span className="hidden lg:inline">Histórico</span>
+                <span className="hidden sm:inline">Histórico</span>
               </Button>
             </Link>
 
@@ -132,18 +126,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 <span className="hidden sm:inline">Meus Planos</span>
               </Button>
             </Link>
-            {/* <Link href="/app/arredores">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-                <MapPin className="h-4 w-4" />
-                <span className="hidden sm:inline">Arredores</span>
-              </Button>
-            </Link> */}
-            <Link href="/app/perfil">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Perfil</span>
-              </Button>
-            </Link>
+
             <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />
             </Button>

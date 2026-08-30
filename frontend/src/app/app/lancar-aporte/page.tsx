@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { usePlanContext } from "@/context/PlanContext";
 import { Button } from "@/components/ui/button";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -9,8 +9,11 @@ import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Check, History } from
 import { brl } from "@/lib/finance";
 import { toast } from "sonner";
 
-export default function LancarAportePage() {
+function LancarAporteContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mesQuery = searchParams.get("mes");
+  
   const {
     pessoas,
     aportesRegularesEditadosPorPessoa,
@@ -26,10 +29,14 @@ export default function LancarAportePage() {
 
   // Mês sugerido: o primeiro que ainda não foi marcado como concluído (ignorando o mês 0 / início)
   const mesSugerido = useMemo(() => {
+    if (mesQuery) {
+      const q = parseInt(mesQuery, 10);
+      if (!isNaN(q) && q >= 1) return q;
+    }
     const concluidos = new Set(mesesConcluidos);
     const candidato = detalhes.find((d) => d.mes > 0 && !concluidos.has(d.mes));
     return candidato?.mes ?? (detalhes.length ? detalhes[detalhes.length - 1].mes : 1);
-  }, [detalhes, mesesConcluidos]);
+  }, [detalhes, mesesConcluidos, mesQuery]);
 
   const [mesAtual, setMesAtual] = useState<number | null>(null);
   useEffect(() => {
@@ -111,6 +118,13 @@ export default function LancarAportePage() {
       // O recálculo no backend roda com debounce (~1.2s) assim que o draft muda.
       // Avisamos o usuário e comparamos a data prevista assim que ela mudar.
       toast.loading("Ajustando a previsão da meta...", { id: "ajuste-meta" });
+      
+      // If we came from History (?mes=X), redirect back to History automatically after saving
+      if (mesQuery) {
+        setTimeout(() => {
+          router.push("/app/sincronizar");
+        }, 1500);
+      }
     } catch (e) {
       console.error(e);
       toast.error("Erro ao salvar aporte");
@@ -148,7 +162,7 @@ export default function LancarAportePage() {
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground"
+          className="text-muted-foreground hover:bg-secondary/20 rounded-xl"
           onClick={() => router.push("/app/sincronizar")}
         >
           <History className="w-4 h-4 mr-1.5" />
@@ -239,4 +253,17 @@ function mesLabel(iso: string) {
   const d = new Date(iso);
   const s = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export default function LancarAportePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-screen-sm mx-auto px-4 py-10 text-center text-muted-foreground flex flex-col items-center gap-4">
+        <div className="w-8 h-8 border-4 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin"></div>
+        <p>Carregando...</p>
+      </div>
+    }>
+      <LancarAporteContent />
+    </Suspense>
+  );
 }
