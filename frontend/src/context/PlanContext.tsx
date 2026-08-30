@@ -117,6 +117,7 @@ type PlanContextType = {
   simSource: "backend" | "client";
   loadingBackend: boolean;
   calcularBackend: (planoIdOverride?: string | null) => Promise<void>;
+  syncAportesTodosPlanos: () => Promise<boolean>;
 };
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
@@ -584,6 +585,45 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, [planoId]);
+
+  const syncAportesTodosPlanos = useCallback(async (): Promise<boolean> => {
+    if (!planoId || planos.length <= 1) return false;
+    
+    const currentData = {
+      pessoas,
+      aportesExtras,
+      aportesRegularesEditados,
+      aportesRegularesEditadosPorPessoa,
+      mesesConcluidos,
+      valorJaGuardado: objetivo?.valorJaGuardado || 0,
+    };
+    
+    try {
+      const promises = planos
+        .filter(p => p.id !== planoId)
+        .map(async (p) => {
+          const res = await api.get(`/plano/draft/${p.id}`);
+          const draft = res.data;
+          if (draft) {
+             draft.pessoas = currentData.pessoas;
+             draft.aportesExtras = currentData.aportesExtras;
+             draft.aportesRegularesEditados = currentData.aportesRegularesEditados;
+             draft.aportesRegularesEditadosPorPessoa = currentData.aportesRegularesEditadosPorPessoa;
+             draft.mesesConcluidos = currentData.mesesConcluidos;
+             if (draft.objetivo) {
+                draft.objetivo.valorJaGuardado = currentData.valorJaGuardado;
+             }
+             await api.put(`/plano/draft/${p.id}`, draft);
+          }
+        });
+        
+      await Promise.all(promises);
+      return true;
+    } catch (e) {
+      console.error("Erro ao sincronizar aportes com outros planos:", e);
+      return false;
+    }
+  }, [planoId, planos, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, mesesConcluidos, objetivo]);
 
   const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
     const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;

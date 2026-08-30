@@ -5,9 +5,10 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2, Download, Copy } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 import { ScenarioComparison } from "@/app/app/resultado/components/ScenarioComparison";
+import { toast } from "sonner";
 
 type DisplayRow = {
   mes: number;
@@ -411,6 +412,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     cenarioSimulacao,
     setCenarioSimulacao,
     calculating,
+    syncAportesTodosPlanos,
   } = usePlanContext();
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
@@ -431,6 +433,52 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         ? new Date(objetivo.dataInicio + "T12:00:00")
         : new Date(objetivo.dataInicio))
     : new Date();
+
+  const handleExportCSV = () => {
+    if (!displayRows.length) return;
+
+    const headers = [
+      "Mes",
+      "Data",
+      ...pessoas.map(p => p.nome),
+      "Extras",
+      "Aporte Mes",
+      ...(showFinancials ? ["Rendimento Bruto", "IR", "Rendimento Liquido", "Acumulado"] : [])
+    ];
+
+    const rows = displayRows.map(r => {
+      const isZero = r.mes === 0;
+      const dataFormatada = new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " ");
+      const rowData = [
+        isZero ? "Início" : `Mês ${r.mes}`,
+        dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1),
+        ...pessoas.map(p => {
+          const planejado = Number(p.aporte_mensal) || 0;
+          const real = isZero ? (Number(p.valorInicial) || 0) : r.aporteFinalPorPessoa[p.id] || 0;
+          return real.toFixed(2);
+        }),
+        r.aportesExtras.toFixed(2),
+        (r.aporteRegular + r.aportesExtras).toFixed(2),
+        ...(showFinancials ? [
+          r.rendimentoBruto.toFixed(2),
+          r.imposto.toFixed(2),
+          r.rendimentoLiquido.toFixed(2),
+          r.saldoAcumulado.toFixed(2)
+        ] : [])
+      ];
+      return rowData.join(";");
+    });
+
+    const csvContent = [headers.join(";"), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `imov-plan-simulacao-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const displayRows = useMemo(() => {
     if (!sim || !sim.detalhesMensais) return [];
@@ -520,6 +568,30 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 })}
               </div>
             )}
+            
+            <button
+              onClick={async () => {
+                const toastId = toast.loading("Sincronizando com outros planos...");
+                const success = await syncAportesTodosPlanos();
+                if (success) {
+                  toast.success("Aportes e configurações aplicados a todos os planos!", { id: toastId });
+                } else {
+                  toast.error("Erro ao sincronizar. Tente novamente.", { id: toastId });
+                }
+              }}
+              title="Replicar configuração de renda, aportes e meses concluídos para todos os meus planos"
+              className="bg-secondary/40 border border-border/50 rounded-xl p-2 flex items-center justify-center shadow-soft text-muted-foreground hover:text-foreground transition-colors hover:bg-secondary/60"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleExportCSV}
+              title="Baixar planilha"
+              className="bg-secondary/40 border border-border/50 rounded-xl p-2 flex items-center justify-center shadow-soft text-muted-foreground hover:text-foreground transition-colors hover:bg-secondary/60"
+            >
+              <Download className="w-4 h-4" />
+            </button>
           </div>
         </div>
       

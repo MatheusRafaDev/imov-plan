@@ -13,14 +13,14 @@ import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/DateInput";
-import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown, Check } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { cenario, objetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData, calculating } = usePlanContext();
+  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData, calculating } = usePlanContext();
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -34,6 +34,25 @@ export default function PlanejamentoPage() {
     const timer = setTimeout(() => setIsLoading(false), 350);
     return () => clearTimeout(timer);
   }, []);
+
+  const [isEditingTotal, setIsEditingTotal] = useState(false);
+
+  const handleUpdateTotal = (novoTotal: number | "") => {
+    const val = novoTotal === "" ? 0 : novoTotal;
+    setObjetivo(prev => prev ? { ...prev, valorJaGuardado: val } : null);
+    
+    setPessoas(prev => {
+      if (prev.length === 1) {
+        return [{ ...prev[0], valorInicial: val }];
+      }
+      const currentTotal = prev.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
+      if (currentTotal <= 0) {
+          return prev.map((p, i) => i === 0 ? { ...p, valorInicial: val } : { ...p, valorInicial: 0 });
+      }
+      const factor = val / currentTotal;
+      return prev.map(p => ({ ...p, valorInicial: Number(p.valorInicial ?? 0) * factor }));
+    });
+  };
 
   const prosseguir = async () => {
     const savedId = await saveDraft();
@@ -173,10 +192,30 @@ export default function PlanejamentoPage() {
         </Card>
 
         <Card className="p-4 sm:p-6 border-border/50 flex flex-col justify-center">
-          <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-3 sm:mb-4">Progresso inicial da meta</p>
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Progresso inicial da meta</p>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setIsEditingTotal(!isEditingTotal)} title="Atualizar valor guardado hoje">
+              <Pencil className="h-3 w-3" />
+            </Button>
+          </div>
           <div className="space-y-2 sm:space-y-3">
             <div className="flex justify-between items-end">
-              <span className="font-display text-2xl sm:text-3xl num leading-none">{brl(totalGuardado)}</span>
+              {isEditingTotal ? (
+                <div className="flex items-center gap-2">
+                  <MoneyInput 
+                    variant="money" 
+                    min={0} 
+                    value={totalGuardado} 
+                    onChange={handleUpdateTotal} 
+                    className="font-display text-2xl sm:text-3xl font-semibold h-9 w-32 sm:w-40 border-border bg-background"
+                  />
+                  <Button onClick={() => setIsEditingTotal(false)} size="sm" className="bg-primary text-primary-foreground h-9 px-2">
+                    <Check className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <span className="font-display text-2xl sm:text-3xl num leading-none">{brl(totalGuardado)}</span>
+              )}
               <span className="text-xs sm:text-sm text-muted-foreground mb-1">de {brl(meta)}</span>
             </div>
             <div className="h-2 sm:h-3 w-full bg-secondary rounded-full overflow-hidden">
