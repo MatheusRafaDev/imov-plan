@@ -596,6 +596,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       aportesRegularesEditadosPorPessoa,
       mesesConcluidos,
       valorJaGuardado: objetivo?.valorJaGuardado || 0,
+      dataInicio: objetivo?.dataInicio ? new Date(objetivo.dataInicio as string | Date) : new Date(),
     };
     
     try {
@@ -605,11 +606,37 @@ export function PlanProvider({ children }: { children: ReactNode }) {
           const res = await api.get(`/plano/draft/${p.id}`);
           const draft = res.data;
           if (draft) {
+             const currentAbsMonth = currentData.dataInicio.getFullYear() * 12 + currentData.dataInicio.getMonth();
+             const draftStartDateStr = draft.objetivo?.dataInicio;
+             const draftStartDate = draftStartDateStr ? new Date(draftStartDateStr) : new Date();
+             const draftAbsMonth = draftStartDate.getFullYear() * 12 + draftStartDate.getMonth();
+             const offset = draftAbsMonth - currentAbsMonth;
+
              draft.pessoas = currentData.pessoas;
              draft.aportesExtras = currentData.aportesExtras;
-             draft.aportesRegularesEditados = currentData.aportesRegularesEditados;
-             draft.aportesRegularesEditadosPorPessoa = currentData.aportesRegularesEditadosPorPessoa;
-             draft.mesesConcluidos = currentData.mesesConcluidos;
+             
+             draft.mesesConcluidos = currentData.mesesConcluidos
+               .map(m => m - offset)
+               .filter(m => m >= 1);
+
+             const newEditados: Record<number, number> = {};
+             Object.entries(currentData.aportesRegularesEditados).forEach(([mesStr, valor]) => {
+               const m = parseInt(mesStr, 10) - offset;
+               if (m >= 1) newEditados[m] = valor;
+             });
+             draft.aportesRegularesEditados = newEditados;
+
+             const newEditsPorPessoa: Record<string, Record<number, number>> = {};
+             Object.entries(currentData.aportesRegularesEditadosPorPessoa).forEach(([pessoaId, edits]) => {
+               const mappedEdits: Record<number, number> = {};
+               Object.entries(edits).forEach(([mesStr, valor]) => {
+                 const m = parseInt(mesStr, 10) - offset;
+                 if (m >= 1) mappedEdits[m] = valor;
+               });
+               newEditsPorPessoa[pessoaId] = mappedEdits;
+             });
+             draft.aportesRegularesEditadosPorPessoa = newEditsPorPessoa;
+
              if (draft.objetivo) {
                 draft.objetivo.valorJaGuardado = currentData.valorJaGuardado;
              }

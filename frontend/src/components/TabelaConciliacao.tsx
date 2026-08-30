@@ -16,7 +16,8 @@ export const TabelaConciliacao = React.memo(function TabelaConciliacao() {
     aportesExtras,
     aportesRegularesEditadosPorPessoa,
     planos,
-    planoId
+    planoId,
+    syncAportesTodosPlanos
   } = usePlanContext();
 
   const [saving, setSaving] = useState(false);
@@ -24,35 +25,16 @@ export const TabelaConciliacao = React.memo(function TabelaConciliacao() {
   const sim = backendData;
 
   const aplicarATodos = async () => {
-    const api = (await import("@/lib/api")).default;
     const toastId = toast.loading("Aplicando valores reais a todos os planos...");
     setSaving(true);
     
     try {
-      const promises = planos.filter(p => p.id !== planoId).map(async (p) => {
-        const res = await api.get(`/plano/draft/${p.id}`);
-        const draft = res.data;
-        if (draft) {
-          draft.mesesConcluidos = mesesConcluidos;
-          draft.aportesExtras = aportesExtras;
-
-          // Map edits by name since IDs might differ across drafts
-          const newEditsPorPessoa: Record<string, Record<number, number>> = {};
-          if (draft.pessoas) {
-            for (const draftPessoa of draft.pessoas) {
-              const currentPessoa = pessoas.find(cp => cp.nome === draftPessoa.nome);
-              if (currentPessoa && aportesRegularesEditadosPorPessoa[currentPessoa.id]) {
-                newEditsPorPessoa[draftPessoa.id] = aportesRegularesEditadosPorPessoa[currentPessoa.id];
-              }
-            }
-          }
-          draft.aportesRegularesEditadosPorPessoa = newEditsPorPessoa;
-
-          await api.put(`/plano/draft/${p.id}`, draft);
-        }
-      });
-      await Promise.all(promises);
-      toast.success("Valores reais aplicados a todos os planos!", { id: toastId });
+      const success = await syncAportesTodosPlanos();
+      if (success) {
+        toast.success("Valores reais aplicados a todos os planos!", { id: toastId });
+      } else {
+        toast.error("Nenhum outro plano para sincronizar ou ocorreu um erro.", { id: toastId });
+      }
     } catch (e) {
       console.error(e);
       toast.error("Erro ao aplicar aos outros planos.", { id: toastId });
@@ -64,14 +46,9 @@ export const TabelaConciliacao = React.memo(function TabelaConciliacao() {
   const displayRows = useMemo(() => {
     if (!sim || !sim.detalhesMensais) return [];
     
-    // Calcula o limite de meses para exibir. Mostramos até o primeiro mês pendente, ignorando o mês 0.
     const detalhesSemZero = sim.detalhesMensais.filter(d => d.mes > 0);
-    const primeiroPendenteIndex = detalhesSemZero.findIndex(d => !mesesConcluidosSet.has(d.mes));
     
-    // Quantos meses exibir (se todos concluidos, mostra todos. Se houver pendentes, mostra até o primeiro pendente)
-    const limit = primeiroPendenteIndex >= 0 ? primeiroPendenteIndex + 1 : detalhesSemZero.length;
-    
-    return detalhesSemZero.slice(0, limit).map(r => {
+    return detalhesSemZero.map(r => {
       const planejado = pessoas.reduce((s, p) => s + (Number(p.aporte_mensal) || 0), 0);
       const totalAporteMes = r.aporteMensal + r.aportesExtras;
       
