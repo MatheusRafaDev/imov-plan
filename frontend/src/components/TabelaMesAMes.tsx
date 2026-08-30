@@ -570,15 +570,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               </div>
             )}
             
-            <Link
-              href="/app/sincronizar"
-              title="Conciliar Valores Reais"
-              className="bg-primary border border-primary text-primary-foreground rounded-xl px-3 py-1.5 flex items-center justify-center shadow-soft text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <ListChecks className="w-4 h-4 mr-2" />
-              Conciliar Valores
-            </Link>
-
             <button
               onClick={async () => {
                 const toastId = toast.loading("Copiando para outros planos...");

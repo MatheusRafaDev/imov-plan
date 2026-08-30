@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid, MapPin } from "lucide-react";
+import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid, MapPin, ListChecks } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePlanContext } from "@/context/PlanContext";
 import { Button } from "@/components/ui/button";
@@ -112,6 +112,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-1 lg:mr-2 truncate max-w-[100px]">
               {user?.name?.split(' ')[0] || user?.email}
             </span>
+
+            <Link href="/app/sincronizar">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                <ListChecks className="h-4 w-4" />
+                <span className="hidden sm:inline">Conciliar</span>
+              </Button>
+            </Link>
 
             <Link href="/app/planos">
               <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
