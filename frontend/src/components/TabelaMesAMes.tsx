@@ -5,10 +5,11 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2, Download, Copy } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2, Download, Copy, ListChecks } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 import { ScenarioComparison } from "@/app/app/resultado/components/ScenarioComparison";
 import { toast } from "sonner";
+import Link from "next/link";
 
 type DisplayRow = {
   mes: number;
@@ -569,17 +570,26 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               </div>
             )}
             
+            <Link
+              href="/app/sincronizar"
+              title="Conciliar Valores Reais"
+              className="bg-primary border border-primary text-primary-foreground rounded-xl px-3 py-1.5 flex items-center justify-center shadow-soft text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <ListChecks className="w-4 h-4 mr-2" />
+              Conciliar Valores
+            </Link>
+
             <button
               onClick={async () => {
-                const toastId = toast.loading("Sincronizando com outros planos...");
+                const toastId = toast.loading("Copiando para outros planos...");
                 const success = await syncAportesTodosPlanos();
                 if (success) {
-                  toast.success("Aportes e configurações aplicados a todos os planos!", { id: toastId });
+                  toast.success("Aportes e configurações copiados para todos os planos!", { id: toastId });
                 } else {
-                  toast.error("Erro ao sincronizar. Tente novamente.", { id: toastId });
+                  toast.error("Erro ao copiar configurações. Tente novamente.", { id: toastId });
                 }
               }}
-              title="Replicar configuração de renda, aportes e meses concluídos para todos os meus planos"
+              title="Copiar configuração de renda, aportes e meses concluídos para todos os meus planos"
               className="bg-secondary/40 border border-border/50 rounded-xl p-2 flex items-center justify-center shadow-soft text-muted-foreground hover:text-foreground transition-colors hover:bg-secondary/60"
             >
               <Copy className="w-4 h-4" />
