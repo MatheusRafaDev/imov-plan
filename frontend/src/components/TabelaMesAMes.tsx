@@ -5,7 +5,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { usePlanContext } from "@/context/PlanContext";
 import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2, Download, Copy, ListChecks } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2, Download } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 import { ScenarioComparison } from "@/app/app/resultado/components/ScenarioComparison";
 import { toast } from "sonner";
@@ -227,21 +227,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               </div>
             )}
             
-            <button
-              onClick={async () => {
-                const toastId = toast.loading("Copiando para outros planos...");
-                const success = await syncAportesTodosPlanos();
-                if (success) {
-                  toast.success("Aportes e configurações copiados para todos os planos!", { id: toastId });
-                } else {
-                  toast.error("Erro ao copiar configurações. Tente novamente.", { id: toastId });
-                }
-              }}
-              title="Copiar configuração de renda, aportes e meses concluídos para todos os meus planos"
-              className="bg-secondary/40 border border-border/50 rounded-xl p-2 flex items-center justify-center shadow-soft text-muted-foreground hover:text-foreground transition-colors hover:bg-secondary/60"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
 
             <button
               onClick={handleExportCSV}

@@ -315,6 +315,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [planos, setPlanos] = useState<PlanoResumo[]>([]);
   const [carregandoPlanos, setCarregandoPlanos] = useState(false);
   const ultimoCalculoRef = useRef<string>("");
+  // Ref para evitar dependência circular: lancarValorGuardadoTodosPlanos usa saveDraft,
+  // mas saveDraft só é declarado mais abaixo. O ref resolve o problema de inicialização.
+  const saveDraftRef = useRef<((patch?: Record<string, unknown>) => Promise<string | null>) | null>(null);
 
   const carregarPlano = useCallback(async () => {
     setPlanoHidratado(false);
@@ -676,10 +679,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       
       setAportesRegularesEditados(currentAportesEditados);
       setMesesConcluidos(currentMesesConcluidos);
-      await saveDraft({
-        aportesRegularesEditados: currentAportesEditados,
-        mesesConcluidos: currentMesesConcluidos,
-      });
+      if (saveDraftRef.current) {
+        await saveDraftRef.current({
+          aportesRegularesEditados: currentAportesEditados,
+          mesesConcluidos: currentMesesConcluidos,
+        });
+      }
     }
 
     // Now apply to other plans
@@ -720,7 +725,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     }
     
     return true;
-  }, [planoId, planos, objetivo, aportesRegularesEditados, mesesConcluidos, saveDraft]);
+  }, [planoId, planos, objetivo, aportesRegularesEditados, mesesConcluidos]);
 
   const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
     const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;
@@ -805,6 +810,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     aportesRegularesEditados, aportesRegularesEditadosPorPessoa,
     mesesConcluidos, planoId
   ]);
+  // Mantém o ref sempre atualizado com a versão mais recente do saveDraft
+  saveDraftRef.current = saveDraft as (patch?: Record<string, unknown>) => Promise<string | null>;
 
   const calcularBackend = useCallback(async (planoIdOverride?: string | null) => {
     const id = planoIdOverride !== undefined ? planoIdOverride : planoId;
