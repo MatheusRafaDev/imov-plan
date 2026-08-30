@@ -118,6 +118,7 @@ type PlanContextType = {
   loadingBackend: boolean;
   calcularBackend: (planoIdOverride?: string | null) => Promise<void>;
   syncAportesTodosPlanos: () => Promise<boolean>;
+  lancarValorGuardadoTodosPlanos: (valorTotal: number, dataReferenciaStr: string) => Promise<boolean>;
 };
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
@@ -652,6 +653,75 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     }
   }, [planoId, planos, pessoas, aportesExtras, aportesRegularesEditados, aportesRegularesEditadosPorPessoa, mesesConcluidos, objetivo]);
 
+  const lancarValorGuardadoTodosPlanos = useCallback(async (valorTotal: number, dataReferenciaStr: string): Promise<boolean> => {
+    if (!planoId) return false;
+    
+    // Parse the reference date to a year/month representation
+    const dataRefDate = new Date(dataReferenciaStr);
+    const absMonthRef = dataRefDate.getFullYear() * 12 + dataRefDate.getMonth();
+    
+    // Apply to current plan first
+    const currentStartDate = objetivo?.dataInicio ? new Date(objetivo.dataInicio as string | Date) : new Date();
+    const absMonthCurrent = currentStartDate.getFullYear() * 12 + currentStartDate.getMonth();
+    const mesRelativoAtual = absMonthRef - absMonthCurrent + 1;
+
+    const currentAportesEditados = { ...aportesRegularesEditados };
+    const currentMesesConcluidos = [...mesesConcluidos];
+
+    if (mesRelativoAtual >= 1) {
+      currentAportesEditados[mesRelativoAtual] = valorTotal;
+      if (!currentMesesConcluidos.includes(mesRelativoAtual)) {
+        currentMesesConcluidos.push(mesRelativoAtual);
+      }
+      
+      setAportesRegularesEditados(currentAportesEditados);
+      setMesesConcluidos(currentMesesConcluidos);
+      await saveDraft({
+        aportesRegularesEditados: currentAportesEditados,
+        mesesConcluidos: currentMesesConcluidos,
+      });
+    }
+
+    // Now apply to other plans
+    if (planos.length > 1) {
+      try {
+        const promises = planos
+          .filter(p => p.id !== planoId)
+          .map(async (p) => {
+            const res = await api.get(`/plano/draft/${p.id}`);
+            const draft = res.data;
+            if (draft) {
+              const draftStartDateStr = draft.objetivo?.dataInicio;
+              const draftStartDate = draftStartDateStr ? new Date(draftStartDateStr) : new Date();
+              const draftAbsMonth = draftStartDate.getFullYear() * 12 + draftStartDate.getMonth();
+              
+              const mesRelativoDraft = absMonthRef - draftAbsMonth + 1;
+              
+              if (mesRelativoDraft >= 1) {
+                draft.aportesRegularesEditados = draft.aportesRegularesEditados || {};
+                draft.mesesConcluidos = draft.mesesConcluidos || [];
+                
+                draft.aportesRegularesEditados[mesRelativoDraft] = valorTotal;
+                
+                if (!draft.mesesConcluidos.includes(mesRelativoDraft)) {
+                  draft.mesesConcluidos.push(mesRelativoDraft);
+                }
+                
+                await api.put(`/plano/draft/${p.id}`, draft);
+              }
+            }
+          });
+          
+        await Promise.all(promises);
+      } catch (e) {
+        console.error("Erro ao lancar valor em todos os planos:", e);
+        return false;
+      }
+    }
+    
+    return true;
+  }, [planoId, planos, objetivo, aportesRegularesEditados, mesesConcluidos, saveDraft]);
+
   const salvarPlano = useCallback(async (objetivoOverride?: Partial<SimInput> | null): Promise<string | null> => {
     const objetivoFinal = objetivoOverride !== undefined ? objetivoOverride : objetivo;
     const dadosLocais = {
@@ -908,6 +978,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       loadingBackend,
       calcularBackend,
       syncAportesTodosPlanos,
+      lancarValorGuardadoTodosPlanos,
     }}>
       {children}
     </PlanContext.Provider>

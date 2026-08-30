@@ -13,6 +13,9 @@ function LancarAporteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mesQuery = searchParams.get("mes");
+  const modoQuery = searchParams.get("modo");
+  
+  const [modo, setModo] = useState<"por_pessoa" | "unico">(modoQuery === "unico" ? "unico" : "por_pessoa");
   
   const {
     pessoas,
@@ -23,6 +26,7 @@ function LancarAporteContent() {
     saveDraft,
     backendData,
     calculating,
+    lancarValorGuardadoTodosPlanos,
   } = usePlanContext();
 
   const detalhes = backendData?.detalhesMensais ?? [];
@@ -51,6 +55,8 @@ function LancarAporteContent() {
   const maxMes = detalhes.length ? detalhes[detalhes.length - 1].mes : 1;
 
   const [valores, setValores] = useState<Record<string, number>>({});
+  const [valorUnico, setValorUnico] = useState<number>(0);
+
   useEffect(() => {
     if (!linhaMes) return;
     const iniciais: Record<string, number> = {};
@@ -60,6 +66,11 @@ function LancarAporteContent() {
     });
     setValores(iniciais);
     setMetaDepois(null);
+
+    // Inicializa o valor único com o total planejado se estiver zerado
+    if (valorUnico === 0) {
+      setValorUnico(pessoas.reduce((s, p) => s + (Number(p.aporte_mensal) || 0), 0));
+    }
   }, [mesAtual, linhaMes, pessoas]);
 
   if (!detalhes.length || mesAtual === null) {
@@ -119,8 +130,8 @@ function LancarAporteContent() {
       // Avisamos o usuário e comparamos a data prevista assim que ela mudar.
       toast.loading("Ajustando a previsão da meta...", { id: "ajuste-meta" });
       
-      // If we came from History (?mes=X), redirect back to History automatically after saving
-      if (mesQuery) {
+      // If we came from History (?mes=X) or modo=unico, redirect back automatically
+      if (mesQuery || modoQuery) {
         setTimeout(() => {
           router.push("/app/sincronizar");
         }, 1500);
@@ -128,6 +139,35 @@ function LancarAporteContent() {
     } catch (e) {
       console.error(e);
       toast.error("Erro ao salvar aporte");
+      setMetaAntes(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmarUnico = async () => {
+    setSaving(true);
+    setMetaAntes(backendData?.dataPrevistaAlvo ?? null);
+
+    try {
+      if (!linhaMes) return;
+      const success = await lancarValorGuardadoTodosPlanos(valorUnico, linhaMes.dataReferencia);
+      
+      if (success) {
+        toast.success(`Valor único de ${mesLabel(linhaMes.dataReferencia)} salvo em todos os planos`);
+        toast.loading("Ajustando a previsão da meta...", { id: "ajuste-meta" });
+        if (mesQuery || modoQuery) {
+          setTimeout(() => {
+            router.push("/app/sincronizar");
+          }, 1500);
+        }
+      } else {
+        toast.error("Erro ao lançar valor único");
+        setMetaAntes(null);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao salvar");
       setMetaAntes(null);
     } finally {
       setSaving(false);
@@ -172,7 +212,20 @@ function LancarAporteContent() {
 
       <div>
         <h1 className="font-display text-xl sm:text-2xl font-light">Lançar aporte do mês</h1>
-        <p className="text-sm text-muted-foreground mt-1">Diga quanto cada pessoa realmente aportou. O plano se ajusta sozinho.</p>
+        <p className="text-sm text-muted-foreground mt-1">Diga quanto foi realmente aportado. O plano se ajusta sozinho.</p>
+      </div>
+
+      <div className="flex bg-secondary/30 p-1 rounded-xl">
+        <button 
+          onClick={() => setModo("por_pessoa")}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${modo === "por_pessoa" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Por Pessoa (Neste Plano)
+        </button>
+        <button 
+          onClick={() => setModo("unico")}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${modo === "unico" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Valor Único (Todos os Planos)
+        </button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -201,35 +254,53 @@ function LancarAporteContent() {
       </div>
 
       <div className="bg-card border border-border/50 rounded-3xl p-5 sm:p-6 shadow-sm space-y-6">
-        {pessoas.map((p) => {
-          const planejado = Number(p.aporte_mensal) || 0;
-          const val = valores[p.id] ?? 0;
-          const diff = val - planejado;
-          return (
-            <div key={p.id}>
-              <label className="text-sm text-muted-foreground block mb-2">{p.nome}</label>
-              <MoneyInput
-                variant="money"
-                min={0}
-                value={val}
-                onChange={(v) => setValores((prev) => ({ ...prev, [p.id]: v === "" ? 0 : v }))}
-                className={`h-12 w-full text-right text-lg rounded-xl ${diff !== 0 ? "border-accent text-accent bg-accent/5" : "bg-background"}`}
-              />
-              <p className={`text-xs mt-1.5 text-right ${diff !== 0 ? (diff > 0 ? "text-success font-medium" : "text-destructive font-medium") : "text-muted-foreground"}`}>
-                planejado: {brl(planejado)}
-                {diff !== 0 && ` (${diff > 0 ? "+" : ""}${brl(diff)})`}
-              </p>
-            </div>
-          );
-        })}
+        {modo === "por_pessoa" ? (
+          <>
+            {pessoas.map((p) => {
+              const planejado = Number(p.aporte_mensal) || 0;
+              const val = valores[p.id] ?? 0;
+              const diff = val - planejado;
+              return (
+                <div key={p.id}>
+                  <label className="text-sm text-muted-foreground block mb-2">{p.nome}</label>
+                  <MoneyInput
+                    variant="money"
+                    min={0}
+                    value={val}
+                    onChange={(v) => setValores((prev) => ({ ...prev, [p.id]: v === "" ? 0 : v }))}
+                    className={`h-12 w-full text-right text-lg rounded-xl ${diff !== 0 ? "border-accent text-accent bg-accent/5" : "bg-background"}`}
+                  />
+                  <p className={`text-xs mt-1.5 text-right ${diff !== 0 ? (diff > 0 ? "text-success font-medium" : "text-destructive font-medium") : "text-muted-foreground"}`}>
+                    planejado: {brl(planejado)}
+                    {diff !== 0 && ` (${diff > 0 ? "+" : ""}${brl(diff)})`}
+                  </p>
+                </div>
+              );
+            })}
 
-        <div className="pt-4 border-t border-border/40 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Total do mês</span>
-          <span className="text-xl font-medium">{brl(total)}</span>
-        </div>
+            <div className="pt-4 border-t border-border/40 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total do mês</span>
+              <span className="text-xl font-medium">{brl(total)}</span>
+            </div>
+          </>
+        ) : (
+          <div>
+            <label className="text-sm text-muted-foreground block mb-2 text-center">Valor Total Guardado (Todos os Planos)</label>
+            <MoneyInput
+              variant="money"
+              min={0}
+              value={valorUnico}
+              onChange={(v) => setValorUnico(v === "" ? 0 : v)}
+              className="h-16 w-full text-center text-3xl font-bold rounded-xl bg-background"
+            />
+            <p className="text-sm mt-4 text-center text-muted-foreground leading-relaxed">
+               Este valor será salvo como global neste mês em <strong>todos os seus planos</strong>. <br/>Aplica-se ao mês correspondente a <span className="text-foreground font-medium">{linhaMes ? mesLabel(linhaMes.dataReferencia) : ""}</span> no calendário.
+            </p>
+          </div>
+        )}
       </div>
 
-      <Button className="w-full h-14 rounded-2xl text-base shadow-glow-sm" onClick={confirmar} disabled={saving}>
+      <Button className="w-full h-14 rounded-2xl text-base shadow-glow-sm" onClick={modo === "unico" ? confirmarUnico : confirmar} disabled={saving}>
         {saving ? "Salvando..." : `Confirmar aporte de ${linhaMes ? mesLabel(linhaMes.dataReferencia).split(" ")[0] : ""}`}
         {!saving && <ArrowRight className="w-5 h-5 ml-2" />}
       </Button>

@@ -73,14 +73,23 @@ export const TabelaConciliacao = React.memo(function TabelaConciliacao() {
           <p className="text-sm text-muted-foreground mt-1">Acompanhe seus lançamentos mensais e compare o planejado com o realizado.</p>
         </div>
         {planos.length > 1 && (
-          <button
-            onClick={aplicarATodos}
-            disabled={saving}
-            className="shrink-0 bg-secondary border border-border text-foreground rounded-xl px-4 py-2 flex items-center shadow-soft text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-          >
-            <CopyCheck className="w-4 h-4 mr-2" />
-            Sincronizar Outros Planos
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            <button
+              onClick={aplicarATodos}
+              disabled={saving}
+              className="bg-secondary border border-border text-foreground rounded-xl px-4 py-2 flex items-center justify-center shadow-soft text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            >
+              <CopyCheck className="w-4 h-4 mr-2" />
+              Sincronizar Outros Planos
+            </button>
+            <button
+              onClick={() => router.push(`/app/lancar-aporte?modo=unico`)}
+              className="bg-primary border border-transparent text-primary-foreground rounded-xl px-4 py-2 flex items-center justify-center shadow-soft text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Lançar Valor Único
+            </button>
+          </div>
         )}
       </div>
 
