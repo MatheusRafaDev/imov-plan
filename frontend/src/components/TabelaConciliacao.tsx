@@ -41,15 +41,57 @@ export const TabelaConciliacao = React.memo(function TabelaConciliacao() {
   const {
     pessoas,
     aportesExtras,
+    aportesRegularesEditadosPorPessoa,
     setAportesRegularesEditadosPorPessoa,
     saveDraft,
     mesesConcluidos,
     setMesesConcluidos,
     backendData,
+    planos,
+    planoId
   } = usePlanContext();
 
   const [saving, setSaving] = useState(false);
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
+
+  const aplicarATodos = async () => {
+    const api = (await import("@/lib/api")).default;
+    const { toast } = await import("sonner");
+    const toastId = toast.loading("Aplicando valores reais a todos os planos...");
+    setSaving(true);
+    
+    try {
+      const promises = planos.filter(p => p.id !== planoId).map(async (p) => {
+        const res = await api.get(`/plano/draft/${p.id}`);
+        const draft = res.data;
+        if (draft) {
+          draft.mesesConcluidos = mesesConcluidos;
+          draft.aportesExtras = aportesExtras;
+
+          // Map edits by name since IDs might differ across drafts
+          const newEditsPorPessoa: Record<string, Record<number, number>> = {};
+          if (draft.pessoas) {
+            for (const draftPessoa of draft.pessoas) {
+              const currentPessoa = pessoas.find(cp => cp.nome === draftPessoa.nome);
+              if (currentPessoa && aportesRegularesEditadosPorPessoa[currentPessoa.id]) {
+                newEditsPorPessoa[draftPessoa.id] = aportesRegularesEditadosPorPessoa[currentPessoa.id];
+              }
+            }
+          }
+          draft.aportesRegularesEditadosPorPessoa = newEditsPorPessoa;
+
+          await api.put(`/plano/draft/${p.id}`, draft);
+        }
+      });
+      await Promise.all(promises);
+      toast.success("Valores reais aplicados a todos os planos!", { id: toastId });
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao aplicar aos outros planos.", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleConcluido = async (mes: number) => {
     let next: number[] = [];
@@ -117,9 +159,20 @@ export const TabelaConciliacao = React.memo(function TabelaConciliacao() {
           <h2 className="font-display text-xl sm:text-2xl font-light">Conciliação de Aportes</h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">Marque os meses concluídos e ajuste os valores reais aportados mês a mês.</p>
         </div>
-        {saving && (
-          <span className="text-xs text-muted-foreground animate-pulse">Salvando...</span>
-        )}
+        <div className="flex items-center gap-3">
+          {saving && (
+            <span className="text-xs text-muted-foreground animate-pulse">Salvando...</span>
+          )}
+          {planos.length > 1 && (
+            <button
+              onClick={aplicarATodos}
+              disabled={saving}
+              className="bg-secondary border border-border text-foreground rounded-xl px-3 py-1.5 flex items-center shadow-soft text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            >
+              Aplicar a Todos os Planos
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40">
