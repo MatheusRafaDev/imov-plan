@@ -113,10 +113,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               {user?.name?.split(' ')[0] || user?.email}
             </span>
 
+            <Link href="/app/lancar-aporte">
+              <Button variant="default" size="sm" className="gap-2 bg-primary/90 hover:bg-primary text-primary-foreground shadow-sm">
+                <span className="hidden sm:inline">Lançar Aporte</span>
+              </Button>
+            </Link>
+
             <Link href="/app/sincronizar">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground hidden sm:flex">
                 <ListChecks className="h-4 w-4" />
-                <span className="hidden sm:inline">Conciliar</span>
+                <span className="hidden lg:inline">Histórico</span>
               </Button>
             </Link>
 
