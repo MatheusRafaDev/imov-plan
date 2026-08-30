@@ -880,6 +880,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       simSource,
       loadingBackend,
       calcularBackend,
+      syncAportesTodosPlanos,
     }}>
       {children}
     </PlanContext.Provider>
