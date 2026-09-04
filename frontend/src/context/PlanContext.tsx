@@ -123,8 +123,6 @@ type PlanContextType = {
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
-const CHAVE_LOCAL = "imovplan_dados";
-
 function obterIdUsuario(): string | null {
   const cookieUsuario = Cookies.get("user");
   if (!cookieUsuario) return null;
@@ -178,22 +176,6 @@ function aplicarDados(
   if (dados.aportesRegularesEditados) definidores.setAportesRegularesEditados(dados.aportesRegularesEditados);
   if (dados.aportesRegularesEditadosPorPessoa) definidores.setAportesRegularesEditadosPorPessoa(dados.aportesRegularesEditadosPorPessoa);
   if (dados.mesesConcluidos) definidores.setMesesConcluidos(dados.mesesConcluidos);
-}
-
-function salvarNoLocalStorage(dados: {
-  objetivo: Partial<SimInput> | null;
-  pessoas: Pessoa[];
-  bancoEscolhido: Banco | null;
-  aportesExtras: Aporte[];
-  aportesRegularesEditados: Record<number, number>;
-  aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
-  mesesConcluidos: number[];
-}) {
-  try {
-    localStorage.setItem(CHAVE_LOCAL, JSON.stringify(dados));
-  } catch (error) {
-    console.error("Erro ao salvar no localStorage:", error);
-  }
 }
 
 function montarObjetivoDraft(objetivo: Partial<SimInput> | null): PlanoDraftPayload["objetivo"] {
@@ -333,23 +315,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const usuarioId = obterIdUsuario();
 
     if (!usuarioId) {
-      const local = localStorage.getItem(CHAVE_LOCAL);
-      if (local) {
-        try {
-          const dados = JSON.parse(local);
-          aplicarDados(dados, definidores);
-          ultimoCalculoRef.current = JSON.stringify({
-            objetivo: dados.objetivo,
-            pessoas: dados.pessoas,
-            aportesExtras: dados.aportesExtras,
-            aportesRegularesEditados: dados.aportesRegularesEditados,
-            aportesRegularesEditadosPorPessoa: dados.aportesRegularesEditadosPorPessoa,
-          });
-          console.log("Dados carregados do localStorage");
-        } catch (error) {
-          console.error("Erro ao carregar dados do localStorage:", error);
-        }
-      }
       setPlanoHidratado(true);
       return;
     }
@@ -453,29 +418,11 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const error = err as { response?: { status?: number } };
       if (error.response?.status === 404) {
-        console.warn("Plano não encontrado no backend (404). Limpando ID inválido e usando dados locais.");
+        console.warn("Plano não encontrado no backend (404).");
         setPlanoId(null);
         Cookies.remove("imovplan_planoId");
       } else {
         console.error("Erro ao carregar plano do backend:", err);
-      }
-
-      const local = localStorage.getItem(CHAVE_LOCAL);
-      if (local) {
-        try {
-          const dados = JSON.parse(local);
-          aplicarDados(dados, definidores);
-          ultimoCalculoRef.current = JSON.stringify({
-            objetivo: dados.objetivo,
-            pessoas: dados.pessoas,
-            aportesExtras: dados.aportesExtras,
-            aportesRegularesEditados: dados.aportesRegularesEditados,
-            aportesRegularesEditadosPorPessoa: dados.aportesRegularesEditadosPorPessoa,
-          });
-          console.log("Dados carregados do localStorage (fallback)");
-        } catch (e) {
-          console.error("Erro ao carregar dados do localStorage:", e);
-        }
       }
     }
     setPlanoHidratado(true);
@@ -739,9 +686,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       mesesConcluidos,
     };
 
-    salvarNoLocalStorage(dadosLocais);
-    console.log("Dados salvos no localStorage");
-
     const usuarioId = obterIdUsuario();
     if (usuarioId) {
       try {
@@ -753,7 +697,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         console.log("Dados salvos no backend");
         return novoId || planoId;
       } catch (error) {
-        console.warn("Backup salvo no localStorage, falha no backend:", error);
+        console.error("Falha ao salvar no backend:", error);
         return planoId;
       }
     }
@@ -787,8 +731,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       aportesRegularesEditadosPorPessoa: patch?.aportesRegularesEditadosPorPessoa !== undefined ? patch.aportesRegularesEditadosPorPessoa : aportesRegularesEditadosPorPessoa,
       mesesConcluidos: patch?.mesesConcluidos !== undefined ? patch.mesesConcluidos : mesesConcluidos,
     };
-
-    salvarNoLocalStorage(dadosFinal);
 
     const usuarioId = obterIdUsuario();
     if (usuarioId) {
