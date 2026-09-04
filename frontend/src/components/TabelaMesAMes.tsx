@@ -3,7 +3,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import React from "react";
 import { createPortal } from "react-dom";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
 import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2, Download } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -70,8 +70,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     cenarioSimulacao,
     setCenarioSimulacao,
     calculating,
-    syncAportesTodosPlanos,
-  } = usePlanContext();
+  } = usePlanLogic();
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
 

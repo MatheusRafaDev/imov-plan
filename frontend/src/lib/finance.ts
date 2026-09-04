@@ -20,6 +20,7 @@ const CENARIO_CDI_DELTA: Record<CenarioSimulacao, number> = {
 };
 
 export type SimInput = {
+  nomePlano?: string;
   valorImovel: number;
   percentualEntrada: number; // ex 20
   percentualCustosExtras: number; // ex 5 (ITBI+escritura+registro estimado)

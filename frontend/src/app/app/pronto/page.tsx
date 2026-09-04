@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Card } from "@/components/ui/card";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { PlanoService } from "@/services/PlanoService";
 import { Calculator, ArrowRight, Info, TrendingDown, Wallet, Key } from "lucide-react";
 
 export default function ProntoPage() {
-  const { objetivo, planoId, pessoas: pessoasPlan } = usePlanContext();
+  const { objetivo, planoId, pessoas: pessoasPlan } = usePlanLogic();
   const router = useRouter();
 
   const valorImovel = Number(objetivo?.valorImovel) || 0;

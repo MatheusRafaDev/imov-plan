@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid, MapPin } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Button } from "@/components/ui/button";
 
 export const navPorCenario = {
@@ -30,7 +30,7 @@ export const navPorCenario = {
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const { logout, user } = useAuth();
-  const { cenario, objetivo, saveDraft, calcularBackend } = usePlanContext();
+  const { cenario, objetivo, salvarPlano, calcularBackend } = usePlanLogic();
   const pathname = usePathname();
   const router = useRouter();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -40,7 +40,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const handleNavClick = async (e: React.MouseEvent<HTMLAnchorElement>, targetPath: string) => {
     if (targetPath === "/app/planejamento" || targetPath === "/app/resultado") {
       e.preventDefault();
-      const savedId = await saveDraft();
+      const savedId = await salvarPlano();
       if (savedId && !savedId.startsWith("local-draft")) {
         calcularBackend(savedId);
       }

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";
+import { usePlanos, useCriarPlano, useExcluirPlano, useRenomearPlano } from "@/hooks/usePlanos";
+import Cookies from "js-cookie";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
@@ -11,16 +13,26 @@ import { Building2, Plus, Trash2, CheckCircle2, Loader2, ArrowRight, TrendingUp,
 import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
 
 export default function PlanosPage() {
-  const {
-    planoId,
-    planos,
-    carregandoPlanos,
-    carregarListaPlanos,
-    trocarPlanoAtivo,
-    criarNovoPlano,
-    excluirPlano,
-    renomearPlano,
-  } = usePlanContext();
+  const { planoId } = usePlanLogic();
+  const { data: planos = [], isLoading: carregandoPlanos, refetch: carregarListaPlanos } = usePlanos();
+  const { mutateAsync: criarNovoPlano } = useCriarPlano();
+  const { mutateAsync: excluirPlano } = useExcluirPlano();
+  const { mutateAsync: renomearPlanoArgs } = useRenomearPlano();
+
+  const trocarPlanoAtivo = async (id: string) => {
+    Cookies.set("imovplan_planoId", id, { expires: 30 });
+    // Reload to apply the new planoId globally
+    window.location.reload();
+  };
+
+  const renomearPlano = async (id: string, novoNome: string) => {
+    try {
+      await renomearPlanoArgs({ planoId: id, novoNome });
+      return true;
+    } catch {
+      return false;
+    }
+  };
   const router = useRouter();
 
   const [criando, setCriando] = useState(false);
@@ -98,17 +110,15 @@ export default function PlanosPage() {
     if (!planoAExcluir) return;
     setExcluindo(planoAExcluir.id);
     try {
-      const ok = await excluirPlano(planoAExcluir.id);
-      if (ok) {
-        toast.success("Plano excluído.");
-        setSimulacoes(prev => {
-          const updated = { ...prev };
-          delete updated[planoAExcluir.id];
-          return updated;
-        });
-      } else {
-        toast.error("Não foi possível excluir o plano. Tente novamente.");
-      }
+      await excluirPlano(planoAExcluir.id);
+      toast.success("Plano excluído.");
+      setSimulacoes(prev => {
+        const updated = { ...prev };
+        delete updated[planoAExcluir.id];
+        return updated;
+      });
+    } catch {
+      toast.error("Não foi possível excluir o plano. Tente novamente.");
     } finally {
       setExcluindo(null);
       setPlanoAExcluir(null);

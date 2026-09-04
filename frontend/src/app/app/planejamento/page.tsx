@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
-import { usePlanContext, type Pessoa } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";
+import { type Pessoa } from "@/context/PlanContext";;
 import { brl, mesesEntre, type Aporte } from "@/lib/finance";
 import { formatDate } from "@/utils/formatters";
 import { toast } from "sonner";
@@ -20,7 +21,7 @@ import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, calcularBackend, backendData, calculating } = usePlanContext();
+  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, salvarPlano, calcularBackend, backendData, calculating } = usePlanLogic();
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -55,7 +56,7 @@ export default function PlanejamentoPage() {
   };
 
   const prosseguir = async () => {
-    const savedId = await saveDraft();
+    const savedId = await salvarPlano();
     if (savedId) {
       if (!savedId.startsWith("local-draft")) {
         await calcularBackend(savedId);

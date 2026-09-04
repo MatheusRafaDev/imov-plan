@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2, Bot, Building } from "lucide-react";
@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { ConsultoriaService } from "@/services/ConsultoriaService";
 
 export function ConsultoriaCard() {
-  const { pessoas, objetivo } = usePlanContext();
+  const { pessoas, objetivo } = usePlanLogic();
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);

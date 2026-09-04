@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import NextTopLoader from "nextjs-toploader";
 import Script from "next/script";
 import { PwaRegister } from "@/components/PwaRegister";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 export const metadata: Metadata = {
   title: "Imov.Plan - Planeje a entrada do seu imóvel",
@@ -47,21 +48,23 @@ export default function RootLayout({
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
         />
-        <AuthProvider>
-          <NextTopLoader color="#e15b31" height={3} showSpinner={false} shadow="0 0 10px #e15b31,0 0 5px #e15b31" />
-          {children}
-          <Toaster
-            richColors
-            position="top-right"
-            duration={2500}
-            closeButton
-            toastOptions={{
-              classNames: {
-                toast: "cursor-pointer",
-              },
-            }}
-          />
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <NextTopLoader color="#e15b31" height={3} showSpinner={false} shadow="0 0 10px #e15b31,0 0 5px #e15b31" />
+            {children}
+            <Toaster
+              richColors
+              position="top-right"
+              duration={2500}
+              closeButton
+              toastOptions={{
+                classNames: {
+                  toast: "cursor-pointer",
+                },
+              }}
+            />
+          </AuthProvider>
+        </QueryProvider>
         <PwaRegister />
       </body>
     </html>

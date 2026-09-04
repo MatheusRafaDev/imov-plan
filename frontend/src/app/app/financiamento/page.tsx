@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Calculator, Landmark, ArrowRight } from "lucide-react";
 
 export default function FinanciamentoPage() {
-  const { objetivo, bancoEscolhido } = usePlanContext();
+  const { objetivo, bancoEscolhido } = usePlanLogic();
 
   const [form, setForm] = useState<{valorFinanciado: number | ""; taxaAnual: number | ""; prazoMeses: number | ""}>({
     valorFinanciado: (objetivo?.valorImovel || 500000) - (objetivo?.valorImovel && objetivo?.percentualEntrada ? objetivo.valorImovel * (objetivo.percentualEntrada / 100) : 100000),

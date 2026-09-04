@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Button } from "@/components/ui/button";
 import { MoneyInput } from "@/components/MoneyInput";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Check } from "lucide-react";
@@ -21,9 +21,10 @@ function LancarAporteContent() {
     mesesConcluidos,
     setMesesConcluidos,
     saveDraft,
+    salvarPlano,
     backendData,
     calculating,
-  } = usePlanContext();
+  } = usePlanLogic();
 
   const detalhes = backendData?.detalhesMensais ?? [];
 
@@ -109,7 +110,7 @@ function LancarAporteContent() {
       setAportesRegularesEditadosPorPessoa(novoEstado);
       setMesesConcluidos(novosMesesConcluidos);
 
-      await saveDraft({
+      await salvarPlano({
         aportesRegularesEditadosPorPessoa: novoEstado,
         mesesConcluidos: novosMesesConcluidos,
       });

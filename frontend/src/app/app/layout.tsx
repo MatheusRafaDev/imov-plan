@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { PlanProvider } from "@/context/PlanContext";
+
 import { AppShell } from "@/components/AppShell";
 import { Building2 } from "lucide-react";
 
@@ -36,9 +36,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <PlanProvider>
-      <AppShell>{children}</AppShell>
-    </PlanProvider>
-  );
+  return <AppShell>{children}</AppShell>;
 }

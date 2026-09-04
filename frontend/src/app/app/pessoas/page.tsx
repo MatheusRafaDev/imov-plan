@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanContext, type Pessoa, type GastoDetalhado } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";
+import { type Pessoa, type GastoDetalhado } from "@/context/PlanContext";;
 import PessoaCard from "@/components/PessoaCard";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -31,7 +32,7 @@ const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas, saveDraft, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating } = usePlanContext();
+  const { pessoas, setPessoas, saveDraft, salvarPlano, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating } = usePlanLogic();
   
   const [isEditingTotal, setIsEditingTotal] = useState(false);
   const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
@@ -87,7 +88,7 @@ export default function PessoasPage() {
   }, [user, pessoas.length, setPessoas, planoId, saveDraft, totalObjetivo]);
 
   const prosseguir = async () => {
-    const savedId = await saveDraft();
+    const savedId = await salvarPlano();
     if (savedId) {
       if (!savedId.startsWith("local-draft")) {
         await calcularBackend(savedId);

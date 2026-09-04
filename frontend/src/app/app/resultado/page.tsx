@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import React from "react";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Card } from "@/components/ui/card";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
@@ -42,9 +42,7 @@ export default function ResultadoPage() {
     backendData,
     calcularBackend,
     calculating,
-    loadingBackend,
-    backendError
-  } = usePlanContext();
+  } = usePlanLogic();
   
   const router = useRouter();
   const pathname = usePathname();
@@ -75,9 +73,9 @@ export default function ResultadoPage() {
   }, [mesesConcluidos, saveDraft]);
 
   // Extrair os dados estritamente da API através de seletores, sem refazer os cálculos localmente.
-  const summary = extractSimulacaoSummary(backendData);
-  const participantes = extractParticipantesSummary(backendData);
-  const chartData = extractChartData(backendData);
+  const summary = extractSimulacaoSummary(backendData || null);
+  const participantes = extractParticipantesSummary(backendData || null);
+  const chartData = extractChartData(backendData || null);
 
   // Se não tem nenhum dado, mostrar estado vazio
   if (!summary || !backendData) {
@@ -107,13 +105,7 @@ export default function ResultadoPage() {
         </div>
       </div>
 
-      {backendError && (
-        <div className="mx-4 sm:mx-6 md:mx-8 bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-xs text-destructive">
-          {backendError}
-        </div>
-      )}
-
-      {loadingBackend && (
+      {calculating && (
         <div className="flex items-center justify-center py-6">
           <LoadingSpinner size="md" text="Carregando simulação salva..." />
         </div>

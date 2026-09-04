@@ -1,12 +1,12 @@
 "use client";
 
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { simular, CenarioSimulacao } from "@/lib/finance";
 import { brl, percentualCdiPorTipoInvestimento } from "@/lib/finance";
 import { Loader2 } from "lucide-react";
 
 export function ScenarioComparison() {
-  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, cenarioSimulacao, setCenarioSimulacao, calculating } = usePlanContext();
+  const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, cenarioSimulacao, setCenarioSimulacao, calculating } = usePlanLogic();
 
   if (!objetivo || !objetivo.valorImovel) return null;
 

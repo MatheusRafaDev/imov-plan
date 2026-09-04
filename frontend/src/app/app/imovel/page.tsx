@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanContext } from "@/context/PlanContext";
+import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,7 +67,7 @@ const normalizeDataFim = (inicio: string, fim: string) => {
 };
 
 export default function ObjetivoPage() {
-  const { objetivo, setObjetivo, salvarPlano } = usePlanContext();
+  const { objetivo, setObjetivo, salvarPlano } = usePlanLogic();
   const router = useRouter();
 
   const [showAdvanced, setShowAdvanced] = useState(false);
