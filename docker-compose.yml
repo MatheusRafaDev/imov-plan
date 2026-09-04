@@ -25,6 +25,9 @@ services:
       - Jwt__Issuer=ImovPlanAPI
       - Jwt__Audience=ImovPlanClient
       - MongoDbSettings__ConnectionString=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/?authSource=admin
+    volumes:
+      - ./version.txt:/app/version.txt:ro
+      - ./deploy.log:/app/deploy.log:ro
     depends_on:
       - mongodb
     restart: unless-stopped
