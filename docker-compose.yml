@@ -19,7 +19,7 @@ services:
     ports:
       - "5179:8080"
     env_file:
-      - ./backend/.env
+      - ${ENV_FILE:-./backend/.env}
     environment:
       - Jwt__Key=${JWT_SECRET:?JWT_SECRET is required}
       - Jwt__Issuer=ImovPlanAPI
@@ -28,6 +28,7 @@ services:
     volumes:
       - ./version.txt:/app/version.txt:ro
       - ./deploy.log:/app/deploy.log:ro
+      - data_protection_keys:/root/.aspnet/DataProtection-Keys
     depends_on:
       - mongodb
     restart: unless-stopped
@@ -40,10 +41,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5179/api
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:5179/api}
     depends_on:
       - backend
     restart: unless-stopped
 
 volumes:
   mongodb_data:
+  data_protection_keys:
