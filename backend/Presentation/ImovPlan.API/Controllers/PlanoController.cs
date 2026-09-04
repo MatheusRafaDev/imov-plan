@@ -33,7 +33,7 @@ namespace ImovPlan.API.Controllers
 
             var draft = await _planoService.GetDraftByUsuarioIdAsync(usuarioId);
             if (draft == null)
-                return NotFound(new { message = "Não encontrado." });
+                return NoContent();
 
             return Ok(draft);
         }
@@ -110,7 +110,7 @@ namespace ImovPlan.API.Controllers
 
             var draft = await _planoService.GetDraftAsync(id, usuarioIdClaim);
             if (draft == null)
-                return NotFound("Plano não encontrado ou não autorizado.");
+                return NoContent();
 
             return Ok(draft);
         }

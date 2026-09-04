@@ -23,11 +23,13 @@ export function usePlanDraft(planoId: string | null) {
       let draftData = null;
       
       if (planoId) {
-        const { data } = await api.get(`/plano/draft/${planoId}`);
-        draftData = data;
+        const { data, status } = await api.get(`/plano/draft/${planoId}`);
+        if (status === 200 && data) {
+          draftData = data;
+        }
       } else if (usuarioId) {
         const { data, status } = await api.get(`/plano/user/${usuarioId}`);
-        if (status === 200) {
+        if (status === 200 && data) {
           draftData = data;
         }
       }

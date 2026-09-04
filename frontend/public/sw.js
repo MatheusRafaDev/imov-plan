@@ -45,8 +45,8 @@ self.addEventListener("fetch", (event) => {
   // Ignorar extensões de browser, chrome-extension, etc.
   if (!["http:", "https:"].includes(url.protocol)) return;
 
-  // Nunca interceptar chamadas de API
-  if (url.pathname.startsWith("/api/")) return;
+  // Nunca interceptar chamadas de API ou imagens externas do Unsplash (evita problema de CSP)
+  if (url.pathname.startsWith("/api/") || url.hostname.includes("unsplash.com")) return;
 
   // Assets estáticos do Next.js → cache-first
   if (url.pathname.startsWith("/_next/static/")) {

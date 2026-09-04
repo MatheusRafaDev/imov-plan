@@ -46,7 +46,7 @@ export default function RootLayout({
       <body className="min-h-screen" suppressHydrationWarning>
         <Script
           src="https://accounts.google.com/gsi/client"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <QueryProvider>
           <AuthProvider>
