@@ -98,8 +98,10 @@ function ResetPasswordForm() {
   // Valida o token assim que a página carrega
   useEffect(() => {
     if (!token) {
-      setTokenState("invalid");
-      setTokenError("Link de recuperação inválido. Verifique o link recebido por email.");
+      setTimeout(() => {
+        setTokenState("invalid");
+        setTokenError("Link de recuperação inválido. Verifique o link recebido por email.");
+      }, 0);
       return;
     }
 

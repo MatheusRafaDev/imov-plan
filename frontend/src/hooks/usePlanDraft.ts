@@ -102,6 +102,9 @@ export function useSaveDraft() {
         await api.put(`/plano/draft/${planoId}`, payload);
         return planoId;
       } else {
+        if (!usuarioId) {
+          return null; // The user is not authenticated, do not call API.
+        }
         const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`, payload);
         return data.id;
       }

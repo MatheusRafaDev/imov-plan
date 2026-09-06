@@ -44,8 +44,10 @@ export default function MapaArredores() {
         }
 
         if (!endereco.trim() || endereco.length < 3) {
-            setSugestoes([]);
-            setMostrandoSugestoes(false);
+            setTimeout(() => {
+                setSugestoes([]);
+                setMostrandoSugestoes(false);
+            }, 0);
             return;
         }
 

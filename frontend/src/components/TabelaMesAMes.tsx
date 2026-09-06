@@ -1,17 +1,12 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo } from "react";
 import React from "react";
-import { createPortal } from "react-dom";
 import { usePlanLogic } from "@/hooks/usePlanLogic";;
-import { brl, mesDaSimulacaoParaData, type CenarioSimulacao } from "@/lib/finance";
-import { Check, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Plus, Trash2, TrendingUp, TrendingDown, Minus, Loader2, Download } from "lucide-react";
-import { MoneyInput } from "@/components/MoneyInput";
-import { ScenarioComparison } from "@/app/app/resultado/components/ScenarioComparison";
-import { toast } from "sonner";
-import Link from "next/link";
+import { brl, type CenarioSimulacao } from "@/lib/finance";
+import { Check, Loader2, Download } from "lucide-react";
 import { RowActions } from "./TabelaMesAMes/RowActions";
-import { ExtrasCell, type ContextExtra } from "./TabelaMesAMes/ExtrasCell";
+import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
 
 type DisplayRow = {
   mes: number;
@@ -81,15 +76,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     });
   };
 
-  const aporteTotal = backendData?.aporteMensalTotal ?? 0;
-  const totalGuardado = backendData?.valorJaGuardado ?? 0;
   const sim = backendData;
-
-  const inicio = objetivo?.dataInicio
-    ? (typeof objetivo.dataInicio === "string"
-        ? new Date(objetivo.dataInicio + "T12:00:00")
-        : new Date(objetivo.dataInicio))
-    : new Date();
 
   const handleExportCSV = () => {
     if (!displayRows.length) return;
@@ -137,7 +124,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     document.body.removeChild(link);
   };
 
-  const displayRows = useMemo(() => {
+  const displayRows = (() => {
     if (!sim || !sim.detalhesMensais) return [];
     
     return sim.detalhesMensais.map(r => ({
@@ -155,9 +142,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         (r.participantes || []).map(p => [p.participanteId, p.aporteMensal])
       )
     }));
-  }, [sim]);
+  })();
 
-  const totals = useMemo(() => {
+  const totals = (() => {
     if (!displayRows.length) return { rendBruto: 0, ir: 0, rendLiquido: 0, aporteRegular: 0, extras: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
     const rb = displayRows.reduce((a, b) => a + b.rendimentoBruto, 0);
     const ir = displayRows.reduce((a, b) => a + b.imposto, 0);
@@ -183,7 +170,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       saldoFinal: displayRows[displayRows.length - 1].saldoAcumulado,
       aportePorPessoa
     };
-  }, [displayRows, pessoas]);
+  })();
 
   if (!displayRows.length) return null;
 

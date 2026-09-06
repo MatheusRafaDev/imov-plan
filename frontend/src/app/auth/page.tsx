@@ -35,7 +35,9 @@ export default function AuthPage() {
 
   // Initialize Google Identity Services once
   useEffect(() => {
-    if (typeof window !== 'undefined' && !googleInitialized) {
+    if (typeof window === 'undefined' || googleInitialized) return;
+
+    const initGoogle = () => {
       const google = (window as any).google;
       if (google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
         google.accounts.id.initialize({
@@ -67,8 +69,21 @@ export default function AuthPage() {
           });
         }
 
-        setGoogleInitialized(true);
+        setTimeout(() => {
+          setGoogleInitialized(true);
+        }, 0);
+        return true;
       }
+      return false;
+    };
+
+    if (!initGoogle()) {
+      const intervalId = setInterval(() => {
+        if (initGoogle()) {
+          clearInterval(intervalId);
+        }
+      }, 200);
+      return () => clearInterval(intervalId);
     }
   }, [googleInitialized, loginWithGoogle, router]);
 
