@@ -478,10 +478,10 @@ export default function ObjetivoPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 pt-6">
-          <Button
+              <Button
                 onClick={salvar}
                 disabled={!isFormValidComplete || salvando}
-                className="w-full sm:w-auto h-12 px-8 bg-gradient-gold text-accent-foreground hover:opacity-90 shadow-glow font-bold"
+                className="w-full sm:w-auto h-12 px-8 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow"
               >
                 {salvando ? "Salvando..." : "Salvar e Continuar"} <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -490,15 +490,13 @@ export default function ObjetivoPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
-          <Card className="p-5 sm:p-8 shadow-elevated border border-white/[0.07] relative overflow-hidden group"
-            style={{ background: "linear-gradient(160deg, hsl(222 45% 10%) 0%, hsl(222 40% 14%) 100%)" }}>
-            <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full" style={{ background: "hsl(43 96% 58% / 0.08)", filter: "blur(40px)" }} />
-            <div className="absolute -left-5 -bottom-5 h-32 w-32 rounded-full" style={{ background: "hsl(210 100% 60% / 0.05)", filter: "blur(30px)" }} />
+          <Card className="p-5 sm:p-8 bg-gradient-ink text-primary-foreground shadow-elevated border-0 relative overflow-hidden group">
+            <div className="absolute -right-10 -top-10 h-40 w-40 bg-accent/20 rounded-full blur-3xl group-hover:bg-accent/30 transition-colors duration-700" />
 
             <div className="relative z-10">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold mb-2">Meta Total de Compra</p>
-              <p className="font-display text-5xl mt-2 mb-1 text-gradient-gold num">{brl(meta)}</p>
-              <p className="text-xs text-muted-foreground/70 mb-8">Entrada + Custos Extras</p>
+              <p className="text-sm uppercase tracking-widest text-primary-foreground/70 font-medium">Meta Total de Compra</p>
+              <p className="font-display text-5xl mt-2 mb-1">{brl(meta)}</p>
+              <p className="text-sm text-primary-foreground/60 mb-8">Soma da Entrada + Custos Extras</p>
 
               <div className="grid grid-cols-2 gap-4 sm:gap-6 pt-6 border-t border-white/10">
                 <div>
