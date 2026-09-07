@@ -157,6 +157,7 @@ builder.Services.AddAuthentication(options =>
 var mongoSettings = new MongoDbSettings();
 builder.Configuration.GetSection("MongoDbSettings").Bind(mongoSettings);
 var mongoClient = new MongoClient(mongoSettings.ConnectionString);
+builder.Services.AddSingleton<IMongoClient>(mongoClient);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMongoDB(mongoClient, mongoSettings.DatabaseName));
 

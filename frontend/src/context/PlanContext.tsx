@@ -1,3 +1,11 @@
+import { usePlanStore } from '@/store/usePlanStore';
+
+// NOTE: This is here to prevent crashes for users with old Service Worker caches
+// who have JS chunks that still reference usePlanContext.
+export const usePlanContext = () => {
+  return usePlanStore();
+};
+
 export type CenarioCompra = "entrada" | "pronto" | "planta";
 
 export type GastoDetalhado = {

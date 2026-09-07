@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using MongoDB.Driver;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Infrastructure.Data;
@@ -50,69 +52,54 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
-            // Limpa o tracker para evitar DbUpdateConcurrencyException
+            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
+            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+            var dbName = config["MongoDbSettings:DatabaseName"];
+            if (string.IsNullOrEmpty(dbName)) return;
+
+            var db = mongoClient.GetDatabase(dbName);
+            var historicosColl = db.GetCollection<HistoricoSimulacao>("HistoricosSimulacao");
+            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("EvolucoesMensaisSimulacao");
+
+            // Delete evolutions
+            var filterEvolucoes = MongoDB.Driver.Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, id);
+            await evolucoesColl.DeleteManyAsync(filterEvolucoes);
+
+            // Delete simulation
+            var filterHistorico = MongoDB.Driver.Builders<HistoricoSimulacao>.Filter.Eq(s => s.Id, id);
+            await historicosColl.DeleteOneAsync(filterHistorico);
+
+            // Clear tracker
             _context.ChangeTracker.Clear();
-
-            var evolucoes = await _context.EvolucoesMensaisSimulacao
-                .Where(e => e.SimulacaoId == id)
-                .ToListAsync();
-
-            if (evolucoes.Any())
-            {
-                _context.EvolucoesMensaisSimulacao.RemoveRange(evolucoes);
-                await _context.SaveChangesAsync();
-                _context.ChangeTracker.Clear();
-            }
-
-            var historico = await _context.HistoricosSimulacao
-                .FirstOrDefaultAsync(s => s.Id == id);
-
-            if (historico != null)
-            {
-                _context.HistoricosSimulacao.Remove(historico);
-                await _context.SaveChangesAsync();
-            }
         }
 
         public async Task DeleteAllByPlanejamentoIdAsync(string planejamentoId)
         {
-            // Limpa o tracker antes de comecar para evitar DbUpdateConcurrencyException.
-            // MongoDB EF Core nao suporta ExecuteDeleteAsync — unico caminho e
-            // ToList + RemoveRange + SaveChangesAsync, com tracker limpo a cada ciclo.
-            _context.ChangeTracker.Clear();
+            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
+            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+            var dbName = config["MongoDbSettings:DatabaseName"];
+            if (string.IsNullOrEmpty(dbName)) return;
 
-            var simIds = await _context.HistoricosSimulacao
-                .Where(s => s.PlanejamentoId == planejamentoId)
-                .Select(s => s.Id)
-                .ToListAsync();
+            var db = mongoClient.GetDatabase(dbName);
+            var historicosColl = db.GetCollection<HistoricoSimulacao>("HistoricosSimulacao");
+            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("EvolucoesMensaisSimulacao");
+
+            // Find all simulation IDs for this plan
+            var filterHistoricos = MongoDB.Driver.Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
+            var projection = MongoDB.Driver.Builders<HistoricoSimulacao>.Projection.Expression(s => s.Id);
+            var simIds = await historicosColl.Find(filterHistoricos).Project(projection).ToListAsync();
 
             if (!simIds.Any()) return;
 
-            // Deleta evolucoes por simulacao, salvando e limpando o tracker a cada lote
-            foreach (var simId in simIds)
-            {
-                var evolucoes = await _context.EvolucoesMensaisSimulacao
-                    .Where(e => e.SimulacaoId == simId)
-                    .ToListAsync();
+            // Delete all evolutions for these simulation IDs in one go
+            var filterEvolucoes = MongoDB.Driver.Builders<EvolucaoMensalSimulacao>.Filter.In(e => e.SimulacaoId, simIds);
+            await evolucoesColl.DeleteManyAsync(filterEvolucoes);
 
-                if (evolucoes.Any())
-                {
-                    _context.EvolucoesMensaisSimulacao.RemoveRange(evolucoes);
-                    await _context.SaveChangesAsync();
-                    _context.ChangeTracker.Clear();
-                }
-            }
+            // Delete the simulations
+            await historicosColl.DeleteManyAsync(filterHistoricos);
 
-            // Deleta os historicos de simulacao
-            var historicos = await _context.HistoricosSimulacao
-                .Where(s => s.PlanejamentoId == planejamentoId)
-                .ToListAsync();
-
-            if (historicos.Any())
-            {
-                _context.HistoricosSimulacao.RemoveRange(historicos);
-                await _context.SaveChangesAsync();
-            }
+            // Clear tracker so EF doesn't get confused
+            _context.ChangeTracker.Clear();
         }
 
         public async Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao)
