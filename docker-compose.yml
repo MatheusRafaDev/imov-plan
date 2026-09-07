@@ -9,6 +9,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    command: ["--wiredTigerCacheSizeGB", "0.25"]
+    mem_limit: 350m
     restart: unless-stopped
 
   backend:
@@ -31,6 +33,7 @@ services:
       - data_protection_keys:/root/.aspnet/DataProtection-Keys
     depends_on:
       - mongodb
+    mem_limit: 350m
     restart: unless-stopped
 
   frontend:
