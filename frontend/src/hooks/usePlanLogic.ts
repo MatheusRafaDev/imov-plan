@@ -18,14 +18,15 @@ export function usePlanLogic() {
   // 4. Combined Save Function with Debounce
   const saveDraftCore = async (patch?: Partial<typeof state>) => {
     try {
+      const currentState = usePlanStore.getState();
       const payload = {
-        objetivo: patch?.objetivo !== undefined ? patch.objetivo : state.objetivo,
-        pessoas: patch?.pessoas !== undefined ? patch.pessoas : state.pessoas,
-        bancoEscolhido: patch?.bancoEscolhido !== undefined ? patch.bancoEscolhido : state.bancoEscolhido,
-        aportesExtras: patch?.aportesExtras !== undefined ? patch.aportesExtras : state.aportesExtras,
-        aportesRegularesEditados: patch?.aportesRegularesEditados !== undefined ? patch.aportesRegularesEditados : state.aportesRegularesEditados,
-        aportesRegularesEditadosPorPessoa: patch?.aportesRegularesEditadosPorPessoa !== undefined ? patch.aportesRegularesEditadosPorPessoa : state.aportesRegularesEditadosPorPessoa,
-        mesesConcluidos: patch?.mesesConcluidos !== undefined ? patch.mesesConcluidos : state.mesesConcluidos,
+        objetivo: patch?.objetivo !== undefined ? patch.objetivo : currentState.objetivo,
+        pessoas: patch?.pessoas !== undefined ? patch.pessoas : currentState.pessoas,
+        bancoEscolhido: patch?.bancoEscolhido !== undefined ? patch.bancoEscolhido : currentState.bancoEscolhido,
+        aportesExtras: patch?.aportesExtras !== undefined ? patch.aportesExtras : currentState.aportesExtras,
+        aportesRegularesEditados: patch?.aportesRegularesEditados !== undefined ? patch.aportesRegularesEditados : currentState.aportesRegularesEditados,
+        aportesRegularesEditadosPorPessoa: patch?.aportesRegularesEditadosPorPessoa !== undefined ? patch.aportesRegularesEditadosPorPessoa : currentState.aportesRegularesEditadosPorPessoa,
+        mesesConcluidos: patch?.mesesConcluidos !== undefined ? patch.mesesConcluidos : currentState.mesesConcluidos,
       };
       
       // Format the payload to PlanoDraftPayload structure before sending
@@ -83,27 +84,30 @@ export function usePlanLogic() {
   };
 
   const calcularBackend = async (planoIdOverride?: string | null) => {
-    const idToUse = planoIdOverride || planoId;
-    if (!idToUse) return;
+    const currentState = usePlanStore.getState();
+    const idToUse = planoIdOverride || currentState.planoId;
+    if (!idToUse) {
+      throw new Error("Plano ainda não está disponível para calcular a simulação.");
+    }
     
     // Create the SimInput payload based on current state to match backend expectations
     const payload = {
       objetivoId: idToUse,
-      taxaCDI: state.objetivo?.taxaCdiAnual || 10.5,
-      percentualCdi: state.objetivo?.percentualCdi || 100,
-      aportesMensais: state.pessoas.map((p) => ({
+      taxaCDI: currentState.objetivo?.taxaCdiAnual || 10.5,
+      percentualCdi: currentState.objetivo?.percentualCdi || 100,
+      aportesMensais: currentState.pessoas.map((p) => ({
         pessoaId: p.id,
         valor: p.aporte_mensal
       })),
-      aportesExtras: state.aportesExtras.map((a) => ({
+      aportesExtras: currentState.aportesExtras.map((a) => ({
         pessoaId: a.pessoaId || '',
         valor: a.valor,
         data: a.data,
         origem: a.origem
       })),
-      aportesRegularesEditados: state.aportesRegularesEditados,
-      aportesRegularesEditadosPorPessoa: state.aportesRegularesEditadosPorPessoa,
-      cenario: state.cenarioSimulacao || "realista"
+      aportesRegularesEditados: currentState.aportesRegularesEditados,
+      aportesRegularesEditadosPorPessoa: currentState.aportesRegularesEditadosPorPessoa,
+      cenario: currentState.cenarioSimulacao || "realista"
     };
     
     await calcularSimulacao({ planoId: idToUse, payload });
