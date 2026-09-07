@@ -126,8 +126,12 @@ export function useSaveDraft() {
           // Criar um novo plano via POST como fallback
           if (status === 404 && usuarioId) {
             console.warn('[useSaveDraft] Plano não encontrado (404), criando novo plano...');
-            const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`, payload);
-            return data?.id ?? null;
+            const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`);
+            if (data?.id) {
+              await api.put(`/plano/draft/${data.id}`, payload);
+              return data.id;
+            }
+            return null;
           }
           // Outros erros (401, 500, rede): propagar para o caller lidar
           throw error;
@@ -136,8 +140,12 @@ export function useSaveDraft() {
         if (!usuarioId) {
           return null; // Usuário não autenticado, não chamar a API
         }
-        const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`, payload);
-        return data?.id ?? null;
+        const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`);
+        if (data?.id) {
+          await api.put(`/plano/draft/${data.id}`, payload);
+          return data.id;
+        }
+        return null;
       }
     },
     onSuccess: (newPlanoId, variables) => {
