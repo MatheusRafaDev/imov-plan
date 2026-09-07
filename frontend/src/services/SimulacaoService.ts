@@ -62,7 +62,7 @@ export class SimulacaoService {
   static async getUltimaSimulacao(planoId: string): Promise<BackendSimulacaoResult | null> {
     try {
       const response = await api.get(`/simulacao/${planoId}/ultima`);
-      return response.data;
+      return response.data || null;
     } catch (error: any) {
       if (error?.response?.status === 404) {
         return null;

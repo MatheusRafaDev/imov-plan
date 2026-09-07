@@ -50,7 +50,7 @@ namespace ImovPlan.API.Controllers
 
             var ultimoRegistro = await _historicoRepository.GetUltimoByPlanejamentoIdAsync(planoId);
             if (ultimoRegistro == null)
-                return NotFound(new { message = "Nenhuma simulação encontrada para este plano" });
+                return NoContent();
 
             var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
 
