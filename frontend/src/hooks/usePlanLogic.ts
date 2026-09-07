@@ -89,13 +89,24 @@ export function usePlanLogic() {
     const idToUse = planoIdOverride || planoId;
     if (!idToUse) return;
     
-    // Create the SimInput payload based on current state
+    // Create the SimInput payload based on current state to match backend expectations
     const payload = {
-      objetivo: state.objetivo,
-      pessoas: state.pessoas,
-      aportesExtras: state.aportesExtras,
+      objetivoId: idToUse,
+      taxaCDI: state.objetivo?.taxaCdiAnual || 10.5,
+      percentualCdi: state.objetivo?.percentualCdi || 100,
+      aportesMensais: state.pessoas.map((p) => ({
+        pessoaId: p.id,
+        valor: p.aporte_mensal
+      })),
+      aportesExtras: state.aportesExtras.map((a) => ({
+        pessoaId: a.pessoaId || '',
+        valor: a.valor,
+        data: a.data,
+        origem: a.origem
+      })),
       aportesRegularesEditados: state.aportesRegularesEditados,
       aportesRegularesEditadosPorPessoa: state.aportesRegularesEditadosPorPessoa,
+      cenario: state.cenarioSimulacao || "realista"
     };
     
     await calcularSimulacao({ planoId: idToUse, payload });
