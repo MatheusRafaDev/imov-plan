@@ -107,6 +107,7 @@ export function usePlanDraft(planoId: string | null) {
     enabled: !!planoId || !!usuarioId,
     retry: false,       // Não repetir em caso de 404/403
     throwOnError: false, // Não marcar como isError — erros são tratados no queryFn
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -148,7 +149,7 @@ export function useSaveDraft() {
         return null;
       }
     },
-    onSuccess: (newPlanoId, variables) => {
+    onSuccess: (newPlanoId) => {
       if (newPlanoId) {
         Cookies.set("imovplan_planoId", newPlanoId, { expires: 30 });
       }

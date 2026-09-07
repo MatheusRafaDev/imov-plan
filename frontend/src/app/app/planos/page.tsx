@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanos, useCriarPlano, useExcluirPlano, useRenomearPlano } from "@/hooks/usePlanos";
 import Cookies from "js-cookie";
 import { Card } from "@/components/ui/card";
@@ -13,16 +12,14 @@ import { Building2, Plus, Trash2, CheckCircle2, Loader2, ArrowRight, TrendingUp,
 import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
 
 export default function PlanosPage() {
-  const { planoId } = usePlanLogic();
-  const { data: planos = [], isLoading: carregandoPlanos, refetch: carregarListaPlanos } = usePlanos();
+  const planoId = Cookies.get("imovplan_planoId") || null;
+  const { data: planos = [], isLoading: carregandoPlanos } = usePlanos();
   const { mutateAsync: criarNovoPlano } = useCriarPlano();
   const { mutateAsync: excluirPlano } = useExcluirPlano();
   const { mutateAsync: renomearPlanoArgs } = useRenomearPlano();
 
-  const trocarPlanoAtivo = async (id: string) => {
+  const trocarPlanoAtivo = (id: string) => {
     Cookies.set("imovplan_planoId", id, { expires: 30 });
-    // Reload to apply the new planoId globally
-    window.location.reload();
   };
 
   const renomearPlano = async (id: string, novoNome: string) => {
@@ -46,11 +43,8 @@ export default function PlanosPage() {
   const [carregandoSimulacoes, setCarregandoSimulacoes] = useState(false);
 
   useEffect(() => {
-    carregarListaPlanos();
-  }, [carregarListaPlanos]);
-
-  useEffect(() => {
     if (planos.length > 0) {
+      let active = true;
       const fetchSimulacoes = async () => {
         setCarregandoSimulacoes(true);
         const simMap: Record<string, BackendSimulacaoResult> = {};
@@ -66,10 +60,15 @@ export default function PlanosPage() {
             }
           })
         );
-        setSimulacoes(simMap);
-        setCarregandoSimulacoes(false);
+        if (active) {
+          setSimulacoes(simMap);
+          setCarregandoSimulacoes(false);
+        }
       };
       fetchSimulacoes();
+      return () => {
+        active = false;
+      };
     }
   }, [planos]);
 
@@ -80,7 +79,7 @@ export default function PlanosPage() {
     }
     setTrocando(id);
     try {
-      await trocarPlanoAtivo(id);
+      trocarPlanoAtivo(id);
       router.push("/app/imovel");
     } finally {
       setTrocando(null);
@@ -345,7 +344,7 @@ export default function PlanosPage() {
               Excluir plano
             </h3>
             <p className="text-muted-foreground mb-6">
-              Tem certeza que deseja excluir o plano <strong className="text-foreground">"{planoAExcluir.nome}"</strong>? Essa ação não pode ser desfeita.
+              Tem certeza que deseja excluir o plano <strong className="text-foreground">&quot;{planoAExcluir.nome}&quot;</strong>? Essa ação não pode ser desfeita.
             </p>
             <div className="flex items-center justify-end gap-3">
               <Button variant="outline" onClick={() => setPlanoAExcluir(null)} disabled={excluindo === planoAExcluir.id}>

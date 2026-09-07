@@ -24,5 +24,6 @@ namespace ImovPlan.Application.Services.Interfaces
 
         /// <summary>Vincula um plano ainda sem dono (criado como convidado) à conta recém-criada/logada.</summary>
         Task<bool> LinkPlanoToUserAsync(string id, string usuarioId);
+        Task<bool> RenomearPlanoAsync(string id, string nome, string usuarioIdAutenticado);
     }
 }

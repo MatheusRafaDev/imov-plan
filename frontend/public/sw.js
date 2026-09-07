@@ -5,8 +5,8 @@
 //   - Resto: stale-while-revalidate
 //   - /api/*: nunca intercepta (passa direto para a rede)
 
-const CACHE_NAME = "imovplan-v2";
-const STATIC_CACHE = "imovplan-static-v2";
+const CACHE_NAME = "imovplan-v4";
+const STATIC_CACHE = "imovplan-static-v4";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = [OFFLINE_URL];
@@ -48,9 +48,12 @@ self.addEventListener("fetch", (event) => {
   // Nunca interceptar chamadas de API ou imagens externas do Unsplash (evita problema de CSP)
   if (url.pathname.startsWith("/api/") || url.hostname.includes("unsplash.com")) return;
 
-  // Assets estáticos do Next.js → cache-first
+  // Ignorar requisições de dados do Next.js (RSC, _next/data) para evitar carregar pedaços (chunks) antigos
+  if (request.headers.get("RSC") === "1" || url.pathname.startsWith("/_next/data/")) return;
+
+  // O Next.js gera nomes de chunks por build. O service worker não deve
+  // servir um chunk antigo para um HTML de outra versão.
   if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
@@ -65,17 +68,6 @@ self.addEventListener("fetch", (event) => {
 });
 
 // ── Strategies ───────────────────────────────────────────────────────────────
-
-async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
-  if (cached) return cached;
-  const response = await fetch(request);
-  if (response.ok) {
-    const cache = await caches.open(cacheName);
-    cache.put(request, response.clone());
-  }
-  return response;
-}
 
 async function networkFirstNavigate(request) {
   try {

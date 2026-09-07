@@ -20,13 +20,12 @@ function LancarAporteContent() {
     setAportesRegularesEditadosPorPessoa,
     mesesConcluidos,
     setMesesConcluidos,
-    saveDraft,
     salvarPlano,
     backendData,
     calculating,
   } = usePlanLogic();
 
-  const detalhes = backendData?.detalhesMensais ?? [];
+  const detalhes = useMemo(() => backendData?.detalhesMensais ?? [], [backendData?.detalhesMensais]);
 
   // Mês sugerido: o primeiro que ainda não foi marcado como concluído (ignorando o mês 0 / início)
   const mesSugerido = useMemo(() => {
@@ -39,9 +38,11 @@ function LancarAporteContent() {
     return candidato?.mes ?? (detalhes.length ? detalhes[detalhes.length - 1].mes : 1);
   }, [detalhes, mesesConcluidos, mesQuery]);
 
-  const [mesAtual, setMesAtual] = useState<number | null>(null);
+  const [mesAtual, setMesAtual] = useState<number | null>(() => mesSugerido);
   useEffect(() => {
-    if (mesAtual === null && detalhes.length) setMesAtual(mesSugerido);
+    if (mesAtual !== null || !detalhes.length) return;
+    const timer = window.setTimeout(() => setMesAtual(mesSugerido), 0);
+    return () => window.clearTimeout(timer);
   }, [mesSugerido, mesAtual, detalhes.length]);
 
   const [saving, setSaving] = useState(false);
@@ -60,9 +61,33 @@ function LancarAporteContent() {
       const doMes = linhaMes.participantes?.find((pp) => pp.participanteId === p.id);
       iniciais[p.id] = (doMes?.aporteMensal ?? Number(p.aporte_mensal)) || 0;
     });
-    setValores(iniciais);
-    setMetaDepois(null);
+    const timer = window.setTimeout(() => {
+      setValores(iniciais);
+      setMetaDepois(null);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [mesAtual, linhaMes, pessoas]);
+
+  useEffect(() => {
+    if (metaAntes === null || calculating) return;
+    const depois = backendData?.dataPrevistaAlvo ?? null;
+    if (!depois) return;
+
+    const timer = window.setTimeout(() => {
+      if (depois !== metaAntes) {
+        setMetaDepois({ data: depois, mesmoMes: false });
+        toast.success(
+          `Meta ajustada: prevista agora para ${new Date(depois).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })}`,
+          { id: "ajuste-meta" }
+        );
+      } else {
+        setMetaDepois({ data: depois, mesmoMes: true });
+        toast.success("Sem impacto na data da meta", { id: "ajuste-meta" });
+      }
+      setMetaAntes(null);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [backendData?.dataPrevistaAlvo, calculating, metaAntes]);
 
   if (!detalhes.length || mesAtual === null) {
     return (
@@ -129,24 +154,6 @@ function LancarAporteContent() {
     }
   };
 
-
-  useEffect(() => {
-    if (metaAntes === null || calculating) return;
-    const depois = backendData?.dataPrevistaAlvo ?? null;
-    if (!depois) return;
-    if (depois !== metaAntes) {
-      setMetaDepois({ data: depois, mesmoMes: false });
-      toast.success(
-        `Meta ajustada: prevista agora para ${new Date(depois).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })}`,
-        { id: "ajuste-meta" }
-      );
-    } else {
-      setMetaDepois({ data: depois, mesmoMes: true });
-      toast.success("Sem impacto na data da meta", { id: "ajuste-meta" });
-    }
-    setMetaAntes(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backendData?.dataPrevistaAlvo, calculating]);
 
   return (
     <div className="max-w-screen-sm w-full mx-auto space-y-6 px-4 sm:px-6 py-6">

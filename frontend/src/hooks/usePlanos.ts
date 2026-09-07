@@ -19,10 +19,12 @@ export function usePlanos() {
     queryKey: ['planos', usuarioId],
     queryFn: async () => {
       if (!usuarioId) return [];
-      const { data } = await api.get<PlanoResumo[]>(`/plano/user/${usuarioId}/todos`);
+      const { data } = await api.get<PlanoResumo[]>("/plano/todos");
       return data;
     },
     enabled: !!usuarioId,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

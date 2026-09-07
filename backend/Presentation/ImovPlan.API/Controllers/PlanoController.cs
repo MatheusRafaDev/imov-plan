@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
@@ -75,6 +76,17 @@ namespace ImovPlan.API.Controllers
             return Ok(planos);
         }
 
+        [HttpGet("todos")]
+        public async Task<IActionResult> GetTodosPlanosDoUsuarioAutenticado()
+        {
+            var usuarioIdClaim = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioIdClaim))
+                return Unauthorized(new { message = "Não autorizado." });
+
+            var planos = await _planoService.GetTodosResumosByUsuarioIdAsync(usuarioIdClaim);
+            return Ok(planos);
+        }
+
         [HttpPost("user/{usuarioId}/novo")]
         public async Task<IActionResult> CriarNovoPlano(string usuarioId)
         {
@@ -94,6 +106,23 @@ namespace ImovPlan.API.Controllers
                 return Unauthorized();
 
             var success = await _planoService.DeletePlanoAsync(id, usuarioIdClaim);
+            if (!success)
+                return NotFound(new { message = "Plano não encontrado ou não autorizado." });
+
+            return Ok();
+        }
+
+        [HttpPatch("{id}/nome")]
+        public async Task<IActionResult> RenomearPlano(string id, [FromBody] string nome)
+        {
+            var usuarioIdClaim = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioIdClaim))
+                return Unauthorized(new { message = "Autenticação é obrigatória." });
+
+            if (string.IsNullOrWhiteSpace(nome))
+                return BadRequest(new { message = "O nome do plano é obrigatório." });
+
+            var success = await _planoService.RenomearPlanoAsync(id, nome, usuarioIdClaim);
             if (!success)
                 return NotFound(new { message = "Plano não encontrado ou não autorizado." });
 

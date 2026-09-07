@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface DateInputProps {
   value: string; // ISO format (yyyy-mm-dd)
@@ -56,8 +56,17 @@ export function DateInput({ value, onChange, className, placeholder = "DD/MM/AAA
       const year = rawValue.slice(4);
       const iso = `${year}-${month}-${day}`;
       // Basic validation
-      const d = new Date(iso);
-      if (!isNaN(d.getTime()) && iso.startsWith(year) && Number(month) >= 1 && Number(month) <= 12 && Number(day) >= 1 && Number(day) <= 31) {
+      const numericYear = Number(year);
+      const numericMonth = Number(month);
+      const numericDay = Number(day);
+      const daysInMonth = new Date(Date.UTC(numericYear, numericMonth, 0)).getUTCDate();
+      if (
+        numericYear >= 1000 &&
+        numericMonth >= 1 &&
+        numericMonth <= 12 &&
+        numericDay >= 1 &&
+        numericDay <= daysInMonth
+      ) {
         onChange(iso);
       } else {
         setError(true);

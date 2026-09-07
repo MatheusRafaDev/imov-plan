@@ -99,6 +99,20 @@ namespace ImovPlan.Application.Services
             return true;
         }
 
+        public async Task<bool> RenomearPlanoAsync(string id, string nome, string usuarioIdAutenticado)
+        {
+            if (string.IsNullOrWhiteSpace(nome))
+                return false;
+
+            var planejamento = await _planejamentoRepo.GetByIdAsync(id);
+            if (planejamento == null || planejamento.UsuarioId != usuarioIdAutenticado)
+                return false;
+
+            planejamento.NomePlano = nome.Trim();
+            await _planejamentoRepo.UpdateAsync(id, planejamento);
+            return true;
+        }
+
         public async Task<PlanoDraftDto> GetOrCreateDraftForUserAsync(string usuarioId)
         {
             // Reutiliza o plano existente do usuário, se houver, em vez de criar um novo.

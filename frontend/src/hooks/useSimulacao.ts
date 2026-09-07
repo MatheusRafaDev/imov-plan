@@ -9,6 +9,7 @@ export function useUltimaSimulacao(planoId: string | null) {
       return await SimulacaoService.getUltimaSimulacao(planoId);
     },
     enabled: !!planoId,
+    retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 }
