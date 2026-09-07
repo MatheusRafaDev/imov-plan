@@ -22,16 +22,33 @@ export function usePlanDraft(planoId: string | null) {
     queryFn: async () => {
       let draftData = null;
       
-      if (planoId) {
-        const { data, status } = await api.get(`/plano/draft/${planoId}`);
-        if (status === 200 && data) {
-          draftData = data;
+      try {
+        if (planoId) {
+          const { data, status } = await api.get(`/plano/draft/${planoId}`);
+          // 200 com dados: plano encontrado
+          // 204 No Content: plano existe mas sem dados (tratado como null)
+          if ((status === 200 || status === 204) && data) {
+            draftData = data;
+          }
+        } else if (usuarioId) {
+          const { data, status } = await api.get(`/plano/user/${usuarioId}`);
+          // 200 com dados: draft encontrado para o usuário
+          // 204 No Content: usuário autenticado mas ainda não tem plano
+          if ((status === 200 || status === 204) && data) {
+            draftData = data;
+          }
         }
-      } else if (usuarioId) {
-        const { data, status } = await api.get(`/plano/user/${usuarioId}`);
-        if (status === 200 && data) {
-          draftData = data;
+      } catch (error: any) {
+        const status = error?.response?.status;
+        // 404: plano/usuário não encontrado — usuário novo, tratar como "sem draft"
+        // 403/401: problema de autorização — não criar dados, apenas retornar null
+        // Qualquer outro erro (500, rede): também retornar null para não quebrar a UI
+        if (status === 404 || status === 403 || status === 401) {
+          return null;
         }
+        // Erro inesperado: logar mas não propagar (não quebrar a UI)
+        console.warn('[usePlanDraft] Erro ao carregar draft, continuando sem dados:', status || error?.message);
+        return null;
       }
 
       if (draftData) {
@@ -88,7 +105,8 @@ export function usePlanDraft(planoId: string | null) {
       return draftData;
     },
     enabled: !!planoId || !!usuarioId,
-    retry: false, // Don't retry 404s
+    retry: false,       // Não repetir em caso de 404/403
+    throwOnError: false, // Não marcar como isError — erros são tratados no queryFn
   });
 }
 
@@ -99,14 +117,27 @@ export function useSaveDraft() {
   return useMutation({
     mutationFn: async ({ planoId, payload }: { planoId: string | null; payload: any }) => {
       if (planoId) {
-        await api.put(`/plano/draft/${planoId}`, payload);
-        return planoId;
+        try {
+          await api.put(`/plano/draft/${planoId}`, payload);
+          return planoId;
+        } catch (error: any) {
+          const status = error?.response?.status;
+          // 404: plano não existe mais no servidor (foi deletado ou cookie desatualizado)
+          // Criar um novo plano via POST como fallback
+          if (status === 404 && usuarioId) {
+            console.warn('[useSaveDraft] Plano não encontrado (404), criando novo plano...');
+            const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`, payload);
+            return data?.id ?? null;
+          }
+          // Outros erros (401, 500, rede): propagar para o caller lidar
+          throw error;
+        }
       } else {
         if (!usuarioId) {
-          return null; // The user is not authenticated, do not call API.
+          return null; // Usuário não autenticado, não chamar a API
         }
         const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`, payload);
-        return data.id;
+        return data?.id ?? null;
       }
     },
     onSuccess: (newPlanoId, variables) => {

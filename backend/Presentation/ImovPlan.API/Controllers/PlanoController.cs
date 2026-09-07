@@ -28,12 +28,18 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> GetDraftByUsuario(string usuarioId)
         {
             var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim) || !usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
-                return NotFound(new { message = "Não encontrado." });
+            if (string.IsNullOrEmpty(usuarioIdClaim))
+                return Unauthorized(new { message = "Não autorizado." });
+
+            // Retorna Forbid (403) em vez de NotFound para mismatch de userId.
+            // NotFound induziria o frontend a criar um novo plano quando na verdade
+            // é um problema de autorização (IDs não coincidem).
+            if (!usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
+                return Forbid();
 
             var draft = await _planoService.GetDraftByUsuarioIdAsync(usuarioId);
             if (draft == null)
-                return NoContent();
+                return NoContent(); // Usuário existe mas ainda não tem plano — frontend trata como "criar novo"
 
             return Ok(draft);
         }
@@ -42,10 +48,17 @@ namespace ImovPlan.API.Controllers
         public async Task<IActionResult> GetOrCreateDraftForUser([FromQuery] string usuarioId)
         {
             var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim) || !usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
-                return NotFound(new { message = "Não encontrado." });
+            if (string.IsNullOrEmpty(usuarioIdClaim))
+                return Unauthorized(new { message = "Não autorizado." });
+
+            // Retorna Forbid (403) em vez de NotFound para mismatch de userId.
+            if (!usuarioIdClaim.Equals(usuarioId, StringComparison.OrdinalIgnoreCase))
+                return Forbid();
 
             var draft = await _planoService.GetOrCreateDraftForUserAsync(usuarioId);
+            if (draft == null)
+                return StatusCode(500, new { message = "Erro ao criar plano padrão." });
+
             return Ok(draft);
         }
 

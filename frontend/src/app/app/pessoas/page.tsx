@@ -88,13 +88,24 @@ export default function PessoasPage() {
   }, [user, pessoas.length, setPessoas, planoId, saveDraft, totalObjetivo]);
 
   const prosseguir = async () => {
-    const savedId = await salvarPlano();
-    if (savedId) {
-      if (!savedId.startsWith("local-draft")) {
-        await calcularBackend(savedId);
+    try {
+      const savedId = await salvarPlano();
+      // usa != null para também capturar undefined (falha silenciosa)
+      if (savedId != null) {
+        if (!savedId.startsWith("local-draft")) {
+          // Cálculo da simulação não deve bloquear a navegação
+          try {
+            await calcularBackend(savedId);
+          } catch (calcErr) {
+            console.warn("[prosseguir] Erro ao calcular simulação (não crítico):", calcErr);
+          }
+        }
+        router.push("/app/planejamento");
+      } else {
+        toast.error("Erro ao salvar os dados. Tente novamente.");
       }
-      router.push("/app/planejamento");
-    } else {
+    } catch (error) {
+      console.error("[prosseguir] Erro inesperado ao salvar:", error);
       toast.error("Erro ao salvar os dados. Tente novamente.");
     }
   };

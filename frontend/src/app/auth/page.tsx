@@ -203,19 +203,35 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
-      <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
-        <Link href="/" className="flex items-center gap-2 mb-6 sm:mb-8 w-fit transition-transform hover:scale-105">
-          <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
-            <Building2 className="h-4 w-4 text-accent-foreground" />
-          </div>
-          <span className="font-display text-xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
-        </Link>
-        <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95">
-          <h2 className="font-display text-xl sm:text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-            {isLogin ? "Acesse seu planejamento." : "Comece a planejar a entrada do seu imóvel."}
-          </p>
+    <div className="min-h-screen grid lg:grid-cols-2 animate-fade-in" style={{ background: "hsl(var(--background))" }}>
+
+      {/* Left: Form */}
+      <div className="relative flex flex-col justify-center p-6 sm:p-10 lg:p-14">
+        {/* Ambient glow */}
+        <div className="absolute top-0 left-0 w-96 h-96 orb orb-gold opacity-30" style={{ top: "-5rem", left: "-5rem" }} />
+
+        <div className="relative max-w-sm mx-auto w-full space-y-8">
+          {/* Logo */}
+          <Link href="/" className="inline-flex items-center gap-2.5 group w-fit">
+            <div className="relative h-9 w-9">
+              <div className="absolute inset-0 rounded-xl bg-gradient-gold opacity-30 blur-sm group-hover:opacity-50 transition-opacity" />
+              <div className="relative h-9 w-9 rounded-xl bg-gradient-gold grid place-items-center shadow-glow-sm">
+                <Building2 className="h-4.5 w-4.5 text-accent-foreground" strokeWidth={2.5} />
+              </div>
+            </div>
+            <span className="font-display text-xl font-bold tracking-tight">
+              Imov<span className="text-gradient-gold">.</span>Plan
+            </span>
+          </Link>
+
+          {/* Card */}
+          <div className="glass border border-white/[0.09] rounded-2xl p-7 sm:p-8 shadow-elevated">
+            <h2 className="font-display text-2xl font-bold mb-1.5">
+              {isLogin ? "Bem-vindo de volta" : "Criar conta gratuita"}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-7">
+              {isLogin ? "Acesse seu planejamento de imóvel." : "Comece a planejar a entrada do seu imóvel."}
+            </p>
 
           {generalError && (
             <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs sm:text-sm flex items-start gap-2 sm:gap-3 animate-fade-in">
@@ -390,7 +406,11 @@ export default function AuthPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full mt-4 h-10 sm:h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-sm sm:text-base" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full mt-4 h-12 bg-gradient-gold text-accent-foreground hover:opacity-95 shadow-glow font-bold text-sm"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin-smooth" />
@@ -416,13 +436,50 @@ export default function AuthPage() {
               {isLogin ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
             </button>
           </div>
-        </Card>
+          </div>
+        </div>
       </div>
-      <div className="hidden lg:flex flex-col justify-center items-center p-8 lg:p-12 bg-gradient-ink text-primary-foreground relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
-        <div className="relative z-10 max-w-md text-center space-y-4">
-          <h2 className="font-display text-3xl sm:text-4xl leading-tight font-semibold">A chave do seu imóvel mais perto do que você imagina.</h2>
-          <p className="text-primary-foreground/70 text-sm sm:text-base">O Imov.Plan ajuda você a organizar a vida financeira para realizar o sonho do imóvel próprio, de forma simples e visual.</p>
+
+      {/* Right: Marketing panel */}
+      <div className="hidden lg:flex flex-col justify-center items-center p-12 relative overflow-hidden"
+        style={{ background: "hsl(222 45% 5%)" }}>
+        {/* Background photo */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-[0.07] mix-blend-luminosity"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop')" }}
+        />
+        {/* Orbs */}
+        <div className="orb orb-gold w-[500px] h-[500px] -top-32 -right-32 opacity-20" style={{ position: "absolute" }} />
+        <div className="orb orb-blue w-[400px] h-[400px] bottom-0 -left-24 opacity-15" style={{ position: "absolute" }} />
+
+        {/* Content */}
+        <div className="relative z-10 max-w-sm text-center space-y-6">
+          <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-accent bg-accent/10 border border-accent/20 px-3.5 py-1.5 rounded-full">
+            <Building2 className="h-3 w-3" />
+            Planejamento financeiro
+          </div>
+          <h2 className="font-display text-4xl leading-tight font-bold">
+            A chave do seu imóvel mais perto do que você{" "}
+            <span className="text-gradient-gold">imagina.</span>
+          </h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Organize sua vida financeira, simule cenários com CDI real e descubra exatamente quando estará pronto para comprar.
+          </p>
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 pt-4">
+            {[
+              { value: "CDI", desc: "Simulação com taxa real" },
+              { value: "IR", desc: "Cálculo regressivo" },
+              { value: "100%", desc: "Gratuito e seguro" },
+              { value: "Auto", desc: "Rascunho na nuvem" },
+            ].map(({ value, desc }) => (
+              <div key={desc} className="rounded-xl border border-white/[0.07] p-3.5 text-left"
+                style={{ background: "hsl(222 40% 9% / 0.7)" }}>
+                <p className="font-display text-xl font-bold text-accent">{value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

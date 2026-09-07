@@ -118,12 +118,12 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
     return (
       <div className="relative w-full">
         {variant === "money" && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base md:text-sm font-medium">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-accent/80 text-sm font-bold select-none">
             R$
           </span>
         )}
         {variant === "percent" && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base md:text-sm font-medium">
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold select-none">
             %
           </span>
         )}
@@ -133,8 +133,8 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
           inputMode="numeric"
           placeholder={placeholder}
           className={cn(
-            "num text-right font-medium",
-            variant === "money" && "pl-9",
+            "num text-right font-semibold text-base",
+            variant === "money" && "pl-10",
             variant === "percent" && "pr-8",
             hasError && "input-error border-destructive focus-visible:ring-destructive",
             className,
@@ -146,7 +146,8 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
           {...rest}
         />
         {hasError && (
-          <p className="text-xs text-destructive mt-1 animate-fade-in-up" style={{ animationDuration: "0.2s" }}>
+          <p className="text-xs text-destructive mt-1 flex items-center gap-1 animate-fade-in-up" style={{ animationDuration: "0.2s" }}>
+            <span>⚠</span>
             {getErrorMessage()}
           </p>
         )}
