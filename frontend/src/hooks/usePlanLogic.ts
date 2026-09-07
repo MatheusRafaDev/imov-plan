@@ -2,17 +2,14 @@ import { usePlanStore } from '@/store/usePlanStore';
 import { useSaveDraft, usePlanDraft } from '@/hooks/usePlanDraft';
 import { useCalcularSimulacao, useUltimaSimulacao } from '@/hooks/useSimulacao';
 import { useDebouncedCallback } from 'use-debounce';
-import Cookies from 'js-cookie';
 
 export function usePlanLogic() {
-  const planoId = Cookies.get("imovplan_planoId") || null;
-  
-  // 1. Data Fetching (Queries)
-  const { data: draftData, isLoading: isDraftLoading } = usePlanDraft(planoId);
-  const { data: simulacaoData, isLoading: isSimulacaoLoading } = useUltimaSimulacao(planoId);
-  
-  // 2. Local State (Zustand)
   const state = usePlanStore();
+  const planoId = state.planoId;
+
+  // 1. Data Fetching (Queries)
+  const { isLoading: isDraftLoading } = usePlanDraft(planoId);
+  const { data: simulacaoData, isLoading: isSimulacaoLoading } = useUltimaSimulacao(planoId);
   
   // 3. Mutations
   const { mutateAsync: saveDraftMutation } = useSaveDraft();

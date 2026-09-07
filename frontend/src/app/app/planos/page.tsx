@@ -3,23 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlanos, useCriarPlano, useExcluirPlano, useRenomearPlano } from "@/hooks/usePlanos";
-import Cookies from "js-cookie";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
 import { toast } from "sonner";
 import { Building2, Plus, Trash2, CheckCircle2, Loader2, ArrowRight, TrendingUp, Clock, Zap, Edit2, Check, X } from "lucide-react";
 import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
+import { usePlanStore } from "@/store/usePlanStore";
 
 export default function PlanosPage() {
-  const planoId = Cookies.get("imovplan_planoId") || null;
+  const planoId = usePlanStore((state) => state.planoId);
+  const setPlanoId = usePlanStore((state) => state.setPlanoId);
   const { data: planos = [], isLoading: carregandoPlanos } = usePlanos();
   const { mutateAsync: criarNovoPlano } = useCriarPlano();
   const { mutateAsync: excluirPlano } = useExcluirPlano();
   const { mutateAsync: renomearPlanoArgs } = useRenomearPlano();
 
   const trocarPlanoAtivo = (id: string) => {
-    Cookies.set("imovplan_planoId", id, { expires: 30 });
+    setPlanoId(id);
   };
 
   const renomearPlano = async (id: string, novoNome: string) => {

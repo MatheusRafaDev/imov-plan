@@ -16,6 +16,7 @@ function obterIdUsuario(): string | null {
 export function usePlanDraft(planoId: string | null) {
   const usuarioId = obterIdUsuario();
   const hydrate = usePlanStore((state) => state.hydrate);
+  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: ['planDraft', planoId || usuarioId],
@@ -52,6 +53,10 @@ export function usePlanDraft(planoId: string | null) {
       }
 
       if (draftData) {
+        if (draftData.id && !planoId) {
+          queryClient.setQueryData(['planDraft', draftData.id], draftData);
+        }
+
         // Transform the backend draft data to fit the store (similar to aplicarDados)
         const mappedData = {
           objetivo: draftData.objetivo ? {
@@ -98,7 +103,7 @@ export function usePlanDraft(planoId: string | null) {
         hydrate(mappedData);
 
         if (draftData.id) {
-          Cookies.set("imovplan_planoId", draftData.id, { expires: 30 });
+          hydrate({ planoId: draftData.id });
         }
       }
 
@@ -114,6 +119,7 @@ export function usePlanDraft(planoId: string | null) {
 export function useSaveDraft() {
   const queryClient = useQueryClient();
   const usuarioId = obterIdUsuario();
+  const setPlanoId = usePlanStore((state) => state.setPlanoId);
 
   return useMutation({
     mutationFn: async ({ planoId, payload }: { planoId: string | null; payload: any }) => {
@@ -151,7 +157,7 @@ export function useSaveDraft() {
     },
     onSuccess: (newPlanoId) => {
       if (newPlanoId) {
-        Cookies.set("imovplan_planoId", newPlanoId, { expires: 30 });
+        setPlanoId(newPlanoId);
       }
       queryClient.invalidateQueries({ queryKey: ['planDraft'] });
       queryClient.invalidateQueries({ queryKey: ['planos', usuarioId] });

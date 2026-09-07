@@ -45,35 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearAllData = () => {
     setUser(null);
     const allCookies = Cookies.get();
-    const cookieKeysToRemove = ["user", "imovplan_planoId"];
+    const cookieKeysToRemove = ["user"];
     for (const cookieName in allCookies) {
       if (cookieKeysToRemove.includes(cookieName) || cookieName.startsWith("imovplan_")) {
         Cookies.remove(cookieName);
         Cookies.remove(cookieName, { path: "/" });
       }
-    }
-    if (typeof window !== "undefined") {
-      // Remove only app-specific keys from localStorage
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (!key) continue;
-        if (key === "user" || key.startsWith("imovplan_")) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
-
-      // Likewise for sessionStorage
-      const sessionKeysToRemove: string[] = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (!key) continue;
-        if (key === "user" || key.startsWith("imovplan_")) {
-          sessionKeysToRemove.push(key);
-        }
-      }
-      sessionKeysToRemove.forEach((k) => sessionStorage.removeItem(k));
     }
   };
 
@@ -135,22 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       Cookies.set("user", JSON.stringify(userData), { expires: 7 });
 
-      // If they had a local guest plan, link it to their new account
-      const localPlanoId = Cookies.get("imovplan_planoId");
-      if (localPlanoId && !localPlanoId.startsWith("local-draft-")) {
-        try {
-          await api.post(`/plano/${localPlanoId}/link-user?usuarioId=${userData.id}`);
-        } catch (e: any) {
-          // If the plan does not exist (404), it's likely a new user without a prior draft.
-          // Treat this as non-fatal and continue the registration flow.
-          if (e?.response?.status === 404) {
-            console.warn('Plano não encontrado ao vincular ao usuário; continuará sem vínculo.');
-          } else {
-            console.error('Falha ao vincular plano à conta', e);
-          }
-        }
-      }
-
       dispatchAuthEvent();
       return { success: true };
     } catch (err: any) {
@@ -190,20 +151,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       Cookies.set("user", JSON.stringify(userData), { expires: 7 });
       
-      // If they had a local guest plan, link it to their new account
-      const localPlanoId = Cookies.get("imovplan_planoId");
-      if (localPlanoId && !localPlanoId.startsWith("local-draft-")) {
-        try {
-          await api.post(`/plano/${localPlanoId}/link-user?usuarioId=${userData.id}`);
-        } catch (e: any) {
-          if (e?.response?.status === 404) {
-            console.warn('Plano não encontrado ao vincular ao usuário; continuará sem vínculo.');
-          } else {
-            console.error('Falha ao vincular plano à conta', e);
-          }
-        }
-      }
-
       dispatchAuthEvent();
       return { success: true };
     } catch (err: any) {

@@ -5,6 +5,7 @@ import type { Pessoa, Banco } from '@/context/PlanContext';
 export type CenarioCompra = "entrada" | "pronto" | "planta";
 
 interface PlanState {
+  planoId: string | null;
   objetivo: Partial<SimInput> | null;
   pessoas: Pessoa[];
   aportesExtras: Aporte[];
@@ -17,6 +18,7 @@ interface PlanState {
 
   // Setters
   setObjetivo: (objetivo: Partial<SimInput> | null | ((prev: Partial<SimInput> | null) => Partial<SimInput> | null)) => void;
+  setPlanoId: (planoId: string | null) => void;
   setPessoas: (pessoas: Pessoa[] | ((prev: Pessoa[]) => Pessoa[])) => void;
   setAportesExtras: (aportes: Aporte[] | ((prev: Aporte[]) => Aporte[])) => void;
   setBancoEscolhido: (banco: Banco | null | ((prev: Banco | null) => Banco | null)) => void;
@@ -34,6 +36,7 @@ interface PlanState {
 }
 
 const initialState = {
+  planoId: null as string | null,
   objetivo: null,
   pessoas: [],
   aportesExtras: [],
@@ -48,6 +51,7 @@ const initialState = {
 export const usePlanStore = create<PlanState>()((set) => ({
   ...initialState,
 
+  setPlanoId: (planoId) => set({ planoId }),
   setObjetivo: (update) => set((state) => ({
     objetivo: typeof update === 'function' ? update(state.objetivo) : update
   })),
