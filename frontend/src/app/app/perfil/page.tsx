@@ -108,6 +108,8 @@ export default function PerfilPage() {
     }
   };
 
+  if (!user) return null;
+
   if (loadingProfile) {
     return (
       <div className="grid place-items-center py-24">
