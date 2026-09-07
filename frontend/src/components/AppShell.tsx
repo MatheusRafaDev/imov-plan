@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid } from "lucide-react";
+import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 export const navPorCenario = {
   entrada: [
     { to: "/app/imovel", icon: Building2, label: "Imóvel" },
-    { to: "/app/pessoas", icon: Users, label: "Perfil" },
+    { to: "/app/pessoas", icon: Users, label: "Pessoas" },
     { to: "/app/planejamento", icon: Calculator, label: "Plano" },
     { to: "/app/resultado", icon: LineChart, label: "Resultado" },
   ],
@@ -115,8 +115,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
             <Link href="/app/perfil">
               <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Perfil</span>
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Minha conta</span>
               </Button>
             </Link>
 
