@@ -14,7 +14,6 @@ import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { SummaryCards } from "./components/SummaryCards";
 import { ParticipantsCard } from "./components/ParticipantsCard";
 import { FinancialSummaryCard } from "./components/FinancialSummaryCard";
-import { RefreshCw } from "lucide-react";
 import { 
   extractSimulacaoSummary, 
   extractParticipantesSummary, 
@@ -35,12 +34,9 @@ const TabelaMesAMes = dynamic(() => import("@/components/TabelaMesAMes").then(mo
 export default function ResultadoPage() {
   const { 
     cenario,
-    objetivo, 
-    pessoas, 
     saveDraft, 
     mesesConcluidos, 
     backendData,
-    calcularBackend,
     calculating,
   } = usePlanLogic();
   
@@ -121,7 +117,7 @@ export default function ResultadoPage() {
 
       <div className="grid lg:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both px-4 sm:px-6 md:px-8">
         <FinancialSummaryCard summary={summary} />
-        <ParticipantsCard participantes={participantes} totalAcumulado={summary.totalAcumulado} />
+        <ParticipantsCard participantes={participantes} />
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">

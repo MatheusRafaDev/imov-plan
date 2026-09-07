@@ -14,6 +14,7 @@ import { usePlanStore } from "@/store/usePlanStore";
 export default function PlanosPage() {
   const planoId = usePlanStore((state) => state.planoId);
   const setPlanoId = usePlanStore((state) => state.setPlanoId);
+  const resetPlan = usePlanStore((state) => state.reset);
   const { data: planos = [], isLoading: carregandoPlanos } = usePlanos();
   const { mutateAsync: criarNovoPlano } = useCriarPlano();
   const { mutateAsync: excluirPlano } = useExcluirPlano();
@@ -112,6 +113,17 @@ export default function PlanosPage() {
     try {
       await excluirPlano(planoAExcluir.id);
       toast.success("Plano excluído.");
+      const planoExcluidoEraAtivo = planoAExcluir.id === planoId;
+      const proximoPlano = planos.find((plano) => plano.id !== planoAExcluir?.id);
+      if (planoExcluidoEraAtivo) {
+        if (proximoPlano) {
+          setPlanoId(proximoPlano.id);
+          router.push("/app/imovel");
+        } else {
+          resetPlan();
+          router.push("/app/imovel");
+        }
+      }
       setSimulacoes(prev => {
         const updated = { ...prev };
         delete updated[planoAExcluir.id];

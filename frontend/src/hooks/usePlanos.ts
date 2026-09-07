@@ -51,8 +51,11 @@ export function useExcluirPlano() {
   return useMutation({
     mutationFn: async (planoId: string) => {
       await api.delete(`/plano/${planoId}`);
+      return planoId;
     },
-    onSuccess: () => {
+    onSuccess: (planoId) => {
+      queryClient.removeQueries({ queryKey: ['planDraft', planoId] });
+      queryClient.removeQueries({ queryKey: ['simulacao', planoId] });
       queryClient.invalidateQueries({ queryKey: ['planos', usuarioId] });
     },
   });

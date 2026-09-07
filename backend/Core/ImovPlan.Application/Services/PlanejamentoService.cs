@@ -422,13 +422,14 @@ namespace ImovPlan.Application.Services
 
         private async Task DeletePlanejamentoCascadeAsync(string planejamentoId)
         {
-            // Deletar Participantes e seus GastosDetalhados
+            // Remove gastos pelo plano antes dos participantes para também limpar
+            // registros órfãos de saves antigos.
+            await _gastoDetalhadoRepo.DeleteByPlanejamentoIdAsync(planejamentoId);
+
+            // Deletar Participantes
             var participantes = await _participanteRepo.GetByPlanejamentoIdAsync(planejamentoId);
             foreach (var p in participantes)
             {
-                var gastos = await _gastoDetalhadoRepo.GetByParticipanteIdAsync(p.Id);
-                foreach (var g in gastos)
-                    await _gastoDetalhadoRepo.DeleteAsync(g.Id);
                 await _participanteRepo.DeleteAsync(p.Id);
             }
 
@@ -438,10 +439,8 @@ namespace ImovPlan.Application.Services
             // Deletar HistoricoAportes
             await _historicoAporteRepo.DeleteByPlanejamentoIdAsync(planejamentoId);
 
-            // Deletar HistoricoSimulacao / EvolucaoMensalSimulacao
-            var historicos = await _historicoSimulacaoRepo.GetAllByPlanejamentoIdAsync(planejamentoId);
-            foreach (var h in historicos)
-                await _historicoSimulacaoRepo.DeleteAsync(h.Id);
+            // Deletar todas as simulações e suas evoluções em lote
+            await _historicoSimulacaoRepo.DeleteAllByPlanejamentoIdAsync(planejamentoId);
 
             // Deletar o Planejamento
             await _planejamentoRepo.DeleteAsync(planejamentoId);

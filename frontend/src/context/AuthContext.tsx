@@ -3,6 +3,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import api from "@/lib/api";
 import Cookies from "js-cookie";
+import { usePlanStore } from "@/store/usePlanStore";
 
 type User = {
   id: string;
@@ -13,7 +14,6 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
-  token: string | null;
   loading: boolean;
   error: string | null;
   register: (email: string, password: string, name: string, dataNascimento?: string) => Promise<{ success: boolean; error?: string }>;
@@ -32,9 +32,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const resetPlan = usePlanStore((state) => state.reset);
 
   const dispatchAuthEvent = () => {
     if (typeof window !== "undefined") {
@@ -44,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearAllData = () => {
     setUser(null);
+    resetPlan();
     const allCookies = Cookies.get();
     const cookieKeysToRemove = ["user"];
     for (const cookieName in allCookies) {
@@ -204,10 +205,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    setError(null);
     try {
       await api.post("/auth/logout");
-    } catch (e) {
-      console.error("Erro no logout", e);
+    } catch {
+      // A sessão local deve ser encerrada mesmo se o servidor estiver indisponível.
     }
     clearAllData();
     dispatchAuthEvent();
@@ -253,7 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token: null, loading, error, register, login, loginWithGoogle, forgotPassword, validateResetToken, resetPassword, logout, deleteAccount, isAuthenticated, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, error, register, login, loginWithGoogle, forgotPassword, validateResetToken, resetPassword, logout, deleteAccount, isAuthenticated, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

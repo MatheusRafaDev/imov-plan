@@ -91,7 +91,7 @@ export default function MapaArredores() {
             } else {
                 setEndereco(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
             }
-        } catch (e) {
+        } catch {
             setEndereco(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
         }
 
@@ -215,7 +215,7 @@ export default function MapaArredores() {
                                                         setEndereco(fullAddress);
                                                         setMostrandoSugestoes(false);
                                                     }
-                                                } catch (err) {
+                                                } catch {
                                                     toast.error("CEP não encontrado.");
                                                 }
                                             }
@@ -250,7 +250,7 @@ export default function MapaArredores() {
                                                         setCenter([pos.coords.latitude, pos.coords.longitude]);
                                                         buscarArredoresPorCoordenadas(pos.coords.latitude, pos.coords.longitude);
                                                     },
-                                                    (err) => {
+                                                    () => {
                                                         toast.error("Permissão de localização negada pelo navegador.");
                                                     }
                                                 );

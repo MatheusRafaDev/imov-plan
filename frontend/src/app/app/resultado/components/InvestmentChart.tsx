@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { ChartDataPoint, SimulacaoSummary } from "@/types/simulacao";
 import { Card } from "@/components/ui/card";
 import {
@@ -194,7 +194,6 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
               dataKey="label"
               axisLine={false}
               tickLine={false}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               tick={(props: any) => {
                 const { x, y, payload, index } = props;
                 if (!tickIndices.has(index)) return <g />;

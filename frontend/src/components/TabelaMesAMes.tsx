@@ -8,21 +8,6 @@ import { Check, Loader2, Download } from "lucide-react";
 import { RowActions } from "./TabelaMesAMes/RowActions";
 import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
 
-type DisplayRow = {
-  mes: number;
-  data: string;
-  aporteRegular: number;
-  aportesExtras: number;
-  rendimentoBruto: number;
-  imposto: number;
-  rendimentoLiquido: number;
-  saldoAcumulado: number;
-  atingiu: boolean;
-  isExtra: boolean;
-  aporteFinalPorPessoa: Record<string, number>;
-};
-
-
 function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
   const diff = value - planned;
   return (
@@ -39,7 +24,6 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
   );
 }
 
-
 function Th({ children, right, className = "" }: { children?: React.ReactNode; right?: boolean; className?: string }) {
   return <th className={`px-2.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
 }
@@ -48,15 +32,12 @@ function Td({ children, right, className = "", suppressHydrationWarning }: { chi
   return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-2.5 py-2.5 num text-xs sm:text-sm text-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
+
 export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true, showCenarioSelector = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
   const {
-    objetivo,
     pessoas,
     aportesExtras,
     setAportesExtras,
-    aportesRegularesEditados,
-    setAportesRegularesEditados,
-    aportesRegularesEditadosPorPessoa,
     setAportesRegularesEditadosPorPessoa,
     saveDraft,
     mesesConcluidos,
@@ -97,7 +78,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         isZero ? "Início" : `Mês ${r.mes}`,
         dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1),
         ...pessoas.map(p => {
-          const planejado = Number(p.aporte_mensal) || 0;
           const real = isZero ? (Number(p.valorInicial) || 0) : r.aporteFinalPorPessoa[p.id] || 0;
           return real.toFixed(2);
         }),
@@ -369,7 +349,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         aportesReais={r.aporteFinalPorPessoa}
                         onSaveAportes={(novosValores) => {
                           setAportesRegularesEditadosPorPessoa(prev => {
-                            let newState = { ...prev };
+                            const newState = { ...prev };
                             pessoas.forEach(p => {
                               const v = novosValores[p.id];
                               const defaultP = Number(p.aporte_mensal) || 0;

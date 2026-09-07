@@ -122,6 +122,7 @@ namespace ImovPlan.API.Controllers
         }
 
         [HttpPost("google")]
+        [EnableRateLimiting("google-auth")]
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleAuthRequest request)
         {
             try

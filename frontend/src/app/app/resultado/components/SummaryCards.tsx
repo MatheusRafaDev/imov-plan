@@ -4,7 +4,7 @@ import React from "react";
 import { SimulacaoSummary } from "@/types/simulacao";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card } from "@/components/ui/card";
-import { Check, Coins, TrendingUp, CalendarCheck, Clock, Target, Wallet } from "lucide-react";
+import { CalendarCheck, Clock, Target, Wallet } from "lucide-react";
 import { formatDate, formatCurrency } from "@/utils/formatters";
 import { Currency } from "@/components/ui/Currency";
 

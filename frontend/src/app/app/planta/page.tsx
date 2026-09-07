@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -56,7 +55,6 @@ function expandirEventos(eventos: EventoPlanta[]) {
 }
 
 export default function PlantaPage() {
-  const { user } = useAuth();
   const router = useRouter();
 
   const [eventos, setEventos] = useState<EventoPlanta[]>([]);

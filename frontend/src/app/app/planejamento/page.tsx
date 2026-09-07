@@ -4,24 +4,21 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
-import { type Pessoa } from "@/context/PlanContext";;
-import { brl, mesesEntre, type Aporte } from "@/lib/finance";
-import { formatDate } from "@/utils/formatters";
+import { brl, type Aporte } from "@/lib/finance";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/DateInput";
-import { ArrowRight, Plus, Trash2, Sparkles, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown, Check } from "lucide-react";
+import { ArrowRight, Plus, Trash2, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown, Check } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, saveDraft, salvarPlano, calcularBackend, backendData, calculating } = usePlanLogic();
+  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, salvarPlano, calcularBackend, backendData, calculating } = usePlanLogic();
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -80,13 +77,6 @@ export default function PlanejamentoPage() {
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
   const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
   const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
-  const pessoaGuardado = pessoas.map(p => ({
-    id: p.id,
-    nome: p.nome,
-    valor: p.valorInicial ?? 0,
-    percent: totalGuardado ? ((p.valorInicial ?? 0) / totalGuardado) * 100 : 0,
-  }));
-
 
   const meta = objetivo?.valorImovel
     ? Number(objetivo.valorImovel) * (Number(objetivo.percentualEntrada ?? 0) + Number(objetivo.percentualCustosExtras ?? 0)) / 100
@@ -103,8 +93,6 @@ export default function PlanejamentoPage() {
   const aporteNecessario = faltaParaMeta > 0 && prazoMeses > 0 ? faltaParaMeta / prazoMeses : 0;
 
   // Usa a data projetada do backend para atingir a meta com aportes atuais
-  const dataAlcancavel = backendData?.dataPrevistaAlvo ? new Date(backendData.dataPrevistaAlvo) : null;
-
   const progressoPercent = Math.min(100, meta > 0 ? (totalGuardado / meta) * 100 : 0);
 
   const adicionarAporte = () => {

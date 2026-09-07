@@ -55,12 +55,30 @@ namespace ImovPlan.API.Controllers
             if (existing == null)
                 return NotFound(new { message = "Usuário não encontrado." });
 
-            existing.Nome = request.Name ?? existing.Nome;
-
-            if (!string.IsNullOrWhiteSpace(request.DataNascimento))
+            if (request.Name != null)
             {
-                if (DateTime.TryParse(request.DataNascimento, out var parsed))
-                    existing.DataNascimento = parsed;
+                if (string.IsNullOrWhiteSpace(request.Name))
+                    return BadRequest(new { message = "O nome é obrigatório." });
+
+                existing.Nome = request.Name.Trim();
+            }
+
+            if (request.DataNascimento == null)
+            {
+                existing.DataNascimento = null;
+            }
+            else if (DateTime.TryParseExact(
+                request.DataNascimento,
+                "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var parsed))
+            {
+                existing.DataNascimento = parsed;
+            }
+            else
+            {
+                return BadRequest(new { message = "Data de nascimento inválida." });
             }
 
             await _usuarioRepository.UpdateAsync(id, existing);

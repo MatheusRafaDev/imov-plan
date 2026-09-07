@@ -81,7 +81,14 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", opt =>
     {
-        opt.PermitLimit = 5;
+        opt.PermitLimit = 10;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("google-auth", opt =>
+    {
+        opt.PermitLimit = 10;
         opt.Window = TimeSpan.FromMinutes(1);
         opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         opt.QueueLimit = 0;

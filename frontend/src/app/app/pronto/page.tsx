@@ -55,8 +55,8 @@ export default function ProntoPage() {
         sac: normalize(raw.SAC ?? raw.sac),
         price: normalize(raw.PRICE ?? raw.price),
       });
-    } catch (e) {
-      console.error("Erro ao simular:", e);
+    } catch (error) {
+      console.error("Erro ao simular:", error);
     } finally {
       setLoading(false);
     }
@@ -69,12 +69,11 @@ export default function ProntoPage() {
       const t = setTimeout(() => simular(), 0);
       return () => clearTimeout(t);
     }
-  }, [form.valorImovel, form.valorEntrada, form.taxaAnual, form.prazoMeses, valorFinanciado, simular]);
+  }, [form, valorFinanciado, simular]);
 
   const dadosAtivos = resultado ? resultado[sistemaAtivo] : null;
   const parcelas = dadosAtivos?.parcelas ?? [];
   const primeiraParcela = parcelas[0]?.parcela ?? 0;
-  const ultimaParcela = parcelas[parcelas.length - 1]?.parcela ?? 0;
   const totalPago = parcelas.reduce((acc: number, p: any) => acc + (p.parcela ?? 0), 0);
   const totalJuros = totalPago - valorFinanciado;
 

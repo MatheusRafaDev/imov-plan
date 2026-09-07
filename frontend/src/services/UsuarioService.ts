@@ -10,7 +10,7 @@ export type UserProfile = {
 
 export type UpdateProfilePayload = {
   name?: string;
-  dataNascimento?: string;
+  dataNascimento?: string | null;
 };
 
 export class UsuarioService {

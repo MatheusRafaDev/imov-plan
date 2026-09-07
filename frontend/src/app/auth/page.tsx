@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export default function AuthPage() {
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [googleInitialized, setGoogleInitialized] = useState(false);
+  const googleCredentialInFlight = useRef<string | null>(null);
   const { login, register, loginWithGoogle, loading, user, isAuthenticated } = useAuth();
   const router = useRouter();
 
@@ -43,7 +44,8 @@ export default function AuthPage() {
         google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
           callback: async (response: any) => {
-            if (response.credential) {
+            if (response.credential && googleCredentialInFlight.current !== response.credential) {
+              googleCredentialInFlight.current = response.credential;
               const result = await loginWithGoogle(response.credential);
               if (result.success) {
                 toast.success("Login realizado com sucesso!");

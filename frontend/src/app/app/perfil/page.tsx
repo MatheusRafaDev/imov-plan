@@ -74,15 +74,16 @@ export default function PerfilPage() {
 
     try {
       const payload: UpdateProfilePayload = {
-        name: name || undefined,
-        dataNascimento: dataNascimento || undefined,
+        name: name.trim(),
+        dataNascimento: dataNascimento || null,
       };
 
       const updated = await UsuarioService.updateProfile(user.id, payload);
       updateUser(updated);
       toast.success("Perfil atualizado com sucesso!");
-    } catch {
-      toast.error("Erro ao salvar perfil. Tente novamente.");
+    } catch (error: any) {
+      const message = error?.response?.data?.message || "Erro ao salvar perfil. Tente novamente.";
+      toast.error(message);
     } finally {
       setSaving(false);
     }

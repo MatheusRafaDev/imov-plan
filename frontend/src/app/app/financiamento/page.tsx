@@ -29,7 +29,7 @@ export default function FinanciamentoPage() {
     try {
       const data = await FinanciamentoService.simular(form);
       setResultado(data);
-    } catch (e: any) {
+    } catch {
       toast.error("Erro ao simular financiamento");
     } finally {
       setLoading(false);

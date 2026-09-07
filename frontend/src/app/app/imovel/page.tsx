@@ -119,7 +119,7 @@ export default function ObjetivoPage() {
           : form.data_fim,
       };
 
-      setForm((prev) => normalizeDataFim(nextForm.data_inicio, nextForm.data_fim) === nextForm.data_fim ? nextForm : {
+      setForm(() => normalizeDataFim(nextForm.data_inicio, nextForm.data_fim) === nextForm.data_fim ? nextForm : {
         ...nextForm,
         data_fim: normalizeDataFim(nextForm.data_inicio, nextForm.data_fim),
       });
@@ -430,7 +430,7 @@ export default function ObjetivoPage() {
 
                       {showITBIInfo && (() => {
                         const valorImovel = Number(form.valor_imovel) || 0;
-                        const { itbi, cartorio, total, percentualTotal, isento, faixa, descricaoRegra } = calcularCustosITBI(valorImovel, form.estado, form.cidade);
+                        const { itbi, cartorio, total, percentualTotal, isento, descricaoRegra } = calcularCustosITBI(valorImovel, form.estado, form.cidade);
 
                         return (
                           <div className="mt-2 p-3 rounded-lg bg-secondary/50 border border-border/60 text-[11px] space-y-2 animate-fade-in-up">

@@ -10,10 +10,9 @@ import { User } from "lucide-react";
 
 interface ParticipantsCardProps {
   participantes: ParticipanteSummary[];
-  totalAcumulado: number;
 }
 
-export function ParticipantsCard({ participantes, totalAcumulado }: ParticipantsCardProps) {
+export function ParticipantsCard({ participantes }: ParticipantsCardProps) {
   if (!participantes || participantes.length === 0) return null;
 
   return (

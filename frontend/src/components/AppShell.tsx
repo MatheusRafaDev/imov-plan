@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid, MapPin } from "lucide-react";
+import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               </Button>
             </Link>
 
-            <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground hover:text-destructive">
+            <Button type="button" variant="ghost" size="sm" onClick={() => void logout()} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

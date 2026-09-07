@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface MonthYearInputProps {
   value: string; // ISO format: yyyy-mm-dd (always 1st of month)
