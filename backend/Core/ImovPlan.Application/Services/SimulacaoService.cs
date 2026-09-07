@@ -147,7 +147,9 @@ namespace ImovPlan.Application.Services
 
                 foreach (var pid in participantesDb.Keys)
                 {
-                    if (!checkpoints.TryGetValue(pid, out var checkpoint) || checkpoint.Data > dataReferencia.Date)
+                    if (!checkpoints.TryGetValue(pid, out var checkpoint) ||
+                        checkpoint.Data.Year != dataReferencia.Year ||
+                        checkpoint.Data.Month != dataReferencia.Month)
                         continue;
 
                     var saldoAnterior = saldosIndividuais[pid];

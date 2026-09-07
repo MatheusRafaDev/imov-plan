@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Check, Pencil, RefreshCw, Save, X } from "lucide-react";
+import { Calendar, Check, Pencil, RefreshCw, Save, ShieldCheck, TrendingUp, X } from "lucide-react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { MoneyInput } from "@/components/MoneyInput";
 import { DateInput } from "@/components/DateInput";
@@ -55,17 +55,26 @@ export function StatusAtualInvestimento() {
   };
 
   return (
-    <Card className="p-5 md:p-6 border-border/50">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-5">
-        <div>
-          <h2 className="font-display text-xl font-medium">Status atual do investimento</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Informe o saldo real de cada conta. A projeção será recalculada a partir da data informada.
-          </p>
+    <Card className="overflow-hidden border-border/50 shadow-soft">
+      <div className="bg-gradient-ink text-primary-foreground p-5 md:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary-foreground/70">
+              <ShieldCheck className="h-4 w-4 text-accent" /> Controle real
+            </div>
+            <h2 className="font-display text-2xl font-medium mt-2">Status do investimento</h2>
+            <p className="text-sm text-primary-foreground/70 mt-1 max-w-2xl">
+              Atualize cada conta com o saldo real. A projeção será recalculada automaticamente a partir desse marco.
+            </p>
+          </div>
+          <TrendingUp className="h-7 w-7 text-accent shrink-0" />
         </div>
-        <RefreshCw className="h-5 w-5 text-accent shrink-0" />
       </div>
-
+      <div className="p-5 md:p-6">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <p className="text-xs text-muted-foreground">Uma conta por vez, sem alterar os demais participantes.</p>
+        <span className="text-xs font-medium text-muted-foreground">{pessoas.length} conta{pessoas.length === 1 ? "" : "s"}</span>
+      </div>
       <div className="space-y-3">
         {pessoas.map((pessoa) => {
           const hasCheckpoint = pessoa.valorAtual != null && pessoa.dataValorAtual;
@@ -73,7 +82,7 @@ export function StatusAtualInvestimento() {
           const saving = savingId === pessoa.id;
 
           return (
-            <div key={pessoa.id} className="border border-border/60 rounded-lg p-4">
+            <div key={pessoa.id} className={`border rounded-xl p-4 transition-colors ${hasCheckpoint ? "border-accent/30 bg-accent/5" : "border-border/60 bg-secondary/20"}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{pessoa.nome}</p>
@@ -125,6 +134,7 @@ export function StatusAtualInvestimento() {
             </div>
           );
         })}
+      </div>
       </div>
     </Card>
   );
