@@ -109,8 +109,15 @@ export function usePlanLogic() {
       aportesRegularesEditadosPorPessoa: currentState.aportesRegularesEditadosPorPessoa,
       cenario: currentState.cenarioSimulacao || "realista"
     };
+
+    const payloadStr = JSON.stringify(payload);
+    if (payloadStr === currentState.lastCalculatedPayloadStr) {
+      console.log("[calcularBackend] Nenhuma mudança detectada. Pulando recalculo para poupar o backend.");
+      return;
+    }
     
     await calcularSimulacao({ planoId: idToUse, payload });
+    currentState.setLastCalculatedPayloadStr(payloadStr);
   };
 
   const salvarPlano = async (patch?: any) => {

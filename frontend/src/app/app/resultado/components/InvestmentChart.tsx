@@ -142,7 +142,14 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export const InvestmentChart = React.memo(function InvestmentChart({ data, summary }: InvestmentChartProps) {
-  if (!data || data.length === 0 || !summary) return null;
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
+  if (!data || data.length === 0 || !summary || !isMounted) return null;
 
   // Mostrar ~6 ticks no eixo X sem poluir
   const step = Math.max(1, Math.floor(data.length / 6));
@@ -261,6 +268,7 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
               fill="url(#colorInvestido)"
               dot={false}
               activeDot={{ r: 4, fill: "#86efac", strokeWidth: 0 }}
+              isAnimationActive={false}
             />
             <Area
               type="monotone"
@@ -272,6 +280,7 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
               fill="url(#colorSaldo)"
               dot={false}
               activeDot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>

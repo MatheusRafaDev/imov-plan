@@ -44,13 +44,12 @@ export function usePlanDraft(planoId: string | null) {
         const status = error?.response?.status;
         // 404: plano/usuário não encontrado — usuário novo, tratar como "sem draft"
         // 403/401: problema de autorização — não criar dados, apenas retornar null
-        // Qualquer outro erro (500, rede): também retornar null para não quebrar a UI
         if (status === 404 || status === 403 || status === 401) {
           return null;
         }
-        // Erro inesperado: logar mas não propagar (não quebrar a UI)
-        console.warn('[usePlanDraft] Erro ao carregar draft, continuando sem dados:', status || error?.message);
-        return null;
+        // Erros de timeout (504), indisponibilidade (502, 500) ou rede
+        console.error('[usePlanDraft] Falha ao carregar draft do backend (Status: ' + status + '). Abortando para proteger os dados.', error?.message);
+        throw error; // Propaga o erro para ser capturado pelo ErrorBoundary ou React Query
       }
 
       if (draftData) {
@@ -113,8 +112,11 @@ export function usePlanDraft(planoId: string | null) {
       return draftData;
     },
     enabled: !!planoId || !!usuarioId,
-    retry: false,       // Não repetir em caso de 404/403
-    throwOnError: false, // Não marcar como isError — erros são tratados no queryFn
+    retry: 1, // Tenta 1 vez a mais para caso o backend acorde ou erro de rede simples
+    throwOnError: (error: any) => {
+      const status = error?.response?.status;
+      return status !== 404 && status !== 403 && status !== 401;
+    },
     staleTime: 5 * 60 * 1000,
   });
 }

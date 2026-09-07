@@ -102,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     initAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const register = async (email: string, password: string, name: string, dataNascimento?: string) => {
@@ -206,13 +207,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     setError(null);
-    try {
-      await api.post("/auth/logout");
-    } catch {
-      // A sessão local deve ser encerrada mesmo se o servidor estiver indisponível.
-    }
+    // Limpa a sessão local IMEDIATAMENTE para a tela não ficar travada aguardando o backend
     clearAllData();
     dispatchAuthEvent();
+    
+    try {
+      // Envia requisição em background, o navegador tentará concluir antes do redirecionamento
+      api.post("/auth/logout").catch(() => {});
+    } catch {
+      // Ignora erros
+    }
+
     if (typeof window !== "undefined") {
       window.location.href = "/";
     }

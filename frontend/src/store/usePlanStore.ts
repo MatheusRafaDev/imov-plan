@@ -15,6 +15,7 @@ interface PlanState {
   aportesRegularesEditados: Record<number, number>;
   aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
   mesesConcluidos: number[];
+  lastCalculatedPayloadStr: string | null;
 
   // Setters
   setObjetivo: (objetivo: Partial<SimInput> | null | ((prev: Partial<SimInput> | null) => Partial<SimInput> | null)) => void;
@@ -27,6 +28,7 @@ interface PlanState {
   setAportesRegularesEditados: (aportes: Record<number, number> | ((prev: Record<number, number>) => Record<number, number>)) => void;
   setAportesRegularesEditadosPorPessoa: (aportes: Record<string, Record<number, number>> | ((prev: Record<string, Record<number, number>>) => Record<string, Record<number, number>>)) => void;
   setMesesConcluidos: (meses: number[] | ((prev: number[]) => number[])) => void;
+  setLastCalculatedPayloadStr: (payloadStr: string | null) => void;
 
   // Bulk set (useful when hydrating from API)
   hydrate: (data: Partial<PlanState>) => void;
@@ -46,6 +48,7 @@ const initialState = {
   aportesRegularesEditados: {},
   aportesRegularesEditadosPorPessoa: {},
   mesesConcluidos: [],
+  lastCalculatedPayloadStr: null as string | null,
 };
 
 export const usePlanStore = create<PlanState>()((set) => ({
@@ -79,6 +82,7 @@ export const usePlanStore = create<PlanState>()((set) => ({
   setMesesConcluidos: (update) => set((state) => ({
     mesesConcluidos: typeof update === 'function' ? update(state.mesesConcluidos) : update
   })),
+  setLastCalculatedPayloadStr: (payloadStr) => set({ lastCalculatedPayloadStr: payloadStr }),
 
   hydrate: (data) => set((state) => ({ ...state, ...data })),
   
