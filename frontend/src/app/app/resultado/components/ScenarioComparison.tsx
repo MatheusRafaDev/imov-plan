@@ -4,6 +4,7 @@ import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { simular, CenarioSimulacao } from "@/lib/finance";
 import { brl, percentualCdiPorTipoInvestimento } from "@/lib/finance";
 import { Loader2 } from "lucide-react";
+import { parseBackendDate } from "@/utils/dates";
 
 export function ScenarioComparison() {
   const { objetivo, pessoas, aportesExtras, aportesRegularesEditados, cenarioSimulacao, setCenarioSimulacao, calculating } = usePlanLogic();
@@ -35,7 +36,7 @@ export function ScenarioComparison() {
         data: a.data || new Date().toISOString()
     })),
     prazoMaxMeses: Number(objetivo.prazoMaxMeses) || 600,
-    dataInicio: objetivo.dataInicio ? new Date(objetivo.dataInicio) : new Date(),
+    dataInicio: parseBackendDate(objetivo.dataInicio as string | Date | null | undefined) ?? new Date(),
   };
 
   const results: Record<CenarioSimulacao, ReturnType<typeof simular>> = {

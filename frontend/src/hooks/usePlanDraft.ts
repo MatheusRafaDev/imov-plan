@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
 import { usePlanStore } from '@/store/usePlanStore';
+import { parseBackendDate, toLocalDateIso } from '@/utils/dates';
 
 function obterIdUsuario(): string | null {
   const cookieUsuario = Cookies.get("user");
@@ -68,7 +69,7 @@ export function usePlanDraft(planoId: string | null) {
             taxaCdiAnual: draftData.objetivo.taxaCdiAnual,
             percentualCdi: draftData.objetivo.percentualCdi,
             prazoMaxMeses: draftData.objetivo.prazoMaxMeses,
-            dataInicio: draftData.objetivo.dataInicio ? new Date(draftData.objetivo.dataInicio) : new Date(),
+            dataInicio: parseBackendDate(draftData.objetivo.dataInicio) ?? new Date(),
             tipoInvestimento: draftData.objetivo.tipoInvestimento,
             estado: draftData.objetivo.estado || undefined,
             cidade: draftData.objetivo.cidade || undefined,
@@ -91,7 +92,7 @@ export function usePlanDraft(planoId: string | null) {
             data: a.data
               ? typeof a.data === "string"
                 ? a.data
-                : new Date(a.data).toISOString().slice(0, 10)
+                : toLocalDateIso(a.data) ?? new Date().toISOString().slice(0, 10)
               : new Date().toISOString().slice(0, 10),
           })),
           aportesRegularesEditados: draftData.aportesRegularesEditados || {},
