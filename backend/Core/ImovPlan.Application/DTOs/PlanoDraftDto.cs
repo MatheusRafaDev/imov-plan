@@ -61,6 +61,8 @@ namespace ImovPlan.Application.DTOs
         /// Tipo de investimento escolhido para o saldo desta pessoa. Ex: "poupanca", "cdb_100".
         /// </summary>
         public string? TipoInvestimento { get; set; }
+        public decimal? ValorAtual { get; set; }
+        public string? DataValorAtual { get; set; }
     }
 
     public class GastoDetalhadoDraftDto

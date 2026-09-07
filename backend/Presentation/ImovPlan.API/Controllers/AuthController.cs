@@ -200,7 +200,7 @@ namespace ImovPlan.API.Controllers
 
         /// <summary>
         /// Solicita recuperacao de senha. Gera token seguro e envia link por email.
-        /// Retorna 404 se o email nao existir e 400 se a conta for exclusivamente Google.
+        /// Retorna 404 se o email nao existir. Contas Google tambem podem criar uma senha local.
         /// </summary>
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
@@ -210,16 +210,6 @@ namespace ImovPlan.API.Controllers
             if (user == null)
             {
                 return NotFound(new { message = "Nao encontramos nenhuma conta vinculada a esse e-mail. Verifique o endereco informado." });
-            }
-
-            // Bloquear contas exclusivamente Google (sem senha local)
-            if (user.Provider == "google")
-            {
-                return BadRequest(new
-                {
-                    message = "Esta conta utiliza autenticacao pelo Google. Para acessar, clique em \"Entrar com Google\" na tela de login.",
-                    provider = "google"
-                });
             }
 
             // Gerar token bruto criptograficamente seguro (32 bytes = 256 bits de entropia)

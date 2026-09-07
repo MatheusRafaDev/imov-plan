@@ -225,9 +225,8 @@ export default function PerfilPage() {
               /* Estado inicial — instrucao + botao */
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Para sua seguranca, enviaremos um link por e-mail para voce redefinir sua senha.
-                  O processo e identico ao <strong>&quot;Esqueci minha senha&quot;</strong> sem
-                  precisar informar a senha atual.
+                  Para sua seguranca, enviaremos um link por e-mail para voce criar ou redefinir sua senha.
+                  Depois disso, voce podera acessar sua conta pelo Google ou por e-mail e senha.
                 </p>
 
                 <div className="rounded-lg bg-accent/5 border border-accent/20 p-3 text-xs text-muted-foreground space-y-1">

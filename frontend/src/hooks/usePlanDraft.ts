@@ -85,6 +85,8 @@ export function usePlanDraft(planoId: string | null) {
             aporte_mensal: p.aporte_mensal,
             valorInicial: p.valorInicial,
             tipoInvestimento: p.tipoInvestimento,
+            valorAtual: p.valorAtual ?? null,
+            dataValorAtual: p.dataValorAtual ?? null,
           })),
           bancoEscolhido: draftData.bancoEscolhido || null,
           aportesExtras: (draftData.aportesExtras || []).map((a: any) => ({

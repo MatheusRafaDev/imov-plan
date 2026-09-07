@@ -49,7 +49,9 @@ namespace ImovPlan.Application.Services
             // Fetch participants
             var participantesDb = new Dictionary<string, Participante>();
             var saldosIndividuais = new Dictionary<string, decimal>();
+            var saldosTeoricosIniciais = new Dictionary<string, decimal>();
             var nomesIndividuais = new Dictionary<string, string>();
+            var checkpoints = new Dictionary<string, (decimal Valor, DateTime Data)>();
             
             foreach (var pid in planejamento.ParticipantesIds)
             {
@@ -57,7 +59,13 @@ namespace ImovPlan.Application.Services
                 if (p != null)
                 {
                     participantesDb[pid] = p;
-                    saldosIndividuais[pid] = p.PatrimonioInicial?.Valor ?? 0m;
+                    var saldoTeorico = p.PatrimonioInicial?.Valor ?? 0m;
+                    saldosTeoricosIniciais[pid] = saldoTeorico;
+                    saldosIndividuais[pid] = saldoTeorico;
+                    if (p.ValorAtual.HasValue && p.DataValorAtual.HasValue)
+                    {
+                        checkpoints[pid] = (p.ValorAtual.Value, p.DataValorAtual.Value.Date);
+                    }
                     nomesIndividuais[pid] = p.Nome;
                 }
             }
@@ -83,6 +91,19 @@ namespace ImovPlan.Application.Services
             var resultado = new SimulacaoResultado();
             var meses = 0;
             var dataReferencia = planejamento.DataInicio ?? DateTime.UtcNow;
+
+            // Um checkpoint substitui o saldo teórico da conta. Se for posterior
+            // ao início do plano, a conta fica sem saldo até a data informada.
+            foreach (var pid in participantesDb.Keys)
+            {
+                if (!checkpoints.TryGetValue(pid, out var checkpoint)) continue;
+                var saldoAnterior = saldosIndividuais[pid];
+                saldosIndividuais[pid] = checkpoint.Data <= dataReferencia.Date ? checkpoint.Valor : 0m;
+                saldoConjunto += saldosIndividuais[pid] - saldoAnterior;
+            }
+            valorJaGuardado = saldoConjunto;
+            totalInvestido = saldoConjunto;
+            var saldosBaseSimulacao = new Dictionary<string, decimal>(saldosIndividuais);
             int? mesAtingiu = null;
             DateTime? dataAtingiu = null;
             var temPrazoUsuario = planejamento.PrazoMaxMeses.HasValue && planejamento.PrazoMaxMeses.Value > 0;
@@ -123,6 +144,18 @@ namespace ImovPlan.Application.Services
             {
                 meses++;
                 dataReferencia = dataReferencia.AddMonths(1);
+
+                foreach (var pid in participantesDb.Keys)
+                {
+                    if (!checkpoints.TryGetValue(pid, out var checkpoint) || checkpoint.Data > dataReferencia.Date)
+                        continue;
+
+                    var saldoAnterior = saldosIndividuais[pid];
+                    if (saldoAnterior == checkpoint.Valor) continue;
+                    saldosIndividuais[pid] = checkpoint.Valor;
+                    saldoConjunto += checkpoint.Valor - saldoAnterior;
+                    totalInvestido += checkpoint.Valor;
+                }
 
                 // Aportes extras globais vs individuais
                 var extrasGlobaisMes = 0m;
@@ -280,7 +313,7 @@ namespace ImovPlan.Application.Services
                         ParticipanteId = participante.Id,
                         Nome = participante.Nome,
                         AporteMensal = aporte.Valor,
-                        ValorInicial = participante.PatrimonioInicial?.Valor ?? 0,
+                        ValorInicial = saldosBaseSimulacao.GetValueOrDefault(participante.Id),
                         SobraMensal = participante.SobraMensal,
                     });
                 }

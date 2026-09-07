@@ -52,6 +52,8 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.SobraMensal = participante.SobraMensal;
                 existing.AporteMensal = participante.AporteMensal;
                 existing.PatrimonioInicial = participante.PatrimonioInicial;
+                existing.ValorAtual = participante.ValorAtual;
+                existing.DataValorAtual = participante.DataValorAtual;
 
                 _context.Participantes.Update(existing);
                 await _context.SaveChangesAsync();

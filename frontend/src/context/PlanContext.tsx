@@ -31,6 +31,8 @@ export type Pessoa = {
   aporte_mensal: number;
   valorInicial?: number;
   tipoInvestimento?: string;
+  valorAtual?: number | null;
+  dataValorAtual?: string | null;
 };
 
 export type PlanoResumo = {

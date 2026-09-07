@@ -37,6 +37,13 @@ export function ScenarioComparison() {
     })),
     prazoMaxMeses: Number(objetivo.prazoMaxMeses) || 600,
     dataInicio: parseBackendDate(objetivo.dataInicio as string | Date | null | undefined) ?? new Date(),
+    checkpoints: pessoas
+      .filter((p) => p.valorAtual != null && p.dataValorAtual)
+      .map((p) => ({
+        valorInicial: Number(p.valorInicial) || 0,
+        valorAtual: Number(p.valorAtual) || 0,
+        dataValorAtual: p.dataValorAtual as string,
+      })),
   };
 
   const results: Record<CenarioSimulacao, ReturnType<typeof simular>> = {

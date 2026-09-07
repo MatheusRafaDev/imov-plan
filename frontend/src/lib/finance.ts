@@ -40,6 +40,11 @@ export type SimInput = {
   /** Uso interno: pula o cálculo de sugestões para evitar recursão infinita
    * quando simular() é chamado de dentro de aporteNecessarioParaPrazo/mesesParaMeta. */
   pularSugestoes?: boolean;
+  checkpoints?: {
+    valorInicial: number;
+    valorAtual: number;
+    dataValorAtual: string;
+  }[];
 };
 
 export type Sugestoes = {
@@ -212,8 +217,12 @@ export function simular(input: SimInput): SimResult {
     }
   }
 
-  let saldo = input.valorJaGuardado + extrasMes0;
-  let totalInvestido = input.valorJaGuardado + extrasMes0;
+  const checkpoints = input.checkpoints ?? [];
+  const saldoTeoricoSubstituido = checkpoints.reduce((sum, checkpoint) => sum + checkpoint.valorInicial, 0);
+  const saldoSemCheckpoints = input.valorJaGuardado - saldoTeoricoSubstituido;
+  const checkpointsAtivos = checkpoints.filter((checkpoint) => monthKey(checkpoint.dataValorAtual) <= monthKey(inicio));
+  let saldo = saldoSemCheckpoints + checkpointsAtivos.reduce((sum, checkpoint) => sum + checkpoint.valorAtual, 0) + extrasMes0;
+  let totalInvestido = saldo;
   const rows: SimRow[] = [];
   let atingiuMeta = false;
   let mesAtingiu: number | undefined;
@@ -243,6 +252,15 @@ export function simular(input: SimInput): SimResult {
   }
 
   for (let mes = 1; mes <= prazoMax; mes++) {
+    const dataRef = new Date(inicio.getFullYear(), inicio.getMonth() + mes, 1);
+    const dataRefIso = monthKey(dataRef);
+    for (const checkpoint of checkpoints) {
+      if (monthKey(checkpoint.dataValorAtual) === dataRefIso) {
+        saldo += checkpoint.valorAtual;
+        totalInvestido += checkpoint.valorAtual;
+      }
+    }
+
     const defaultAporte = input.aporteMensalTotal;
     const aporteRegular = input.aportesRegularesEditados?.[mes] ?? defaultAporte;
     const aportesExtras = extrasPorMes.get(mes) ?? 0;
@@ -255,8 +273,6 @@ export function simular(input: SimInput): SimResult {
     const imposto = rendimentoBruto * ir;
     const rendimentoLiquido = rendimentoBruto - imposto;
     saldo += rendimentoLiquido;
-
-    const dataRef = new Date(inicio.getFullYear(), inicio.getMonth() + mes, 1);
 
     rows.push({
       mes,
@@ -329,6 +345,13 @@ export function simular(input: SimInput): SimResult {
     cenario,
     sugestoes,
   };
+}
+
+function monthKey(value: string | Date): string {
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
+  }
+  return value.slice(0, 7);
 }
 
 // Diferença em meses (arredondando) entre duas datas ISO (YYYY-MM-DD).

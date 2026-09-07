@@ -125,4 +125,25 @@ describe('finance.ts unit tests', () => {
     // Mês 3 (Out 2026): recebe 500
     expect(res.rows[3]?.aportesExtras).toBe(500);
   });
+
+  test('checkpoint substitui o saldo teórico a partir do mês informado', () => {
+    const res = simular({
+      valorImovel: 100000,
+      percentualEntrada: 10,
+      percentualCustosExtras: 0,
+      valorJaGuardado: 1000,
+      aporteMensalTotal: 0,
+      taxaCdiAnual: 0,
+      percentualCdi: 100,
+      aportesExtras: [],
+      prazoMaxMeses: 3,
+      mesesExtrasAposMeta: 0,
+      dataInicio: new Date("2026-07-01T12:00:00"),
+      checkpoints: [{ valorInicial: 1000, valorAtual: 2500, dataValorAtual: "2026-08-15" }],
+    });
+
+    expect(res.rows[0]?.saldoAcumulado).toBe(0);
+    expect(res.rows[1]?.saldoAcumulado).toBe(2500);
+    expect(res.rows[2]?.saldoAcumulado).toBe(2500);
+  });
 });

@@ -14,6 +14,7 @@ import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import { SummaryCards } from "./components/SummaryCards";
 import { ParticipantsCard } from "./components/ParticipantsCard";
 import { FinancialSummaryCard } from "./components/FinancialSummaryCard";
+import { StatusAtualInvestimento } from "./components/StatusAtualInvestimento";
 import { 
   extractSimulacaoSummary, 
   extractParticipantesSummary, 
@@ -106,6 +107,10 @@ export default function ResultadoPage() {
           <LoadingSpinner size="md" text="Carregando simulação salva..." />
         </div>
       )}
+
+      <div className="px-4 sm:px-6 md:px-8">
+        <StatusAtualInvestimento />
+      </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both px-4 sm:px-6 md:px-8">
         <SummaryCards summary={summary} />

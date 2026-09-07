@@ -109,14 +109,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </nav>
 
           <div className="flex items-center gap-1 lg:gap-2">
-            <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-1 lg:mr-2 truncate max-w-[100px]">
-              {user?.name?.split(' ')[0] || user?.email}
-            </span>
-
             <Link href="/app/perfil">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground max-w-[160px]">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Minha conta</span>
+                <span className="truncate">{user?.name?.split(" ")[0] || "Minha conta"}</span>
               </Button>
             </Link>
 

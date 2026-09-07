@@ -283,6 +283,8 @@ namespace ImovPlan.Application.Services
                         participante.UsarGastosDetalhados = pDto.Usar_gastos_detalhados;
                         participante.SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais;
                         participante.AporteMensal = pDto.Aporte_mensal;
+                        participante.ValorAtual = pDto.ValorAtual;
+                        participante.DataValorAtual = ParseCheckpointDate(pDto.DataValorAtual);
                         
                         // Update PatrimonioInicial subdocument directly
                         if (pDto.ValorInicial > 0)
@@ -319,6 +321,8 @@ namespace ImovPlan.Application.Services
                             UsarGastosDetalhados = pDto.Usar_gastos_detalhados,
                             SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais,
                             AporteMensal = pDto.Aporte_mensal,
+                            ValorAtual = pDto.ValorAtual,
+                            DataValorAtual = ParseCheckpointDate(pDto.DataValorAtual),
                         };
 
                         // Set PatrimonioInicial subdocument
@@ -510,6 +514,8 @@ namespace ImovPlan.Application.Services
                     Aporte_mensal = p.AporteMensal,
                     ValorInicial = valorInicial,
                     TipoInvestimento = tipoInvParticipante,
+                    ValorAtual = p.ValorAtual,
+                    DataValorAtual = p.DataValorAtual?.ToString("yyyy-MM-dd"),
                 });
             }
 
@@ -557,6 +563,18 @@ namespace ImovPlan.Application.Services
         /// <summary>
         /// Maps frontend investment type string to FonteSaldo enum.
         /// </summary>
+        private static DateTime? ParseCheckpointDate(string? value)
+        {
+            return DateTime.TryParseExact(
+                value,
+                "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var parsed)
+                ? parsed
+                : null;
+        }
+
         private static FonteSaldo MapTipoInvestimentoToFonte(string? tipo)
         {
             return tipo?.ToLowerInvariant() switch
