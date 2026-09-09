@@ -1,18 +1,4 @@
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: imovplan_mongodb
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-admin123}
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    command: ["--wiredTigerCacheSizeGB", "0.25"]
-    mem_limit: 350m
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
@@ -26,13 +12,11 @@ services:
       - Jwt__Key=${JWT_SECRET:?JWT_SECRET is required}
       - Jwt__Issuer=ImovPlanAPI
       - Jwt__Audience=ImovPlanClient
-      - MongoDbSettings__ConnectionString=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/?authSource=admin
+      - MongoDbSettings__ConnectionString=${MONGO_CONNECTION_STRING}
     volumes:
       - ./version.txt:/app/version.txt:ro
       - ./deploy.log:/app/deploy.log:ro
       - data_protection_keys:/root/.aspnet/DataProtection-Keys
-    depends_on:
-      - mongodb
     mem_limit: 350m
     restart: unless-stopped
 
@@ -50,5 +34,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  mongodb_data:
   data_protection_keys:
