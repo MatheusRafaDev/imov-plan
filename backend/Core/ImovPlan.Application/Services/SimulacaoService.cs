@@ -98,7 +98,13 @@ namespace ImovPlan.Application.Services
             {
                 if (!checkpoints.TryGetValue(pid, out var checkpoint)) continue;
                 var saldoAnterior = saldosIndividuais[pid];
-                saldosIndividuais[pid] = checkpoint.Data <= dataReferencia.Date ? checkpoint.Valor : 0m;
+                
+                // Considera o checkpoint válido para o saldo inicial (Mês 0) se ele foi 
+                // definido em um mês anterior ou no mesmo mês de início do plano.
+                bool isCheckpointBeforeOrAtStart = checkpoint.Data.Year < dataReferencia.Year || 
+                                                   (checkpoint.Data.Year == dataReferencia.Year && checkpoint.Data.Month <= dataReferencia.Month);
+                
+                saldosIndividuais[pid] = isCheckpointBeforeOrAtStart ? checkpoint.Valor : 0m;
                 saldoConjunto += saldosIndividuais[pid] - saldoAnterior;
             }
             valorJaGuardado = saldoConjunto;

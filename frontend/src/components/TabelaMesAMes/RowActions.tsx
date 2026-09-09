@@ -18,8 +18,8 @@ export function RowActions({
   pessoas: { id: string; nome: string }[];
   aportesPlanejados: Record<string, number>;
   aportesReais: Record<string, number>;
-  onSaveAportes: (novosValores: Record<string, number>) => void;
-  onAddExtra: (pessoaId: string | null, origem: string, valor: number) => void;
+  onSaveAportes: (novosValores: Record<string, number>) => void | Promise<void>;
+  onAddExtra: (pessoaId: string | null, origem: string, valor: number) => void | Promise<void>;
 }) {
   const [openMenu, setOpenMenu] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);

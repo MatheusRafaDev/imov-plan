@@ -37,9 +37,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
   const {
     pessoas,
     aportesExtras,
+    aportesRegularesEditadosPorPessoa,
     setAportesExtras,
     setAportesRegularesEditadosPorPessoa,
-    saveDraft,
+    salvarPlano,
+    calcularBackend,
     mesesConcluidos,
     setMesesConcluidos,
     backendData,
@@ -78,7 +80,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         isZero ? "Início" : `Mês ${r.mes}`,
         dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1),
         ...pessoas.map(p => {
-          const real = isZero ? (Number(p.valorInicial) || 0) : r.aporteFinalPorPessoa[p.id] || 0;
+          const real = isZero ? (r.saldoPorPessoa[p.id] ?? Number(p.valorInicial) ?? 0) : r.aporteFinalPorPessoa[p.id] || 0;
           return real.toFixed(2);
         }),
         r.aportesExtras.toFixed(2),
@@ -120,6 +122,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       isExtra: r.aportesExtras > 0,
       aporteFinalPorPessoa: Object.fromEntries(
         (r.participantes || []).map(p => [p.participanteId, p.aporteMensal])
+      ),
+      saldoPorPessoa: Object.fromEntries(
+        (r.participantes || []).map(p => [p.participanteId, p.saldo])
       )
     }));
   })();
@@ -277,7 +282,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                   
                   {pessoas.map(p => {
                     const planejado = Number(p.aporte_mensal) || 0;
-                    const real = isZero ? (Number(p.valorInicial) || 0) : r.aporteFinalPorPessoa[p.id] || 0;
+                    const real = isZero ? (r.saldoPorPessoa[p.id] ?? Number(p.valorInicial) ?? 0) : r.aporteFinalPorPessoa[p.id] || 0;
                     const wasEdited = isZero ? false : real !== planejado;
                     return (
                       <Td key={p.id} right>
@@ -347,25 +352,23 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         pessoas={pessoas.map(p => ({ id: p.id, nome: p.nome }))}
                         aportesPlanejados={Object.fromEntries(pessoas.map(p => [p.id, Number(p.aporte_mensal) || 0]))}
                         aportesReais={r.aporteFinalPorPessoa}
-                        onSaveAportes={(novosValores) => {
-                          setAportesRegularesEditadosPorPessoa(prev => {
-                            const newState = { ...prev };
-                            pessoas.forEach(p => {
-                              const v = novosValores[p.id];
-                              const defaultP = Number(p.aporte_mensal) || 0;
-                              const pEdits = { ...(newState[p.id] || {}) };
-                              if (v === defaultP) {
-                                delete pEdits[r.mes];
-                              } else {
-                                pEdits[r.mes] = v;
-                              }
-                              newState[p.id] = pEdits;
-                            });
-                            saveDraft({ aportesRegularesEditadosPorPessoa: newState });
-                            return newState;
+                        onSaveAportes={async (novosValores) => {
+                          // Build new edits map from current state
+                          const newEdits: Record<string, Record<number, number>> = { ...aportesRegularesEditadosPorPessoa };
+                          pessoas.forEach(p => {
+                            const v = novosValores[p.id];
+                            const defaultP = Number(p.aporte_mensal) || 0;
+                            const pEdits = { ...(newEdits[p.id] || {}) };
+                            if (v === defaultP) { delete pEdits[r.mes]; } else { pEdits[r.mes] = v; }
+                            newEdits[p.id] = pEdits;
                           });
+                          // Update store state optimistically
+                          setAportesRegularesEditadosPorPessoa(() => newEdits);
+                          // Persist and recalculate
+                          const savedId = await salvarPlano({ aportesRegularesEditadosPorPessoa: newEdits });
+                          if (savedId) await calcularBackend(savedId);
                         }}
-                        onAddExtra={(pessoaId, origem, valor) => {
+                        onAddExtra={async (pessoaId, origem, valor) => {
                           const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : null;
                           const newExtra = {
                             pessoaId: pessoaId || undefined,
@@ -374,8 +377,10 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                             valor,
                             data: r.data.split("T")[0]
                           };
-                          setAportesExtras(prev => [...prev, newExtra]);
-                          saveDraft({ aportesExtras: [...aportesExtras, newExtra] });
+                          const updatedExtras = [...aportesExtras, newExtra];
+                          setAportesExtras(() => updatedExtras);
+                          const savedId = await salvarPlano({ aportesExtras: updatedExtras });
+                          if (savedId) await calcularBackend(savedId);
                         }}
                       />
                     )}

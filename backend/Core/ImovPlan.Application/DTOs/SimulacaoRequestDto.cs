@@ -18,5 +18,7 @@ namespace ImovPlan.Application.DTOs
     {
         public string PessoaId { get; set; } = string.Empty;
         public decimal Valor { get; set; }
+        public decimal? ValorAtual { get; set; }
+        public string? DataValorAtual { get; set; }
     }
 }

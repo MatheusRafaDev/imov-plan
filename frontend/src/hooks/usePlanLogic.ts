@@ -97,7 +97,9 @@ export function usePlanLogic() {
       percentualCdi: currentState.objetivo?.percentualCdi || 100,
       aportesMensais: currentState.pessoas.map((p) => ({
         pessoaId: p.id,
-        valor: p.aporte_mensal
+        valor: p.aporte_mensal,
+        valorAtual: p.valorAtual,
+        dataValorAtual: p.dataValorAtual
       })),
       aportesExtras: currentState.aportesExtras.map((a) => ({
         pessoaId: a.pessoaId || '',
