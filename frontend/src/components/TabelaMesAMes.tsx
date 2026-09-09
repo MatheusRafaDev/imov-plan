@@ -41,6 +41,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     setAportesExtras,
     setAportesRegularesEditadosPorPessoa,
     salvarPlano,
+    saveDraft,
     calcularBackend,
     mesesConcluidos,
     setMesesConcluidos,
