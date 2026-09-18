@@ -40,9 +40,9 @@ export default function AuthPage() {
 
     const initGoogle = () => {
       const google = (window as any).google;
-      if (google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      if (google && process.env.NEXT_PUBLIC_IMOVPLAN_GOOGLE_CLIENT_ID) {
         google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          client_id: process.env.NEXT_PUBLIC_IMOVPLAN_GOOGLE_CLIENT_ID,
           callback: async (response: any) => {
             if (response.credential && googleCredentialInFlight.current !== response.credential) {
               googleCredentialInFlight.current = response.credential;
@@ -232,10 +232,10 @@ export default function AuthPage() {
           {/* Botão oficial do Google */}
           <div id="google-signin-button" className="w-full mb-4 flex justify-center"></div>
 
-          {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-            <p className="text-xs text-muted-foreground mb-4 text-center">
-              Login com Google desabilitado: configure NEXT_PUBLIC_GOOGLE_CLIENT_ID no .env.local
-            </p>
+          {!process.env.NEXT_PUBLIC_IMOVPLAN_GOOGLE_CLIENT_ID && (
+            <div className="text-xs text-center text-red-500/80 mt-2">
+              Login com Google desabilitado: configure NEXT_PUBLIC_IMOVPLAN_GOOGLE_CLIENT_ID no .env.local
+            </div>
           )}
 
           <div className="relative mb-6">

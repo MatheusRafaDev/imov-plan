@@ -2,7 +2,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 const isBrowser = typeof window !== 'undefined';
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5179/api';
+const apiUrl = process.env.NEXT_PUBLIC_IMOVPLAN_BACKEND_API_URL || 'http://localhost:5179/api';
 // Usa o proxy local (/api) se estiver no browser e a URL base for absoluta,
 // isso previne bloqueio de cookies de terceiros (ex: Safari) e erros de CORS.
 const baseURL = isBrowser && apiUrl.startsWith('http') ? '/api' : apiUrl;
