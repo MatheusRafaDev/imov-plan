@@ -292,9 +292,14 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               </tr>
             )}
             itemContent={(_, r) => {
-              const rowExtras = aportesExtras.filter(e => e.data && e.data.startsWith(r.data.split("T")[0])).map((e, idx) => ({ ...e, index: idx }));
-              const totalAporteMes = r.aporteRegular + r.aportesExtras;
-              const isMesConcluido = mesesConcluidosSet.has(r.mes);
+              if (!r) return null;
+              
+              const rowExtras = (aportesExtras || [])
+                .filter(e => e?.data && r?.data && e.data.startsWith(r.data.split("T")[0]))
+                .map((e, idx) => ({ ...e, index: idx }));
+                
+              const totalAporteMes = (r.aporteRegular || 0) + (r.aportesExtras || 0);
+              const isMesConcluido = r.mes != null ? mesesConcluidosSet.has(r.mes) : false;
               const isZero = r.mes === 0;
 
               return (
