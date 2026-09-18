@@ -37,14 +37,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const homeHref = nav[0]?.to ?? "/app/imovel";
   const isStep1Filled = !!(objetivo && objetivo.valorImovel && objetivo.valorImovel > 0);
 
-  const handleNavClick = async (e: React.MouseEvent<HTMLAnchorElement>, targetPath: string) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetPath: string) => {
     if (targetPath === "/app/planejamento" || targetPath === "/app/resultado") {
-      e.preventDefault();
-      const savedId = await salvarPlano();
-      if (savedId && !savedId.startsWith("local-draft")) {
-        calcularBackend(savedId);
-      }
-      router.push(targetPath);
+      // Não damos preventDefault para a navegação ser instantânea.
+      // Dispara o salvamento e recálculo em background.
+      salvarPlano().then((savedId) => {
+        if (savedId && !savedId.startsWith("local-draft")) {
+          calcularBackend(savedId);
+        }
+      });
     }
   };
 

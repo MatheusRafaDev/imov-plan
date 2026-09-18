@@ -22,6 +22,7 @@ namespace ImovPlan.Infrastructure.Repositories
         public async Task<HistoricoSimulacao?> GetUltimoByPlanejamentoIdAsync(string planejamentoId)
         {
             return await _context.HistoricosSimulacao
+                .AsNoTracking()
                 .Where(s => s.PlanejamentoId == planejamentoId)
                 .OrderByDescending(s => s.GeradoEm)
                 .FirstOrDefaultAsync();
@@ -30,6 +31,7 @@ namespace ImovPlan.Infrastructure.Repositories
         public async Task<IEnumerable<HistoricoSimulacao>> GetAllByPlanejamentoIdAsync(string planejamentoId)
         {
             return await _context.HistoricosSimulacao
+                .AsNoTracking()
                 .Where(s => s.PlanejamentoId == planejamentoId)
                 .OrderByDescending(s => s.GeradoEm)
                 .ToListAsync();
@@ -45,6 +47,7 @@ namespace ImovPlan.Infrastructure.Repositories
         public async Task<IEnumerable<EvolucaoMensalSimulacao>> GetEvolucaoBySimulacaoIdAsync(string simulacaoId)
         {
             return await _context.EvolucoesMensaisSimulacao
+                .AsNoTracking()
                 .Where(e => e.SimulacaoId == simulacaoId)
                 .OrderBy(e => e.Mes)
                 .ToListAsync();
@@ -104,8 +107,18 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao)
         {
-            await _context.EvolucoesMensaisSimulacao.AddRangeAsync(evolucao);
-            await _context.SaveChangesAsync();
+            if (!evolucao.Any()) return;
+
+            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
+            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+            var dbName = config["MongoDbSettings:DatabaseName"];
+            if (string.IsNullOrEmpty(dbName)) return;
+
+            var db = mongoClient.GetDatabase(dbName);
+            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("EvolucoesMensaisSimulacao");
+
+            await evolucoesColl.InsertManyAsync(evolucao);
+            _context.ChangeTracker.Clear();
         }
     }
 }
