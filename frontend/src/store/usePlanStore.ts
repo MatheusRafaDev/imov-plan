@@ -17,6 +17,7 @@ interface PlanState {
   aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
   mesesConcluidos: number[];
   lastCalculatedPayloadStr: string | null;
+  lastSavedDraftPayloadStr: string | null;
 
   // Setters
   setObjetivo: (objetivo: Partial<SimInput> | null | ((prev: Partial<SimInput> | null) => Partial<SimInput> | null)) => void;
