@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_IMOVPLAN_BACKEND_API_URL || "http://localhost:5179";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5179";
     if (apiUrl.startsWith("http")) {
       const baseDest = apiUrl.endsWith('/api') 
         ? apiUrl.slice(0, -4) 
