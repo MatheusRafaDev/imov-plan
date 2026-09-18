@@ -63,8 +63,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure CORS — origins from configuration (appsettings.json / env)
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:3000" };
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+var corsEnvStr = builder.Configuration["CORS_ALLOWED_ORIGINS"];
+if (!string.IsNullOrEmpty(corsEnvStr))
+{
+    allowedOrigins = corsEnvStr.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(o => o.Trim()).ToArray();
+}
+allowedOrigins ??= new[] { "http://localhost:3000" };
 
 builder.Services.AddCors(options =>
 {
@@ -116,18 +121,18 @@ builder.Services.AddHttpClient("Nominatim", client =>
 });
 
 // Configure JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey = builder.Configuration["JWT_SECRET"];
 if (string.IsNullOrEmpty(jwtKey))
 {
-    throw new InvalidOperationException("JWT:Key configuration is required. Set it in environment variables or appsettings.json.");
+    throw new InvalidOperationException("JWT_SECRET configuration is required. Set it in environment variables or appsettings.json.");
 }
 var jwtKeyBytes = Encoding.UTF8.GetBytes(jwtKey);
 if (jwtKeyBytes.Length < 32)
 {
-    throw new InvalidOperationException("JWT:Key must be at least 32 bytes long when using HS256. Update the key in environment variables or appsettings.");
+    throw new InvalidOperationException("JWT_SECRET must be at least 32 bytes long when using HS256. Update the key in environment variables or appsettings.");
 }
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ImovPlanAPI";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ImovPlanClient";
+var jwtIssuer = builder.Configuration["JWT_ISSUER"] ?? "ImovPlanAPI";
+var jwtAudience = builder.Configuration["JWT_AUDIENCE"] ?? "ImovPlanClient";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -163,6 +168,11 @@ builder.Services.AddAuthentication(options =>
 // Configure MongoDB
 var mongoSettings = new MongoDbSettings();
 builder.Configuration.GetSection("MongoDbSettings").Bind(mongoSettings);
+
+if (!string.IsNullOrEmpty(builder.Configuration["MONGO_CONNECTION_STRING"]))
+    mongoSettings.ConnectionString = builder.Configuration["MONGO_CONNECTION_STRING"];
+if (!string.IsNullOrEmpty(builder.Configuration["MONGO_DATABASE_NAME"]))
+    mongoSettings.DatabaseName = builder.Configuration["MONGO_DATABASE_NAME"];
 var mongoClient = new MongoClient(mongoSettings.ConnectionString);
 builder.Services.AddSingleton<IMongoClient>(mongoClient);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -216,6 +226,7 @@ builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Servic
 
 // Background Services
 builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoService>();
+builder.Services.AddHostedService<ImovPlan.API.Services.KeepAliveService>();
 
 var app = builder.Build();
 

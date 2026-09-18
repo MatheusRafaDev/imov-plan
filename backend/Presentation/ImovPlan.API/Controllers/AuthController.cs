@@ -127,7 +127,7 @@ namespace ImovPlan.API.Controllers
         {
             try
             {
-                var clientId = _configuration["Google:ClientId"];
+                var clientId = _configuration["GOOGLE_CLIENT_ID"];
                 if (string.IsNullOrEmpty(clientId))
                 {
                     return StatusCode(500, new { message = "Google Client ID nao configurado no servidor." });
@@ -227,7 +227,7 @@ namespace ImovPlan.API.Controllers
             user.ResetPasswordTokenUsed = null; // null == false == nao usado
             await _usuarioRepository.UpdateAsync(user.Id, user);
 
-            var frontendUrl = _configuration["FrontendUrl"] ?? _configuration["FrontendUrl2"] ?? "http://localhost:3000";
+            var frontendUrl = _configuration["FRONTEND_URL"] ?? "http://localhost:3000";
             frontendUrl = frontendUrl.TrimEnd('/');
             var resetLink = $"{frontendUrl}/auth/reset-password?token={Uri.EscapeDataString(rawToken)}";
 

@@ -17,9 +17,9 @@ namespace ImovPlan.API.Services
 
         public string GenerateJwtToken(string userId, string role)
         {
-            var jwtKey = _configuration["Jwt:Key"]!; // Validado no startup — nunca é null se chegou aqui
-            var jwtIssuer = _configuration["Jwt:Issuer"] ?? "ImovPlanAPI";
-            var jwtAudience = _configuration["Jwt:Audience"] ?? "ImovPlanClient";
+            var jwtKey = _configuration["JWT_SECRET"]!; // Validado no startup — nunca é null se chegou aqui
+            var jwtIssuer = _configuration["JWT_ISSUER"] ?? "ImovPlanAPI";
+            var jwtAudience = _configuration["JWT_AUDIENCE"] ?? "ImovPlanClient";
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
