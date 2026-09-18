@@ -52,9 +52,17 @@ builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 builder.Services.AddMemoryCache();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
 builder.Services.AddControllers(options => 
 {
     options.Filters.Add<ValidationFilterAttribute>();
+}).AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
 });
 
 builder.Services.AddValidatorsFromAssemblyContaining<ImovPlan.Application.Validators.AporteExtraDtoValidator>();
@@ -173,6 +181,9 @@ if (!string.IsNullOrEmpty(builder.Configuration["MONGO_CONNECTION_STRING"]))
     mongoSettings.ConnectionString = builder.Configuration["MONGO_CONNECTION_STRING"];
 if (!string.IsNullOrEmpty(builder.Configuration["MONGO_DATABASE_NAME"]))
     mongoSettings.DatabaseName = builder.Configuration["MONGO_DATABASE_NAME"];
+
+builder.Services.AddSingleton(mongoSettings);
+
 var mongoClient = new MongoClient(mongoSettings.ConnectionString);
 builder.Services.AddSingleton<IMongoClient>(mongoClient);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -227,6 +238,7 @@ builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Servic
 // Background Services
 builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoService>();
 builder.Services.AddHostedService<ImovPlan.API.Services.KeepAliveService>();
+builder.Services.AddHostedService<ImovPlan.API.Services.MongoDbIndexInitializer>();
 
 var app = builder.Build();
 
@@ -236,6 +248,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseResponseCompression();
 app.UseHttpsRedirection();
 app.Use(async (context, next) =>
 {

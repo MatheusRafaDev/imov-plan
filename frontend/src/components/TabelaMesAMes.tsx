@@ -5,6 +5,7 @@ import React from "react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { brl, type CenarioSimulacao } from "@/lib/finance";
 import { Check, Loader2, Download } from "lucide-react";
+import { TableVirtuoso } from "react-virtuoso";
 import { RowActions } from "./TabelaMesAMes/RowActions";
 import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
 
@@ -213,46 +214,90 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
                 
         <div className={`overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40 transition-opacity duration-300 ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
-        <table className="w-full text-sm font-sans border-collapse relative">
-          <thead className="bg-card text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60">
-            <tr>
-              <Th className="w-px">Mês</Th>
-              <Th>Data</Th>
-              {pessoas.map(p => (
-                <Th key={p.id} right>{p.nome.split(" ")[0]}</Th>
-              ))}
-              <Th right>Extras</Th>
-              <Th right>Aporte Mês</Th>
-              {showFinancials && (
-                <>
-                  <Th right>Rend. Bruto</Th>
-                  <Th right>IR</Th>
-                  <Th right>Rend. Líq.</Th>
-                  <Th right>Acumulado</Th>
-                </>
-              )}
-              <Th></Th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/10">
-            {displayRows.map((r) => {
+          <TableVirtuoso
+            useWindowScroll
+            data={displayRows}
+            components={{
+              Table: (props) => <table {...props} className="w-full text-sm font-sans border-collapse relative" />,
+              TableHead: React.forwardRef((props, ref) => <thead {...props} ref={ref} className="bg-card text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60" />),
+              TableBody: React.forwardRef((props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border/10" />),
+              TableRow: (props) => {
+                const r = props.item;
+                const isMesConcluido = mesesConcluidosSet.has(r.mes);
+                const isZero = r.mes === 0;
+                return (
+                  <tr 
+                    {...props} 
+                    className={`
+                      transition-colors hover:bg-secondary/10 bg-card
+                      ${r.atingiu ? "bg-success/5" : ""} 
+                      ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
+                      ${isZero ? "" : ""}
+                      ${(props as any).className || ""}
+                    `} 
+                  />
+                );
+              },
+              TableFoot: React.forwardRef((props, ref) => (
+                <tfoot {...props} ref={ref} className="bg-primary/5 border-t-2 border-primary/30 backdrop-blur-sm">
+                  <tr className="font-bold text-foreground">
+                    <Td className="bg-primary/5 whitespace-nowrap">Total Geral</Td>
+                    <Td className="bg-primary/5">{""}</Td>
+                    {pessoas.map(p => (
+                      <Td key={p.id} right className="bg-primary/5">{brl(totals.aportePorPessoa[p.id])}</Td>
+                    ))}
+                    <Td right className="bg-primary/5">{brl(totals.extras)}</Td>
+                    <Td right className="bg-primary/5">{brl(totals.totalMes)}</Td>
+                    {showFinancials && (
+                      <>
+                        <Td right className="bg-primary/5 text-muted-foreground">{brl(totals.rendBruto)}</Td>
+                        <Td right className="bg-primary/5 text-muted-foreground/70">{brl(totals.ir)}</Td>
+                        <Td right className="bg-primary/5 text-success">
+                          {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
+                        </Td>
+                        <Td right className="bg-primary/5 py-2">
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
+                            <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
+                              +{brl(totals.totalMes + totals.rendLiquido)} período
+                            </span>
+                          </div>
+                        </Td>
+                      </>
+                    )}
+                    <Td className="bg-primary/5"></Td>
+                  </tr>
+                </tfoot>
+              ))
+            }}
+            fixedHeaderContent={() => (
+              <tr>
+                <Th className="w-px">Mês</Th>
+                <Th>Data</Th>
+                {pessoas.map(p => (
+                  <Th key={p.id} right>{p.nome.split(" ")[0]}</Th>
+                ))}
+                <Th right>Extras</Th>
+                <Th right>Aporte Mês</Th>
+                {showFinancials && (
+                  <>
+                    <Th right>Rend. Bruto</Th>
+                    <Th right>IR</Th>
+                    <Th right>Rend. Líq.</Th>
+                    <Th right>Acumulado</Th>
+                  </>
+                )}
+                <Th></Th>
+              </tr>
+            )}
+            itemContent={(_, r) => {
               const rowExtras = aportesExtras.filter(e => e.data && e.data.startsWith(r.data.split("T")[0])).map((e, idx) => ({ ...e, index: idx }));
-              
               const totalAporteMes = r.aporteRegular + r.aportesExtras;
-              
               const isMesConcluido = mesesConcluidosSet.has(r.mes);
               const isZero = r.mes === 0;
 
               return (
-                <tr 
-                  key={r.mes} 
-                  className={`
-                    transition-colors hover:bg-secondary/10 bg-card
-                    ${r.atingiu ? "bg-success/5" : ""} 
-                    ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
-                    ${isZero ? "" : ""}
-                  `}
-                >
+                <>
                   <Td className="font-medium whitespace-nowrap w-px">
                     <div className="flex items-center gap-2">
                       {showCompletedToggle && !isZero && (
@@ -354,7 +399,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         aportesPlanejados={Object.fromEntries(pessoas.map(p => [p.id, Number(p.aporte_mensal) || 0]))}
                         aportesReais={r.aporteFinalPorPessoa}
                         onSaveAportes={async (novosValores) => {
-                          // Build new edits map from current state
                           const newEdits: Record<string, Record<number, number>> = { ...aportesRegularesEditadosPorPessoa };
                           pessoas.forEach(p => {
                             const v = novosValores[p.id];
@@ -363,9 +407,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                             if (v === defaultP) { delete pEdits[r.mes]; } else { pEdits[r.mes] = v; }
                             newEdits[p.id] = pEdits;
                           });
-                          // Update store state optimistically
                           setAportesRegularesEditadosPorPessoa(() => newEdits);
-                          // Persist and recalculate
                           const savedId = await salvarPlano({ aportesRegularesEditadosPorPessoa: newEdits });
                           if (savedId) await calcularBackend(savedId);
                         }}
@@ -386,40 +428,10 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                       />
                     )}
                   </Td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot className="bg-primary/5 border-t-2 border-primary/30 backdrop-blur-sm">
-            <tr className="font-bold text-foreground">
-              <Td className="bg-primary/5 whitespace-nowrap">Total Geral</Td>
-              <Td className="bg-primary/5">{""}</Td>
-              {pessoas.map(p => (
-                <Td key={p.id} right className="bg-primary/5">{brl(totals.aportePorPessoa[p.id])}</Td>
-              ))}
-              <Td right className="bg-primary/5">{brl(totals.extras)}</Td>
-              <Td right className="bg-primary/5">{brl(totals.totalMes)}</Td>
-              {showFinancials && (
-                <>
-                  <Td right className="bg-primary/5 text-muted-foreground">{brl(totals.rendBruto)}</Td>
-                  <Td right className="bg-primary/5 text-muted-foreground/70">{brl(totals.ir)}</Td>
-                  <Td right className="bg-primary/5 text-success">
-                    {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
-                  </Td>
-                  <Td right className="bg-primary/5 py-2">
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
-                      <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
-                        +{brl(totals.totalMes + totals.rendLiquido)} período
-                      </span>
-                    </div>
-                  </Td>
                 </>
-              )}
-              <Td className="bg-primary/5"></Td>
-            </tr>
-          </tfoot>
-        </table>
+              );
+            }}
+          />
         </div>
       </div>
     </div>
