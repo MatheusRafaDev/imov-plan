@@ -61,8 +61,8 @@ namespace ImovPlan.Infrastructure.Repositories
             if (string.IsNullOrEmpty(dbName)) return;
 
             var db = mongoClient.GetDatabase(dbName);
-            var historicosColl = db.GetCollection<HistoricoSimulacao>("HistoricosSimulacao");
-            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("EvolucoesMensaisSimulacao");
+            var historicosColl = db.GetCollection<HistoricoSimulacao>("historicoSimulacoes");
+            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
 
             // Delete evolutions
             var filterEvolucoes = MongoDB.Driver.Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, id);
@@ -84,8 +84,8 @@ namespace ImovPlan.Infrastructure.Repositories
             if (string.IsNullOrEmpty(dbName)) return;
 
             var db = mongoClient.GetDatabase(dbName);
-            var historicosColl = db.GetCollection<HistoricoSimulacao>("HistoricosSimulacao");
-            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("EvolucoesMensaisSimulacao");
+            var historicosColl = db.GetCollection<HistoricoSimulacao>("historicoSimulacoes");
+            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
 
             // Find all simulation IDs for this plan
             var filterHistoricos = MongoDB.Driver.Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
@@ -115,7 +115,7 @@ namespace ImovPlan.Infrastructure.Repositories
             if (string.IsNullOrEmpty(dbName)) return;
 
             var db = mongoClient.GetDatabase(dbName);
-            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("EvolucoesMensaisSimulacao");
+            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
 
             await evolucoesColl.InsertManyAsync(evolucao);
             _context.ChangeTracker.Clear();
