@@ -216,6 +216,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         <div className={`overflow-x-auto bg-card custom-scrollbar -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40 transition-opacity duration-300 ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
           <TableVirtuoso
             useWindowScroll
+            initialItemCount={30}
             data={displayRows}
             components={{
               Table: (props) => <table {...props} className="w-full text-sm font-sans border-collapse relative" />,
