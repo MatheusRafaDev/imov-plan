@@ -67,13 +67,15 @@ const normalizeDataFim = (inicio: string, fim: string) => {
 };
 
 export default function ObjetivoPage() {
-  const { objetivo, setObjetivo, salvarPlano } = usePlanLogic();
+  const { objetivo, setObjetivo, salvarPlano, isDraftLoading } = usePlanLogic();
   const router = useRouter();
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showITBIInfo, setShowITBIInfo] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Usa o isDraftLoading do React Query + Zustand para saber quando o backend terminou
+  const isLoading = isDraftLoading;
 
   const [form, setForm] = useState({
     nome: "Imóvel",
@@ -89,14 +91,6 @@ export default function ObjetivoPage() {
   });
 
   const [prevObjetivo, setPrevObjetivo] = useState<any>(null);
-
-  useEffect(() => {
-    // Simulate loading or wait for data to be ready
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   if (objetivo !== prevObjetivo) {
     setPrevObjetivo(objetivo);

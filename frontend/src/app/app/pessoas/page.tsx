@@ -32,24 +32,18 @@ const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas, saveDraft, salvarPlano, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating } = usePlanLogic();
+  const { pessoas, setPessoas, saveDraft, salvarPlano, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating, isDraftLoading } = usePlanLogic();
   
   const [isEditingTotal, setIsEditingTotal] = useState(false);
   const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
   const sumValores = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
   const diffTotal = totalObjetivo - sumValores;
   
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = isDraftLoading;
 
   const { user } = useAuth();
   const router = useRouter();
   const wasInitialized = useRef(false);
-
-  useEffect(() => {
-    // Wait a tick for context to hydrate before rendering inputs
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (pessoas.length > 0) {

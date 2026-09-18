@@ -18,20 +18,14 @@ import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, salvarPlano, calcularBackend, backendData, calculating } = usePlanLogic();
+  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, salvarPlano, calcularBackend, backendData, calculating, isDraftLoading } = usePlanLogic();
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
   const currentStep = nav.findIndex(n => pathname?.startsWith(n.to)) + 1;
   const totalSteps = nav.length;
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Show skeleton briefly to avoid empty field flash on hydration
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 350);
-    return () => clearTimeout(timer);
-  }, []);
+  const isLoading = isDraftLoading;
 
   const [isEditingTotal, setIsEditingTotal] = useState(false);
 
