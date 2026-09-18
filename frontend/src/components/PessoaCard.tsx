@@ -87,7 +87,7 @@ export default function PessoaCard({
               <span className="font-display font-bold text-lg text-foreground/80">{p.nome.charAt(0).toUpperCase()}</span>
             </div>
             <div>
-              <h3 className="font-display text-lg font-semibold text-foreground leading-tight">{p.nome}</h3>
+              <h3 className="font-display text-base font-semibold text-foreground leading-tight">{p.nome}</h3>
               <p className="text-[10px] uppercase tracking-widest text-accent font-medium mt-0.5">{role}</p>
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function PessoaCard({
             <span className="text-sm font-medium flex items-center gap-1.5 text-muted-foreground">
               <Wallet className="h-3.5 w-3.5" /> Sobra mensal
             </span>
-            <span className={`font-display text-xl num font-semibold ${sobra >= 0 ? "text-[#3B6D11] dark:text-[#80B551]" : "text-destructive"}`}>
+            <span className={`font-display text-lg num font-semibold ${sobra >= 0 ? "text-[#3B6D11] dark:text-[#80B551]" : "text-destructive"}`}>
               {brl(sobra)}
             </span>
           </div>
@@ -170,7 +170,7 @@ export default function PessoaCard({
             <span className="text-sm font-medium flex items-center gap-1.5 text-primary">
               <Wallet className="h-3.5 w-3.5" /> Aporte mensal
             </span>
-            <span className="font-display text-xl num font-semibold text-primary">
+            <span className="font-display text-lg num font-semibold text-primary">
               {brl(Number(p.aporte_mensal || 0))}
             </span>
           </div>
@@ -187,7 +187,7 @@ export default function PessoaCard({
               <div className="bg-accent h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${percent}%` }} />
             </div>
             <div className="flex items-end justify-between">
-              <span className="font-display text-2xl num font-semibold">{brl(valorInicial)}</span>
+              <span className="font-display text-xl num font-semibold">{brl(valorInicial)}</span>
                 {valorInicial > 0 && (
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
                   {p.tipoInvestimento === "poupanca" ? "Poupança" :
@@ -217,7 +217,7 @@ export default function PessoaCard({
           <Input 
             value={p.nome} 
             onChange={e => atualizarPessoa(p.id, { nome: e.target.value })} 
-            className="font-display text-2xl font-semibold border-none px-0 focus-visible:ring-0 h-auto bg-transparent" 
+            className="font-display text-xl font-semibold border-none px-0 focus-visible:ring-0 h-auto bg-transparent" 
             placeholder="Nome do participante"
           />
         </div>
@@ -294,7 +294,7 @@ export default function PessoaCard({
                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor</Label>
                   <MoneyInput variant="money" min={0} placeholder="R$" className="bg-background" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} />
                 </div>
-                <Button size="icon" className="h-11 w-11 md:h-10 md:w-10 bg-primary text-primary-foreground shrink-0 shadow-sm hover:shadow-md transition-all" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
+                <Button size="icon" className="h-9 w-9 bg-primary text-primary-foreground shrink-0 shadow-sm hover:shadow-md transition-all" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>

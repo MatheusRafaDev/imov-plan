@@ -365,9 +365,9 @@ export default function PessoasPage() {
         {!showAddForm ? (
           <Card 
             onClick={() => setShowAddForm(true)}
-            className="glass p-8 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[180px] md:min-h-[360px] text-muted-foreground hover:text-foreground group rounded-xl"
+            className="glass p-6 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[160px] md:min-h-[220px] text-muted-foreground hover:text-foreground group rounded-xl"
           >
-            <div className="h-14 w-14 rounded-full bg-secondary/80 group-hover:bg-accent/10 grid place-items-center mb-4 transition-colors">
+            <div className="h-12 w-12 rounded-full bg-secondary/80 group-hover:bg-accent/10 grid place-items-center mb-3 transition-colors">
               <Plus className="h-6 w-6 text-muted-foreground group-hover:text-accent transition-colors" />
             </div>
             <h3 className="font-display text-xl font-semibold text-foreground">Adicionar participante</h3>
@@ -577,10 +577,10 @@ export default function PessoasPage() {
         <Card className="p-6 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest opacity-70">Sobra total projetada</p>
-            <p className="font-display text-3xl md:text-4xl num mt-1">{brl(sobraTotal)}</p>
+            <p className="font-display text-2xl md:text-3xl num mt-1">{brl(sobraTotal)}</p>
             <p className="text-xs opacity-70 mt-1">Este valor será usado como base para os aportes no plano.</p>
           </div>
-          <Button onClick={prosseguir} disabled={calculating} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-12 px-6">
+          <Button onClick={prosseguir} disabled={calculating} className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-11 px-5">
             {calculating ? "Salvando..." : "Ir para o Plano"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Card>
