@@ -48,7 +48,7 @@ namespace ImovPlan.Infrastructure.Repositories
         {
             var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
             var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MongoDbSettings:DatabaseName"];
+            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
             if (string.IsNullOrEmpty(dbName)) return new List<EvolucaoMensalSimulacao>();
 
             var db = mongoClient.GetDatabase(dbName);
@@ -62,7 +62,7 @@ namespace ImovPlan.Infrastructure.Repositories
         {
             var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
             var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MongoDbSettings:DatabaseName"];
+            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
             if (string.IsNullOrEmpty(dbName)) return;
 
             var db = mongoClient.GetDatabase(dbName);
@@ -85,7 +85,7 @@ namespace ImovPlan.Infrastructure.Repositories
         {
             var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
             var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MongoDbSettings:DatabaseName"];
+            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
             if (string.IsNullOrEmpty(dbName)) return;
 
             var db = mongoClient.GetDatabase(dbName);
@@ -116,7 +116,7 @@ namespace ImovPlan.Infrastructure.Repositories
 
             var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
             var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MongoDbSettings:DatabaseName"];
+            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
             if (string.IsNullOrEmpty(dbName)) return;
 
             var db = mongoClient.GetDatabase(dbName);
