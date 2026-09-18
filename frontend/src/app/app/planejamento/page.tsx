@@ -50,7 +50,7 @@ export default function PlanejamentoPage() {
     const savedId = await salvarPlano();
     if (savedId) {
       if (!savedId.startsWith("local-draft")) {
-        await calcularBackend(savedId);
+        calcularBackend(savedId).catch(console.error);
       }
       router.push("/app/resultado");
     } else {

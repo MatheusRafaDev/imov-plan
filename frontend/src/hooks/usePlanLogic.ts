@@ -59,7 +59,15 @@ export function usePlanLogic() {
         mesesConcluidos: payload.mesesConcluidos || [],
       };
 
-      return await saveDraftMutation({ planoId, payload: formattedPayload });
+      const formattedPayloadStr = JSON.stringify(formattedPayload);
+      if (formattedPayloadStr === currentState.lastSavedDraftPayloadStr) {
+        console.log("[saveDraftCore] Nenhuma mudança no rascunho. Pulando salvamento.");
+        return planoId;
+      }
+
+      const savedId = await saveDraftMutation({ planoId, payload: formattedPayload });
+      usePlanStore.getState().setLastSavedDraftPayloadStr(formattedPayloadStr);
+      return savedId;
     } catch (error: any) {
       const status = error?.response?.status;
       // Não logar erros de autenticação (são esperados e tratados no interceptor do axios)

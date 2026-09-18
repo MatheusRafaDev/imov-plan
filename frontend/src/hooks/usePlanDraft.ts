@@ -103,6 +103,7 @@ export function usePlanDraft(planoId: string | null) {
         
         // Hydrate store
         hydrate(mappedData);
+        hydrate({ lastSavedDraftPayloadStr: JSON.stringify(mappedData) });
 
         if (draftData.id) {
           hydrate({ planoId: draftData.id });

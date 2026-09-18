@@ -88,11 +88,9 @@ export default function PessoasPage() {
       if (savedId != null) {
         if (!savedId.startsWith("local-draft")) {
           // Cálculo da simulação não deve bloquear a navegação
-          try {
-            await calcularBackend(savedId);
-          } catch (calcErr) {
+          calcularBackend(savedId).catch((calcErr) => {
             console.warn("[prosseguir] Erro ao calcular simulação (não crítico):", calcErr);
-          }
+          });
         }
         router.push("/app/planejamento");
       } else {

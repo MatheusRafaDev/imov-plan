@@ -30,6 +30,7 @@ interface PlanState {
   setAportesRegularesEditadosPorPessoa: (aportes: Record<string, Record<number, number>> | ((prev: Record<string, Record<number, number>>) => Record<string, Record<number, number>>)) => void;
   setMesesConcluidos: (meses: number[] | ((prev: number[]) => number[])) => void;
   setLastCalculatedPayloadStr: (payloadStr: string | null) => void;
+  setLastSavedDraftPayloadStr: (payloadStr: string | null) => void;
 
   // Bulk set (useful when hydrating from API)
   hydrate: (data: Partial<PlanState>) => void;
@@ -50,6 +51,7 @@ const initialState = {
   aportesRegularesEditadosPorPessoa: {},
   mesesConcluidos: [],
   lastCalculatedPayloadStr: null as string | null,
+  lastSavedDraftPayloadStr: null as string | null,
 };
 
 export const usePlanStore = create<PlanState>()(
@@ -79,13 +81,10 @@ export const usePlanStore = create<PlanState>()(
       setAportesRegularesEditados: (update) => set((state) => ({
         aportesRegularesEditados: typeof update === 'function' ? update(state.aportesRegularesEditados) : update
       })),
-      setAportesRegularesEditadosPorPessoa: (update) => set((state) => ({
-        aportesRegularesEditadosPorPessoa: typeof update === 'function' ? update(state.aportesRegularesEditadosPorPessoa) : update
-      })),
-      setMesesConcluidos: (update) => set((state) => ({
-        mesesConcluidos: typeof update === 'function' ? update(state.mesesConcluidos) : update
-      })),
-      setLastCalculatedPayloadStr: (payloadStr) => set({ lastCalculatedPayloadStr: payloadStr }),
+      setAportesRegularesEditadosPorPessoa: (val) => set((state) => ({ aportesRegularesEditadosPorPessoa: typeof val === 'function' ? val(state.aportesRegularesEditadosPorPessoa) : val })),
+      setMesesConcluidos: (val) => set((state) => ({ mesesConcluidos: typeof val === 'function' ? val(state.mesesConcluidos) : val })),
+      setLastCalculatedPayloadStr: (val) => set({ lastCalculatedPayloadStr: val }),
+      setLastSavedDraftPayloadStr: (val) => set({ lastSavedDraftPayloadStr: val }),
 
       hydrate: (data) => set((state) => ({ ...state, ...data })),
       
