@@ -553,6 +553,9 @@ namespace ImovPlan.Application.Services
                     Valor = a.Valor,
                     Origem = a.Origem,
                     PessoaId = a.ParticipanteId,
+                    PessoaNome = !string.IsNullOrEmpty(a.ParticipanteId)
+                        ? participantesDoPlano.FirstOrDefault(p => p.Id == a.ParticipanteId)?.Nome?.Split(' ')[0]
+                        : null,
                 }).ToList(),
                 AportesRegularesEditados = aportesRegularesEditados,
                 AportesRegularesEditadosPorPessoa = aportesRegularesEditadosPorPessoa,
