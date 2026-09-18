@@ -46,11 +46,16 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<EvolucaoMensalSimulacao>> GetEvolucaoBySimulacaoIdAsync(string simulacaoId)
         {
-            return await _context.EvolucoesMensaisSimulacao
-                .AsNoTracking()
-                .Where(e => e.SimulacaoId == simulacaoId)
-                .OrderBy(e => e.Mes)
-                .ToListAsync();
+            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
+            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+            var dbName = config["MongoDbSettings:DatabaseName"];
+            if (string.IsNullOrEmpty(dbName)) return new List<EvolucaoMensalSimulacao>();
+
+            var db = mongoClient.GetDatabase(dbName);
+            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
+
+            var filter = MongoDB.Driver.Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, simulacaoId);
+            return await evolucoesColl.Find(filter).SortBy(e => e.Mes).ToListAsync();
         }
 
         public async Task DeleteAsync(string id)
