@@ -74,8 +74,24 @@ export default function ResultadoPage() {
   const participantes = extractParticipantesSummary(backendData || null);
   const chartData = extractChartData(backendData || null);
 
-  // Se não tem nenhum dado, mostrar estado vazio
+  // Se não tem nenhum dado, mostrar estado vazio ou skeleton se estiver calculando
   if (!summary || !backendData) {
+    if (calculating) {
+      return (
+        <div className="max-w-screen-2xl w-full mx-auto space-y-4 px-4 sm:px-6 md:px-8">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Calculando...</p>
+            <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
+          </div>
+          <div className="flex items-center justify-center py-6">
+            <LoadingSpinner size="md" text="Gerando a sua simulação de evolução patrimonial..." />
+          </div>
+          <ChartSkeleton />
+          <TableSkeleton />
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-screen-2xl w-full mx-auto space-y-7 px-4 md:px-6">
         <div>
@@ -126,7 +142,7 @@ export default function ResultadoPage() {
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
-        <TabelaMesAMes />
+        {calculating ? <TableSkeleton /> : <TabelaMesAMes />}
       </div>
     </div>
   );
