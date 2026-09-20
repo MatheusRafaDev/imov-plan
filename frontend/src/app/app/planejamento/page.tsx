@@ -378,15 +378,15 @@ export default function PlanejamentoPage() {
             ) : (
               <div className="mt-6 space-y-3">
                 {aportesExtras.map((a, index) => (
-                  <div key={index} className="group relative rounded-2xl border border-border/40 bg-card p-4 transition-all duration-300 hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 shrink-0 shadow-sm">
-                           <TrendingDown className="h-5 w-5 text-primary" />
+                  <div key={index} className="group relative rounded-xl border border-border/40 bg-card p-3 transition-all duration-300 hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 shrink-0 shadow-sm">
+                           <TrendingDown className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <p className="font-display font-semibold num text-lg text-foreground leading-none">{brl(Number(a.valor))}</p>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-muted-foreground mt-2 font-medium">
+                          <p className="font-display font-semibold num text-base text-foreground leading-none">{brl(Number(a.valor))}</p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-muted-foreground mt-1.5 font-medium">
                             <span className="flex items-center bg-secondary/80 px-2 py-0.5 rounded-md text-foreground/80"><Calendar className="h-3 w-3 mr-1.5 opacity-70" /> {new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
                             <span className="bg-secondary/80 px-2 py-0.5 rounded-md text-foreground/80">{a.origem}</span>
                             <span className="rounded-md bg-accent/10 px-2 py-0.5 text-accent">{a.pessoaNome ?? "Conjunto"}</span>
@@ -395,10 +395,10 @@ export default function PlanejamentoPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all self-end sm:self-auto translate-x-0 sm:translate-x-2 sm:group-hover:translate-x-0">
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); editarAporte(index); }} className="h-10 w-10 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                          <Pencil className="h-4 w-4" />
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); editarAporte(index); }} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removerAporte(index); }} className="h-10 w-10 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removerAporte(index); }} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
