@@ -132,11 +132,11 @@ export default function PlanejamentoPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 lg:space-y-10">
-      <div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
-        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-3 font-light">Acelere seu plano</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
+    <div className="max-w-6xl mx-auto space-y-8 lg:space-y-12">
+      <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl mb-3 font-medium bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">Acelere seu plano</h1>
+        <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
 
       {foraDoPrazo && (
@@ -150,78 +150,98 @@ export default function PlanejamentoPage() {
       )}
 
       {/* Top Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <Card className={`p-4 sm:p-6 border-border/50 flex flex-col justify-center items-center text-center rounded-xl ${!atingiuMeta || foraDoPrazo ? 'bg-destructive/5 border-destructive/30' : 'bg-success/5 border-success/30'}`}>
-          <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-2">Tempo estimado</p>
-          <p className={`font-display text-4xl sm:text-5xl lg:text-6xl num ${!atingiuMeta || foraDoPrazo ? 'text-destructive' : 'text-success'}`}>{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-2">{mesesEstimados ? "meses" : "Indefinido"}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <Card className={`relative overflow-hidden p-5 sm:p-6 flex flex-col justify-center items-center text-center rounded-2xl transition-all duration-300 hover:shadow-lg ${!atingiuMeta || foraDoPrazo ? 'bg-destructive/5 border-destructive/20 hover:border-destructive/40' : 'bg-success/5 border-success/20 hover:border-success/40'}`}>
+          <div className={`absolute top-0 left-0 w-full h-1 opacity-40 ${!atingiuMeta || foraDoPrazo ? 'bg-destructive' : 'bg-success'}`} />
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tempo estimado</p>
+          <div className="flex items-end gap-1">
+            <p className={`font-display text-5xl sm:text-6xl lg:text-7xl num tracking-tight ${!atingiuMeta || foraDoPrazo ? 'text-destructive' : 'text-success'}`}>{mesesEstimados ? `${mesesEstimados}` : "—"}</p>
+            {mesesEstimados && <span className="text-sm font-medium text-muted-foreground pb-2 sm:pb-3">meses</span>}
+          </div>
           {mesesEstimados && (
-            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border/20 w-full">
+            <div className="mt-4 pt-4 border-t border-border/40 w-full">
               {!atingiuMeta || foraDoPrazo ? (
                 <>
-                  <p className="text-xs text-destructive font-medium mb-1">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses} meses)` : ""}</p>
-                  <p className="text-xs text-muted-foreground">Aporte atual: <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span></p>
-                  <p className="text-xs text-muted-foreground mt-1">Necessário: <span className="font-semibold text-destructive">{brl(aporteNecessario)}/mês</span></p>
-
+                  <p className="text-[10px] uppercase tracking-wider text-destructive font-bold mb-2">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses}m)` : ""}</p>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground font-medium">Atual:</span>
+                    <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs mt-1.5">
+                    <span className="text-muted-foreground font-medium">Necessário:</span>
+                    <span className="font-bold text-destructive">{brl(aporteNecessario)}/mês</span>
+                  </div>
                 </>
               ) : (
                 <>
-                  <p className="text-xs text-success font-medium mb-1">Meta atingível no prazo</p>
-                  <p className="text-xs text-muted-foreground">Aporte atual: <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span></p>
+                  <p className="text-[10px] uppercase tracking-wider text-success font-bold mb-2">No prazo programado</p>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground font-medium">Aporte programado:</span>
+                    <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
+                  </div>
                 </>
               )}
             </div>
           )}
         </Card>
 
-        <Card className="p-4 sm:p-6 border-border/50 flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Progresso inicial da meta</p>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setIsEditingTotal(!isEditingTotal)} title="Atualizar valor guardado hoje">
-              <Pencil className="h-3 w-3" />
+        <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Progresso inicial da meta</p>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => setIsEditingTotal(!isEditingTotal)} title="Atualizar valor guardado hoje">
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-4">
             <div className="flex justify-between items-end">
               {isEditingTotal ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 animate-fade-in">
                   <MoneyInput 
                     variant="money" 
                     min={0} 
                     value={totalGuardado} 
                     onChange={handleUpdateTotal} 
-                    className="font-display text-2xl sm:text-3xl font-semibold h-9 w-32 sm:w-40 border-border bg-background"
+                    className="font-display text-2xl sm:text-3xl font-semibold h-10 w-32 sm:w-40 border-primary/40 bg-primary/5 rounded-xl text-primary ring-1 ring-primary/20 transition-all outline-none"
                   />
-                  <Button onClick={() => setIsEditingTotal(false)} size="sm" className="bg-primary text-primary-foreground h-9 px-2">
+                  <Button onClick={() => setIsEditingTotal(false)} size="icon" className="bg-primary text-primary-foreground h-10 w-10 rounded-xl shadow-md shrink-0">
                     <Check className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <span className="font-display text-2xl sm:text-3xl num leading-none">{brl(totalGuardado)}</span>
+                <span className="font-display text-3xl sm:text-4xl num leading-none tracking-tight text-foreground">{brl(totalGuardado)}</span>
               )}
-              <span className="text-xs sm:text-sm text-muted-foreground mb-1">de {brl(meta)}</span>
+              <span className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium whitespace-nowrap">de {brl(meta)}</span>
             </div>
-            <div className="h-2 sm:h-3 w-full bg-secondary rounded-full overflow-hidden">
+            <div className="relative h-2.5 sm:h-3 w-full bg-secondary/80 rounded-full overflow-hidden shadow-inner">
               <div
-                className="h-full bg-primary transition-all duration-500 ease-in-out"
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out"
                 style={{ width: `${progressoPercent}%` }}
               />
+              <div className="absolute top-0 left-0 w-full h-full bg-white/20 animate-pulse mix-blend-overlay" />
             </div>
-            <p className="text-xs text-muted-foreground text-right">{progressoPercent.toFixed(1)}% alcançado</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground text-right font-semibold">{progressoPercent.toFixed(1)}% alcançado</p>
           </div>
         </Card>
 
-        <Card className="p-4 sm:p-6 border-border/50 flex flex-col justify-center">
-          <p className="text-xs sm:text-sm font-medium text-muted-foreground">Aporte mensal total (Programado)</p>
-          <p className="font-display text-3xl sm:text-4xl num mt-2 leading-none text-accent">{brl(aporteTotal)}</p>
+        <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Aporte mensal (Programado)</p>
+          <p className="font-display text-4xl sm:text-5xl num mt-3 leading-none bg-gradient-to-br from-accent to-accent/70 bg-clip-text text-transparent">{brl(aporteTotal)}</p>
 
-          <div className="mt-4 sm:mt-6 space-y-1.5 sm:space-y-2">
-            {pessoas.map(p => (
-              <div key={p.id} className="flex justify-between text-xs sm:text-sm items-center border-b border-border/40 pb-1.5 sm:pb-2 last:border-0 last:pb-0">
-                <span className="text-muted-foreground">{p.nome}</span>
-                <span className="num font-medium">{brl(Number(p.aporte_mensal || 0))}</span>
-              </div>
-            ))}
+          <div className="mt-6 space-y-2.5">
+            {pessoas.map(p => {
+              const nameInitial = p.nome.charAt(0).toUpperCase();
+              return (
+                <div key={p.id} className="flex justify-between items-center bg-secondary/30 p-2.5 rounded-xl border border-border/40 transition-colors hover:bg-secondary/50">
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-7 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[11px] font-bold shadow-sm">
+                      {nameInitial}
+                    </div>
+                    <span className="text-sm font-medium text-foreground/90">{p.nome.split(" ")[0]}</span>
+                  </div>
+                  <span className="num font-semibold text-sm">{brl(Number(p.aporte_mensal || 0))}</span>
+                </div>
+              );
+            })}
           </div>
         </Card>
       </div>
@@ -324,67 +344,62 @@ export default function PlanejamentoPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-4 sm:gap-6 pt-4 border-t border-border/40">
-        <div className="space-y-3 sm:space-y-4">
-
-
-          <div className="rounded-2xl border border-border/40 bg-gradient-to-b from-card to-card/50 p-4 sm:p-6 lg:p-8 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-6 sm:gap-8 pt-8 border-t border-border/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-border/40 bg-gradient-to-b from-card/80 to-card/30 p-5 sm:p-6 lg:p-8 shadow-sm backdrop-blur-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-2">
               <div>
-                <h2 className="font-display text-xl sm:text-2xl font-light">Aportes extras</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Aportes pontuais que aceleram sua meta além do programado.</p>
+                <h2 className="font-display text-xl sm:text-2xl font-medium">Aportes extras</h2>
+                <p className="text-[13px] sm:text-sm text-muted-foreground mt-1">Recursos eventuais para turbinar sua meta.</p>
               </div>
               {aportesExtras.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Button variant="default" onClick={() => setIsAportesExtrasModalOpen(true)} className="shadow-sm text-sm sm:text-base h-9 sm:h-10">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar aporte
-                  </Button>
-                </div>
+                <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="shadow-sm rounded-xl text-sm h-10 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 transition-colors">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar
+                </Button>
               )}
             </div>
 
             {aportesExtras.length === 0 ? (
-              <div className="mt-6 sm:mt-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/40 bg-muted/20 py-8 sm:py-12 px-4 sm:px-6 text-center transition-colors hover:bg-muted/40 group cursor-default">
-                <div className="mb-3 sm:mb-4 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-primary/10 transition-transform group-hover:scale-110 duration-300">
-                  <Wallet className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+              <div className="mt-6 sm:mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-secondary/20 py-10 sm:py-14 px-4 sm:px-6 text-center transition-all duration-300 hover:bg-secondary/40 hover:border-primary/30 group cursor-pointer" onClick={() => setIsAportesExtrasModalOpen(true)}>
+                <div className="mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-primary/10 shadow-inner transition-transform group-hover:scale-110 duration-500 ease-out relative">
+                  <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-20" />
+                  <Wallet className="h-7 w-7 sm:h-8 sm:w-8 text-primary relative z-10" />
                 </div>
-                <h3 className="text-sm sm:text-base font-medium text-foreground mb-1">Nenhum aporte extra adicionado</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mb-4 sm:mb-6">
-                  Turbine o seu planejamento adicionando recursos extras (décimo terceiro, bônus, vendas) que entrarão ao longo do tempo.
+                <h3 className="text-base sm:text-lg font-medium text-foreground mb-1.5">Nenhum aporte extra adicionado</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
+                  Turbine o seu planejamento adicionando recursos como décimo terceiro, bônus ou vendas de bens.
                 </p>
-                <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="bg-background shadow-sm hover:border-primary/50 hover:text-primary transition-all text-sm sm:text-base h-9 sm:h-10">
+                <Button className="bg-primary shadow-lg shadow-primary/20 text-primary-foreground transition-all rounded-xl h-10 px-6 font-medium group-hover:-translate-y-0.5">
                   <Plus className="h-4 w-4 mr-2" />
-                  Adicionar meu primeiro aporte
+                  Lançar aporte extra
                 </Button>
               </div>
             ) : (
-              <div className="mt-6 sm:mt-8 space-y-2 sm:space-y-3">
+              <div className="mt-6 space-y-3">
                 {aportesExtras.map((a, index) => (
-                  <div key={index} className="group relative rounded-xl border border-border/50 bg-background p-3 sm:p-4 lg:p-5 transition-all duration-300 hover:shadow-md hover:border-primary/30">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="hidden sm:flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary/10 shrink-0">
-                           <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <div key={index} className="group relative rounded-2xl border border-border/40 bg-card p-4 transition-all duration-300 hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 shrink-0 shadow-sm">
+                           <TrendingDown className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-semibold num text-base sm:text-lg text-foreground">{brl(Number(a.valor))}</p>
-                          <div className="flex flex-wrap items-center gap-x-1.5 sm:gap-x-2 gap-y-1 text-xs text-muted-foreground mt-1">
-                            <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" /> {new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
-                            <span className="hidden sm:inline">•</span>
-                            <span className="font-medium text-foreground/80">{a.origem}</span>
-                            <span className="hidden sm:inline">•</span>
-                            <span className="rounded-full bg-secondary px-1.5 sm:px-2 py-0.5 font-medium text-secondary-foreground text-xs">{a.pessoaNome ?? "Conjunto"}</span>
+                          <p className="font-display font-semibold num text-lg text-foreground leading-none">{brl(Number(a.valor))}</p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-muted-foreground mt-2 font-medium">
+                            <span className="flex items-center bg-secondary/80 px-2 py-0.5 rounded-md text-foreground/80"><Calendar className="h-3 w-3 mr-1.5 opacity-70" /> {new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
+                            <span className="bg-secondary/80 px-2 py-0.5 rounded-md text-foreground/80">{a.origem}</span>
+                            <span className="rounded-md bg-accent/10 px-2 py-0.5 text-accent">{a.pessoaNome ?? "Conjunto"}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto">
-                        <Button size="icon" variant="ghost" onClick={() => editarAporte(index)} className="h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-primary hover:bg-primary/10">
-                          <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all self-end sm:self-auto translate-x-0 sm:translate-x-2 sm:group-hover:translate-x-0">
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); editarAporte(index); }} className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => removerAporte(index)} className="h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
-                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removerAporte(index); }} className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -402,11 +417,11 @@ export default function PlanejamentoPage() {
       </div>
 
       {/* Botão Prosseguir */}
-      <div className="pt-3">
+      <div className="pt-6 pb-4 flex justify-end animate-fade-in-up" style={{ animationDelay: '300ms' }}>
         <Button
           onClick={prosseguir}
           disabled={calculating}
-          className="w-full lg:w-auto lg:float-right h-12 text-sm font-semibold rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all active:scale-[0.98]"
+          className="w-full lg:w-auto h-12 px-8 text-sm font-semibold rounded-xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
         >
           {calculating ? "Calculando..." : "Ver resultado"}
           <ArrowRight className="ml-2 h-4 w-4" />
