@@ -410,8 +410,7 @@ export default function PlanejamentoPage() {
           </div>
         </div>
 
-        <div className="space-y-3 sm:space-y-4">
-
+        <div className="space-y-3 sm:space-y-4 min-w-0">
           <TabelaMesAMes showFinancials={false} showCompletedToggle={false} showCenarioSelector={false} />
         </div>
       </div>
