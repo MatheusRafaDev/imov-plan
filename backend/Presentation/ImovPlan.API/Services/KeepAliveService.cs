@@ -29,10 +29,10 @@ namespace ImovPlan.API.Services
                 return;
             }
 
-            _logger.LogInformation("KeepAliveService is starting. Pinging {Url} every 10 minutes.", _selfUrl);
+            _logger.LogInformation("KeepAliveService is starting. Pinging {Url} every 1 minute.", _selfUrl);
 
-            // Dispara a cada 10 minutos (Render dorme após 15 min de inatividade)
-            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(10));
+            // Dispara a cada 1 minuto conforme solicitado para evitar que o render caia
+            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
 
             while (!stoppingToken.IsCancellationRequested && await timer.WaitForNextTickAsync(stoppingToken))
             {
