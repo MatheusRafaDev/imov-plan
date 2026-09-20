@@ -25,7 +25,7 @@ export function RowActions({
   const [openEdit, setOpenEdit] = useState(false);
   const [openExtra, setOpenExtra] = useState(false);
 
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const editPopupRef = useRef<HTMLDivElement>(null);
   const extraPopupRef = useRef<HTMLDivElement>(null);
@@ -83,7 +83,7 @@ export function RowActions({
   }, [openMenu, openEdit, openExtra]);
 
   return (
-    <div ref={triggerRef} className="relative flex items-center justify-center">
+    <span ref={triggerRef} className="relative inline-flex items-center justify-center">
       <button
         type="button"
         onClick={() => setOpenMenu(o => !o)}
@@ -212,6 +212,6 @@ export function RowActions({
         </div>,
         document.body
       )}
-    </div>
+    </span>
   );
 }

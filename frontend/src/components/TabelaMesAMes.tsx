@@ -12,8 +12,8 @@ import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
 function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
   const diff = value - planned;
   return (
-    <div title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)}` : undefined}
-      className={`px-2 py-1 rounded border text-right transition-colors ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent text-foreground"}`}
+    <span title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)}` : undefined}
+      className={`inline-block px-2 py-1 rounded border text-right transition-colors ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent text-foreground"}`}
     >
       {brl(value)}
       {isEdited && (
@@ -21,7 +21,7 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
           {diff > 0 ? "▲" : "▼"}
         </span>
       )}
-    </div>
+    </span>
   );
 }
 
@@ -258,12 +258,12 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                           {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                         </Td>
                         <Td right className="bg-primary/5 py-2">
-                          <div className="flex flex-col items-end gap-1">
+                          <span className="inline-flex flex-col items-end gap-1">
                             <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
                             <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
                               +{brl(totals.totalMes + totals.rendLiquido)} período
                             </span>
-                          </div>
+                          </span>
                         </Td>
                       </>
                     )}
@@ -306,7 +306,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               return (
                 <>
                   <Td className="font-medium whitespace-nowrap w-px">
-                    <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2">
                       {showCompletedToggle && !isZero && (
                         <button
                           onClick={() => toggleConcluido(r.mes)}
@@ -327,7 +327,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                           </span>
                         )}
                       </span>
-                    </div>
+                    </span>
                   </Td>
                   <Td suppressHydrationWarning className="text-muted-foreground text-xs">
                     {(() => { const d = new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " "); return d.charAt(0).toUpperCase() + d.slice(1); })()}

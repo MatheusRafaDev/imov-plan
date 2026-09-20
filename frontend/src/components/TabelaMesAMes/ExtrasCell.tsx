@@ -18,7 +18,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editOrigem, setEditOrigem] = useState("");
   const [editValor, setEditValor] = useState("0");
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const [portalPos, setPortalPos] = useState({ top: 0, left: 0 });
 
@@ -60,15 +60,15 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
   };
 
   return (
-    <div ref={triggerRef}>
-      <div
+    <span ref={triggerRef} className="inline-block">
+      <span
         onClick={() => { if (canOpen) setOpen(o => !o); }}
-        className={`flex items-center justify-end gap-1 px-0.5 sm:px-1.5 py-0.5 rounded transition-colors border border-transparent ${total > 0 ? "cursor-pointer hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" : "text-muted-foreground/40"}`}
+        className={`inline-flex items-center justify-end gap-1 px-0.5 sm:px-1.5 py-0.5 rounded transition-colors border border-transparent ${total > 0 ? "cursor-pointer hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" : "text-muted-foreground/40"}`}
         title={canOpen ? "Clique para ver detalhes" : undefined}
       >
         {total > 0 ? `+${brl(total)}` : "—"}
         {total > 0 && (open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)}
-      </div>
+      </span>
 
       {open && canOpen && typeof document !== "undefined" && createPortal(
         <div
@@ -136,6 +136,6 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
         </div>,
         document.body
       )}
-    </div>
+    </span>
   );
 }
