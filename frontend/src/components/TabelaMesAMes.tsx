@@ -224,7 +224,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               TableBody: React.forwardRef((props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border/10" />),
               TableRow: (props) => {
                 const r = props.item;
-                if (!r) return <tr {...props} className={`transition-colors bg-card ${(props as any).className || ""}`} />;
+                if (!r) return <tr {...props} style={{ height: "45px" }} className={`transition-colors bg-card ${(props as any).className || ""}`} />;
                 const isMesConcluido = mesesConcluidosSet.has(r.mes);
                 const isZero = r.mes === 0;
                 return (
@@ -293,7 +293,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               </tr>
             )}
             itemContent={(_, r) => {
-              if (!r) return null;
+              if (!r) return <td style={{ height: "45px" }}></td>;
               
               const rowExtras = (aportesExtras || [])
                 .filter(e => e?.data && r?.data && e.data.startsWith(r.data.split("T")[0]))
