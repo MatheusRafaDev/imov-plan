@@ -344,7 +344,7 @@ export default function PlanejamentoPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-6 sm:gap-8 pt-8 border-t border-border/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6 sm:gap-8 pt-8 border-t border-border/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <div className="space-y-4">
           <div className="rounded-3xl border border-border/40 bg-gradient-to-b from-card/80 to-card/30 p-5 sm:p-6 lg:p-8 shadow-sm backdrop-blur-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-2">

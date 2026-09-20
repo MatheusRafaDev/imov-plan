@@ -215,7 +215,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 
         <div className={`bg-card -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40 transition-opacity duration-300 ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
           <TableVirtuoso
-            className="custom-scrollbar overflow-x-auto lg:!overflow-x-hidden"
+            className="custom-scrollbar overflow-x-auto"
             style={{ height: "min(70vh, 800px)", minHeight: "400px" }}
             initialItemCount={30}
             data={displayRows}
