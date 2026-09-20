@@ -2,9 +2,11 @@ import { usePlanStore } from '@/store/usePlanStore';
 import { useSaveDraft, usePlanDraft } from '@/hooks/usePlanDraft';
 import { useCalcularSimulacao, useUltimaSimulacao } from '@/hooks/useSimulacao';
 import { useDebouncedCallback } from 'use-debounce';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function usePlanLogic() {
   const state = usePlanStore();
+  const queryClient = useQueryClient();
   const planoId = state.planoId;
 
   // 1. Data Fetching (Queries)
@@ -66,6 +68,11 @@ export function usePlanLogic() {
       }
 
       const savedId = await saveDraftMutation({ planoId, payload: formattedPayload });
+      try {
+        await queryClient.refetchQueries({ queryKey: ['planDraft'] });
+      } catch (e) {
+        console.warn("Failed to refetch draft after save, continuing...", e);
+      }
       usePlanStore.getState().setLastSavedDraftPayloadStr(formattedPayloadStr);
       return savedId;
     } catch (error: any) {
