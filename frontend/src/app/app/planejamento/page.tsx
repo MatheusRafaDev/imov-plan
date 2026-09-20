@@ -140,7 +140,7 @@ export default function PlanejamentoPage() {
       </div>
 
       {foraDoPrazo && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 sm:p-4 flex gap-2 sm:gap-3 text-destructive">
+        <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 sm:p-5 flex gap-2 sm:gap-3 text-destructive">
           <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
           <div className="text-xs sm:text-sm">
             <p className="font-semibold mb-1">Atenção ao seu prazo</p>
@@ -162,7 +162,7 @@ export default function PlanejamentoPage() {
             <div className="mt-4 pt-4 border-t border-border/40 w-full">
               {!atingiuMeta || foraDoPrazo ? (
                 <>
-                  <p className="text-[10px] uppercase tracking-wider text-destructive font-bold mb-2">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses}m)` : ""}</p>
+                  <p className="text-xs uppercase tracking-wider text-destructive font-bold mb-2">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses}m)` : ""}</p>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground font-medium">Atual:</span>
                     <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
@@ -174,7 +174,7 @@ export default function PlanejamentoPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-[10px] uppercase tracking-wider text-success font-bold mb-2">No prazo programado</p>
+                  <p className="text-xs uppercase tracking-wider text-success font-bold mb-2">No prazo programado</p>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground font-medium">Aporte programado:</span>
                     <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
@@ -188,7 +188,7 @@ export default function PlanejamentoPage() {
         <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Progresso inicial da meta</p>
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => setIsEditingTotal(!isEditingTotal)} title="Atualizar valor guardado hoje">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => setIsEditingTotal(!isEditingTotal)} title="Atualizar valor guardado hoje">
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -395,10 +395,10 @@ export default function PlanejamentoPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all self-end sm:self-auto translate-x-0 sm:translate-x-2 sm:group-hover:translate-x-0">
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); editarAporte(index); }} className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); editarAporte(index); }} className="h-10 w-10 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removerAporte(index); }} className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removerAporte(index); }} className="h-10 w-10 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

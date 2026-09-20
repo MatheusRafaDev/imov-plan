@@ -87,7 +87,7 @@ export function RowActions({
       <button
         type="button"
         onClick={() => setOpenMenu(o => !o)}
-        className={`w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ${openMenu || openEdit || openExtra ? "opacity-100 bg-secondary" : "opacity-40 hover:opacity-100 focus:opacity-100"}`}
+        className={`w-9 h-9 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ${openMenu || openEdit || openExtra ? "opacity-100 bg-secondary" : "opacity-40 hover:opacity-100 focus:opacity-100"}`}
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
@@ -107,7 +107,7 @@ export function RowActions({
       {openEdit && typeof document !== "undefined" && createPortal(
         <div ref={editPopupRef} className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}>
           <div className="bg-secondary/60 px-4 py-3 border-b border-border/50">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Editar Aportes · Mês {mes}</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Editar Aportes · Mês {mes}</p>
           </div>
           <div className="p-4 space-y-4">
             {pessoas.map(p => {
@@ -136,13 +136,13 @@ export function RowActions({
               );
             })}
             <div className="flex gap-2 pt-2">
-              <button type="button" onClick={() => setOpenEdit(false)} className="flex-1 rounded-xl border border-border/60 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
+              <button type="button" onClick={() => setOpenEdit(false)} className="flex-1 rounded-xl border border-border/60 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
               <button type="button" onClick={() => {
                 const results: Record<string, number> = {};
                 pessoas.forEach(p => results[p.id] = Number(editDraft[p.id] || 0));
                 onSaveAportes(results);
                 setOpenEdit(false);
-              }} className="flex-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Salvar</button>
+              }} className="flex-1 rounded-xl bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Salvar</button>
             </div>
           </div>
         </div>,
@@ -152,7 +152,7 @@ export function RowActions({
       {openExtra && typeof document !== "undefined" && createPortal(
         <div ref={extraPopupRef} className="fixed z-50 rounded-b-xl border border-t-0 border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: 'calc(100vh - 16px)' }}>
           <div className="bg-secondary/60 px-3 py-2 border-b border-border/50">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Extra · Mês {mes}</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Extra · Mês {mes}</p>
           </div>
           <div className="p-3 space-y-2.5 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 60px)' }}>
             <div className="grid grid-cols-2 gap-2">
@@ -198,7 +198,7 @@ export function RowActions({
               <MoneyInput variant="money" min={0} value={extraValor === "" ? 0 : Number(extraValor)} onChange={(v) => setExtraValor(v === "" ? "0" : v.toString())} className="h-8 text-xs bg-background border-border" />
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => { setOpenExtra(false); setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); setExtraValor("0"); }} className="flex-1 rounded-lg border border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
+              <button type="button" onClick={() => { setOpenExtra(false); setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); setExtraValor("0"); }} className="flex-1 rounded-lg border border-border/60 px-2 py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
               <button type="button" 
                 disabled={(extraOrigemMode === "custom" && !extraOrigemCustom.trim()) || Number(extraValor) <= 0} 
                 onClick={() => {
@@ -206,7 +206,7 @@ export function RowActions({
                   const finalOrigem = extraOrigemMode === "predefined" ? extraOrigemPredefined : extraOrigemCustom.trim();
                   onAddExtra(pid, finalOrigem, Number(extraValor)); 
                   setOpenExtra(false); setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); setExtraValor("0"); 
-              }} className="flex-1 rounded-lg bg-primary px-2 py-1.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">Adicionar</button>
+              }} className="flex-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">Adicionar</button>
             </div>
           </div>
         </div>,

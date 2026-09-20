@@ -78,7 +78,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
         >
           {hasExtras && (
             <div className="space-y-1">
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Extras do mês</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Extras do mês</p>
               {contextItems.map((item) => (
                 <div key={item.index}>
                   {editingIdx === item.index ? (
@@ -104,23 +104,23 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
                       )}
                       <MoneyInput variant="money" min={0} value={Number(editValor) || 0} onChange={(v) => setEditValor(v === "" ? "0" : v.toString())} className="h-8 text-xs bg-background border-border" />
                       <div className="flex gap-1.5">
-                        <button type="button" onClick={() => setEditingIdx(null)} className="flex-1 rounded-md border border-border/60 px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">Cancelar</button>
-                        <button type="button" disabled={!editOrigem.trim() || Number(editValor) <= 0} onClick={() => { onEditExtra(item.index, editOrigem.trim(), Number(editValor)); setEditingIdx(null); }} className="flex-1 rounded-md bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Salvar</button>
+                        <button type="button" onClick={() => setEditingIdx(null)} className="flex-1 rounded-md border border-border/60 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground">Cancelar</button>
+                        <button type="button" disabled={!editOrigem.trim() || Number(editValor) <= 0} onClick={() => { onEditExtra(item.index, editOrigem.trim(), Number(editValor)); setEditingIdx(null); }} className="flex-1 rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Salvar</button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between text-[11px] gap-2 py-0.5 group/extra">
                       <div className="flex flex-col min-w-0">
                         <span className="truncate text-foreground font-medium">{item.origem}</span>
-                        <span className="text-[10px] text-muted-foreground">{item.pessoaNome || "Conjunto"}</span>
+                        <span className="text-xs text-muted-foreground">{item.pessoaNome || "Conjunto"}</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="num text-accent font-semibold">+{brl(item.valor)}</span>
-                        <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title="Editar">
-                          <Edit2 className="h-3 w-3" />
+                        <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title="Editar">
+                          <Edit2 className="h-4 w-4" />
                         </button>
-                        <button type="button" onClick={() => onDeleteExtra(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-5 h-5 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" title="Excluir">
-                          <Trash2 className="h-3 w-3" />
+                        <button type="button" onClick={() => onDeleteExtra(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" title="Excluir">
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
