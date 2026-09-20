@@ -224,6 +224,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               TableBody: React.forwardRef((props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border/10" />),
               TableRow: (props) => {
                 const r = props.item;
+                if (!r) return <tr {...props} className={`transition-colors bg-card ${(props as any).className || ""}`} />;
                 const isMesConcluido = mesesConcluidosSet.has(r.mes);
                 const isZero = r.mes === 0;
                 return (
