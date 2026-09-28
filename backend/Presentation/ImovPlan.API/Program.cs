@@ -242,6 +242,22 @@ if (string.IsNullOrWhiteSpace(redisConnectionString))
 {
     redisConnectionString = "localhost:6379";
 }
+else if (Uri.TryCreate(redisConnectionString, UriKind.Absolute, out var uri) && 
+        (uri.Scheme == "redis" || uri.Scheme == "rediss"))
+{
+    var password = "";
+    if (!string.IsNullOrEmpty(uri.UserInfo))
+    {
+        var parts = uri.UserInfo.Split(':', 2);
+        password = $",password={(parts.Length == 2 ? parts[1] : parts[0])}";
+    }
+    redisConnectionString = $"{uri.Host}:{uri.Port}{password}";
+    if (uri.Scheme == "rediss")
+    {
+        redisConnectionString += ",ssl=True";
+    }
+}
+
 // AbortOnConnectFail = false permite que a aplicação inicie mesmo se o Redis estiver fora,
 // evitando crashes no deploy caso o Redis demore a subir ou não esteja configurado
 var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
