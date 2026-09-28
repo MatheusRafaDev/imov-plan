@@ -237,8 +237,16 @@ builder.Services.AddHttpClient<IFinancialRatesProvider, ImovPlan.Infrastructure.
 builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Services.BrasilApiLocationProvider>();
 
 // Configure Redis
-var redisConnectionString = builder.Configuration["REDIS_CONNECTION_STRING"] ?? "localhost:6379";
-builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+var redisConnectionString = builder.Configuration["REDIS_CONNECTION_STRING"];
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    redisConnectionString = "localhost:6379";
+}
+// AbortOnConnectFail = false permite que a aplicação inicie mesmo se o Redis estiver fora,
+// evitando crashes no deploy caso o Redis demore a subir ou não esteja configurado
+var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+redisOptions.AbortOnConnectFail = false;
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisOptions));
 
 // Background Services
 builder.Services.AddHostedService<ImovPlan.API.Services.DraftSaveWorker>();
