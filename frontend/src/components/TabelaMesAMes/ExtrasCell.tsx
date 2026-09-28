@@ -16,6 +16,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
 }) {
   const [open, setOpen] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
   const [editOrigem, setEditOrigem] = useState("");
   const [editValor, setEditValor] = useState("0");
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -44,6 +45,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
       ) {
         setOpen(false);
         setEditingIdx(null);
+        setConfirmDeleteIdx(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -108,6 +110,14 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
                         <button type="button" disabled={!editOrigem.trim() || Number(editValor) <= 0} onClick={() => { onEditExtra(item.index, editOrigem.trim(), Number(editValor)); setEditingIdx(null); }} className="flex-1 rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Salvar</button>
                       </div>
                     </div>
+                  ) : confirmDeleteIdx === item.index ? (
+                    <div className="space-y-2 p-2 rounded-lg bg-destructive/10 border border-destructive/20 mt-1">
+                      <p className="text-xs text-destructive font-medium text-center">Apagar este aporte?</p>
+                      <div className="flex gap-1.5">
+                        <button type="button" onClick={() => setConfirmDeleteIdx(null)} className="flex-1 rounded-md border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors">Cancelar</button>
+                        <button type="button" onClick={() => { onDeleteExtra(item.index); setConfirmDeleteIdx(null); }} className="flex-1 rounded-md bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors">Apagar</button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-between text-[11px] gap-2 py-0.5 group/extra">
                       <div className="flex flex-col min-w-0">
@@ -119,7 +129,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
                         <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title="Editar">
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        <button type="button" onClick={() => onDeleteExtra(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" title="Excluir">
+                        <button type="button" onClick={() => setConfirmDeleteIdx(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" title="Excluir">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

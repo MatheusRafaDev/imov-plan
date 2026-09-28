@@ -1,11 +1,14 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
+using System.Text.Json;
 using ImovPlan.API.Extensions;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Application.Services.Interfaces;
+using ImovPlan.API.Services;
 
 namespace ImovPlan.API.Controllers
 {
@@ -158,36 +161,23 @@ namespace ImovPlan.API.Controllers
         }
 
         [HttpPut("draft/{id}")]
-        public async Task<IActionResult> UpdateDraft(string id, [FromBody] PlanoDraftDto draftDto)
+        public async Task<IActionResult> UpdateDraft(string id, [FromBody] PlanoDraftDto draftDto, [FromServices] IConnectionMultiplexer redis)
         {
-            try
-            {
-                var usuarioIdClaim = User.GetUsuarioId();
-                if (string.IsNullOrEmpty(usuarioIdClaim))
-                    return Unauthorized(new { message = "Autenticação é obrigatória." });
+            var usuarioIdClaim = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioIdClaim))
+                return Unauthorized(new { message = "Autenticação é obrigatória." });
 
-                var success = await _planoService.UpdateDraftAsync(id, draftDto, usuarioIdClaim);
-                if (!success)
-                    return NotFound(new { message = "Plano não encontrado ou não autorizado para atualização." });
+            var message = new DraftUpdateMessage
+            {
+                PlanId = id,
+                UsuarioId = usuarioIdClaim,
+                DraftDto = draftDto
+            };
 
-                return Ok();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning(ex, "Recurso não encontrado ao atualizar draft: {PlanoId}", id);
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Argumento inválido ao atualizar draft: {PlanoId}", id);
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (System.Exception ex)
-            {
-                // não retornar ex.ToString() ao cliente
-                _logger.LogError(ex, "Erro ao atualizar draft: {PlanoId}", id);
-                return StatusCode(500, new { message = "Erro interno ao atualizar o plano." });
-            }
+            var db = redis.GetDatabase();
+            await db.ListLeftPushAsync("draft_updates_queue", JsonSerializer.Serialize(message));
+
+            return Accepted();
         }
 
         [HttpPost("{id}/concluir")]

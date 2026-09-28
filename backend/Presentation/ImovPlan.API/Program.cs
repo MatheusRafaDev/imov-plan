@@ -10,6 +10,7 @@ using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using MongoDB.Driver;
+using StackExchange.Redis;
 using ImovPlan.Infrastructure.Data;
 using ImovPlan.Infrastructure.Configurations;
 using ImovPlan.Infrastructure.Repositories;
@@ -235,7 +236,12 @@ builder.Services.AddScoped<IPontoInteresseService, ImovPlan.Infrastructure.Servi
 builder.Services.AddHttpClient<IFinancialRatesProvider, ImovPlan.Infrastructure.Services.BrasilApiFinancialProvider>();
 builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Services.BrasilApiLocationProvider>();
 
+// Configure Redis
+var redisConnectionString = builder.Configuration["REDIS_CONNECTION_STRING"] ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+
 // Background Services
+builder.Services.AddHostedService<ImovPlan.API.Services.DraftSaveWorker>();
 builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoService>();
 builder.Services.AddHostedService<ImovPlan.API.Services.KeepAliveService>();
 builder.Services.AddHostedService<ImovPlan.API.Services.MongoDbIndexInitializer>();
