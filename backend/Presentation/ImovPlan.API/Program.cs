@@ -240,6 +240,10 @@ builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Servic
 var redisConnectionString = builder.Configuration["REDIS_CONNECTION_STRING"];
 if (string.IsNullOrWhiteSpace(redisConnectionString))
 {
+    redisConnectionString = builder.Configuration["REDIS_URL"];
+}
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+{
     redisConnectionString = "localhost:6379";
 }
 else if (Uri.TryCreate(redisConnectionString, UriKind.Absolute, out var uri) && 
@@ -258,11 +262,18 @@ else if (Uri.TryCreate(redisConnectionString, UriKind.Absolute, out var uri) &&
     }
 }
 
-// AbortOnConnectFail = false permite que a aplicação inicie mesmo se o Redis estiver fora,
-// evitando crashes no deploy caso o Redis demore a subir ou não esteja configurado
-var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
-redisOptions.AbortOnConnectFail = false;
-builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisOptions));
+var redisOptions = new ConfigurationOptions();
+try 
+{
+    redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+    redisOptions.AbortOnConnectFail = false;
+    builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisOptions));
+} 
+catch (Exception ex) 
+{
+    throw new Exception($"Failed to configure Redis with connection string: '{redisConnectionString}'. Error: {ex.Message}", ex);
+}
+
 
 // Background Services
 builder.Services.AddHostedService<ImovPlan.API.Services.DraftSaveWorker>();
