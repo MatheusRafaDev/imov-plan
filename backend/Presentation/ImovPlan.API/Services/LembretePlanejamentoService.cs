@@ -57,7 +57,7 @@ namespace ImovPlan.API.Services
             _logger.LogInformation("[LembretePlanejamento] Serviço de lembretes encerrado.");
         }
 
-        private async Task ProcessarLembretesAsync(CancellationToken cancellationToken)
+        private Task ProcessarLembretesAsync(CancellationToken cancellationToken)
         {
             // Usar um scope transiente para acessar repositórios (que são Scoped)
             using var scope = _serviceProvider.CreateScope();
@@ -77,6 +77,7 @@ namespace ImovPlan.API.Services
             // }
 
             _logger.LogInformation("[LembretePlanejamento] [SIMULAÇÃO] Ciclo de lembretes concluído. Próxima execução em {Next}.", DateTime.UtcNow.Add(_interval));
+            return Task.CompletedTask;
         }
     }
 }

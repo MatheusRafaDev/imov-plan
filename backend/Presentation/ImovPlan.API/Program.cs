@@ -179,16 +179,16 @@ var mongoSettings = new MongoDbSettings();
 builder.Configuration.GetSection("MongoDbSettings").Bind(mongoSettings);
 
 if (!string.IsNullOrEmpty(builder.Configuration["MONGO_CONNECTION_STRING"]))
-    mongoSettings.ConnectionString = builder.Configuration["MONGO_CONNECTION_STRING"];
+    mongoSettings.ConnectionString = builder.Configuration["MONGO_CONNECTION_STRING"]!;
 if (!string.IsNullOrEmpty(builder.Configuration["MONGO_DATABASE_NAME"]))
-    mongoSettings.DatabaseName = builder.Configuration["MONGO_DATABASE_NAME"];
+    mongoSettings.DatabaseName = builder.Configuration["MONGO_DATABASE_NAME"]!;
 
 builder.Services.AddSingleton(mongoSettings);
 
 var mongoClient = new MongoClient(mongoSettings.ConnectionString);
 builder.Services.AddSingleton<IMongoClient>(mongoClient);
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMongoDB(mongoClient, mongoSettings.DatabaseName));
+    options.UseMongoDB(mongoClient, mongoSettings.DatabaseName!));
 
 // Configurar índice TTL para cache de pontos de interesse (15 dias)
 var mongoDatabase = mongoClient.GetDatabase(mongoSettings.DatabaseName);
