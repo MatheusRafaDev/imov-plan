@@ -242,6 +242,12 @@ if (string.IsNullOrWhiteSpace(redisConnectionString))
 {
     redisConnectionString = builder.Configuration["REDIS_URL"];
 }
+
+if (!string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    redisConnectionString = redisConnectionString.Trim('"', '\'');
+}
+
 if (string.IsNullOrWhiteSpace(redisConnectionString))
 {
     redisConnectionString = "localhost:6379";
