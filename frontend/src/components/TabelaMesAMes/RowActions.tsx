@@ -13,6 +13,7 @@ export function RowActions({
   aportesReais,
   onSaveAportes,
   onAddExtra,
+  saldosAcumulados,
   isEditOpen,
   onEditOpenChange,
 }: {

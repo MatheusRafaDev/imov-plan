@@ -22,7 +22,7 @@ export function StatusAtualInvestimento() {
   const startEditing = (pessoa: typeof pessoas[number]) => {
     setEditingId(pessoa.id);
     setValue(pessoa.valorAtual ?? pessoa.valorInicial ?? 0);
-    setDate(toLocalDateIso(new Date()));
+    setDate(toLocalDateIso(new Date()) ?? "");
   };
 
   const cancelEditing = () => {
