@@ -433,6 +433,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         pessoas={pessoas.map(p => ({ id: p.id, nome: p.nome }))}
                         aportesPlanejados={Object.fromEntries(pessoas.map(p => [p.id, Number(p.aporte_mensal) || 0]))}
                         aportesReais={r.aporteFinalPorPessoa}
+                        saldosAcumulados={r.saldoPorPessoa}
                         onSaveAportes={async (novosValores) => {
                           const newEdits: Record<string, Record<number, number>> = { ...aportesRegularesEditadosPorPessoa };
                           pessoas.forEach(p => {

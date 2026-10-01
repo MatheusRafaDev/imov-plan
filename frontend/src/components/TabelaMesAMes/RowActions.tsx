@@ -22,12 +22,14 @@ export function RowActions({
   aportesReais: Record<string, number>;
   onSaveAportes: (novosValores: Record<string, number>) => void | Promise<void>;
   onAddExtra: (pessoaId: string | null, origem: string, valor: number) => void | Promise<void>;
+  saldosAcumulados: Record<string, number>;
   isEditOpen?: boolean;
   onEditOpenChange?: (open: boolean) => void;
 }) {
   const [openMenu, setOpenMenu] = useState(false);
   const [localEditOpen, setLocalEditOpen] = useState(false);
   const [openExtra, setOpenExtra] = useState(false);
+  const [openAcumulado, setOpenAcumulado] = useState(false);
   const openEdit = isEditOpen ?? localEditOpen;
 
   const setOpenEdit = (open: boolean) => {
@@ -39,6 +41,7 @@ export function RowActions({
   const menuRef = useRef<HTMLDivElement>(null);
   const editPopupRef = useRef<HTMLDivElement>(null);
   const extraPopupRef = useRef<HTMLDivElement>(null);
+  const acumuladoPopupRef = useRef<HTMLDivElement>(null);
 
   const [portalPos, setPortalPos] = useState({ top: 0, left: 0, width: 0 });
 
@@ -62,6 +65,19 @@ export function RowActions({
   const [extraOrigemCustom, setExtraOrigemCustom] = useState("");
   const [extraValor, setExtraValor] = useState("0");
 
+  // Estado Modal Acumulado
+  const [acumDraft, setAcumDraft] = useState<Record<string, string>>({});
+  const [prevOpenAcumulado, setPrevOpenAcumulado] = useState(openAcumulado);
+
+  if (openAcumulado !== prevOpenAcumulado) {
+    setPrevOpenAcumulado(openAcumulado);
+    if (openAcumulado) {
+      const initial: Record<string, string> = {};
+      pessoas.forEach(p => initial[p.id] = (saldosAcumulados[p.id] || 0).toFixed(2));
+      setAcumDraft(initial);
+    }
+  }
+
   const updatePos = (width: number) => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
@@ -76,9 +92,10 @@ export function RowActions({
 
   useEffect(() => {
     if (openEdit) updatePos(300);
+    else if (openAcumulado) updatePos(300);
     else if (openExtra) updatePos(280);
     else if (openMenu) updatePos(220);
-  }, [openMenu, openEdit, openExtra]);
+  }, [openMenu, openEdit, openExtra, openAcumulado]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -87,10 +104,11 @@ export function RowActions({
       if (openMenu && menuRef.current && !menuRef.current.contains(target)) setOpenMenu(false);
       if (openEdit && editPopupRef.current && !editPopupRef.current.contains(target)) setOpenEdit(false);
       if (openExtra && extraPopupRef.current && !extraPopupRef.current.contains(target)) setOpenExtra(false);
+      if (openAcumulado && acumuladoPopupRef.current && !acumuladoPopupRef.current.contains(target)) setOpenAcumulado(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openMenu, openEdit, openExtra]);
+  }, [openMenu, openEdit, openExtra, openAcumulado]);
 
   return (
     <span ref={triggerRef} className="relative inline-flex items-center justify-center">
@@ -106,6 +124,9 @@ export function RowActions({
         <div ref={menuRef} className="fixed z-50 rounded-xl border border-border/70 bg-card shadow-xl overflow-hidden py-1" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}>
           <button onClick={() => { setOpenMenu(false); setOpenEdit(true); }} className="w-full text-left px-4 py-2.5 text-xs text-foreground hover:bg-secondary/70 flex items-center gap-2">
             <Edit2 className="h-3.5 w-3.5 text-muted-foreground" /> Editar Aportes do Mês
+          </button>
+          <button onClick={() => { setOpenMenu(false); setOpenAcumulado(true); }} className="w-full text-left px-4 py-2.5 text-xs text-foreground hover:bg-secondary/70 flex items-center gap-2">
+            <Edit2 className="h-3.5 w-3.5 text-muted-foreground" /> Ajustar Acumulado
           </button>
           <button onClick={() => { setOpenMenu(false); setOpenExtra(true); }} className="w-full text-left px-4 py-2.5 text-xs text-foreground hover:bg-secondary/70 flex items-center gap-2">
             <Plus className="h-3.5 w-3.5 text-muted-foreground" /> Adicionar Aporte Extra
@@ -205,18 +226,67 @@ export function RowActions({
             </div>
             <div className="space-y-1">
               <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Valor</label>
-              <MoneyInput variant="money" min={0} value={extraValor === "" ? 0 : Number(extraValor)} onChange={(v) => setExtraValor(v === "" ? "0" : v.toString())} className="h-8 text-xs bg-background border-border" />
+              <MoneyInput variant="money" value={extraValor === "" ? 0 : Number(extraValor)} onChange={(v) => setExtraValor(v === "" ? "0" : v.toString())} className="h-8 text-xs bg-background border-border" />
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => { setOpenExtra(false); setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); setExtraValor("0"); }} className="flex-1 rounded-lg border border-border/60 px-2 py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
               <button type="button" 
-                disabled={(extraOrigemMode === "custom" && !extraOrigemCustom.trim()) || Number(extraValor) <= 0} 
+                disabled={(extraOrigemMode === "custom" && !extraOrigemCustom.trim())} 
                 onClick={() => {
                   const pid = extraPessoa === "conjunto" ? null : extraPessoa;
                   const finalOrigem = extraOrigemMode === "predefined" ? extraOrigemPredefined : extraOrigemCustom.trim();
                   onAddExtra(pid, finalOrigem, Number(extraValor)); 
                   setOpenExtra(false); setExtraOrigemMode("predefined"); setExtraOrigemCustom(""); setExtraValor("0"); 
               }} className="flex-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">Adicionar</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {openAcumulado && typeof document !== "undefined" && createPortal(
+        <div ref={acumuladoPopupRef} className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}>
+          <div className="bg-secondary/60 px-4 py-3 border-b border-border/50">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Ajustar Acumulado · Mês {mes}</p>
+          </div>
+          <div className="p-4 space-y-4">
+            {pessoas.map(p => {
+              const planejado = saldosAcumulados[p.id] || 0;
+              const val = acumDraft[p.id] === "" ? 0 : Number(acumDraft[p.id]);
+              const diff = val - planejado;
+              return (
+                <div key={p.id} className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-medium">{p.nome.split(" ")[0]}</span>
+                    <span className="text-muted-foreground">Atual: {brl(planejado)}</span>
+                  </div>
+                  <MoneyInput
+                    variant="money"
+                    value={val}
+                    onChange={(v) => setAcumDraft(prev => ({ ...prev, [p.id]: v === "" ? "0" : v.toString() }))}
+                    className="h-9 text-sm bg-background border-border"
+                  />
+                  {diff !== 0 && (
+                    <div className={`text-[10px] font-semibold text-right ${diff > 0 ? "text-success" : "text-destructive"}`}>
+                      {diff > 0 ? `▲ +${brl(diff)}` : `▼ -${brl(Math.abs(diff))}`}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setOpenAcumulado(false)} className="flex-1 rounded-xl border border-border/60 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
+              <button type="button" onClick={() => {
+                pessoas.forEach(p => {
+                  const current = saldosAcumulados[p.id] || 0;
+                  const newValue = Number(acumDraft[p.id] || 0);
+                  const diff = newValue - current;
+                  if (Math.abs(diff) > 0.01) {
+                    onAddExtra(p.id, diff > 0 ? "Ajuste de Saldo (Rendimento/Depósito)" : "Ajuste de Saldo (Retirada/Perda)", diff);
+                  }
+                });
+                setOpenAcumulado(false);
+              }} className="flex-1 rounded-xl bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Salvar</button>
             </div>
           </div>
         </div>,
