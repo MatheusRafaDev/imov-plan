@@ -50,16 +50,48 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     cenarioSimulacao,
     setCenarioSimulacao,
     calculating,
+    objetivo,
   } = usePlanLogic();
   const [editingMes, setEditingMes] = useState<number | null>(null);
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
 
-  const toggleConcluido = (mes: number) => {
-    setMesesConcluidos(prev => {
-      if (prev.includes(mes)) return prev.filter(m => m !== mes);
-      return [...prev, mes];
-    });
+  const toggleConcluido = async (mes: number) => {
+    const isCurrentlyChecked = mesesConcluidosSet.has(mes);
+    
+    if (!isCurrentlyChecked) {
+      const row = displayRows.find(r => r.mes === mes);
+      if (row) {
+        const patch = {
+          mesesConcluidos: [...mesesConcluidos, mes],
+          pessoas: pessoas.map(p => {
+            const newBalance = row.saldoPorPessoa[p.id];
+            if (newBalance !== undefined) {
+              return {
+                ...p,
+                valorInicial: newBalance,
+                valorAtual: newBalance,
+                dataValorAtual: row.data.split("T")[0]
+              };
+            }
+            return p;
+          }),
+          objetivo: objetivo ? {
+            ...objetivo,
+            valorJaGuardado: row.saldoAcumulado
+          } : objetivo
+        };
+        
+        const savedId = await salvarPlano(patch);
+        if (savedId) await calcularBackend(savedId);
+        return;
+      }
+    }
+    
+    // Se estava marcado e vamos desmarcar
+    const newMeses = mesesConcluidos.filter(m => m !== mes);
+    const savedId = await salvarPlano({ mesesConcluidos: newMeses });
+    if (savedId) await calcularBackend(savedId);
   };
 
   const sim = backendData;
