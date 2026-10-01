@@ -2,13 +2,9 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
-using StackExchange.Redis;
-using System.Text.Json;
 using ImovPlan.API.Extensions;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Application.Services.Interfaces;
-using ImovPlan.API.Services;
 
 namespace ImovPlan.API.Controllers
 {
@@ -161,23 +157,17 @@ namespace ImovPlan.API.Controllers
         }
 
         [HttpPut("draft/{id}")]
-        public async Task<IActionResult> UpdateDraft(string id, [FromBody] PlanoDraftDto draftDto, [FromServices] IConnectionMultiplexer redis)
+        public async Task<IActionResult> UpdateDraft(string id, [FromBody] PlanoDraftDto draftDto)
         {
             var usuarioIdClaim = User.GetUsuarioId();
             if (string.IsNullOrEmpty(usuarioIdClaim))
                 return Unauthorized(new { message = "Autenticação é obrigatória." });
 
-            var message = new DraftUpdateMessage
-            {
-                PlanId = id,
-                UsuarioId = usuarioIdClaim,
-                DraftDto = draftDto
-            };
+            var updated = await _planoService.UpdateDraftAsync(id, draftDto, usuarioIdClaim);
+            if (!updated)
+                return NotFound(new { message = "Plano n\u00e3o encontrado ou n\u00e3o autorizado." });
 
-            var db = redis.GetDatabase();
-            await db.ListLeftPushAsync("draft_updates_queue", JsonSerializer.Serialize(message));
-
-            return Accepted();
+            return NoContent();
         }
 
         [HttpPost("{id}/concluir")]

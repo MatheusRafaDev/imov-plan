@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Presentation\ImovPlan.API\ImovPlan.API.csproj" />
     <ProjectReference Include="..\..\Core\ImovPlan.Application\ImovPlan.Application.csproj" />
     <ProjectReference Include="..\..\Core\ImovPlan.Domain\ImovPlan.Domain.csproj" />
     <ProjectReference Include="..\..\Infrastructure\ImovPlan.Infrastructure\ImovPlan.Infrastructure.csproj" />

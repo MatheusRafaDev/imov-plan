@@ -10,7 +10,6 @@ using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using MongoDB.Driver;
-using StackExchange.Redis;
 using ImovPlan.Infrastructure.Data;
 using ImovPlan.Infrastructure.Configurations;
 using ImovPlan.Infrastructure.Repositories;
@@ -236,53 +235,7 @@ builder.Services.AddScoped<IPontoInteresseService, ImovPlan.Infrastructure.Servi
 builder.Services.AddHttpClient<IFinancialRatesProvider, ImovPlan.Infrastructure.Services.BrasilApiFinancialProvider>();
 builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Services.BrasilApiLocationProvider>();
 
-// Configure Redis
-var redisConnectionString = builder.Configuration["REDIS_CONNECTION_STRING"];
-if (string.IsNullOrWhiteSpace(redisConnectionString))
-{
-    redisConnectionString = builder.Configuration["REDIS_URL"];
-}
-
-if (!string.IsNullOrWhiteSpace(redisConnectionString))
-{
-    redisConnectionString = redisConnectionString.Trim('"', '\'');
-}
-
-if (string.IsNullOrWhiteSpace(redisConnectionString))
-{
-    redisConnectionString = "localhost:6379";
-}
-else if (Uri.TryCreate(redisConnectionString, UriKind.Absolute, out var uri) && 
-        (uri.Scheme == "redis" || uri.Scheme == "rediss"))
-{
-    var password = "";
-    if (!string.IsNullOrEmpty(uri.UserInfo))
-    {
-        var parts = uri.UserInfo.Split(':', 2);
-        password = $",password={(parts.Length == 2 ? parts[1] : parts[0])}";
-    }
-    redisConnectionString = $"{uri.Host}:{uri.Port}{password}";
-    if (uri.Scheme == "rediss")
-    {
-        redisConnectionString += ",ssl=True";
-    }
-}
-
-var redisOptions = new ConfigurationOptions();
-try 
-{
-    redisOptions = ConfigurationOptions.Parse(redisConnectionString);
-    redisOptions.AbortOnConnectFail = false;
-    builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisOptions));
-} 
-catch (Exception ex) 
-{
-    throw new Exception($"Failed to configure Redis with connection string: '{redisConnectionString}'. Error: {ex.Message}", ex);
-}
-
-
 // Background Services
-builder.Services.AddHostedService<ImovPlan.API.Services.DraftSaveWorker>();
 builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoService>();
 builder.Services.AddHostedService<ImovPlan.API.Services.KeepAliveService>();
 builder.Services.AddHostedService<ImovPlan.API.Services.MongoDbIndexInitializer>();
