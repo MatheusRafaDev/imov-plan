@@ -13,6 +13,8 @@ export function RowActions({
   aportesReais,
   onSaveAportes,
   onAddExtra,
+  isEditOpen,
+  onEditOpenChange,
 }: {
   mes: number;
   pessoas: { id: string; nome: string }[];
@@ -20,10 +22,18 @@ export function RowActions({
   aportesReais: Record<string, number>;
   onSaveAportes: (novosValores: Record<string, number>) => void | Promise<void>;
   onAddExtra: (pessoaId: string | null, origem: string, valor: number) => void | Promise<void>;
+  isEditOpen?: boolean;
+  onEditOpenChange?: (open: boolean) => void;
 }) {
   const [openMenu, setOpenMenu] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false);
+  const [localEditOpen, setLocalEditOpen] = useState(false);
   const [openExtra, setOpenExtra] = useState(false);
+  const openEdit = isEditOpen ?? localEditOpen;
+
+  const setOpenEdit = (open: boolean) => {
+    setLocalEditOpen(open);
+    onEditOpenChange?.(open);
+  };
 
   const triggerRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);

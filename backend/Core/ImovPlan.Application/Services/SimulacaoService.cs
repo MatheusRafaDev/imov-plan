@@ -295,7 +295,6 @@ namespace ImovPlan.Application.Services
                 {
                     mesAtingiu = meses;
                     dataAtingiu = dataReferencia;
-                    limiteMeses = Math.Min(limiteMesesOriginal, meses + 6);
                 }
             }
 

@@ -286,15 +286,13 @@ export function simular(input: SimInput): SimResult {
       totalInvestido,
     });
 
-    // Registra quando a meta foi atingida e continua o loop por mais `padding` meses
+    // Registra quando a meta foi atingida
     if (!atingiuMeta && saldo >= meta) {
       atingiuMeta = true;
       mesAtingiu = mes;
       dataAtingiu = dataRef.toISOString();
       if (padding === 0) {
         prazoMax = mes;
-      } else {
-        prazoMax = Math.min(prazoMax, mes + padding);
       }
     }
   }

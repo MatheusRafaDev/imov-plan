@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import React from "react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { brl, type CenarioSimulacao } from "@/lib/finance";
@@ -51,6 +51,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     setCenarioSimulacao,
     calculating,
   } = usePlanLogic();
+  const [editingMes, setEditingMes] = useState<number | null>(null);
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
 
@@ -72,7 +73,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       ...pessoas.map(p => p.nome),
       "Extras",
       "Aporte Mes",
-      ...(showFinancials ? ["Rendimento Bruto", "IR", "Rendimento Liquido", "Acumulado"] : [])
+      ...(showFinancials ? [
+        "Rendimento Bruto", 
+        "IR", 
+        "Rendimento Liquido", 
+        ...pessoas.map(p => `Acum. ${p.nome.split(" ")[0]}`),
+        "Acumulado"
+      ] : [])
     ];
 
     const rows = displayRows.map(r => {
@@ -91,6 +98,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           r.rendimentoBruto.toFixed(2),
           r.imposto.toFixed(2),
           r.rendimentoLiquido.toFixed(2),
+          ...pessoas.map(p => (r.saldoPorPessoa[p.id] || 0).toFixed(2)),
           r.saldoAcumulado.toFixed(2)
         ] : [])
       ];
@@ -231,8 +239,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 return (
                   <tr 
                     {...props} 
+                    onDoubleClick={(event) => {
+                      const target = event.target as HTMLElement;
+                      if (isZero || target.closest("button, input, select, textarea, a, [role='button']")) return;
+                      setEditingMes(r.mes);
+                    }}
                     className={`
-                      transition-colors hover:bg-secondary/10 bg-card
+                      transition-colors hover:bg-secondary/10 bg-card ${isZero ? "" : "cursor-pointer"}
                       ${r.atingiu ? "bg-success/5" : ""} 
                       ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
                       ${isZero ? "" : ""}
@@ -258,6 +271,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         <Td right className="bg-primary/5 text-success">
                           {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                         </Td>
+                        {pessoas.map(p => (
+                          <Td key={`foot-acc-${p.id}`} right className="bg-primary/5 text-foreground/80 font-bold">
+                            {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
+                          </Td>
+                        ))}
                         <Td right className="bg-primary/5 py-2">
                           <span className="inline-flex flex-col items-end gap-1">
                             <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
@@ -287,6 +305,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     <Th right>Rend. Bruto</Th>
                     <Th right>IR</Th>
                     <Th right>Rend. Líq.</Th>
+                    {pessoas.map(p => (
+                      <Th key={`acc-${p.id}`} right>Acum. {p.nome.split(" ")[0]}</Th>
+                    ))}
                     <Th right>Acumulado</Th>
                   </>
                 )}
@@ -395,6 +416,12 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
                       </Td>
 
+                      {pessoas.map(p => (
+                        <Td key={`s-${p.id}`} right className="font-semibold text-sm text-foreground/80">
+                          {brl(r.saldoPorPessoa[p.id] || 0)}
+                        </Td>
+                      ))}
+
                       <Td right className="font-bold text-sm text-foreground">{brl(r.saldoAcumulado)}</Td>
                     </>
                   )}
@@ -433,6 +460,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                           const savedId = await salvarPlano({ aportesExtras: updatedExtras });
                           if (savedId) await calcularBackend(savedId);
                         }}
+                        isEditOpen={editingMes === r.mes}
+                        onEditOpenChange={(open) => setEditingMes(open ? r.mes : null)}
                       />
                     )}
                   </Td>
