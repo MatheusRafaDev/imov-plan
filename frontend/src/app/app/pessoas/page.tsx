@@ -291,64 +291,7 @@ export default function PessoasPage() {
         <p className="text-muted-foreground">Cadastre você e seu par. Peça mais informações e detalhe os gastos para maior precisão.</p>
       </div>
 
-      {/* Nova Barra de Resumo de Valor Guardado */}
-      <Card className="p-5 shadow-soft border-border/60 bg-secondary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden relative group">
-        <div className="absolute -left-10 -bottom-10 h-32 w-32 bg-accent/10 rounded-full blur-2xl group-hover:bg-accent/20 transition-colors duration-700" />
-        
-        <div className="relative z-10 flex flex-col">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Total Já Guardado (Vindo da Etapa 1)
-            </span>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" onClick={() => setIsEditingTotal(!isEditingTotal)}>
-              <Pencil className="h-3 w-3" />
-            </Button>
-          </div>
-          {isEditingTotal ? (
-            <div className="flex items-center gap-2 mt-1">
-              <MoneyInput 
-                variant="money" 
-                min={0} 
-                value={totalObjetivo} 
-                onChange={handleUpdateTotal} 
-                className="font-display text-3xl font-semibold h-10 w-48"
-              />
-              <Button onClick={() => setIsEditingTotal(false)} size="sm" className="bg-primary text-primary-foreground">
-                <Check className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <span className="font-display text-3xl text-foreground font-semibold">
-              {brl(totalObjetivo)}
-            </span>
-          )}
-          {Math.abs(diffTotal) > 0.01 && !isEditingTotal && pessoas.length > 2 && (
-            <span className="text-xs text-destructive mt-2 font-medium bg-destructive/10 px-2 py-0.5 rounded-full inline-flex w-fit">
-              A soma difere do total em {brl(Math.abs(diffTotal))}
-            </span>
-          )}
-        </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {pessoas.map((p) => {
-            const perc = totalObjetivo > 0 ? ((p.valorInicial ?? 0) / totalObjetivo) * 100 : 0;
-            return (
-              <div key={p.id} className="flex items-center gap-2 bg-background/80 border border-border/50 px-4 py-2.5 rounded-xl shadow-sm backdrop-blur-md transition-all hover:border-accent/40 hover:shadow-md">
-                <div className="h-7 w-7 rounded-full bg-secondary grid place-items-center">
-                  <span className="font-display text-xs font-bold">{p.nome.charAt(0).toUpperCase()}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-muted-foreground leading-tight">{p.nome}</span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-semibold text-sm num">{brl(p.valorInicial ?? 0)}</span>
-                    <span className="text-[10px] text-accent font-medium">({perc.toFixed(1)}%)</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {pessoas.map((p, index) => (
@@ -356,8 +299,8 @@ export default function PessoasPage() {
             key={p.id} 
             p={p} 
             index={index}
-            totalGuardadoObjetivo={totalObjetivo}
-            progressoAtual={p.valorInicial || 0}
+            totalGuardadoObjetivo={progressoAtual > 0 ? progressoAtual : totalObjetivo}
+            progressoAtual={progressoAtualPorPessoa[p.id] ?? (p.valorInicial || 0)}
             remover={confirmarRemocao} 
             atualizarPessoa={atualizarPessoa} 
           />
