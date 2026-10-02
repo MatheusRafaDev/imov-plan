@@ -18,7 +18,7 @@ import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
 export default function PlanejamentoPage() {
-  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, salvarPlano, calcularBackend, backendData, calculating, isDraftLoading } = usePlanLogic();
+  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, salvarPlano, calcularBackend, backendData, calculating, isDraftLoading, progressoAtual } = usePlanLogic();
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -69,8 +69,7 @@ export default function PlanejamentoPage() {
   });
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
-  const pessoasGuardadoSum = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
-  const totalGuardado = pessoasGuardadoSum > 0 ? pessoasGuardadoSum : Number(objetivo?.valorJaGuardado ?? 0);
+  const totalGuardado = progressoAtual;
 
   const meta = objetivo?.valorImovel
     ? Number(objetivo.valorImovel) * (Number(objetivo.percentualEntrada ?? 0) + Number(objetivo.percentualCustosExtras ?? 0)) / 100
@@ -187,7 +186,7 @@ export default function PlanejamentoPage() {
 
         <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Progresso inicial da meta</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Progresso atual da meta</p>
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => setIsEditingTotal(!isEditingTotal)} title="Atualizar valor guardado hoje">
               <Pencil className="h-3.5 w-3.5" />
             </Button>

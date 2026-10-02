@@ -39,8 +39,9 @@ export default function ResultadoPage() {
     mesesConcluidos, 
     backendData,
     calculating,
+    progressoAtual
   } = usePlanLogic();
-  
+
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -129,7 +130,7 @@ export default function ResultadoPage() {
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both px-4 sm:px-6 md:px-8">
-        <SummaryCards summary={summary} />
+        <SummaryCards summary={summary} progressoAtual={progressoAtual} />
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both px-4 sm:px-6 md:px-8">

@@ -142,6 +142,25 @@ export function usePlanLogic() {
     return await saveDraftCore(patch);
   };
 
+  // Calcula o progresso atual com base no último mês concluído
+  let progressoAtual = Number(state.objetivo?.valorJaGuardado || 0);
+  let progressoAtualPorPessoa: Record<string, number> = {};
+  
+  state.pessoas.forEach(p => {
+    progressoAtualPorPessoa[p.id] = Number(p.valorInicial || 0);
+  });
+
+  if (state.mesesConcluidos.length > 0 && simulacaoData?.detalhesMensais) {
+    const ultimoMes = Math.max(...state.mesesConcluidos);
+    const row = simulacaoData.detalhesMensais.find((r: any) => r.mes === ultimoMes);
+    if (row) {
+      progressoAtual = row.totalAcumulado;
+      (row.participantes || []).forEach((p: any) => {
+        progressoAtualPorPessoa[p.participanteId] = p.saldo;
+      });
+    }
+  }
+
   return {
     ...state,
     planoId,
@@ -151,5 +170,7 @@ export function usePlanLogic() {
     saveDraft,
     salvarPlano,
     calcularBackend,
+    progressoAtual,
+    progressoAtualPorPessoa,
   };
 }

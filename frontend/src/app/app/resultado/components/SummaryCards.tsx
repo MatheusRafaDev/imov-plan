@@ -10,6 +10,7 @@ import { Currency } from "@/components/ui/Currency";
 
 interface SummaryCardsProps {
   summary: SimulacaoSummary | null;
+  progressoAtual: number;
 }
 
 /**
@@ -54,11 +55,11 @@ function resolveMetaCard(summary: SimulacaoSummary): {
   };
 }
 
-export function SummaryCards({ summary }: SummaryCardsProps) {
+export function SummaryCards({ summary, progressoAtual }: SummaryCardsProps) {
   if (!summary) return null;
 
   const metaCard = resolveMetaCard(summary);
-  const progressPercent = ((summary.totalAcumulado / summary.totalNecessario) * 100).toFixed(1);
+  const progressPercent = ((progressoAtual / summary.totalNecessario) * 100).toFixed(1);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -71,8 +72,8 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       />
 
       <StatCard
-        label="Progresso inicial da meta"
-        value={`${formatCurrency(summary.totalAcumulado)} de ${formatCurrency(summary.totalNecessario)}`}
+        label="Progresso atual da meta"
+        value={`${formatCurrency(progressoAtual)} de ${formatCurrency(summary.totalNecessario)}`}
         icon={<Target className="w-3.5 h-3.5" />}
         variant="default"
         subtitle={`${progressPercent}% alcançado`}

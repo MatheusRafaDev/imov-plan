@@ -32,7 +32,7 @@ const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados
 };
 
 export default function PessoasPage() {
-  const { pessoas, setPessoas, saveDraft, salvarPlano, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating, isDraftLoading } = usePlanLogic();
+  const { pessoas, setPessoas, saveDraft, salvarPlano, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating, isDraftLoading, progressoAtual, progressoAtualPorPessoa } = usePlanLogic();
   
   const [isEditingTotal, setIsEditingTotal] = useState(false);
   const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
@@ -356,7 +356,8 @@ export default function PessoasPage() {
             key={p.id} 
             p={p} 
             index={index}
-            totalGuardadoObjetivo={totalObjetivo}
+            totalGuardadoObjetivo={progressoAtual}
+            progressoAtual={progressoAtualPorPessoa[p.id] || p.valorInicial || 0}
             remover={confirmarRemocao} 
             atualizarPessoa={atualizarPessoa} 
           />

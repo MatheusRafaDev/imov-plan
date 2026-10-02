@@ -17,12 +17,14 @@ export default function PessoaCard({
   p,
   index,
   totalGuardadoObjetivo,
+  progressoAtual,
   remover,
   atualizarPessoa
 }: {
   p: Pessoa;
   index: number;
   totalGuardadoObjetivo: number;
+  progressoAtual: number;
   remover: (id: string) => void;
   atualizarPessoa: (id: string, patch: Partial<Pessoa>) => void
 }) {
@@ -34,7 +36,7 @@ export default function PessoaCard({
 
   const role = index === 0 ? "Titular" : "Participante";
   const valorInicial = p.valorInicial ?? 0;
-  const percent = totalGuardadoObjetivo > 0 ? Math.min(100, Math.max(0, (valorInicial / totalGuardadoObjetivo) * 100)) : 0;
+  const percent = totalGuardadoObjetivo > 0 ? Math.min(100, Math.max(0, (progressoAtual / totalGuardadoObjetivo) * 100)) : 0;
 
   const handleAddGasto = () => {
     if (!novoGasto.nome || !novoGasto.valor) return;
@@ -187,8 +189,8 @@ export default function PessoaCard({
               <div className="bg-accent h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${percent}%` }} />
             </div>
             <div className="flex items-end justify-between">
-              <span className="font-display text-xl num font-semibold">{brl(valorInicial)}</span>
-                {valorInicial > 0 && (
+              <span className="font-display text-xl num font-semibold">{brl(progressoAtual)}</span>
+                {progressoAtual > 0 && (
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
                   {p.tipoInvestimento === "poupanca" ? "Poupança" :
                    p.tipoInvestimento === "cdb_100" ? "CDB / Renda Fixa" :
