@@ -14,6 +14,7 @@ import { DateInput } from "@/components/DateInput";
 import { ArrowRight, Plus, Trash2, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown, Check } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
+import { StatusAtualInvestimento } from "@/components/StatusAtualInvestimento";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
@@ -192,24 +193,21 @@ export default function PlanejamentoPage() {
             </Button>
           </div>
           <div className="space-y-4">
-            <div className="flex justify-between items-end">
+            <div className={`flex ${isEditingTotal ? 'flex-col gap-3' : 'justify-between items-end'}`}>
               {isEditingTotal ? (
-                <div className="flex items-center gap-2 animate-fade-in">
-                  <MoneyInput 
-                    variant="money" 
-                    min={0} 
-                    value={totalGuardado} 
-                    onChange={handleUpdateTotal} 
-                    className="font-display text-2xl sm:text-3xl font-semibold h-10 w-32 sm:w-40 border-primary/40 bg-primary/5 rounded-xl text-primary ring-1 ring-primary/20 transition-all outline-none"
-                  />
-                  <Button onClick={() => setIsEditingTotal(false)} size="icon" className="bg-primary text-primary-foreground h-10 w-10 rounded-xl shadow-md shrink-0">
-                    <Check className="h-4 w-4" />
-                  </Button>
+                <div className="w-full animate-fade-in space-y-3 bg-secondary/10 p-3 rounded-xl border border-border/40">
+                  <p className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                    <span>Atualize o saldo de cada participante</span>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditingTotal(false)} className="h-6 px-2 text-xs">Concluir</Button>
+                  </p>
+                  <StatusAtualInvestimento />
                 </div>
               ) : (
-                <span className="font-display text-3xl sm:text-4xl num leading-none tracking-tight text-foreground">{brl(totalGuardado)}</span>
+                <>
+                  <span className="font-display text-3xl sm:text-4xl num leading-none tracking-tight text-foreground">{brl(totalGuardado)}</span>
+                  <span className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium whitespace-nowrap">de {brl(meta)}</span>
+                </>
               )}
-              <span className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium whitespace-nowrap">de {brl(meta)}</span>
             </div>
             <div className="relative h-2.5 sm:h-3 w-full bg-secondary/80 rounded-full overflow-hidden shadow-inner">
               <div
