@@ -356,8 +356,8 @@ export default function PessoasPage() {
             key={p.id} 
             p={p} 
             index={index}
-            totalGuardadoObjetivo={progressoAtual}
-            progressoAtual={progressoAtualPorPessoa[p.id] || p.valorInicial || 0}
+            totalGuardadoObjetivo={progressoAtual > 0 ? progressoAtual : totalObjetivo}
+            progressoAtual={progressoAtualPorPessoa[p.id] ?? (p.valorInicial || 0)}
             remover={confirmarRemocao} 
             atualizarPessoa={atualizarPessoa} 
           />
