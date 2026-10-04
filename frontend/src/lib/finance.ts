@@ -304,6 +304,7 @@ export function simular(input: SimInput): SimResult {
     // 1. Aporte adicional necessário para cumprir o prazo atual
     const aporteNecessario = aporteNecessarioParaPrazo({
       ...input,
+      cenario: "realista",
       taxaCdiAnual: taxaCdiEfetiva,
       prazoMeses: input.prazoMaxMeses,
     });

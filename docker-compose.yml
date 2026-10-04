@@ -1,11 +1,4 @@
 services:
-  redis:
-    image: redis:alpine
-    container_name: imovplan_redis
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
@@ -16,23 +9,25 @@ services:
     env_file:
       - ${ENV_FILE:-./backend/.env}
     environment:
-      - Jwt__Key=${JWT_SECRET:?JWT_SECRET is required}
-      - Jwt__Issuer=ImovPlanAPI
-      - Jwt__Audience=ImovPlanClient
-      - MongoDbSettings__ConnectionString=${MONGO_CONNECTION_STRING}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_ISSUER=ImovPlanAPI
+      - JWT_AUDIENCE=ImovPlanClient
+      - MONGO_CONNECTION_STRING=${MONGO_CONNECTION_STRING}
+      - MONGO_DATABASE_NAME=${MONGO_DATABASE_NAME}
     volumes:
       - ./version.txt:/app/version.txt:ro
       - ./deploy.log:/app/deploy.log:ro
       - data_protection_keys:/root/.aspnet/DataProtection-Keys
     mem_limit: 350m
-    depends_on:
-      - redis
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:5179/api}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     container_name: imovplan_frontend
     ports:
       - "3000:3000"

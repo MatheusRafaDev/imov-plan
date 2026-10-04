@@ -84,8 +84,9 @@ namespace ImovPlan.API.Validators
         public SimularRequestValidator()
         {
             RuleFor(x => x.ValorFinanciado).GreaterThan(0).WithMessage("ValorFinanciado deve ser > 0.");
-            RuleFor(x => x.PrazoMeses).GreaterThan(0).WithMessage("PrazoMeses deve ser > 0.");
-            RuleFor(x => x.TaxaAnual).GreaterThanOrEqualTo(0).WithMessage("TaxaAnual deve ser >= 0.");
+            RuleFor(x => x.PrazoMeses).GreaterThan(0).WithMessage("PrazoMeses deve ser > 0.")
+                                      .LessThanOrEqualTo(1200).WithMessage("PrazoMeses não pode exceder 1200.");
+            RuleFor(x => x.TaxaAnual).GreaterThan(0).WithMessage("TaxaAnual deve ser > 0.");
         }
     }
 
@@ -94,8 +95,9 @@ namespace ImovPlan.API.Validators
         public CetRequestValidator()
         {
             RuleFor(x => x.ValorFinanciado).GreaterThan(0).WithMessage("ValorFinanciado deve ser > 0.");
-            RuleFor(x => x.PrazoMeses).GreaterThan(0).WithMessage("PrazoMeses deve ser > 0.");
-            RuleFor(x => x.TaxaAnual).GreaterThanOrEqualTo(0).WithMessage("TaxaAnual deve ser >= 0.");
+            RuleFor(x => x.PrazoMeses).GreaterThan(0).WithMessage("PrazoMeses deve ser > 0.")
+                                      .LessThanOrEqualTo(1200).WithMessage("PrazoMeses não pode exceder 1200.");
+            RuleFor(x => x.TaxaAnual).GreaterThan(0).WithMessage("TaxaAnual deve ser > 0.");
             RuleFor(x => x.TaxaMip).GreaterThanOrEqualTo(0).WithMessage("TaxaMip deve ser >= 0.");
             RuleFor(x => x.TaxaDfi).GreaterThanOrEqualTo(0).WithMessage("TaxaDfi deve ser >= 0.");
             RuleFor(x => x.TaxaAdmin).GreaterThanOrEqualTo(0).WithMessage("TaxaAdmin deve ser >= 0.");

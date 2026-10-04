@@ -119,6 +119,9 @@ export function usePlanDraft(planoId: string | null) {
       return status !== 404 && status !== 403 && status !== 401;
     },
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -135,16 +138,9 @@ export function useSaveDraft() {
           return planoId;
         } catch (error: any) {
           const status = error?.response?.status;
-          // 404: plano não existe mais no servidor (foi deletado ou cookie desatualizado)
-          // Criar um novo plano via POST como fallback
-          if (status === 404 && usuarioId) {
-            console.warn('[useSaveDraft] Plano não encontrado (404), criando novo plano...');
-            const { data } = await api.post(`/plano/draft-for-user?usuarioId=${usuarioId}`);
-            if (data?.id) {
-              await api.put(`/plano/draft/${data.id}`, payload);
-              return data.id;
-            }
-            return null;
+          if (status === 404) {
+            console.warn('[useSaveDraft] Plano não encontrado (404). Abortando autosave para não sobrescrever dados deletados em outra aba.');
+            throw new Error("Plano não existe mais.");
           }
           // Outros erros (401, 500, rede): propagar para o caller lidar
           throw error;

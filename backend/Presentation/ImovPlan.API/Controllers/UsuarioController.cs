@@ -124,7 +124,16 @@ namespace ImovPlan.API.Controllers
 
             var exportData = new
             {
-                Usuario = user,
+                Usuario = new
+                {
+                    user.Id,
+                    user.Nome,
+                    user.Email,
+                    user.DataNascimento,
+                    user.Provider,
+                    user.Role,
+                    user.CreatedAt
+                },
                 Planejamento = plano
             };
 

@@ -123,7 +123,11 @@ DADOS DO SISTEMA E DO USUÁRIO (JSON):
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync("https://api.groq.com/openai/v1/chat/completions", content);
 
-                if (!response.IsSuccessStatusCode) return GetMockResponse();
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (_apiKey == "mock") return GetMockResponse();
+                    throw new Exception("Não foi possível gerar a consultoria no momento. A API de inteligência artificial falhou.");
+                }
 
                 var responseString = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(responseString);
@@ -133,9 +137,10 @@ DADOS DO SISTEMA E DO USUÁRIO (JSON):
                           .GetProperty("content")
                           .GetString() ?? string.Empty;
             }
-            catch
+            catch (Exception ex)
             {
-                return GetMockResponse();
+                if (_apiKey == "mock") return GetMockResponse();
+                throw new Exception("Falha de comunicação com a API de inteligência artificial.", ex);
             }
         }
 

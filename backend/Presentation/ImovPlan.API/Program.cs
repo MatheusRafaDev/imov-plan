@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using MongoDB.Driver;
 using ImovPlan.Infrastructure.Data;
 using ImovPlan.Infrastructure.Configurations;
@@ -90,36 +91,31 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("auth", opt =>
-    {
-        opt.PermitLimit = 10;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("google-auth", opt =>
-    {
-        opt.PermitLimit = 10;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("ia", opt =>
-    {
-        opt.PermitLimit = 10;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("geocode", opt =>
-    {
-        opt.PermitLimit = 1;
-        opt.Window = TimeSpan.FromSeconds(1);
-        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 0;
-    });
+    options.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        
+    options.AddPolicy("google-auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        
+    options.AddPolicy("ia", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        
+    options.AddPolicy("geocode", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 1, Window = TimeSpan.FromSeconds(1), QueueLimit = 0 }));
+        
     options.RejectionStatusCode = 429;
 });
 
@@ -195,7 +191,14 @@ var cacheCollection = mongoDatabase.GetCollection<MongoDB.Bson.BsonDocument>("po
 var indexKeysDefinition = Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("createdAt");
 var indexOptions = new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(15) };
 var indexModel = new CreateIndexModel<MongoDB.Bson.BsonDocument>(indexKeysDefinition, indexOptions);
-cacheCollection.Indexes.CreateOne(indexModel);
+try
+{
+    cacheCollection.Indexes.CreateOne(indexModel);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Aviso: Falha ao criar índice TTL de cache: {ex.Message}");
+}
 
 builder.Services.AddHealthChecks()
     .AddAsyncCheck("mongodb", async () =>
@@ -248,6 +251,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseForwardedHeaders();
 app.UseResponseCompression();
 app.UseHttpsRedirection();
 app.Use(async (context, next) =>

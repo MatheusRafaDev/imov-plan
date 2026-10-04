@@ -92,8 +92,6 @@ namespace ImovPlan.API.Controllers
             var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
             var result = MapToDto(ultimoRegistro, evolucao);
 
-            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
-
             return Ok(result);
         }
 

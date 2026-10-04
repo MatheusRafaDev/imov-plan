@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Threading;
 using MongoDB.Bson;
 using ImovPlan.Application.DTOs;
 using ImovPlan.Application.Services.Interfaces;
@@ -20,6 +21,8 @@ namespace ImovPlan.Application.Services
         private readonly IGastoDetalhadoRepository _gastoDetalhadoRepo;
         private readonly IParametrosFinanceirosRepository _parametrosRepo;
         private readonly IHistoricoSimulacaoRepository _historicoSimulacaoRepo;
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
         public PlanejamentoService(
             IPlanejamentoRepository planejamentoRepo,
@@ -145,7 +148,11 @@ namespace ImovPlan.Application.Services
             if (string.IsNullOrEmpty(usuarioIdAutenticado) || existingPlanejamento.UsuarioId != usuarioIdAutenticado)
                 return false;
 
-            // ── Map Planejamento fields ──
+            var semaphore = _locks.GetOrAdd(id, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+            try
+            {
+                // ── Map Planejamento fields ──
             if (draftDto.Objetivo != null)
             {
                 var o = draftDto.Objetivo;
@@ -375,6 +382,11 @@ namespace ImovPlan.Application.Services
 
             await _planejamentoRepo.UpdateAsync(id, existingPlanejamento);
             return true;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         public async Task<PlanoDraftDto?> GetDraftAsync(string id, string usuarioIdAutenticado)

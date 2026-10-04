@@ -177,8 +177,9 @@ namespace ImovPlan.API.Controllers
                 }
                 else if (user.Provider == "local" || string.IsNullOrEmpty(user.Provider))
                 {
-                    // Usuario local que agora tambem usa Google - conta hibrida
-                    user.Provider = "both";
+                    // Evitar pré-sequestro de conta: quem prova o email é o Google, descartamos a senha possivelmente maliciosa
+                    user.PasswordHash = "";
+                    user.Provider = "google";
                     await _usuarioRepository.UpdateAsync(user.Id, user);
                 }
                 // Se provider == "google" ou "both", apenas autentica sem alterar
@@ -236,7 +237,7 @@ namespace ImovPlan.API.Controllers
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9;'>
                     <div style='background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);'>
                         <h2 style='color: #E63946; margin-top: 0;'>Redefinicao de Senha</h2>
-                        <p>Ola, <strong>{user.Nome}</strong>!</p>
+                        <p>Ola, <strong>{System.Net.WebUtility.HtmlEncode(user.Nome)}</strong>!</p>
                         <p>Recebemos uma solicitacao para redefinir a senha da sua conta no <strong>ImovPlan</strong>.</p>
                         <p>Clique no botao abaixo para criar uma nova senha. O link e valido por <strong>30 minutos</strong> e so pode ser usado uma vez.</p>
                         <div style='margin: 32px 0; text-align: center;'>

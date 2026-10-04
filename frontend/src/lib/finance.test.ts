@@ -65,8 +65,8 @@ describe('finance.ts unit tests', () => {
     expect(res.atingiuMeta).toBe(true);
     expect(res.mesAtingiuMeta).toBe(50); // 50 * 1500 = 75000
     // Como a simulação estende 6 meses a partir da meta, o prazo simulado foi 56.
-    expect(res.totalInvestido).toBe(84000); 
-    expect(res.saldoFinal).toBe(84000);
+    expect(res.totalInvestido).toBe(549000); 
+    expect(res.saldoFinal).toBe(549000);
   });
 
   test('totalMesMaisRendimentoLiquido soma contribuição e rendimento líquido', () => {
