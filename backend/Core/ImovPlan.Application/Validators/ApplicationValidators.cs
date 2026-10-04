@@ -79,10 +79,6 @@ namespace ImovPlan.Application.Validators
                 RuleFor(x => x.Estado)
                     .Must(uf => _ufsValidas.Contains(uf!))
                     .WithMessage("Estado inválido. Informe uma UF brasileira válida (ex: SP, RJ, MG).");
-
-                RuleFor(x => x.Cidade)
-                    .NotEmpty()
-                    .WithMessage("Cidade é obrigatória quando o estado é informado.");
             });
         }
     }
@@ -91,9 +87,7 @@ namespace ImovPlan.Application.Validators
     {
         public PessoaDraftDtoValidator()
         {
-            // Nome is optional for drafts to allow saving incomplete data
-            RuleFor(x => x.Nome).NotEmpty().When(x => x.Renda_mensal > 0 || x.Gastos_mensais > 0 || x.Aporte_mensal > 0 || x.ValorInicial > 0)
-                .WithMessage("O nome da pessoa é obrigatório quando há dados financeiros.");
+            // Drafts allow completely empty people for UI convenience
             RuleFor(x => x.Renda_mensal).GreaterThanOrEqualTo(0).WithMessage("A renda mensal não pode ser negativa.");
             RuleFor(x => x.Gastos_mensais).GreaterThanOrEqualTo(0).WithMessage("Os gastos mensais não podem ser negativos.");
         }
@@ -104,10 +98,8 @@ namespace ImovPlan.Application.Validators
         public AporteExtraDraftDtoValidator()
         {
             // Allow incomplete aportes extras for drafts
-            RuleFor(x => x.Data).NotEmpty().When(x => x.Valor > 0)
-                .WithMessage("A data do aporte extra é obrigatória quando o valor é informado.");
-            RuleFor(x => x.Valor).GreaterThan(0).When(x => !string.IsNullOrEmpty(x.Data))
-                .WithMessage("O valor do aporte extra deve ser maior que zero quando a data é informada.");
+            RuleFor(x => x.Valor).GreaterThanOrEqualTo(0)
+                .WithMessage("O valor do aporte extra não pode ser negativo.");
         }
     }
 

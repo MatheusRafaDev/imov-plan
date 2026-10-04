@@ -463,7 +463,8 @@ namespace ImovPlan.Application.Services
             var aporteEdits = await _historicoAporteRepo.GetByPlanejamentoIdAsync(id);
             var aportesRegularesEditados = aporteEdits
                 .Where(a => string.IsNullOrEmpty(a.ParticipanteId))
-                .ToDictionary(a => a.Mes, a => a.ValorEditado);
+                .GroupBy(a => a.Mes)
+                .ToDictionary(g => g.Key, g => g.Last().ValorEditado);
 
             // Fetch per-person aporte edits → reconstruct Dictionary<string, Dictionary<int, decimal>>
             var aportesRegularesEditadosPorPessoa = aporteEdits
@@ -471,7 +472,7 @@ namespace ImovPlan.Application.Services
                 .GroupBy(a => a.ParticipanteId)
                 .ToDictionary(
                     g => g.Key,
-                    g => g.ToDictionary(a => a.Mes, a => a.ValorEditado)
+                    g => g.GroupBy(a => a.Mes).ToDictionary(g2 => g2.Key, g2 => g2.Last().ValorEditado)
                 );
 
             // Calculate ValorJaGuardado dynamically from Participante.PatrimonioInicial

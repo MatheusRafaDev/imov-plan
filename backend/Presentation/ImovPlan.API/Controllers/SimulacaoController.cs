@@ -75,10 +75,8 @@ namespace ImovPlan.API.Controllers
             var requestHash = System.Text.Json.JsonSerializer.Serialize(request);
             var cacheKey = $"simulacao_{planoId}_{planejamento.ValorImovel}_{totalNecessario}_{planejamento.ValorJaGuardado}_{planejamento.TaxaCdiAnual}_{planejamento.DataInicio?.Ticks}_{planejamento.PrazoMaxMeses}_{requestHash.GetHashCode()}";
 
-            if (_cache.TryGetValue(cacheKey, out SimulacaoResultDto? cachedResult) && cachedResult != null)
-            {
-                return Ok(cachedResult);
-            }
+            // O cache foi removido daqui pois o registro no banco é recriado a cada cálculo,
+            // e devolver o cache resultava em retornar IDs de simulações que já foram deletadas.
 
             var resultado = await _simulacaoService.ExecutarSimulacaoAsync(
                 request,

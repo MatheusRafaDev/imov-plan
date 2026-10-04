@@ -166,7 +166,6 @@ export function useSaveDraft() {
         setPlanoId(newPlanoId);
       }
       queryClient.invalidateQueries({ queryKey: ['planos', usuarioId] });
-      queryClient.invalidateQueries({ queryKey: ['planDraft'] });
     },
   });
 }

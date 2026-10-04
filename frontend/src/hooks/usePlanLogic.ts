@@ -4,6 +4,9 @@ import { useCalcularSimulacao, useUltimaSimulacao } from '@/hooks/useSimulacao';
 import { useDebouncedCallback } from 'use-debounce';
 import { useQueryClient } from '@tanstack/react-query';
 
+// Fila global para serializar requisições de salvamento e evitar concorrência
+let globalSaveQueue: Promise<any> = Promise.resolve();
+
 export function usePlanLogic() {
   const state = usePlanStore();
   const queryClient = useQueryClient();
@@ -38,8 +41,8 @@ export function usePlanLogic() {
           percentualEntrada: Number(payload.objetivo.percentualEntrada) || 0,
           percentualCustosExtras: Number(payload.objetivo.percentualCustosExtras) || 0,
           valorJaGuardado: Number(payload.objetivo.valorJaGuardado) || 0,
-          taxaCdiAnual: Number(payload.objetivo.taxaCdiAnual) || 10.5,
-          percentualCdi: Number(payload.objetivo.percentualCdi) || 100,
+          taxaCdiAnual: payload.objetivo.taxaCdiAnual !== undefined && payload.objetivo.taxaCdiAnual !== null ? Number(payload.objetivo.taxaCdiAnual) : 10.5,
+          percentualCdi: payload.objetivo.percentualCdi !== undefined && payload.objetivo.percentualCdi !== null ? Number(payload.objetivo.percentualCdi) : 100,
           prazoMaxMeses: Number(payload.objetivo.prazoMaxMeses) || 0,
           dataInicio: payload.objetivo.dataInicio ? (() => {
             const d = new Date(payload.objetivo.dataInicio);
@@ -67,20 +70,23 @@ export function usePlanLogic() {
         return planoId;
       }
 
-      const savedId = await saveDraftMutation({ planoId, payload: formattedPayload });
-      try {
-        await queryClient.refetchQueries({ queryKey: ['planDraft'] });
-      } catch (e) {
-        console.warn("Failed to refetch draft after save, continuing...", e);
-      }
-      usePlanStore.getState().setLastSavedDraftPayloadStr(formattedPayloadStr);
-      return savedId;
+      return new Promise<string | null>((resolve) => {
+        globalSaveQueue = globalSaveQueue.then(async () => {
+          try {
+            const savedId = await saveDraftMutation({ planoId, payload: formattedPayload });
+            usePlanStore.getState().setLastSavedDraftPayloadStr(formattedPayloadStr);
+            resolve(savedId);
+          } catch (error: any) {
+            const status = error?.response?.status;
+            if (status !== 401) {
+              console.error('[saveDraftCore] Erro ao salvar draft:', status || error?.message);
+            }
+            resolve(null);
+          }
+        });
+      });
     } catch (error: any) {
-      const status = error?.response?.status;
-      // Não logar erros de autenticação (são esperados e tratados no interceptor do axios)
-      if (status !== 401) {
-        console.error('[saveDraftCore] Erro ao salvar draft:', status || error?.message);
-      }
+      console.error('[saveDraftCore] Erro na preparação do payload:', error?.message);
       return null;
     }
   };
@@ -108,8 +114,13 @@ export function usePlanLogic() {
     // Create the SimInput payload based on current state to match backend expectations
     const payload = {
       objetivoId: idToUse,
-      taxaCDI: currentState.objetivo?.taxaCdiAnual || 10.5,
-      percentualCdi: currentState.objetivo?.percentualCdi || 100,
+      taxaCDI: currentState.objetivo?.taxaCdiAnual ?? 10.5,
+      percentualCdi: currentState.objetivo?.percentualCdi ?? 100,
+      valorImovel: currentState.objetivo?.valorImovel,
+      percentualEntrada: currentState.objetivo?.percentualEntrada,
+      prazoMaxMeses: currentState.objetivo?.prazoMaxMeses,
+      dataInicio: currentState.objetivo?.dataInicio,
+      valorJaGuardado: currentState.objetivo?.valorJaGuardado,
       aportesMensais: currentState.pessoas.map((p) => ({
         pessoaId: p.id,
         valor: p.aporte_mensal,
