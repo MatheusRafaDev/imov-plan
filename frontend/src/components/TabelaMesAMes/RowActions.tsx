@@ -47,7 +47,13 @@ export function RowActions({
   const [portalPos, setPortalPos] = useState({ top: 0, left: 0, width: 0 });
 
   // Estado Modal Edit
-  const [editDraft, setEditDraft] = useState<Record<string, string>>({});
+  const [editDraft, setEditDraft] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    if (openEdit) {
+      pessoas.forEach(p => initial[p.id] = (aportesReais[p.id] || 0).toFixed(2));
+    }
+    return initial;
+  });
   const [prevOpenEdit, setPrevOpenEdit] = useState(openEdit);
 
   if (openEdit !== prevOpenEdit) {
@@ -67,7 +73,13 @@ export function RowActions({
   const [extraValor, setExtraValor] = useState("0");
 
   // Estado Modal Acumulado
-  const [acumDraft, setAcumDraft] = useState<Record<string, string>>({});
+  const [acumDraft, setAcumDraft] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    if (openAcumulado) {
+      pessoas.forEach(p => initial[p.id] = (saldosAcumulados[p.id] || 0).toFixed(2));
+    }
+    return initial;
+  });
   const [prevOpenAcumulado, setPrevOpenAcumulado] = useState(openAcumulado);
 
   if (openAcumulado !== prevOpenAcumulado) {
@@ -144,7 +156,8 @@ export function RowActions({
           <div className="p-4 space-y-4">
             {pessoas.map(p => {
               const planejado = aportesPlanejados[p.id] || 0;
-              const val = editDraft[p.id] === "" ? 0 : Number(editDraft[p.id]);
+              const draftVal = editDraft[p.id];
+              const val = draftVal === undefined ? (aportesReais[p.id] || 0) : (draftVal === "" ? 0 : Number(draftVal));
               const diff = val - planejado;
               return (
                 <div key={p.id} className="space-y-1.5">
@@ -171,7 +184,10 @@ export function RowActions({
               <button type="button" onClick={() => setOpenEdit(false)} className="flex-1 rounded-xl border border-border/60 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancelar</button>
               <button type="button" onClick={() => {
                 const results: Record<string, number> = {};
-                pessoas.forEach(p => results[p.id] = Number(editDraft[p.id] || 0));
+                pessoas.forEach(p => {
+                  const draftVal = editDraft[p.id];
+                  results[p.id] = draftVal === undefined ? (aportesReais[p.id] || 0) : Number(draftVal || 0);
+                });
                 onSaveAportes(results);
                 setOpenEdit(false);
               }} className="flex-1 rounded-xl bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Salvar</button>
@@ -253,7 +269,8 @@ export function RowActions({
           <div className="p-4 space-y-4">
             {pessoas.map(p => {
               const planejado = saldosAcumulados[p.id] || 0;
-              const val = acumDraft[p.id] === "" ? 0 : Number(acumDraft[p.id]);
+              const draftVal = acumDraft[p.id];
+              const val = draftVal === undefined ? planejado : (draftVal === "" ? 0 : Number(draftVal));
               const diff = val - planejado;
               return (
                 <div key={p.id} className="space-y-1.5">
@@ -280,7 +297,8 @@ export function RowActions({
               <button type="button" onClick={() => {
                 pessoas.forEach(p => {
                   const current = saldosAcumulados[p.id] || 0;
-                  const newValue = Number(acumDraft[p.id] || 0);
+                  const draftVal = acumDraft[p.id];
+                  const newValue = draftVal === undefined ? current : Number(draftVal || 0);
                   const diff = newValue - current;
                   if (Math.abs(diff) > 0.01) {
                     onAddExtra(p.id, diff > 0 ? "Ajuste de Saldo (Rendimento/Depósito)" : "Ajuste de Saldo (Retirada/Perda)", diff);
