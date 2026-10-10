@@ -45,7 +45,7 @@ export default function FinanciamentoPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 5 de 6</p>
+        <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-2">Etapa 5 de 6</p>
         <h1 className="font-display text-4xl md:text-5xl mb-2">Simulação: {bancoEscolhido?.nome || "Financiamento"}</h1>
         <p className="text-muted-foreground">
           {bancoEscolhido

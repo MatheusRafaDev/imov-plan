@@ -134,7 +134,7 @@ export default function PlanejamentoPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 lg:space-y-12">
       <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
+        <p className="text-[10px] uppercase tracking-widest text-orange-500 font-semibold mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl mb-3 font-medium bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">Acelere seu plano</h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
@@ -413,16 +413,20 @@ export default function PlanejamentoPage() {
       </div>
 
       {/* Botão Prosseguir */}
-      <div className="pt-6 pb-4 flex justify-end animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+      <Card className="p-6 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-8 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <div>
+          <p className="text-xs uppercase tracking-widest opacity-70">Plano concluído?</p>
+          <p className="font-display text-2xl md:text-3xl mt-1">Veja o resultado</p>
+          <p className="text-xs opacity-70 mt-1">Confira o resumo completo do seu planejamento para o imóvel.</p>
+        </div>
         <Button
           onClick={prosseguir}
           disabled={calculating}
-          className="w-full lg:w-auto h-12 px-8 text-sm font-semibold rounded-xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
+          className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-11 px-5"
         >
-          {calculating ? "Calculando..." : "Ver resultado"}
-          <ArrowRight className="ml-2 h-4 w-4" />
+          {calculating ? "Calculando..." : "Ver resultado"} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-      </div>
+      </Card>
     </div>
   );
 }

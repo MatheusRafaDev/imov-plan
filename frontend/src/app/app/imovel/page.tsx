@@ -234,7 +234,7 @@ export default function ObjetivoPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
-        <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2 flex items-center gap-2">
+        <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-2 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
         </p>
         <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3">Qual é o imóvel?</h1>
@@ -470,16 +470,6 @@ export default function ObjetivoPage() {
                 </div>
               )}
             </div>
-
-            <div className="flex flex-wrap items-center gap-4 pt-6">
-              <Button
-                onClick={salvar}
-                disabled={!isFormValidComplete || salvando}
-                className="w-full sm:w-auto h-12 px-8 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow"
-              >
-                {salvando ? "Salvando..." : "Salvar e Continuar"} <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
           </Card>
         </div>
 
@@ -528,6 +518,21 @@ export default function ObjetivoPage() {
           </Card>
         </div>
       </div>
+
+      <Card className="p-6 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-8">
+        <div>
+          <p className="text-xs uppercase tracking-widest opacity-70">Tudo pronto?</p>
+          <p className="font-display text-2xl md:text-3xl mt-1">Continue para a próxima etapa</p>
+          <p className="text-xs opacity-70 mt-1">Siga para definir quem participará do plano com você.</p>
+        </div>
+        <Button
+          onClick={salvar}
+          disabled={!isFormValidComplete || salvando}
+          className="bg-gradient-warm text-accent-foreground hover:opacity-90 w-full sm:w-auto h-11 px-5"
+        >
+          {salvando ? "Salvando..." : "Salvar e Continuar"} <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Card>
     </div>
   );
 }

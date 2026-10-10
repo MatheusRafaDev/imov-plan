@@ -96,7 +96,7 @@ export default function ResultadoPage() {
     return (
       <div className="max-w-screen-2xl w-full mx-auto space-y-7 px-4 md:px-6">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
+          <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
           <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-light">Seu plano em números</h1>
           <p className="text-muted-foreground text-sm">Preencha as etapas anteriores para ver o resultado ou aguarde o cálculo.</p>
         </div>
@@ -113,7 +113,7 @@ export default function ResultadoPage() {
       {/* Header */}
       <div className="flex items-start justify-between px-4 sm:px-6 md:px-8">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
+          <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
           <h1 className="font-display text-3xl md:text-4xl mb-1 font-light">Seu plano em números</h1>
           <p className="text-muted-foreground text-sm">O resultado de tudo o que você preencheu nas etapas anteriores.</p>
         </div>

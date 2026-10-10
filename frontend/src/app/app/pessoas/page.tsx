@@ -286,7 +286,7 @@ export default function PessoasPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">
       <div>
-        <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2">Etapa 2 de 4</p>
+        <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-2">Etapa 2 de 4</p>
         <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-2">Quem está nessa?</h1>
         <p className="text-muted-foreground">Cadastre você e seu par. Peça mais informações e detalhe os gastos para maior precisão.</p>
       </div>
