@@ -277,8 +277,8 @@ export default function PerfilPage() {
 
       {/* Modal de exclusao */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-md p-6 space-y-4 shadow-lg border-destructive/20 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain bg-background/80 p-4 backdrop-blur-sm">
+          <Card className="my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto w-full max-w-md p-6 space-y-4 shadow-lg border-destructive/20 animate-in fade-in zoom-in-95">
             <h3 className="text-lg font-display text-destructive flex items-center gap-2">
               <Trash2 className="h-5 w-5" />
               Excluir Conta

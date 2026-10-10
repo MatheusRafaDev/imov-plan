@@ -79,6 +79,7 @@ export function DateInput({ value, onChange, className, placeholder = "DD/MM/AAA
       <Input
         id={id}
         type="text"
+        inputMode="numeric"
         value={displayValue}
         onChange={handleChange}
         placeholder={placeholder}

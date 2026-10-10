@@ -50,7 +50,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <div className="flex flex-col bg-gradient-cream" style={{ height: '100dvh' }}>
+    <div className="app-shell flex flex-col bg-gradient-cream">
       {/* ── Header ── */}
       <header className="safe-top shrink-0 border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
         <div className="container flex h-14 lg:h-16 items-center justify-between gap-2 lg:gap-4">
@@ -132,8 +132,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       </header>
 
       {/* ── Main ── */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="w-full px-4 sm:px-6 md:px-8 py-6 md:py-8 lg:py-12 pb-16 lg:pb-12 max-w-[1600px] mx-auto">{children}</div>
+      <main className="app-main">
+        <div className="app-content w-full px-4 sm:px-6 md:px-8 pt-6 md:pt-8 lg:pt-12 max-w-[1600px] mx-auto">{children}</div>
       </main>
 
       {/* ── Bottom Nav (mobile) ── */}

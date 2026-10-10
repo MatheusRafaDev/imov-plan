@@ -94,12 +94,14 @@ export function RowActions({
   const updatePos = (width: number) => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      const left = rect.left - width - 12;
-      const finalLeft = left < 8 ? rect.right + 12 : left;
+      const finalWidth = Math.min(width, Math.max(0, window.innerWidth - 16));
+      const left = rect.left - finalWidth - 12;
+      const preferredLeft = left < 8 ? rect.right + 12 : left;
+      const finalLeft = Math.max(8, Math.min(preferredLeft, window.innerWidth - finalWidth - 8));
       // Garante que o top não ultrapasse a tela
       const rawTop = rect.top;
       const top = Math.max(8, Math.min(rawTop, window.innerHeight - 420));
-      setPortalPos({ top, left: Math.min(finalLeft, window.innerWidth - width - 8), width });
+      setPortalPos({ top, left: finalLeft, width: finalWidth });
     }
   };
 
@@ -149,7 +151,7 @@ export function RowActions({
       )}
 
       {openEdit && typeof document !== "undefined" && createPortal(
-        <div ref={editPopupRef} className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}>
+        <div ref={editPopupRef} className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-y-auto" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: "calc(100dvh - 16px)" }}>
           <div className="bg-secondary/60 px-4 py-3 border-b border-border/50">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Editar Aportes · Mês {mes}</p>
           </div>
@@ -198,11 +200,11 @@ export function RowActions({
       )}
 
       {openExtra && typeof document !== "undefined" && createPortal(
-        <div ref={extraPopupRef} className="fixed z-50 rounded-b-xl border border-t-0 border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: 'calc(100vh - 16px)' }}>
+        <div ref={extraPopupRef} className="fixed z-50 rounded-b-xl border border-t-0 border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: 'calc(100dvh - 16px)' }}>
           <div className="bg-secondary/60 px-3 py-2 border-b border-border/50">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Extra · Mês {mes}</p>
           </div>
-          <div className="p-3 space-y-2.5 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 60px)' }}>
+          <div className="p-3 space-y-2.5 overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 60px)' }}>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Pessoa</label>
@@ -262,7 +264,7 @@ export function RowActions({
       )}
 
       {openAcumulado && typeof document !== "undefined" && createPortal(
-        <div ref={acumuladoPopupRef} className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-hidden" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}>
+        <div ref={acumuladoPopupRef} className="fixed z-50 rounded-2xl border border-border/70 bg-card shadow-xl overflow-y-auto" style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: "calc(100dvh - 16px)" }}>
           <div className="bg-secondary/60 px-4 py-3 border-b border-border/50">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Ajustar Acumulado · Mês {mes}</p>
           </div>

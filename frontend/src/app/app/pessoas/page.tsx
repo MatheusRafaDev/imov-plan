@@ -531,8 +531,8 @@ export default function PessoasPage() {
       )}
 
       {pessoaParaRemover && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <Card className="max-w-md w-full p-6 shadow-xl border-border/50 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <Card className="my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-md w-full p-6 shadow-xl border-border/50 animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
                 <Trash2 className="h-6 w-6 text-destructive" />

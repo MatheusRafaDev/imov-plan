@@ -29,10 +29,10 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (isAuthenticated() && user) {
+    if (!loading && isAuthenticated() && user) {
       router.push("/app/imovel");
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router, loading]);
 
   // Initialize Google Identity Services once
   useEffect(() => {
@@ -203,6 +203,14 @@ export default function AuthPage() {
     setPassword("");
     setConfirmPassword("");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin-smooth text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">

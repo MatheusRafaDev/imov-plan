@@ -65,8 +65,9 @@ namespace ImovPlan.API.Controllers
 
             await _usuarioRepository.CreateAsync(user);
 
-            var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User");
-            SetTokenCookie(token);
+            var isMobile = IsMobileDevice();
+            var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User", isMobile);
+            SetTokenCookie(token, isMobile);
 
             return Ok(new
             {
@@ -105,8 +106,9 @@ namespace ImovPlan.API.Controllers
             if (!senhaValida)
                 return Unauthorized(new { message = "Email ou senha invalidos." });
 
-            var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User");
-            SetTokenCookie(token);
+            var isMobile = IsMobileDevice();
+            var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User", isMobile);
+            SetTokenCookie(token, isMobile);
 
             return Ok(new
             {
@@ -184,8 +186,9 @@ namespace ImovPlan.API.Controllers
                 }
                 // Se provider == "google" ou "both", apenas autentica sem alterar
 
-                var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User");
-                SetTokenCookie(token);
+                var isMobile = IsMobileDevice();
+                var token = _tokenService.GenerateJwtToken(user.Id, user.Role ?? "User", isMobile);
+                SetTokenCookie(token, isMobile);
 
                 return Ok(new
                 {
@@ -334,10 +337,16 @@ namespace ImovPlan.API.Controllers
 
         // -- Helpers -----------------------------------------------------------------
 
-        private void SetTokenCookie(string token)
+        private bool IsMobileDevice()
+        {
+            var userAgent = Request.Headers["User-Agent"].ToString().ToLowerInvariant();
+            return userAgent.Contains("mobi") || userAgent.Contains("android") || userAgent.Contains("iphone") || userAgent.Contains("ipad");
+        }
+
+        private void SetTokenCookie(string token, bool isMobile = false)
         {
             var cookieOptions = CreateTokenCookieOptions();
-            cookieOptions.Expires = DateTime.UtcNow.AddDays(7);
+            cookieOptions.Expires = isMobile ? DateTime.UtcNow.AddDays(3650) : DateTime.UtcNow.AddDays(7);
             Response.Cookies.Append("token", token, cookieOptions);
         }
 

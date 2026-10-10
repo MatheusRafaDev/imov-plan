@@ -350,8 +350,8 @@ export default function PlanosPage() {
 
       {/* Modal de Confirmação de Exclusão */}
       {planoAExcluir && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <Card className="max-w-md w-full p-6 shadow-glow border-border animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain bg-background/80 backdrop-blur-sm p-4">
+          <Card className="my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-md w-full p-6 shadow-glow border-border animate-in zoom-in-95 duration-200">
             <h3 className="font-display text-xl mb-2 flex items-center gap-2">
               <Trash2 className="h-5 w-5 text-destructive" /> 
               Excluir plano

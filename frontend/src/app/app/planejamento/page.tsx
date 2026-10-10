@@ -245,9 +245,9 @@ export default function PlanejamentoPage() {
 
       {/* Modal Aportes Extras */}
       {isAportesExtrasModalOpen && (
-        <div className="fixed inset-0 z-[9999] grid min-h-screen place-items-center bg-primary/10 px-3 sm:px-4 py-4 sm:py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain bg-primary/10 px-3 sm:px-4 py-4 sm:py-6 backdrop-blur-sm">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
-          <div className="relative z-[10000] w-full max-w-md overflow-hidden rounded-2xl border border-border/50 bg-card/95 p-4 sm:p-6 text-card-foreground shadow-[0_45px_120px_-60px_rgba(15,23,42,0.8)] ring-1 ring-slate-900/10">
+          <div className="relative z-[10000] my-auto max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-border/50 bg-card/95 p-4 sm:p-6 text-card-foreground shadow-[0_45px_120px_-60px_rgba(15,23,42,0.8)] ring-1 ring-slate-900/10">
 
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border/50 pb-3 sm:pb-4">

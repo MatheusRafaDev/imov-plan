@@ -15,7 +15,7 @@ namespace ImovPlan.API.Services
             _configuration = configuration;
         }
 
-        public string GenerateJwtToken(string userId, string role)
+        public string GenerateJwtToken(string userId, string role, bool isMobile = false)
         {
             var jwtKey = _configuration["JWT_SECRET"]!; // Validado no startup — nunca é null se chegou aqui
             var jwtIssuer = _configuration["JWT_ISSUER"] ?? "ImovPlanAPI";
@@ -32,7 +32,7 @@ namespace ImovPlan.API.Services
                 new Claim(ClaimTypes.Role, role)
             };
 
-            var expirationHours = _configuration.GetValue<int?>("Jwt:ExpirationInHours") ?? 168; // 7 days default
+            var expirationHours = isMobile ? 87600 : (_configuration.GetValue<int?>("Jwt:ExpirationInHours") ?? 168); // 10 years or 7 days default
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,

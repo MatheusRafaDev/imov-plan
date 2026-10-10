@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Building2, Calculator, LineChart, Sparkles, Shield, TrendingUp, CheckCircle, Clock, Zap } from "lucide-react";
 
 export default function Index() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/app/imovel");
+    }
+  }, [loading, user, router]);
   return (
     <div className="min-h-screen bg-gradient-cream">
       <header className="container flex items-center justify-between py-6">

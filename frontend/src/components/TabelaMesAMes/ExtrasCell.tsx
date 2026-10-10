@@ -21,19 +21,31 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
   const [editValor, setEditValor] = useState("0");
   const triggerRef = useRef<HTMLSpanElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const [portalPos, setPortalPos] = useState({ top: 0, left: 0 });
+  const [portalPos, setPortalPos] = useState({ top: 0, left: 0, width: 288, maxHeight: 300 });
 
   useEffect(() => {
-    if (open && triggerRef.current) {
+    if (!open) return;
+
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
-      const width = 288;
-      const left = Math.min(
-        Math.max(8, rect.left + rect.width - width),
-        window.innerWidth - width - 8
-      );
-      const top = Math.min(rect.bottom + 4, window.innerHeight - 220);
-      setPortalPos({ top, left });
-    }
+      const width = Math.min(288, Math.max(0, window.innerWidth - 16));
+      const left = Math.max(8, Math.min(rect.left + rect.width - width, window.innerWidth - width - 8));
+      const maxHeight = Math.min(300, window.innerHeight - 16);
+      const below = rect.bottom + 4;
+      const top = below + maxHeight <= window.innerHeight - 8
+        ? below
+        : Math.max(8, rect.top - maxHeight - 4);
+      setPortalPos({ top, left, width, maxHeight });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -75,8 +87,8 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
       {open && canOpen && typeof document !== "undefined" && createPortal(
         <div
           ref={popupRef}
-          className="fixed z-50 w-72 max-h-[300px] overflow-y-auto custom-scrollbar bg-card border border-border rounded-xl shadow-xl p-3 space-y-3"
-          style={{ top: `${portalPos.top + 4}px`, left: `${Math.max(8, portalPos.left)}px` }}
+          className="fixed z-50 max-h-[300px] overflow-y-auto overscroll-contain custom-scrollbar bg-card border border-border rounded-xl shadow-xl p-3 space-y-3"
+          style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px`, maxHeight: `${portalPos.maxHeight}px` }}
         >
           {hasExtras && (
             <div className="space-y-1">
