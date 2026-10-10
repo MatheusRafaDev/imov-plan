@@ -37,9 +37,7 @@ export function KeepAliveFrontend() {
       <Activity 
         className={`w-3 h-3 ${status === "ok" ? "text-success animate-pulse" : status === "loading" ? "text-muted-foreground animate-spin" : "text-destructive"}`} 
       />
-      <span className={status === "ok" ? "text-success" : status === "loading" ? "text-muted-foreground" : "text-destructive"}>
-        {status === "ok" ? "API Online" : status === "loading" ? "Pinging..." : "API Offline"}
-      </span>
+      
       <span className="text-muted-foreground ml-1 hidden sm:inline">
         (Last: {lastPing.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })})
       </span>
