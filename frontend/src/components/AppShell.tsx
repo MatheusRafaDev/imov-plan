@@ -55,7 +55,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       <header className="safe-top shrink-0 border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
         <div className="container flex h-14 lg:h-16 items-center justify-between gap-2 lg:gap-4">
           <Link href={homeHref} className="flex items-center gap-2 min-w-0">
-            <Building2 className="h-6 w-6 lg:h-7 lg:w-7 text-accent shrink-0" />
+            <div className="h-7 w-7 lg:h-8 lg:w-8 shrink-0 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
+              <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-accent-foreground" />
+            </div>
             <span className="font-display text-lg lg:text-xl font-semibold truncate">
               Imov<span className="text-accent">.</span>Plan
             </span>
@@ -107,33 +109,23 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             })}
           </nav>
 
-          <div className="flex items-center gap-2 lg:gap-3">
-            <div className="flex text-[10px] sm:text-xs font-medium text-muted-foreground bg-secondary/30 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-border/40 whitespace-nowrap">
-              {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date()).replace('.', '')}
-            </div>
-            
-            <Link href="/app/planos" className="hidden sm:flex">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-                <LayoutGrid className="h-4 w-4" />
-                <span>Meus Planos</span>
-              </Button>
-            </Link>
-
-            {/* Novo botão de adicionar, visível e descritivo no mobile */}
-            <Link href="/app/planos?novo=true">
-              <Button size="sm" className="gap-1 sm:gap-2 bg-gradient-warm text-accent-foreground shadow-glow hover:opacity-95 rounded-full">
-                <span className="text-xs sm:text-sm font-medium">Novo Plano</span>
-              </Button>
-            </Link>
-
+          <div className="flex items-center gap-1 lg:gap-2">
             <Link href="/app/perfil">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground sm:w-auto sm:px-3 sm:gap-2">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground max-w-[160px]">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline truncate max-w-[120px]">{user?.name?.split(" ")[0] || "Conta"}</span>
+                <span className="truncate">{user?.name?.split(" ")[0] || "Minha conta"}</span>
               </Button>
             </Link>
 
-            <Button type="button" variant="ghost" size="icon" onClick={() => void logout()} className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 hidden sm:flex">
+            <Link href="/app/planos">
+              <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 text-muted-foreground hover:text-foreground">
+                <LayoutGrid className="h-4 w-4" />
+                <span className="hidden sm:inline">Meus Planos</span>
+                <span className="inline sm:hidden text-xs">Planos</span>
+              </Button>
+            </Link>
+
+            <Button type="button" variant="ghost" size="sm" onClick={() => void logout()} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

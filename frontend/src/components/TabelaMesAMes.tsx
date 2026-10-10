@@ -232,41 +232,41 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 );
               },
               TableFoot: React.forwardRef((props, ref) => (
-                <tfoot {...props} ref={ref} className="bg-primary/5 border-t-2 border-primary/30 backdrop-blur-sm" />
+                <tfoot {...props} ref={ref} className="bg-gradient-ink text-primary-foreground shadow-elevated relative z-20" />
               ))
             }}
             fixedFooterContent={() => (
-              <tr className="font-bold text-foreground">
-                <Td className="bg-primary/5 whitespace-nowrap">Total Geral</Td>
-                <Td className="bg-primary/5">{""}</Td>
+              <tr className="font-bold relative">
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-left border-none">Total Geral</td>
+                <td className="px-3 py-4 num text-sm border-none">{""}</td>
                 {pessoas.map(p => (
-                  <Td key={p.id} right className="bg-primary/5">{brl(totals.aportePorPessoa[p.id])}</Td>
+                  <td key={p.id} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.aportePorPessoa[p.id])}</td>
                 ))}
-                <Td right className="bg-primary/5">{brl(totals.extras)}</Td>
-                <Td right className="bg-primary/5">{brl(totals.totalMes)}</Td>
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.extras)}</td>
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.totalMes)}</td>
                 {showFinancials && (
                   <>
-                    <Td right className="bg-primary/5 text-muted-foreground">{brl(totals.rendBruto)}</Td>
-                    <Td right className="bg-primary/5 text-muted-foreground/70">{brl(totals.ir)}</Td>
-                    <Td right className="bg-primary/5 text-success">
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-80">{brl(totals.rendBruto)}</td>
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-60">{brl(totals.ir)}</td>
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none text-success">
                       {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
-                    </Td>
+                    </td>
                     {pessoas.map(p => (
-                      <Td key={`foot-acc-${p.id}`} right className="bg-primary/5 text-foreground/80 font-bold">
+                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-bold">
                         {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
-                      </Td>
+                      </td>
                     ))}
-                    <Td right className="bg-primary/5 py-2">
+                    <td className="px-3 py-3 num whitespace-nowrap text-right border-none">
                       <span className="inline-flex flex-col items-end gap-1">
-                        <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
-                        <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
+                        <span className="font-display text-lg sm:text-xl text-primary-foreground">{brl(totals.saldoFinal)}</span>
+                        <span className="text-[10px] text-primary-foreground/80 font-medium px-2 py-0.5 rounded-sm bg-primary-foreground/10" title="Total Aportes + Rendimento no período">
                           +{brl(totals.totalMes + totals.rendLiquido)} período
                         </span>
                       </span>
-                    </Td>
+                    </td>
                   </>
                 )}
-                <Td className="bg-primary/5"></Td>
+                <td className="px-3 py-4 border-none"></td>
               </tr>
             )}
             fixedHeaderContent={() => (
