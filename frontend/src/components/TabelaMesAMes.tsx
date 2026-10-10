@@ -183,31 +183,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           </div>
 
           <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
-            {showCenarioSelector && (
-              <div className="bg-secondary/40 border border-border/50 rounded-xl p-1 flex shadow-soft relative overflow-hidden backdrop-blur-sm">
-                {(["pessimista", "realista", "otimista"] as CenarioSimulacao[]).map((cen) => {
-                  const active = cenarioSimulacao === cen;
-                  return (
-                    <button
-                      key={cen}
-                      onClick={() => setCenarioSimulacao(cen)}
-                      disabled={calculating}
-                      className={`
-                        flex items-center justify-center gap-1.5 relative px-3 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all duration-300
-                        ${active ? "text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}
-                        ${calculating && !active ? "opacity-50 cursor-not-allowed" : ""}
-                      `}
-                    >
-                      {active && (
-                        <div className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-glow animate-fade-in" />
-                      )}
-                      <span>{cen === "realista" ? "base" : cen}</span>
-                      {active && calculating && <Loader2 className="w-3 h-3 animate-spin" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+
             
 
             <button
@@ -256,42 +232,43 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 );
               },
               TableFoot: React.forwardRef((props, ref) => (
-                <tfoot {...props} ref={ref} className="bg-primary/5 border-t-2 border-primary/30 backdrop-blur-sm">
-                  <tr className="font-bold text-foreground">
-                    <Td className="bg-primary/5 whitespace-nowrap">Total Geral</Td>
-                    <Td className="bg-primary/5">{""}</Td>
-                    {pessoas.map(p => (
-                      <Td key={p.id} right className="bg-primary/5">{brl(totals.aportePorPessoa[p.id])}</Td>
-                    ))}
-                    <Td right className="bg-primary/5">{brl(totals.extras)}</Td>
-                    <Td right className="bg-primary/5">{brl(totals.totalMes)}</Td>
-                    {showFinancials && (
-                      <>
-                        <Td right className="bg-primary/5 text-muted-foreground">{brl(totals.rendBruto)}</Td>
-                        <Td right className="bg-primary/5 text-muted-foreground/70">{brl(totals.ir)}</Td>
-                        <Td right className="bg-primary/5 text-success">
-                          {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
-                        </Td>
-                        {pessoas.map(p => (
-                          <Td key={`foot-acc-${p.id}`} right className="bg-primary/5 text-foreground/80 font-bold">
-                            {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
-                          </Td>
-                        ))}
-                        <Td right className="bg-primary/5 py-2">
-                          <span className="inline-flex flex-col items-end gap-1">
-                            <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
-                            <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
-                              +{brl(totals.totalMes + totals.rendLiquido)} período
-                            </span>
-                          </span>
-                        </Td>
-                      </>
-                    )}
-                    <Td className="bg-primary/5"></Td>
-                  </tr>
-                </tfoot>
+                <tfoot {...props} ref={ref} className="bg-primary/5 border-t-2 border-primary/30 backdrop-blur-sm" />
               ))
             }}
+            fixedFooterContent={() => (
+              <tr className="font-bold text-foreground">
+                <Td className="bg-primary/5 whitespace-nowrap">Total Geral</Td>
+                <Td className="bg-primary/5">{""}</Td>
+                {pessoas.map(p => (
+                  <Td key={p.id} right className="bg-primary/5">{brl(totals.aportePorPessoa[p.id])}</Td>
+                ))}
+                <Td right className="bg-primary/5">{brl(totals.extras)}</Td>
+                <Td right className="bg-primary/5">{brl(totals.totalMes)}</Td>
+                {showFinancials && (
+                  <>
+                    <Td right className="bg-primary/5 text-muted-foreground">{brl(totals.rendBruto)}</Td>
+                    <Td right className="bg-primary/5 text-muted-foreground/70">{brl(totals.ir)}</Td>
+                    <Td right className="bg-primary/5 text-success">
+                      {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
+                    </Td>
+                    {pessoas.map(p => (
+                      <Td key={`foot-acc-${p.id}`} right className="bg-primary/5 text-foreground/80 font-bold">
+                        {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
+                      </Td>
+                    ))}
+                    <Td right className="bg-primary/5 py-2">
+                      <span className="inline-flex flex-col items-end gap-1">
+                        <span className="font-bold text-foreground text-[13px]">{brl(totals.saldoFinal)}</span>
+                        <span className="text-[10px] text-foreground/70 font-medium px-1.5 py-0.5 rounded-sm bg-foreground/5" title="Total Aportes + Rendimento no período">
+                          +{brl(totals.totalMes + totals.rendLiquido)} período
+                        </span>
+                      </span>
+                    </Td>
+                  </>
+                )}
+                <Td className="bg-primary/5"></Td>
+              </tr>
+            )}
             fixedHeaderContent={() => (
               <tr>
                 <Th className="w-px">Mês</Th>

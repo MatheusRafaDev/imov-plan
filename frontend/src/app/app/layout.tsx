@@ -19,20 +19,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !isAuthenticated()) {
     return (
-      <div className="min-h-screen grid place-items-center bg-gradient-cream">
-        <div className="flex flex-col items-center gap-4 animate-fade-in-up">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-warm grid place-items-center shadow-glow animate-pulse-glow">
-            <Building2 className="h-8 w-8 text-accent-foreground" />
+      <AppShell>
+        <div className="animate-fade-in-up space-y-8 max-w-6xl mx-auto w-full">
+          {/* Header Skeleton */}
+          <div className="space-y-3">
+            <div className="h-4 w-24 rounded bg-secondary/80 animate-shimmer" />
+            <div className="h-10 w-3/4 max-w-md rounded-lg bg-secondary/80 animate-shimmer" />
+            <div className="h-5 w-full max-w-2xl rounded bg-secondary/60 animate-shimmer" />
           </div>
-          <div className="flex flex-col items-center gap-2">
-            <span className="font-display text-2xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse-glow" />
-              Carregando seu plano...
-            </div>
+          
+          {/* Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-32 rounded-2xl bg-secondary/40 animate-shimmer border border-border/40" />
+            ))}
           </div>
+
+          {/* Main Area Skeleton */}
+          <div className="h-80 w-full rounded-3xl bg-secondary/30 animate-shimmer border border-border/40" />
         </div>
-      </div>
+      </AppShell>
     );
   }
 
