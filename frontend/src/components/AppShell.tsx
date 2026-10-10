@@ -118,9 +118,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </Link>
 
             <Link href="/app/planos">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 text-muted-foreground hover:text-foreground">
                 <LayoutGrid className="h-4 w-4" />
                 <span className="hidden sm:inline">Meus Planos</span>
+                <span className="inline sm:hidden text-xs">Planos</span>
               </Button>
             </Link>
 
