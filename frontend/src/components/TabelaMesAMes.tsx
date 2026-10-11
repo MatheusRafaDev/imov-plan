@@ -200,17 +200,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     };
   })();
 
-  const selectedRow = useMemo(() => {
-    if (editingMes === null) return null;
-    return displayRows.find(r => r.mes === editingMes) || null;
-  }, [editingMes, displayRows]);
+  const selectedRow = editingMes !== null ? displayRows.find(r => r.mes === editingMes) || null : null;
 
-  const selectedRowExtras = useMemo(() => {
-    if (!selectedRow || !aportesExtras) return [];
-    return (aportesExtras || [])
-      .map((e, idx) => ({ ...e, index: idx }))
-      .filter(e => e?.data && selectedRow?.data && e.data.startsWith(selectedRow.data.split("T")[0]));
-  }, [selectedRow, aportesExtras]);
+  const selectedRowExtras = selectedRow && aportesExtras
+    ? (aportesExtras || [])
+        .map((e, idx) => ({ ...e, index: idx }))
+        .filter(e => e?.data && selectedRow?.data && e.data.startsWith(selectedRow.data.split("T")[0]))
+    : [];
 
   const handleSaveAportes = async (novosValores: Record<string, number>) => {
     if (editingMes === null) return;
@@ -546,6 +542,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
 
       {selectedRow && (
         <EditMesModal
+          key={`${selectedRow.mes}-${modalInitialTab}`}
           isOpen={editingMes !== null}
           onClose={() => setEditingMes(null)}
           mes={selectedRow.mes}

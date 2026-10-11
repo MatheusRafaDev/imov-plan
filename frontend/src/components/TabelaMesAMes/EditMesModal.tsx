@@ -80,13 +80,6 @@ export function EditMesModal({
 }: EditMesModalProps) {
   const [activeTab, setActiveTab] = useState<ModalTab>(initialTab);
 
-  // Sync initialTab when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab(initialTab);
-    }
-  }, [isOpen, initialTab]);
-
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -110,18 +103,14 @@ export function EditMesModal({
   })();
 
   // ─── ABA 1: APORTES REGULARES ──────────────────────────────
-  const [draftAportes, setDraftAportes] = useState<Record<string, number>>({});
+  const [draftAportes, setDraftAportes] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    pessoas.forEach(p => {
+      initial[p.id] = aportesReais[p.id] !== undefined ? aportesReais[p.id] : (aportesPlanejados[p.id] || 0);
+    });
+    return initial;
+  });
   const [savingAportes, setSavingAportes] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const initial: Record<string, number> = {};
-      pessoas.forEach(p => {
-        initial[p.id] = aportesReais[p.id] !== undefined ? aportesReais[p.id] : (aportesPlanejados[p.id] || 0);
-      });
-      setDraftAportes(initial);
-    }
-  }, [isOpen, pessoas, aportesReais, aportesPlanejados]);
 
   const totalAportesDraft = pessoas.reduce((sum, p) => sum + (draftAportes[p.id] || 0), 0);
   const totalExtrasAtual = extrasDoMes.reduce((sum, e) => sum + (e.valor || 0), 0);
@@ -167,18 +156,14 @@ export function EditMesModal({
   };
 
   // ─── ABA 3: AJUSTE DE ACUMULADO ─────────────────────────────
-  const [draftAcumulado, setDraftAcumulado] = useState<Record<string, number>>({});
+  const [draftAcumulado, setDraftAcumulado] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    pessoas.forEach(p => {
+      initial[p.id] = saldosAcumulados[p.id] !== undefined ? saldosAcumulados[p.id] : 0;
+    });
+    return initial;
+  });
   const [savingAcumulado, setSavingAcumulado] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const initial: Record<string, number> = {};
-      pessoas.forEach(p => {
-        initial[p.id] = saldosAcumulados[p.id] !== undefined ? saldosAcumulados[p.id] : 0;
-      });
-      setDraftAcumulado(initial);
-    }
-  }, [isOpen, pessoas, saldosAcumulados]);
 
   const handleSalvarAcumulado = async () => {
     setSavingAcumulado(true);
