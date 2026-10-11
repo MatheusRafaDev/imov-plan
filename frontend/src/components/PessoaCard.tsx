@@ -86,7 +86,7 @@ export default function PessoaCard({
         <div className="flex items-start justify-between relative z-10">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 shrink-0 rounded-full bg-secondary grid place-items-center border border-border/50 shadow-sm">
-              <span className="font-display font-bold text-lg text-foreground/80">{p.nome.charAt(0).toUpperCase()}</span>
+              <span className="font-display font-medium text-lg text-muted-foreground">{p.nome.charAt(0).toUpperCase()}</span>
             </div>
             <div>
               <h3 className="font-display text-base font-semibold text-foreground leading-tight">{p.nome}</h3>
@@ -358,7 +358,7 @@ export default function PessoaCard({
         {/* Sobra */}
         <div className={`rounded-xl p-4 flex items-center justify-between transition-colors border shadow-sm ${sobra >= 0 ? "bg-[#3B6D11]/10 border-[#3B6D11]/20 text-[#3B6D11] dark:text-[#80B551]" : "bg-destructive/10 border-destructive/20 text-destructive"}`}>
           <span className="text-sm font-medium">Sobra Mensal Estimada</span>
-          <span className="font-display text-xl num font-bold">{brl(sobra)}</span>
+          <span className="font-display text-xl num font-semibold">{brl(sobra)}</span>
         </div>
       </div>
 

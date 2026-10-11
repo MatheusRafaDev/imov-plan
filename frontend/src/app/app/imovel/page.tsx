@@ -452,7 +452,7 @@ export default function ObjetivoPage() {
                                   <span>Cartório + Registro:</span>
                                   <span className="text-right font-medium text-foreground">{brl(cartorio)}</span>
                                   <span className="font-semibold text-foreground pt-1 border-t border-border/40">Total estimado:</span>
-                                  <span className="text-right font-bold text-accent pt-1 border-t border-border/40">
+                                  <span className="text-right font-medium text-accent pt-1 border-t border-border/40">
                                     {brl(total)} ({percentualTotal.toFixed(2)}%)
                                   </span>
                                 </div>

@@ -76,7 +76,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                     <div
                       className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-muted-foreground/40 cursor-not-allowed opacity-50 select-none"
                     >
-                      <div className="grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground/30">
+                      <div className="grid place-items-center h-5 w-5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground/30">
                         {index + 1}
                       </div>
                       <span className="hidden xl:inline">{n.label}</span>
@@ -93,7 +93,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                       }`}
                     >
-                      <div className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${
+                      <div className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-medium ${
                         isActive ? "bg-accent text-accent-foreground" : isPast ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"
                       }`}>
                         {index + 1}

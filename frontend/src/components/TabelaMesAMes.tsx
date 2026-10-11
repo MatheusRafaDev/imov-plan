@@ -525,7 +525,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     ))}
                     <td className="px-3 py-3 num whitespace-nowrap text-right border-none">
                       <span className="inline-flex flex-col items-end gap-1">
-                        <span className="font-bold text-lg sm:text-xl text-primary-foreground tracking-tight">{brl(totals.saldoFinal)}</span>
+                        <span className="font-semibold text-lg sm:text-xl text-primary-foreground tracking-tight">{brl(totals.saldoFinal)}</span>
                         <span className="text-[10px] text-primary-foreground/80 font-medium px-2 py-0.5 rounded-sm bg-primary-foreground/10" title="Total Aportes + Rendimento no período">
                           +{brl(totals.totalMes + totals.rendLiquido)} período
                         </span>

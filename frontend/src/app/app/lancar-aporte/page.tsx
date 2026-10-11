@@ -165,7 +165,7 @@ function LancarAporteContent() {
       </div>
 
       <div>
-        <h1 className="font-display text-xl sm:text-2xl font-bold">Lançar aporte do mês</h1>
+        <h1 className="font-display text-xl sm:text-2xl font-light">Lançar aporte do mês</h1>
         <p className="text-sm text-muted-foreground mt-1">Diga quanto foi realmente aportado. O plano se ajusta sozinho.</p>
       </div>
 
@@ -181,7 +181,7 @@ function LancarAporteContent() {
         <div className="flex-1 text-center">
           <span className="font-medium text-lg">{linhaMes ? mesLabel(linhaMes.dataReferencia) : ""}</span>
           {jaConcluido && (
-            <div className="mt-1 flex items-center justify-center gap-1 text-[11px] uppercase font-bold text-success">
+            <div className="mt-1 flex items-center justify-center gap-1 text-[11px] uppercase font-medium text-success">
               <Check className="w-3 h-3" /> lançado
             </div>
           )}

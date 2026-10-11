@@ -236,7 +236,7 @@ export default function PlanosPage() {
                       <h3 className="font-display text-xl sm:text-2xl flex flex-wrap items-center gap-2">
                         {plano.nomePlano}
                         {isAtivo && (
-                          <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full shrink-0">
+                          <span className="inline-flex items-center gap-1 text-[10px] uppercase font-medium tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full shrink-0">
                             <CheckCircle2 className="h-3 w-3" /> Ativo
                           </span>
                         )}
@@ -306,7 +306,7 @@ export default function PlanosPage() {
                         <span className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-4 w-4" /> Tempo para a chave</span>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">{sim.mesesParaAtingir} meses</span>
-                          {temMaisDeUmPlano && isMaisRapido && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-bold">Mais Rápido</span>}
+                          {temMaisDeUmPlano && isMaisRapido && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-medium">Mais Rápido</span>}
                         </div>
                       </div>
                       
@@ -314,7 +314,7 @@ export default function PlanosPage() {
                         <span className="text-sm text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-4 w-4" /> Rendimento do CDI</span>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-success">+{brl(sim.lucroLiquido)}</span>
-                          {temMaisDeUmPlano && isMaiorLucro && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-bold">Maior Lucro</span>}
+                          {temMaisDeUmPlano && isMaiorLucro && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-medium">Maior Lucro</span>}
                         </div>
                       </div>
 
@@ -322,7 +322,7 @@ export default function PlanosPage() {
                         <span className="text-sm text-muted-foreground flex items-center gap-1.5"><Zap className="h-4 w-4" /> Aporte Mensal</span>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">{brl(sim.aporteMensalTotal)}</span>
-                          {temMaisDeUmPlano && isMenorAporte && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-bold">Mais Suave</span>}
+                          {temMaisDeUmPlano && isMenorAporte && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-medium">Mais Suave</span>}
                         </div>
                       </div>
                     </div>

@@ -135,7 +135,7 @@ export default function PlanejamentoPage() {
     <div className="max-w-6xl mx-auto space-y-8 lg:space-y-12">
       <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
         <p className="text-[10px] uppercase tracking-widest text-orange-500 font-semibold mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
-        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl mb-3 font-bold bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">Acelere seu plano</h1>
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl mb-3 font-light bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">Acelere seu plano</h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
 
@@ -162,19 +162,19 @@ export default function PlanejamentoPage() {
             <div className="mt-4 pt-4 border-t border-border/40 w-full">
               {!atingiuMeta || foraDoPrazo ? (
                 <>
-                  <p className="text-xs uppercase tracking-wider text-destructive font-bold mb-2">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses}m)` : ""}</p>
+                  <p className="text-xs uppercase tracking-wider text-destructive font-medium mb-2">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses}m)` : ""}</p>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground font-medium">Atual:</span>
                     <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
                   </div>
                   <div className="flex justify-between items-center text-xs mt-1.5">
                     <span className="text-muted-foreground font-medium">Necessário:</span>
-                    <span className="font-bold text-destructive">{brl(aporteNecessario)}/mês</span>
+                    <span className="font-medium text-destructive">{brl(aporteNecessario)}/mês</span>
                   </div>
                 </>
               ) : (
                 <>
-                  <p className="text-xs uppercase tracking-wider text-success font-bold mb-2">No prazo programado</p>
+                  <p className="text-xs uppercase tracking-wider text-success font-medium mb-2">No prazo programado</p>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground font-medium">Aporte programado:</span>
                     <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
@@ -230,7 +230,7 @@ export default function PlanejamentoPage() {
               return (
                 <div key={p.id} className="flex justify-between items-center bg-secondary/30 p-2.5 rounded-xl border border-border/40 transition-colors hover:bg-secondary/50">
                   <div className="flex items-center gap-3">
-                    <div className="h-7 w-7 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[11px] font-bold shadow-sm">
+                    <div className="h-7 w-7 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[11px] font-medium shadow-sm">
                       {nameInitial}
                     </div>
                     <span className="text-sm font-medium text-foreground/90">{p.nome.split(" ")[0]}</span>
