@@ -5,15 +5,16 @@ import React from "react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { brl, type CenarioSimulacao } from "@/lib/finance";
 import { Check, Loader2, Download } from "lucide-react";
-import { TableVirtuoso } from "react-virtuoso";
 import { RowActions } from "./TabelaMesAMes/RowActions";
 import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
+import { EditMesModal, type ModalTab } from "./TabelaMesAMes/EditMesModal";
 
 function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
   const diff = value - planned;
   return (
-    <span title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)}` : undefined}
-      className={`inline-block px-2 py-1 rounded border text-right transition-colors ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent text-foreground"}`}
+    <span 
+      title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)} · Duplo clique para editar` : "Duplo clique para editar"}
+      className={`inline-block px-2 py-1 rounded border text-right transition-colors cursor-pointer ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent text-foreground hover:bg-secondary/40"}`}
     >
       {brl(value)}
       {isEdited && (
@@ -29,8 +30,31 @@ function Th({ children, right, className = "" }: { children?: React.ReactNode; r
   return <th className={`px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/90 whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
 }
 
-function Td({ children, right, className = "", suppressHydrationWarning }: { children?: React.ReactNode; right?: boolean; className?: string; suppressHydrationWarning?: boolean }) {
-  return <td suppressHydrationWarning={suppressHydrationWarning} className={`px-3 py-3 num text-sm text-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
+function Td({ 
+  children, 
+  right, 
+  className = "", 
+  suppressHydrationWarning,
+  onDoubleClick,
+  title,
+  ...rest
+}: React.TdHTMLAttributes<HTMLTableCellElement> & { 
+  children?: React.ReactNode; 
+  right?: boolean; 
+  className?: string; 
+  suppressHydrationWarning?: boolean; 
+}) {
+  return (
+    <td 
+      suppressHydrationWarning={suppressHydrationWarning} 
+      onDoubleClick={onDoubleClick}
+      title={title}
+      className={`px-3 py-3 num text-sm text-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}
+      {...rest}
+    >
+      {children}
+    </td>
+  );
 }
 
 
@@ -53,6 +77,14 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     objetivo,
   } = usePlanLogic();
   const [editingMes, setEditingMes] = useState<number | null>(null);
+  const [modalInitialTab, setModalInitialTab] = useState<ModalTab>("aportes");
+  const [modalFocusPessoaId, setModalFocusPessoaId] = useState<string | null>(null);
+
+  const openModal = (mes: number, tab: ModalTab = "aportes", pessoaId: string | null = null) => {
+    setEditingMes(mes);
+    setModalInitialTab(tab);
+    setModalFocusPessoaId(pessoaId);
+  };
 
   const mesesConcluidosSet = useMemo(() => new Set(mesesConcluidos), [mesesConcluidos]);
 
@@ -168,6 +200,98 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     };
   })();
 
+  const selectedRow = useMemo(() => {
+    if (editingMes === null) return null;
+    return displayRows.find(r => r.mes === editingMes) || null;
+  }, [editingMes, displayRows]);
+
+  const selectedRowExtras = useMemo(() => {
+    if (!selectedRow || !aportesExtras) return [];
+    return (aportesExtras || [])
+      .map((e, idx) => ({ ...e, index: idx }))
+      .filter(e => e?.data && selectedRow?.data && e.data.startsWith(selectedRow.data.split("T")[0]));
+  }, [selectedRow, aportesExtras]);
+
+  const handleSaveAportes = async (novosValores: Record<string, number>) => {
+    if (editingMes === null) return;
+    const newEdits: Record<string, Record<number, number>> = { ...aportesRegularesEditadosPorPessoa };
+    pessoas.forEach(p => {
+      const v = novosValores[p.id];
+      const defaultP = Number(p.aporte_mensal) || 0;
+      const pEdits = { ...(newEdits[p.id] || {}) };
+      if (v === defaultP) { delete pEdits[editingMes]; } else { pEdits[editingMes] = v; }
+      newEdits[p.id] = pEdits;
+    });
+    setAportesRegularesEditadosPorPessoa(() => newEdits);
+    const savedId = await salvarPlano({ aportesRegularesEditadosPorPessoa: newEdits });
+    if (savedId) await calcularBackend(savedId);
+  };
+
+  const handleAddExtra = async (pessoaId: string | null, origem: string, valor: number) => {
+    if (!selectedRow) return;
+    const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : null;
+    const newExtra = {
+      pessoaId: pessoaId || undefined,
+      pessoaNome: p ? p.nome.split(" ")[0] : undefined,
+      origem,
+      valor,
+      data: selectedRow.data.split("T")[0]
+    };
+    const updatedExtras = [...aportesExtras, newExtra];
+    setAportesExtras(() => updatedExtras);
+    const savedId = await salvarPlano({ aportesExtras: updatedExtras });
+    if (savedId) await calcularBackend(savedId);
+  };
+
+  const handleEditExtra = async (index: number, origem: string, valor: number, pessoaId?: string) => {
+    const next = [...aportesExtras];
+    const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : (next[index]?.pessoaId ? pessoas.find(x => x.id === next[index].pessoaId) : null);
+    next[index] = {
+      ...next[index],
+      origem,
+      valor,
+      pessoaId: pessoaId !== undefined ? (pessoaId || undefined) : next[index]?.pessoaId,
+      pessoaNome: p ? p.nome.split(" ")[0] : (pessoaId === "" ? undefined : next[index]?.pessoaNome)
+    };
+    setAportesExtras(() => next);
+    saveDraft({ aportesExtras: next });
+    const savedId = await salvarPlano({ aportesExtras: next });
+    if (savedId) await calcularBackend(savedId);
+  };
+
+  const handleDeleteExtra = async (index: number) => {
+    const next = aportesExtras.filter((_, i) => i !== index);
+    setAportesExtras(() => next);
+    saveDraft({ aportesExtras: next });
+    const savedId = await salvarPlano({ aportesExtras: next });
+    if (savedId) await calcularBackend(savedId);
+  };
+
+  const handleSaveAcumulado = async (novosSaldos: Record<string, number>) => {
+    if (!selectedRow) return;
+    const novosLancamentosExtras: any[] = [];
+    pessoas.forEach(p => {
+      const current = selectedRow.saldoPorPessoa[p.id] || 0;
+      const newValue = novosSaldos[p.id] !== undefined ? novosSaldos[p.id] : current;
+      const diff = newValue - current;
+      if (Math.abs(diff) > 0.01) {
+        novosLancamentosExtras.push({
+          pessoaId: p.id,
+          pessoaNome: p.nome.split(" ")[0],
+          origem: diff > 0 ? "Ajuste de Saldo (Rendimento/Depósito)" : "Ajuste de Saldo (Retirada/Perda)",
+          valor: diff,
+          data: selectedRow.data.split("T")[0]
+        });
+      }
+    });
+    if (novosLancamentosExtras.length > 0) {
+      const updatedExtras = [...aportesExtras, ...novosLancamentosExtras];
+      setAportesExtras(() => updatedExtras);
+      const savedId = await salvarPlano({ aportesExtras: updatedExtras });
+      if (savedId) await calcularBackend(savedId);
+    }
+  };
+
   if (!displayRows.length) return null;
 
   return (
@@ -176,7 +300,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h3 className="font-display text-2xl">Mês a Mês</h3>
+            <h3 className="font-sans font-bold text-xl sm:text-2xl tracking-tight text-foreground">Mês a Mês</h3>
             <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-medium shadow-soft">
               {displayRows.length - 1} meses
             </span>
@@ -196,80 +320,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           </div>
         </div>
       
-        {/* Usando block e min-w-full mas limitando o overflow num scroll container */}
+        {/* Usando block e min-w-full mas limitando o overflow num scroll container estável */}
                 
-        <div className={`bg-card -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40 transition-opacity duration-300 ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
-          <TableVirtuoso
-            className="custom-scrollbar overflow-x-auto"
-            style={{ height: "min(70vh, 800px)", minHeight: "400px" }}
-            initialItemCount={30}
-            data={displayRows}
-            components={{
-              Table: (props) => <table {...props} className="w-full text-sm font-sans border-collapse relative" />,
-              TableHead: React.forwardRef((props, ref) => <thead {...props} ref={ref} className="bg-card text-muted-foreground sticky top-0 z-10 backdrop-blur-sm border-b border-border/60" />),
-              TableBody: React.forwardRef((props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border/10" />),
-              TableRow: (props) => {
-                const r = props.item;
-                if (!r) return <tr {...props} style={{ height: "45px" }} className={`transition-colors bg-card ${(props as any).className || ""}`} />;
-                const isMesConcluido = mesesConcluidosSet.has(r.mes);
-                const isZero = r.mes === 0;
-                return (
-                  <tr 
-                    {...props} 
-                    onDoubleClick={(event) => {
-                      const target = event.target as HTMLElement;
-                      if (isZero || target.closest("button, input, select, textarea, a, [role='button']")) return;
-                      setEditingMes(r.mes);
-                    }}
-                    className={`
-                      transition-colors hover:bg-secondary/10 bg-card ${isZero ? "" : "cursor-pointer"}
-                      ${r.atingiu ? "bg-success/5" : ""} 
-                      ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
-                      ${isZero ? "" : ""}
-                      ${(props as any).className || ""}
-                    `} 
-                  />
-                );
-              },
-              TableFoot: React.forwardRef((props, ref) => (
-                <tfoot {...props} ref={ref} className="bg-gradient-ink text-primary-foreground shadow-elevated relative z-20" />
-              ))
-            }}
-            fixedFooterContent={() => (
-              <tr className="font-bold relative">
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-left border-none">Total Geral</td>
-                <td className="px-3 py-4 num text-sm border-none">{""}</td>
-                {pessoas.map(p => (
-                  <td key={p.id} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.aportePorPessoa[p.id])}</td>
-                ))}
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.extras)}</td>
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.totalMes)}</td>
-                {showFinancials && (
-                  <>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-80">{brl(totals.rendBruto)}</td>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-60">{brl(totals.ir)}</td>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none text-success">
-                      {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
-                    </td>
-                    {pessoas.map(p => (
-                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-bold">
-                        {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
-                      </td>
-                    ))}
-                    <td className="px-3 py-3 num whitespace-nowrap text-right border-none">
-                      <span className="inline-flex flex-col items-end gap-1">
-                        <span className="font-display text-lg sm:text-xl text-primary-foreground">{brl(totals.saldoFinal)}</span>
-                        <span className="text-[10px] text-primary-foreground/80 font-medium px-2 py-0.5 rounded-sm bg-primary-foreground/10" title="Total Aportes + Rendimento no período">
-                          +{brl(totals.totalMes + totals.rendLiquido)} período
-                        </span>
-                      </span>
-                    </td>
-                  </>
-                )}
-                <td className="px-3 py-4 border-none"></td>
-              </tr>
-            )}
-            fixedHeaderContent={() => (
+        <div className={`overflow-x-auto bg-card -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40 transition-opacity duration-300 custom-scrollbar ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+          <table className="w-full text-sm font-sans border-collapse relative">
+            <thead className="bg-card text-muted-foreground border-b border-border/60">
               <tr>
                 <Th className="w-px">Mês</Th>
                 <Th>Data</Th>
@@ -289,167 +344,231 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     <Th right>Acumulado</Th>
                   </>
                 )}
-                <Th></Th>
+                <Th className="w-10"></Th>
               </tr>
-            )}
-            itemContent={(_, r) => {
-              if (!r) return <td style={{ height: "45px" }}></td>;
-              
-              const rowExtras = (aportesExtras || [])
-                .filter(e => e?.data && r?.data && e.data.startsWith(r.data.split("T")[0]))
-                .map((e, idx) => ({ ...e, index: idx }));
-                
-              const totalAporteMes = (r.aporteRegular || 0) + (r.aportesExtras || 0);
-              const isMesConcluido = r.mes != null ? mesesConcluidosSet.has(r.mes) : false;
-              const isZero = r.mes === 0;
+            </thead>
+            <tbody className="divide-y divide-border/10">
+              {displayRows.map((r) => {
+                const isMesConcluido = r.mes != null ? mesesConcluidosSet.has(r.mes) : false;
+                const isZero = r.mes === 0;
+                const rowExtras = (aportesExtras || [])
+                  .filter(e => e?.data && r?.data && e.data.startsWith(r.data.split("T")[0]))
+                  .map((e, idx) => ({ ...e, index: idx }));
+                const totalAporteMes = (r.aporteRegular || 0) + (r.aportesExtras || 0);
 
-              return (
-                <>
-                  <Td className="font-medium whitespace-nowrap w-px">
-                    <span className="inline-flex items-center gap-2">
-                      {showCompletedToggle && !isZero && (
-                        <button
-                          onClick={() => toggleConcluido(r.mes)}
-                          className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                            isMesConcluido 
-                              ? 'bg-primary border-primary text-primary-foreground' 
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                        >
-                          {isMesConcluido && <Check className="w-3 h-3" />}
-                        </button>
-                      )}
-                      <span>
-                        {isZero ? "Início" : `Mês ${r.mes}`}
-                        {r.atingiu && (
-                          <span className="ml-2 hidden sm:inline-flex items-center bg-success/10 text-success text-[10px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
-                            Meta ✓
-                          </span>
+                return (
+                  <tr
+                    key={r.mes}
+                    onDoubleClick={(event) => {
+                      const target = event.target as HTMLElement;
+                      if (isZero || target.closest("button, input, select, textarea, a, [role='button']")) return;
+                      openModal(r.mes, "aportes");
+                    }}
+                    className={`
+                      transition-colors hover:bg-secondary/10 bg-card ${isZero ? "" : "cursor-pointer"}
+                      ${r.atingiu ? "bg-success/5" : ""} 
+                      ${isMesConcluido ? "opacity-60 bg-secondary/5" : ""} 
+                    `}
+                  >
+                    <Td className="font-medium whitespace-nowrap w-px">
+                      <span className="inline-flex items-center gap-2">
+                        {showCompletedToggle && !isZero && (
+                          <button
+                            onClick={() => toggleConcluido(r.mes)}
+                            className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                              isMesConcluido 
+                                ? 'bg-primary border-primary text-primary-foreground' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            {isMesConcluido && <Check className="w-3 h-3" />}
+                          </button>
                         )}
+                        <span>
+                          {isZero ? "Início" : `Mês ${r.mes}`}
+                          {r.atingiu && (
+                            <span className="ml-2 hidden sm:inline-flex items-center bg-success/10 text-success text-[10px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
+                              Meta ✓
+                            </span>
+                          )}
+                        </span>
                       </span>
-                    </span>
-                  </Td>
-                  <Td suppressHydrationWarning className="text-muted-foreground text-xs">
-                    {(() => { const d = new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " "); return d.charAt(0).toUpperCase() + d.slice(1); })()}
-                  </Td>
-                  
-                  {pessoas.map(p => {
-                    const planejado = Number(p.aporte_mensal) || 0;
-                    const real = isZero ? (r.saldoPorPessoa[p.id] ?? Number(p.valorInicial) ?? 0) : r.aporteFinalPorPessoa[p.id] || 0;
-                    const wasEdited = isZero ? false : real !== planejado;
-                    return (
-                      <Td key={p.id} right>
-                        {isZero ? (
-                          <span className="text-muted-foreground">{brl(real)}</span>
-                        ) : (
-                          <DisplayAporte value={real} planned={planejado} isEdited={wasEdited} />
-                        )}
-                      </Td>
-                    );
-                  })}
-
-                  <Td right className="relative">
-                    {(() => {
-                      if (isZero) return <span className="text-muted-foreground">{brl(0)}</span>;
-                      
+                    </Td>
+                    <Td suppressHydrationWarning className="text-muted-foreground text-xs">
+                      {(() => { const d = new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " "); return d.charAt(0).toUpperCase() + d.slice(1); })()}
+                    </Td>
+                    
+                    {pessoas.map(p => {
+                      const planejado = Number(p.aporte_mensal) || 0;
+                      const real = isZero ? (r.saldoPorPessoa[p.id] ?? Number(p.valorInicial) ?? 0) : r.aporteFinalPorPessoa[p.id] || 0;
+                      const wasEdited = isZero ? false : real !== planejado;
                       return (
-                        <ExtrasCell
-                          total={r.aportesExtras}
-                          contextItems={rowExtras}
-                          onEditExtra={(index, origem, valor) => {
-                            setAportesExtras(prev => {
-                              const next = [...prev];
-                              next[index] = { ...next[index], origem, valor };
-                              saveDraft({ aportesExtras: next });
-                              return next;
-                            });
+                        <Td 
+                          key={p.id} 
+                          right
+                          onDoubleClick={(e) => {
+                            if (isZero) return;
+                            e.stopPropagation();
+                            openModal(r.mes, "aportes", p.id);
                           }}
-                          onDeleteExtra={(index) => {
-                            setAportesExtras(prev => {
-                              const next = prev.filter((_, i) => i !== index);
-                              saveDraft({ aportesExtras: next });
-                              return next;
-                            });
-                          }}
-                        />
-                      );
-                    })()}
-                  </Td>
-
-                  <Td right className="font-medium text-foreground">
-                    {brl(totalAporteMes)}
-                  </Td>
-
-                  {showFinancials && (
-                    <>
-                      <Td right className="text-muted-foreground">
-                        {brl(r.rendimentoBruto)}
-                      </Td>
-
-                      <Td right className="text-muted-foreground/70">
-                        {brl(r.imposto)}
-                      </Td>
-
-                      <Td right className="text-success font-medium">
-                        {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
-                      </Td>
-
-                      {pessoas.map(p => (
-                        <Td key={`s-${p.id}`} right className="font-semibold text-sm text-foreground/80">
-                          {brl(r.saldoPorPessoa[p.id] || 0)}
+                          className={isZero ? "" : "cursor-pointer"}
+                        >
+                          {isZero ? (
+                            <span className="text-muted-foreground">{brl(real)}</span>
+                          ) : (
+                            <DisplayAporte value={real} planned={planejado} isEdited={wasEdited} />
+                          )}
                         </Td>
-                      ))}
+                      );
+                    })}
 
-                      <Td right className="font-bold text-sm text-foreground">{brl(r.saldoAcumulado)}</Td>
-                    </>
-                  )}
-                  
-                  <Td right className="group">
-                    {!isZero && (
-                      <RowActions
-                        mes={r.mes}
-                        pessoas={pessoas.map(p => ({ id: p.id, nome: p.nome }))}
-                        aportesPlanejados={Object.fromEntries(pessoas.map(p => [p.id, Number(p.aporte_mensal) || 0]))}
-                        aportesReais={r.aporteFinalPorPessoa}
-                        saldosAcumulados={r.saldoPorPessoa}
-                        onSaveAportes={async (novosValores) => {
-                          const newEdits: Record<string, Record<number, number>> = { ...aportesRegularesEditadosPorPessoa };
-                          pessoas.forEach(p => {
-                            const v = novosValores[p.id];
-                            const defaultP = Number(p.aporte_mensal) || 0;
-                            const pEdits = { ...(newEdits[p.id] || {}) };
-                            if (v === defaultP) { delete pEdits[r.mes]; } else { pEdits[r.mes] = v; }
-                            newEdits[p.id] = pEdits;
-                          });
-                          setAportesRegularesEditadosPorPessoa(() => newEdits);
-                          const savedId = await salvarPlano({ aportesRegularesEditadosPorPessoa: newEdits });
-                          if (savedId) await calcularBackend(savedId);
-                        }}
-                        onAddExtra={async (pessoaId, origem, valor) => {
-                          const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : null;
-                          const newExtra = {
-                            pessoaId: pessoaId || undefined,
-                            pessoaNome: p ? p.nome.split(" ")[0] : undefined,
-                            origem,
-                            valor,
-                            data: r.data.split("T")[0]
-                          };
-                          const updatedExtras = [...aportesExtras, newExtra];
-                          setAportesExtras(() => updatedExtras);
-                          const savedId = await salvarPlano({ aportesExtras: updatedExtras });
-                          if (savedId) await calcularBackend(savedId);
-                        }}
-                        isEditOpen={editingMes === r.mes}
-                        onEditOpenChange={(open) => setEditingMes(open ? r.mes : null)}
-                      />
+                    <Td 
+                      right 
+                      className={`relative ${isZero ? "" : "cursor-pointer"}`}
+                      onDoubleClick={(e) => {
+                        if (isZero) return;
+                        e.stopPropagation();
+                        openModal(r.mes, "extras");
+                      }}
+                    >
+                      {(() => {
+                        if (isZero) return <span className="text-muted-foreground">{brl(0)}</span>;
+                        
+                        return (
+                          <ExtrasCell
+                            total={r.aportesExtras}
+                            contextItems={rowExtras}
+                            onDoubleClick={() => openModal(r.mes, "extras")}
+                            onEditExtra={(index, origem, valor) => handleEditExtra(index, origem, valor)}
+                            onDeleteExtra={(index) => handleDeleteExtra(index)}
+                          />
+                        );
+                      })()}
+                    </Td>
+
+                    <Td right className="font-medium text-foreground">
+                      {brl(totalAporteMes)}
+                    </Td>
+
+                    {showFinancials && (
+                      <>
+                        <Td right className="text-muted-foreground">
+                          {brl(r.rendimentoBruto)}
+                        </Td>
+
+                        <Td right className="text-muted-foreground/70">
+                          {brl(r.imposto)}
+                        </Td>
+
+                        <Td right className="text-success font-medium">
+                          {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
+                        </Td>
+
+                        {pessoas.map(p => (
+                          <Td 
+                            key={`s-${p.id}`} 
+                            right 
+                            onDoubleClick={(e) => {
+                              if (isZero) return;
+                              e.stopPropagation();
+                              openModal(r.mes, "acumulado", p.id);
+                            }}
+                            className={`font-semibold text-sm text-foreground/80 ${isZero ? "" : "cursor-pointer"}`}
+                            title={isZero ? undefined : `Duplo clique para calibrar saldo acumulado de ${p.nome}`}
+                          >
+                            {brl(r.saldoPorPessoa[p.id] || 0)}
+                          </Td>
+                        ))}
+
+                        <Td 
+                          right 
+                          onDoubleClick={(e) => {
+                            if (isZero) return;
+                            e.stopPropagation();
+                            openModal(r.mes, "acumulado");
+                          }}
+                          className={`font-bold text-sm text-foreground ${isZero ? "" : "cursor-pointer"}`}
+                          title={isZero ? undefined : "Duplo clique para calibrar saldo acumulado"}
+                        >
+                          {brl(r.saldoAcumulado)}
+                        </Td>
+                      </>
                     )}
-                  </Td>
-                </>
-              );
-            }}
-          />
+                    
+                    <Td right className="group">
+                      {!isZero && (
+                        <RowActions
+                          onOpenModal={(tab) => openModal(r.mes, tab)}
+                        />
+                      )}
+                    </Td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="bg-gradient-ink text-primary-foreground shadow-elevated">
+              <tr className="font-bold font-sans relative">
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-left border-none font-sans font-bold">Total Geral</td>
+                <td className="px-3 py-4 num text-sm border-none font-sans">{""}</td>
+                {pessoas.map(p => (
+                  <td key={p.id} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans">{brl(totals.aportePorPessoa[p.id])}</td>
+                ))}
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans">{brl(totals.extras)}</td>
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans">{brl(totals.totalMes)}</td>
+                {showFinancials && (
+                  <>
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans opacity-80">{brl(totals.rendBruto)}</td>
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans opacity-60">{brl(totals.ir)}</td>
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans text-success">
+                      {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
+                    </td>
+                    {pessoas.map(p => (
+                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans font-bold">
+                        {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
+                      </td>
+                    ))}
+                    <td className="px-3 py-3 num whitespace-nowrap text-right border-none font-sans">
+                      <span className="inline-flex flex-col items-end gap-1">
+                        <span className="font-sans font-bold text-lg sm:text-xl text-primary-foreground tracking-tight">{brl(totals.saldoFinal)}</span>
+                        <span className="text-[10px] text-primary-foreground/80 font-medium px-2 py-0.5 rounded-sm bg-primary-foreground/10 font-sans" title="Total Aportes + Rendimento no período">
+                          +{brl(totals.totalMes + totals.rendLiquido)} período
+                        </span>
+                      </span>
+                    </td>
+                  </>
+                )}
+                <td className="px-3 py-4 border-none"></td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
+
+      {selectedRow && (
+        <EditMesModal
+          isOpen={editingMes !== null}
+          onClose={() => setEditingMes(null)}
+          mes={selectedRow.mes}
+          data={selectedRow.data}
+          atingiuMeta={selectedRow.atingiu}
+          isMesConcluido={mesesConcluidosSet.has(selectedRow.mes)}
+          pessoas={pessoas.map(p => ({ id: p.id, nome: p.nome, aporte_mensal: Number(p.aporte_mensal) || 0 }))}
+          aportesPlanejados={Object.fromEntries(pessoas.map(p => [p.id, Number(p.aporte_mensal) || 0]))}
+          aportesReais={selectedRow.aporteFinalPorPessoa}
+          saldosAcumulados={selectedRow.saldoPorPessoa}
+          saldoAcumuladoTotal={selectedRow.saldoAcumulado}
+          rendimentoLiquido={selectedRow.rendimentoLiquido}
+          extrasDoMes={selectedRowExtras}
+          initialTab={modalInitialTab}
+          focusPessoaId={modalFocusPessoaId}
+          showFinancials={showFinancials}
+          onSaveAportes={handleSaveAportes}
+          onAddExtra={handleAddExtra}
+          onEditExtra={handleEditExtra}
+          onDeleteExtra={handleDeleteExtra}
+          onSaveAcumulado={handleSaveAcumulado}
+        />
+      )}
     </div>
   );
 });

@@ -8,11 +8,12 @@ import { brl } from "@/lib/finance";
 
 export type ContextExtra = { origem: string; valor: number; pessoaNome?: string; index: number };
 
-export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: {
+export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, onDoubleClick }: {
   contextItems: ContextExtra[];
   total: number;
   onEditExtra: (index: number, origem: string, valor: number) => void;
   onDeleteExtra: (index: number) => void;
+  onDoubleClick?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -77,8 +78,18 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
     <span ref={triggerRef} className="inline-block">
       <span
         onClick={() => { if (canOpen) setOpen(o => !o); }}
-        className={`inline-flex items-center justify-end gap-1 px-0.5 sm:px-1.5 py-0.5 rounded transition-colors border border-transparent ${total > 0 ? "cursor-pointer hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" : "text-muted-foreground/40"}`}
-        title={canOpen ? "Clique para ver detalhes" : undefined}
+        onDoubleClick={(e) => {
+          if (onDoubleClick) {
+            e.stopPropagation();
+            onDoubleClick();
+          }
+        }}
+        className={`inline-flex items-center justify-end gap-1 px-1.5 py-0.5 rounded transition-colors border border-transparent cursor-pointer ${
+          total > 0 
+            ? "hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" 
+            : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/40"
+        }`}
+        title={total > 0 ? "Clique para ver lista · Duplo clique para gerenciar/adicionar" : "Duplo clique para adicionar aporte extra"}
       >
         {total > 0 ? `+${brl(total)}` : "—"}
         {total > 0 && (open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)}
@@ -153,6 +164,15 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra }: 
                 <span className="text-muted-foreground">Total extras</span>
                 <span className="num text-accent">+{brl(total)}</span>
               </div>
+              {onDoubleClick && (
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); onDoubleClick(); }}
+                  className="w-full mt-2 py-1.5 text-center text-[11px] font-semibold text-primary hover:bg-primary/10 rounded-lg transition-colors border border-primary/20"
+                >
+                  Gerenciar e adicionar extras →
+                </button>
+              )}
             </div>
           )}
         </div>,

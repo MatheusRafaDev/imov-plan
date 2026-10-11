@@ -229,8 +229,8 @@ export default function PlantaPage() {
                   </tbody>
                   <tfoot className="bg-secondary/40 font-medium sticky bottom-0">
                     <tr>
-                      <td colSpan={2} className="px-4 py-3 text-sm">Total Geral</td>
-                      <td className="px-4 py-3 text-right font-display text-lg">{brl(totalPago)}</td>
+                      <td colSpan={2} className="px-4 py-3 text-sm font-sans font-bold">Total Geral</td>
+                      <td className="px-4 py-3 text-right font-sans font-bold text-lg">{brl(totalPago)}</td>
                     </tr>
                   </tfoot>
                 </table>

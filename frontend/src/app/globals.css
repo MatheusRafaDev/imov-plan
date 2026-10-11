@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -95,18 +95,18 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv11";
+    font-family: 'Fredoka', 'Inter', system-ui, sans-serif;
   }
   h1, h2, h3, .font-display {
-    font-family: 'Fraunces', Georgia, serif;
-    font-optical-sizing: auto;
-    letter-spacing: -0.02em;
+    font-family: 'Fredoka', system-ui, sans-serif;
+    letter-spacing: -0.01em;
   }
   .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 }
 
 @theme {
+  --font-sans: 'Fredoka', 'Inter', system-ui, sans-serif;
+  --font-display: 'Fredoka', system-ui, sans-serif;
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
