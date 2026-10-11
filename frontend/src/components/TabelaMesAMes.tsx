@@ -18,7 +18,7 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
     >
       {brl(value)}
       {isEdited && (
-        <span className={`ml-1 text-[9px] font-bold ${diff > 0 ? "text-success" : "text-destructive"}`}>
+        <span className={`ml-1 text-[9px] font-semibold ${diff > 0 ? "text-success" : "text-destructive"}`}>
           {diff > 0 ? "▲" : "▼"}
         </span>
       )}
@@ -296,7 +296,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h3 className="font-sans font-bold text-xl sm:text-2xl tracking-tight text-foreground">Mês a Mês</h3>
+            <h3 className="font-display font-semibold text-xl sm:text-2xl tracking-tight text-foreground">Mês a Mês</h3>
             <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-medium shadow-soft">
               {displayRows.length - 1} meses
             </span>
@@ -383,7 +383,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         <span>
                           {isZero ? "Início" : `Mês ${r.mes}`}
                           {r.atingiu && (
-                            <span className="ml-2 hidden sm:inline-flex items-center bg-success/10 text-success text-[10px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
+                            <span className="ml-2 hidden sm:inline-flex items-center bg-success/10 text-success text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded tracking-wide border border-success/20">
                               Meta ✓
                             </span>
                           )}
@@ -483,7 +483,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                             e.stopPropagation();
                             openModal(r.mes, "acumulado");
                           }}
-                          className={`font-bold text-sm text-foreground ${isZero ? "" : "cursor-pointer"}`}
+                          className={`font-semibold text-sm text-foreground ${isZero ? "" : "cursor-pointer"}`}
                           title={isZero ? undefined : "Duplo clique para calibrar saldo acumulado"}
                         >
                           {brl(r.saldoAcumulado)}
@@ -503,30 +503,30 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               })}
             </tbody>
             <tfoot className="bg-gradient-ink text-primary-foreground shadow-elevated">
-              <tr className="font-bold font-sans relative">
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-left border-none font-sans font-bold">Total Geral</td>
-                <td className="px-3 py-4 num text-sm border-none font-sans">{""}</td>
+              <tr className="font-medium relative">
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-left border-none font-semibold">Total Geral</td>
+                <td className="px-3 py-4 num text-sm border-none">{""}</td>
                 {pessoas.map(p => (
-                  <td key={p.id} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans">{brl(totals.aportePorPessoa[p.id])}</td>
+                  <td key={p.id} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.aportePorPessoa[p.id])}</td>
                 ))}
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans">{brl(totals.extras)}</td>
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans">{brl(totals.totalMes)}</td>
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.extras)}</td>
+                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.totalMes)}</td>
                 {showFinancials && (
                   <>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans opacity-80">{brl(totals.rendBruto)}</td>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans opacity-60">{brl(totals.ir)}</td>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans text-success">
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-80">{brl(totals.rendBruto)}</td>
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-60">{brl(totals.ir)}</td>
+                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none text-success">
                       {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                     </td>
                     {pessoas.map(p => (
-                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-sans font-bold">
+                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-semibold">
                         {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
                       </td>
                     ))}
-                    <td className="px-3 py-3 num whitespace-nowrap text-right border-none font-sans">
+                    <td className="px-3 py-3 num whitespace-nowrap text-right border-none">
                       <span className="inline-flex flex-col items-end gap-1">
-                        <span className="font-sans font-bold text-lg sm:text-xl text-primary-foreground tracking-tight">{brl(totals.saldoFinal)}</span>
-                        <span className="text-[10px] text-primary-foreground/80 font-medium px-2 py-0.5 rounded-sm bg-primary-foreground/10 font-sans" title="Total Aportes + Rendimento no período">
+                        <span className="font-bold text-lg sm:text-xl text-primary-foreground tracking-tight">{brl(totals.saldoFinal)}</span>
+                        <span className="text-[10px] text-primary-foreground/80 font-medium px-2 py-0.5 rounded-sm bg-primary-foreground/10" title="Total Aportes + Rendimento no período">
                           +{brl(totals.totalMes + totals.rendLiquido)} período
                         </span>
                       </span>

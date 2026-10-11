@@ -182,11 +182,11 @@ export function EditMesModal({
         {/* Header compacto */}
         <div className="px-4 py-3 border-b border-border/50 bg-secondary/20 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <h3 className="text-sm font-bold text-foreground truncate">
+            <h3 className="text-sm font-semibold text-foreground truncate">
               Mês {mes}{dataFormatada ? ` · ${dataFormatada}` : ""}
             </h3>
             {atingiuMeta && (
-              <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-success/15 text-success border border-success/30 shrink-0">
+              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-success/15 text-success border border-success/30 shrink-0">
                 Meta ✓
               </span>
             )}
@@ -227,7 +227,7 @@ export function EditMesModal({
             >
               <span>Extras</span>
               {extrasDoMes.length > 0 && (
-                <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.2 rounded-full font-bold">
+                <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.2 rounded-full font-semibold">
                   {extrasDoMes.length}
                 </span>
               )}
@@ -321,7 +321,7 @@ export function EditMesModal({
                         <span className="text-[10px] text-muted-foreground">{extra.pessoaNome || "Conjunto"}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-bold text-accent">+{brl(extra.valor)}</span>
+                        <span className="font-semibold text-accent">+{brl(extra.valor)}</span>
                         <button
                           type="button"
                           onClick={() => onDeleteExtra(extra.index)}
