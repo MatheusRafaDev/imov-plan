@@ -210,6 +210,47 @@
     to { opacity: 1; }
   }
 
+  /* Modal smooth animations */
+  @keyframes modal-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes modal-box-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .animate-modal-backdrop {
+    animation: modal-backdrop-in 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-modal-box {
+    animation: modal-box-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Popover animation */
+  @keyframes popover-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-popover {
+    animation: popover-in 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   /* Progress bar animation */
   .progress-bar {
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);

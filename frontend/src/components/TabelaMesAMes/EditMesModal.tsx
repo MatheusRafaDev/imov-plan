@@ -4,17 +4,9 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { 
   X, 
-  Users, 
-  Sparkles, 
-  TrendingUp, 
-  RotateCcw, 
   Plus, 
   Trash2, 
-  Calendar, 
-  Check, 
-  Info,
-  ArrowUpRight,
-  ArrowDownRight
+  Check 
 } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 import { brl } from "@/lib/finance";
@@ -62,13 +54,10 @@ export function EditMesModal({
   mes,
   data,
   atingiuMeta,
-  isMesConcluido,
   pessoas,
   aportesPlanejados,
   aportesReais,
   saldosAcumulados,
-  saldoAcumuladoTotal,
-  rendimentoLiquido,
   extrasDoMes,
   initialTab = "aportes",
   focusPessoaId,
@@ -91,18 +80,18 @@ export function EditMesModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Format month label
+  // Formatar data abreviada (ex: Jan/26)
   const dataFormatada = (() => {
     try {
       const d = new Date(data);
-      const str = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
+      const str = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", "/");
       return str.charAt(0).toUpperCase() + str.slice(1);
     } catch {
       return "";
     }
   })();
 
-  // ─── ABA 1: APORTES REGULARES ──────────────────────────────
+  // ─── ABA 1: APORTES ───────────────────────────────────────
   const [draftAportes, setDraftAportes] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     pessoas.forEach(p => {
@@ -126,7 +115,7 @@ export function EditMesModal({
     }
   };
 
-  // ─── ABA 2: APORTES EXTRAS ─────────────────────────────────
+  // ─── ABA 2: EXTRAS ────────────────────────────────────────
   const [novoExtraPessoa, setNovoExtraPessoa] = useState<string>("conjunto");
   const [novoExtraOrigemMode, setNovoExtraOrigemMode] = useState<"predefined" | "custom">("predefined");
   const [novoExtraOrigemPredefined, setNovoExtraOrigemPredefined] = useState<string>("13º Salário");
@@ -155,7 +144,7 @@ export function EditMesModal({
     }
   };
 
-  // ─── ABA 3: AJUSTE DE ACUMULADO ─────────────────────────────
+  // ─── ABA 3: ACUMULADO ─────────────────────────────────────
   const [draftAcumulado, setDraftAcumulado] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     pessoas.forEach(p => {
@@ -178,7 +167,7 @@ export function EditMesModal({
   if (!isOpen || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/60 backdrop-blur-[2px] animate-modal-backdrop">
       <div 
         className="fixed inset-0 -z-10" 
         onClick={onClose} 
@@ -188,295 +177,187 @@ export function EditMesModal({
       <div 
         role="dialog"
         aria-modal="true"
-        className="relative z-50 w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl border border-border/70 bg-card text-card-foreground shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 font-sans"
+        className="relative z-50 w-full max-w-[360px] flex flex-col rounded-2xl border border-border/70 bg-card text-card-foreground shadow-2xl overflow-hidden animate-modal-box font-sans"
       >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border/50 bg-secondary/30 flex items-start justify-between gap-4 shrink-0">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                <Calendar className="w-4 h-4" />
+        {/* Header compacto */}
+        <div className="px-4 py-3 border-b border-border/50 bg-secondary/20 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-sm font-bold text-foreground truncate">
+              Mês {mes}{dataFormatada ? ` · ${dataFormatada}` : ""}
+            </h3>
+            {atingiuMeta && (
+              <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-success/15 text-success border border-success/30 shrink-0">
+                Meta ✓
               </span>
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
-                Mês {mes} · {dataFormatada}
-              </h2>
-              {atingiuMeta && (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-success/15 text-success border border-success/30">
-                  Meta ✓
-                </span>
-              )}
-              {isMesConcluido && (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                  Concluído
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Personalize aportes individuais, lance rendas extras ou calibre o saldo da conta neste mês.
-            </p>
+            )}
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
             title="Fechar (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Tabs Bar */}
-        <div className="flex border-b border-border/50 bg-card px-3 pt-2 gap-1 shrink-0 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab("aportes")}
-            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 -mb-[1px] whitespace-nowrap ${
-              activeTab === "aportes"
-                ? "border-primary text-primary bg-primary/5"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Aportes do Mês</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("extras")}
-            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 -mb-[1px] whitespace-nowrap ${
-              activeTab === "extras"
-                ? "border-primary text-primary bg-primary/5"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-accent" />
-            <span>Aportes Extras</span>
-            {extrasDoMes.length > 0 && (
-              <span className="text-[10px] bg-accent/15 text-accent px-1.5 py-0.2 rounded-full font-bold">
-                {extrasDoMes.length}
-              </span>
-            )}
-          </button>
-
-          {showFinancials && (
+        {/* Segmented Control / Tabs */}
+        <div className="p-3 pb-0">
+          <div className="flex p-1 bg-secondary/50 rounded-xl gap-1 text-xs font-medium">
             <button
               type="button"
-              onClick={() => setActiveTab("acumulado")}
-              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 -mb-[1px] whitespace-nowrap ${
-                activeTab === "acumulado"
-                  ? "border-primary text-primary bg-primary/5"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+              onClick={() => setActiveTab("aportes")}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
+                activeTab === "aportes"
+                  ? "bg-card text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <TrendingUp className="w-4 h-4" />
-              <span>Ajustar Acumulado</span>
+              Aportes
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => setActiveTab("extras")}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === "extras"
+                  ? "bg-card text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span>Extras</span>
+              {extrasDoMes.length > 0 && (
+                <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.2 rounded-full font-bold">
+                  {extrasDoMes.length}
+                </span>
+              )}
+            </button>
+            {showFinancials && (
+              <button
+                type="button"
+                onClick={() => setActiveTab("acumulado")}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
+                  activeTab === "acumulado"
+                    ? "bg-card text-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Acumulado
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
+        {/* Conteúdo do Modal */}
+        <div className="p-4 space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
 
-          {/* ═══════════ ABA 1: APORTES MENSAIS ═══════════ */}
+          {/* ═══════════ ABA 1: APORTES ═══════════ */}
           {activeTab === "aportes" && (
-            <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 text-xs text-muted-foreground flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>
-                  Edite os valores aportados por cada participante no <strong>Mês {mes}</strong>. A alteração afeta apenas este mês específico sem mudar o valor base planejado para os meses seguintes.
-                </span>
-              </div>
+            <div className="space-y-3">
+              {pessoas.map((p) => {
+                const planejado = aportesPlanejados[p.id] || 0;
+                const atual = draftAportes[p.id] !== undefined ? draftAportes[p.id] : planejado;
+                const diff = atual - planejado;
+                const isEdited = diff !== 0;
 
-              {/* Cards por pessoa */}
-              <div className="space-y-3">
-                {pessoas.map((p) => {
-                  const planejado = aportesPlanejados[p.id] || 0;
-                  const atual = draftAportes[p.id] !== undefined ? draftAportes[p.id] : planejado;
-                  const diff = atual - planejado;
-                  const diffPercent = planejado > 0 ? (diff / planejado) * 100 : 0;
-                  const isFocused = focusPessoaId === p.id;
-
-                  return (
-                    <div 
-                      key={p.id}
-                      className={`p-4 rounded-xl border transition-all ${
-                        isFocused 
-                          ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20" 
-                          : "border-border/60 bg-card hover:border-border"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center font-bold text-xs text-foreground">
-                            {p.nome.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="text-sm font-semibold text-foreground">{p.nome}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              Planejado: <strong className="text-foreground/80">{brl(planejado)}</strong>
-                            </span>
-                          </div>
-                        </div>
-
-                        {diff !== 0 && (
+                return (
+                  <div key={p.id} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground">{p.nome}</span>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <span>Planejado: {brl(planejado)}</span>
+                        {isEdited && (
                           <button
                             type="button"
                             onClick={() => setDraftAportes(prev => ({ ...prev, [p.id]: planejado }))}
-                            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary px-2 py-1 rounded transition-colors"
-                            title="Restaurar valor planejado no plano"
+                            className="text-[10px] text-muted-foreground hover:text-foreground underline decoration-dotted"
+                            title="Restaurar valor planejado"
                           >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Restaurar ({brl(planejado)})</span>
+                            Restaurar
                           </button>
                         )}
                       </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                          Valor aportado no Mês {mes}
-                        </label>
-                        <MoneyInput
-                          variant="money"
-                          min={0}
-                          value={atual}
-                          onChange={(v) => setDraftAportes(prev => ({ ...prev, [p.id]: v === "" ? 0 : Number(v) }))}
-                          className="h-10 text-base font-semibold bg-background border-border"
-                        />
-
-                        {/* Status da variação */}
-                        <div className="flex items-center justify-between pt-1">
-                          {diff === 0 ? (
-                            <span className="text-xs text-muted-foreground/80 flex items-center gap-1">
-                              <Check className="w-3.5 h-3.5 text-success" /> Valor igual ao planejado
-                            </span>
-                          ) : diff > 0 ? (
-                            <span className="text-xs font-semibold text-success flex items-center gap-1 bg-success/10 px-2 py-0.5 rounded">
-                              <ArrowUpRight className="w-3.5 h-3.5" /> +{brl(diff)} ({diffPercent > 0 ? `+${diffPercent.toFixed(1)}%` : ""}) acima do planejado
-                            </span>
-                          ) : (
-                            <span className="text-xs font-semibold text-destructive flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded">
-                              <ArrowDownRight className="w-3.5 h-3.5" /> -{brl(Math.abs(diff))} ({diffPercent.toFixed(1)}%) abaixo do planejado
-                            </span>
-                          )}
-
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {brl(atual)}
-                          </span>
-                        </div>
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              {/* Box de Resumo Total do Mês */}
-              <div className="p-4 rounded-xl bg-secondary/40 border border-border/60 space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Composição do Aporte no Mês {mes}
-                </p>
-                <div className="flex justify-between text-xs py-1 border-b border-border/40">
-                  <span className="text-muted-foreground">Soma dos aportes regulares:</span>
-                  <span className="font-semibold text-foreground">{brl(totalAportesDraft)}</span>
-                </div>
-                {totalExtrasAtual > 0 && (
-                  <div className="flex justify-between text-xs py-1 border-b border-border/40 text-accent">
-                    <span>(+) Aportes Extras cadastrados:</span>
-                    <span className="font-semibold">+{brl(totalExtrasAtual)}</span>
+                    <MoneyInput
+                      variant="money"
+                      min={0}
+                      value={atual}
+                      onChange={(v) => setDraftAportes(prev => ({ ...prev, [p.id]: v === "" ? 0 : Number(v) }))}
+                      className="h-9 text-sm bg-background border-border"
+                      autoFocus={focusPessoaId === p.id}
+                    />
+
+                    {isEdited && (
+                      <div className={`text-[10px] font-semibold text-right ${
+                        diff > 0 ? "text-success" : "text-destructive"
+                      }`}>
+                        {diff > 0 ? `▲ +${brl(diff)}` : `▼ -${brl(Math.abs(diff))}`}
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="flex justify-between text-sm pt-1 font-bold">
-                  <span className="text-foreground">(=) Total Efetivo no Mês:</span>
-                  <span className="text-primary text-base">{brl(totalAporteMesPrevisto)}</span>
-                </div>
-                {showFinancials && (
-                  <div className="pt-2 text-[11px] text-muted-foreground flex justify-between">
-                    <span>Rendimento líq. projetado: {brl(rendimentoLiquido)}</span>
-                    <span>Acumulado final: {brl(saldoAcumuladoTotal)}</span>
-                  </div>
-                )}
+                );
+              })}
+
+              <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Total no mês:</span>
+                <span className="font-semibold text-foreground num">{brl(totalAporteMesPrevisto)}</span>
               </div>
             </div>
           )}
 
-          {/* ═══════════ ABA 2: APORTES EXTRAS ═══════════ */}
+          {/* ═══════════ ABA 2: EXTRAS ═══════════ */}
           {activeTab === "extras" && (
-            <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 text-xs text-muted-foreground flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                <span>
-                  Lance receitas pontuais como 13º salário, bonificações, férias ou restituição de IR no <strong>Mês {mes}</strong> para acelerar sua meta.
-                </span>
-              </div>
-
-              {/* Lista de Extras Cadastrados no Mês */}
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Extras cadastrados no Mês {mes} ({extrasDoMes.length})
-                </p>
-
-                {extrasDoMes.length === 0 ? (
-                  <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
-                    Nenhum aporte extra lançado para este mês ainda.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {extrasDoMes.map((extra) => (
-                      <div 
-                        key={extra.index}
-                        className="p-3 rounded-xl border border-border/60 bg-card flex items-center justify-between gap-3 hover:border-border transition-colors"
-                      >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-foreground truncate">{extra.origem}</span>
-                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                              {extra.pessoaNome || "Conjunto"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-sm font-bold text-accent">
-                            +{brl(extra.valor)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => onDeleteExtra(extra.index)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title="Remover aporte extra"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+            <div className="space-y-3">
+              {extrasDoMes.length > 0 && (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
+                  {extrasDoMes.map((extra) => (
+                    <div
+                      key={extra.index}
+                      className="p-2 rounded-lg border border-border/60 bg-secondary/20 flex items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <span className="font-medium text-foreground truncate block">{extra.origem}</span>
+                        <span className="text-[10px] text-muted-foreground">{extra.pessoaNome || "Conjunto"}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-bold text-accent">+{brl(extra.valor)}</span>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteExtra(extra.index)}
+                          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              {/* Formulário para Adicionar Novo Extra */}
-              <div className="p-4 rounded-xl border border-accent/20 bg-accent/5 space-y-3">
-                <p className="text-xs font-bold text-accent uppercase tracking-wider flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Novo Aporte Extra
+              <div className="p-3 rounded-xl border border-border/70 bg-card space-y-2.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Novo Aporte Extra
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-medium text-muted-foreground">Quem contribuiu?</label>
+                    <label className="text-[10px] text-muted-foreground">Quem</label>
                     <select
                       value={novoExtraPessoa}
                       onChange={(e) => setNovoExtraPessoa(e.target.value)}
-                      className="w-full h-9 px-3 rounded-xl border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      className="w-full h-8 px-2 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
                     >
-                      <option value="conjunto">Conjunto (Ambos)</option>
+                      <option value="conjunto">Conjunto</option>
                       {pessoas.map(p => (
-                        <option key={p.id} value={p.id}>{p.nome}</option>
+                        <option key={p.id} value={p.id}>{p.nome.split(" ")[0]}</option>
                       ))}
                     </select>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-medium text-muted-foreground">Origem do valor</label>
+                    <label className="text-[10px] text-muted-foreground">Origem</label>
                     {novoExtraOrigemMode === "predefined" ? (
                       <select
                         value={novoExtraOrigemPredefined}
@@ -487,27 +368,27 @@ export function EditMesModal({
                             setNovoExtraOrigemPredefined(e.target.value);
                           }
                         }}
-                        className="w-full h-9 px-3 rounded-xl border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                        className="w-full h-8 px-2 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
                       >
                         {ORIGENS_PREDEFINIDAS.map(origem => (
                           <option key={origem} value={origem}>{origem}</option>
                         ))}
                       </select>
                     ) : (
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1">
                         <input
                           autoFocus
                           type="text"
                           value={novoExtraOrigemCustom}
                           onChange={(e) => setNovoExtraOrigemCustom(e.target.value)}
-                          placeholder="Digite a origem..."
-                          className="w-full h-9 px-3 rounded-xl border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                          placeholder="Origem..."
+                          className="w-full h-8 px-2 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
                         />
                         <button
                           type="button"
                           onClick={() => { setNovoExtraOrigemMode("predefined"); setNovoExtraOrigemCustom(""); }}
-                          className="h-9 px-2 text-xs border border-border rounded-xl bg-secondary text-muted-foreground hover:text-foreground shrink-0"
-                          title="Voltar para opções comuns"
+                          className="h-8 px-1.5 text-xs border border-border rounded-lg bg-secondary text-muted-foreground hover:text-foreground shrink-0"
+                          title="Voltar"
                         >
                           ←
                         </button>
@@ -517,13 +398,13 @@ export function EditMesModal({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-medium text-muted-foreground">Valor do aporte extra</label>
+                  <label className="text-[10px] text-muted-foreground">Valor</label>
                   <MoneyInput
                     variant="money"
                     min={0}
                     value={novoExtraValor}
                     onChange={(v) => setNovoExtraValor(v)}
-                    className="h-10 text-base font-semibold bg-background border-border"
+                    className="h-8 text-xs bg-background border-border"
                     placeholder="R$ 0,00"
                   />
                 </div>
@@ -532,82 +413,61 @@ export function EditMesModal({
                   type="button"
                   disabled={addingExtra || !novoExtraValor || Number(novoExtraValor) <= 0 || (novoExtraOrigemMode === "custom" && !novoExtraOrigemCustom.trim())}
                   onClick={handleAdicionarExtra}
-                  className="w-full py-2.5 rounded-xl bg-accent text-accent-foreground font-semibold text-xs hover:bg-accent/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full py-1.5 rounded-lg bg-accent text-accent-foreground font-semibold text-xs hover:bg-accent/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>{addingExtra ? "Adicionando..." : "Adicionar Aporte Extra"}</span>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{addingExtra ? "Adicionando..." : "Adicionar Extra"}</span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* ═══════════ ABA 3: AJUSTAR ACUMULADO ═══════════ */}
+          {/* ═══════════ ABA 3: ACUMULADO ═══════════ */}
           {activeTab === "acumulado" && (
-            <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-secondary/30 border border-border/40 text-xs text-muted-foreground flex items-start gap-2.5">
-                <TrendingUp className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>
-                  Calibre o saldo acumulado caso a rentabilidade real na sua corretora ou banco difira da projeção. O sistema calculará automaticamente o ajuste necessário para alinhar a meta.
-                </span>
-              </div>
+            <div className="space-y-3">
+              {pessoas.map((p) => {
+                const planejado = saldosAcumulados[p.id] || 0;
+                const atual = draftAcumulado[p.id] !== undefined ? draftAcumulado[p.id] : planejado;
+                const diff = atual - planejado;
 
-              <div className="space-y-3">
-                {pessoas.map((p) => {
-                  const planejado = saldosAcumulados[p.id] || 0;
-                  const atual = draftAcumulado[p.id] !== undefined ? draftAcumulado[p.id] : planejado;
-                  const diff = atual - planejado;
-
-                  return (
-                    <div key={p.id} className="p-4 rounded-xl border border-border/60 bg-card space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-foreground">{p.nome}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Projetado: <strong className="text-foreground/80">{brl(planejado)}</strong>
-                        </span>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                          Saldo Real Apurado na Conta
-                        </label>
-                        <MoneyInput
-                          variant="money"
-                          min={0}
-                          value={atual}
-                          onChange={(v) => setDraftAcumulado(prev => ({ ...prev, [p.id]: v === "" ? 0 : Number(v) }))}
-                          className="h-10 text-base font-semibold bg-background border-border"
-                        />
-                      </div>
-
-                      {diff !== 0 && (
-                        <div className={`text-xs font-semibold flex items-center justify-between pt-1 px-2 py-1 rounded ${
-                          diff > 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                        }`}>
-                          <span>
-                            {diff > 0 ? `▲ Ajuste positivo (rendimento extra / depósito):` : `▼ Ajuste negativo (correção / saque):`}
-                          </span>
-                          <span>
-                            {diff > 0 ? `+${brl(diff)}` : brl(diff)}
-                          </span>
-                        </div>
-                      )}
+                return (
+                  <div key={p.id} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium text-foreground">{p.nome}</span>
+                      <span className="text-muted-foreground">Projetado: {brl(planejado)}</span>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <MoneyInput
+                      variant="money"
+                      min={0}
+                      value={atual}
+                      onChange={(v) => setDraftAcumulado(prev => ({ ...prev, [p.id]: v === "" ? 0 : Number(v) }))}
+                      className="h-9 text-sm bg-background border-border"
+                    />
+
+                    {diff !== 0 && (
+                      <div className={`text-[10px] font-semibold text-right ${
+                        diff > 0 ? "text-success" : "text-destructive"
+                      }`}>
+                        {diff > 0 ? `▲ +${brl(diff)}` : `▼ -${brl(Math.abs(diff))}`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-5 py-3.5 border-t border-border/50 bg-secondary/20 flex items-center justify-between gap-3 shrink-0">
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-border/50 bg-secondary/15 flex items-center justify-end gap-2 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-border/70 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-border/70 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
-            Fechar
+            Cancelar
           </button>
 
           {activeTab === "aportes" && (
@@ -615,10 +475,10 @@ export function EditMesModal({
               type="button"
               disabled={savingAportes}
               onClick={handleSalvarAportes}
-              className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm flex items-center gap-2"
+              className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-xs flex items-center gap-1.5"
             >
-              <Check className="w-4 h-4" />
-              <span>{savingAportes ? "Salvando..." : "Salvar Aportes"}</span>
+              <Check className="w-3.5 h-3.5" />
+              <span>{savingAportes ? "Salvando..." : "Salvar"}</span>
             </button>
           )}
 
@@ -627,10 +487,20 @@ export function EditMesModal({
               type="button"
               disabled={savingAcumulado}
               onClick={handleSalvarAcumulado}
-              className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm flex items-center gap-2"
+              className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-xs flex items-center gap-1.5"
             >
-              <Check className="w-4 h-4" />
-              <span>{savingAcumulado ? "Salvando..." : "Salvar Ajuste"}</span>
+              <Check className="w-3.5 h-3.5" />
+              <span>{savingAcumulado ? "Salvando..." : "Salvar"}</span>
+            </button>
+          )}
+
+          {activeTab === "extras" && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-xs"
+            >
+              Concluir
             </button>
           )}
         </div>

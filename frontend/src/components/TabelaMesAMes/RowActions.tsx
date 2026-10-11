@@ -59,7 +59,7 @@ export function RowActions({
       {openMenu && typeof document !== "undefined" && createPortal(
         <div 
           ref={menuRef} 
-          className="fixed z-50 rounded-xl border border-border/70 bg-card shadow-xl overflow-hidden py-1 text-xs animate-in fade-in zoom-in-95 duration-150 font-sans" 
+          className="fixed z-50 rounded-xl border border-border/70 bg-card shadow-xl overflow-hidden py-1 text-xs animate-popover font-sans" 
           style={{ top: `${portalPos.top}px`, left: `${portalPos.left}px`, width: `${portalPos.width}px` }}
         >
           <button 
