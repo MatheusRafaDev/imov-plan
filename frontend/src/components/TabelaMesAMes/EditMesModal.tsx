@@ -337,7 +337,7 @@ export function EditMesModal({
               )}
 
               <div className="p-3 rounded-xl border border-border/70 bg-card space-y-2.5">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <p className="text-xs font-medium text-foreground">
                   Novo Aporte Extra
                 </p>
 

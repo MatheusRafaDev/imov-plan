@@ -165,7 +165,7 @@ function LancarAporteContent() {
       </div>
 
       <div>
-        <h1 className="font-display text-xl sm:text-2xl font-light">Lançar aporte do mês</h1>
+        <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Lançar aporte do mês</h1>
         <p className="text-sm text-muted-foreground mt-1">Diga quanto foi realmente aportado. O plano se ajusta sozinho.</p>
       </div>
 

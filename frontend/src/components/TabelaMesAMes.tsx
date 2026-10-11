@@ -14,7 +14,7 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
   return (
     <span 
       title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)} · Duplo clique para editar` : "Duplo clique para editar"}
-      className={`inline-block px-2 py-1 rounded border text-right transition-colors cursor-pointer ${isEdited ? "border-accent text-accent bg-accent/5 font-semibold" : "border-transparent text-foreground hover:bg-secondary/40"}`}
+      className={`inline-block px-2 py-0.5 rounded text-right transition-colors cursor-pointer ${isEdited ? "border border-accent/30 text-accent bg-accent/5 font-medium" : "border border-transparent text-foreground hover:bg-secondary/40 font-normal"}`}
     >
       {brl(value)}
       {isEdited && (
@@ -27,7 +27,7 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
 }
 
 function Th({ children, right, className = "" }: { children?: React.ReactNode; right?: boolean; className?: string }) {
-  return <th className={`px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/90 whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
+  return <th className={`px-3.5 py-3 text-xs font-medium text-muted-foreground whitespace-nowrap select-none ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
 }
 
 function Td({ 
@@ -390,8 +390,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                         </span>
                       </span>
                     </Td>
-                    <Td suppressHydrationWarning className="text-muted-foreground text-xs">
-                      {(() => { const d = new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " "); return d.charAt(0).toUpperCase() + d.slice(1); })()}
+                    <Td suppressHydrationWarning className="text-muted-foreground text-xs font-normal">
+                      {(() => {
+                        const d = new Date(r.data);
+                        const m = d.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" }).replace(".", "");
+                        const y = d.toLocaleDateString("pt-BR", { year: "2-digit", timeZone: "UTC" });
+                        return `${m.charAt(0).toUpperCase() + m.slice(1)}/${y}`;
+                      })()}
                     </Td>
                     
                     {pessoas.map(p => {
@@ -469,7 +474,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                               e.stopPropagation();
                               openModal(r.mes, "acumulado", p.id);
                             }}
-                            className={`font-semibold text-sm text-foreground/80 ${isZero ? "" : "cursor-pointer"}`}
+                            className={`font-normal text-sm text-muted-foreground ${isZero ? "" : "cursor-pointer"}`}
                             title={isZero ? undefined : `Duplo clique para calibrar saldo acumulado de ${p.nome}`}
                           >
                             {brl(r.saldoPorPessoa[p.id] || 0)}
@@ -483,7 +488,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                             e.stopPropagation();
                             openModal(r.mes, "acumulado");
                           }}
-                          className={`font-semibold text-sm text-foreground ${isZero ? "" : "cursor-pointer"}`}
+                          className={`font-medium text-sm text-foreground ${isZero ? "" : "cursor-pointer"}`}
                           title={isZero ? undefined : "Duplo clique para calibrar saldo acumulado"}
                         >
                           {brl(r.saldoAcumulado)}
@@ -519,7 +524,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                       {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                     </td>
                     {pessoas.map(p => (
-                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-semibold">
+                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-medium">
                         {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
                       </td>
                     ))}
