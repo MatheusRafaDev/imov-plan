@@ -114,7 +114,7 @@ export default function ResultadoPage() {
       <div className="flex items-start justify-between px-4 sm:px-6 md:px-8">
         <div>
           <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
-          <h1 className="font-display text-3xl md:text-4xl mb-1 font-semibold text-foreground tracking-tight">Seu plano em números</h1>
+          <h1 className="font-display text-3xl md:text-4xl mb-1 font-normal text-foreground tracking-tight">Seu plano em números</h1>
           <p className="text-muted-foreground text-sm">O resultado de tudo o que você preencheu nas etapas anteriores.</p>
         </div>
       </div>

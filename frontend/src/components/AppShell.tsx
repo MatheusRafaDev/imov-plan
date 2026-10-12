@@ -58,7 +58,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <div className="h-7 w-7 lg:h-8 lg:w-8 shrink-0 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
               <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-accent-foreground" />
             </div>
-            <span className="font-display text-lg lg:text-xl font-semibold truncate">
+            <span className="font-display text-lg lg:text-xl font-normal truncate">
               Imov<span className="text-accent">.</span>Plan
             </span>
           </Link>

@@ -135,7 +135,7 @@ export default function PlanejamentoPage() {
     <div className="max-w-6xl mx-auto space-y-8 lg:space-y-12">
       <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
         <p className="text-[10px] uppercase tracking-widest text-orange-500 font-semibold mb-2">Etapa {currentStep > 0 ? currentStep : 3} de {totalSteps}</p>
-        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl mb-3 font-semibold tracking-tight text-foreground">Acelere seu plano</h1>
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl mb-3 tracking-tight text-foreground font-normal">Acelere seu plano</h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">Confira o resumo do seu tempo de preparo e adicione entradas extras para chegar lá mais rápido.</p>
       </div>
 

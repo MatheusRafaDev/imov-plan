@@ -237,7 +237,7 @@ export default function ObjetivoPage() {
         <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-2 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
         </p>
-        <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3">Qual é o imóvel?</h1>
+        <h1 className="font-display text-3xl md:text-4xl lg:text-5x1 mb-3 font-normal">Qual é o imóvel?</h1>
         <p className="text-muted-foreground">Defina o valor e a entrada. Calculamos sua meta automaticamente.</p>
       </div>
 

@@ -134,7 +134,7 @@ export default function PerfilPage() {
           <p className="text-xs uppercase tracking-widest text-accent font-medium mb-1 flex items-center justify-center sm:justify-start gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5" /> Meu Perfil
           </p>
-          <h1 className="font-display text-2xl sm:text-3xl font-medium text-foreground">{name || "Usuario"}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-normal text-foreground">{name || "Usuario"}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
         </div>
       </div>
