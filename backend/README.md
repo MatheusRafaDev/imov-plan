@@ -7,8 +7,9 @@ detectado pela Vercel e inicia o ASP.NET Core na porta definida pela plataforma
 ## Configuracao do projeto
 
 Ao importar o repositorio inteiro para o projeto da API, a Vercel detecta o
-`Dockerfile.vercel` da raiz e usa o backend automaticamente. O
-`vercel.json` tambem desativa a deteccao incorreta de Next.js nesse projeto.
+`Dockerfile.vercel` da raiz e usa o backend automaticamente. Nao defina o
+Framework Preset como Next.js: selecione **Container** ou deixe a deteccao
+automatica ativa.
 
 Como alternativa, e possivel definir **Root Directory** como `backend`; nesse
 caso, a Vercel usara `backend/Dockerfile.vercel`. Nao e necessario expor uma

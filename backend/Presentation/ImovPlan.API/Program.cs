@@ -280,6 +280,11 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/", () => Results.Ok(new
+{
+    service = "ImovPlan API",
+    status = "ok"
+}));
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/api/health");
 
