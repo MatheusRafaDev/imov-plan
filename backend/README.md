@@ -6,9 +6,13 @@ detectado pela Vercel e inicia o ASP.NET Core na porta definida pela plataforma
 
 ## Configuracao do projeto
 
-Importe este repositorio como **um projeto Vercel separado para a API** e defina
-**Root Directory** como `backend`. Nao e necessario criar um `vercel.json` nem
-expor uma porta manualmente.
+Ao importar o repositorio inteiro para o projeto da API, a Vercel detecta o
+`Dockerfile.vercel` da raiz e usa o backend automaticamente. O
+`vercel.json` tambem desativa a deteccao incorreta de Next.js nesse projeto.
+
+Como alternativa, e possivel definir **Root Directory** como `backend`; nesse
+caso, a Vercel usara `backend/Dockerfile.vercel`. Nao e necessario expor uma
+porta manualmente.
 
 Cadastre as variaveis abaixo nos ambientes necessarios (Preview e Production):
 

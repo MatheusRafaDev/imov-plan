@@ -10,3 +10,5 @@ backend/**/obj/
 *.log
 .env
 .env.*
+backend/.env
+backend/.env.*

@@ -1,0 +1,34 @@
+# Vercel deploys from the repository root, so the backend source is copied
+# explicitly from backend/. A second Dockerfile is kept in backend/ for projects
+# configured with that directory as their Vercel Root Directory.
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+COPY backend/ImovPlan.slnx ./
+COPY backend/Core/ImovPlan.Domain/ImovPlan.Domain.csproj Core/ImovPlan.Domain/
+COPY backend/Core/ImovPlan.Application/ImovPlan.Application.csproj Core/ImovPlan.Application/
+COPY backend/Infrastructure/ImovPlan.Infrastructure/ImovPlan.Infrastructure.csproj Infrastructure/ImovPlan.Infrastructure/
+COPY backend/Presentation/ImovPlan.API/ImovPlan.API.csproj Presentation/ImovPlan.API/
+RUN dotnet restore Presentation/ImovPlan.API/ImovPlan.API.csproj
+
+COPY backend/ ./
+WORKDIR /src/Presentation/ImovPlan.API
+RUN dotnet publish ImovPlan.API.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl libcap2-bin && \
+    setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet && \
+    apt-get purge -y libcap2-bin && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish .
+
+ENV PORT=80
+EXPOSE 80 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD /bin/sh -c 'curl -fsS http://localhost:${PORT:-80}/health || exit 1'
+
+USER app
+ENTRYPOINT ["/bin/sh", "-c", "export ASPNETCORE_URLS=http://+:${PORT:-80}; exec dotnet ImovPlan.API.dll"]
