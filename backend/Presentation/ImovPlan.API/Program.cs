@@ -51,6 +51,12 @@ try
 catch { /* .env not found, continue with appsettings */ }
 builder.Configuration.AddEnvironmentVariables();
 
+var envPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(envPort) && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    builder.WebHost.UseUrls($"http://+:{envPort}");
+}
+
 // Add services to the container.
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCompression(options =>
@@ -253,7 +259,10 @@ if (app.Environment.IsDevelopment())
 }
 app.UseForwardedHeaders();
 app.UseResponseCompression();
-app.UseHttpsRedirection();
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/health") && !context.Request.Path.StartsWithSegments("/api/health"),
+    appBuilder => appBuilder.UseHttpsRedirection()
+);
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -272,5 +281,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/api/health");
 
 app.Run();

@@ -1,0 +1,12 @@
+.git/
+.vscode/
+node_modules/
+frontend/.next/
+frontend/node_modules/
+backend/bin/
+backend/obj/
+backend/**/bin/
+backend/**/obj/
+*.log
+.env
+.env.*
