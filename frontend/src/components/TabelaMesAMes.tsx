@@ -153,8 +153,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       data: new Date(r.dataReferencia).toISOString(),
       aporteRegular: r.aporteMensal,
       aportesExtras: r.aportesExtras,
-      rendimentoBruto: r.rendimentoBruto,
-      imposto: r.imposto,
       rendimentoLiquido: r.rendimentoLiquido,
       saldoAcumulado: r.totalAcumulado,
       atingiu: sim.mesesParaAtingir === r.mes && sim.atingiuMeta,
@@ -169,9 +167,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
   })();
 
   const totals = (() => {
-    if (!displayRows.length) return { rendBruto: 0, ir: 0, rendLiquido: 0, aporteRegular: 0, extras: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
-    const rb = displayRows.reduce((a, b) => a + b.rendimentoBruto, 0);
-    const ir = displayRows.reduce((a, b) => a + b.imposto, 0);
+    if (!displayRows.length) return { rendLiquido: 0, aporteRegular: 0, extras: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
     const rl = displayRows.reduce((a, b) => a + b.rendimentoLiquido, 0);
     const ap = displayRows.reduce((a, b) => a + b.aporteRegular, 0);
     const ex = displayRows.reduce((a, b) => a + b.aportesExtras, 0);
@@ -185,8 +181,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     });
 
     return {
-      rendBruto: rb,
-      ir,
       rendLiquido: rl,
       aporteRegular: ap,
       extras: ex,
