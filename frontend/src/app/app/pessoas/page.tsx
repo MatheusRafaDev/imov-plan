@@ -509,7 +509,7 @@ export default function PessoasPage() {
               >
                 Cancelar
               </Button>
-              <Button onClick={adicionar} className="flex-1 bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow" disabled={!form.nome}>
+              <Button onClick={adicionar} className="flex-1 bg-gradient-warm text-accent-foreground hover:opacity-90" disabled={!form.nome}>
                 <Plus className="h-4 w-4 mr-1" /> Adicionar
               </Button>
             </div>

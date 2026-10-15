@@ -240,7 +240,7 @@ export default function PerfilPage() {
 
                 <Button
                   id="perfil-enviar-link-senha"
-                  className="w-full bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow"
+                  className="w-full bg-gradient-warm text-accent-foreground hover:opacity-95"
                   onClick={handleSendResetLink}
                   disabled={sendingResetEmail}
                 >
