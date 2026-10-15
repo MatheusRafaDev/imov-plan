@@ -5,11 +5,11 @@
 //   - Resto: stale-while-revalidate
 //   - /api/*: nunca intercepta (passa direto para a rede)
 
-const CACHE_NAME = "imovplan-v4";
-const STATIC_CACHE = "imovplan-static-v4";
+const CACHE_NAME = "imovplan-v5";
+const STATIC_CACHE = "imovplan-static-v5";
 const OFFLINE_URL = "/offline.html";
 
-const PRECACHE_URLS = [OFFLINE_URL];
+const PRECACHE_URLS = [OFFLINE_URL, "/icon.svg", "/favicon.svg", "/manifest.json"];
 
 // ── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener("install", (event) => {

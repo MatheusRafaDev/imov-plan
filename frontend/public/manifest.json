@@ -5,12 +5,24 @@
   "start_url": "/app/imovel",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#D16330",
-  "background_color": "#F7F4EF",
+  "theme_color": "#E8590C",
+  "background_color": "#FFF8F2",
   "lang": "pt-BR",
   "scope": "/",
   "categories": ["finance", "productivity"],
   "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -42,6 +54,13 @@
       "short_name": "Novo",
       "description": "Iniciar um novo plano de imóvel",
       "url": "/app/imovel",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Meus Planos",
+      "short_name": "Planos",
+      "description": "Ver e comparar meus planos de imóveis",
+      "url": "/app/planos",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]

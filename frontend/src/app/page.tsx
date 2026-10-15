@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/Logo";
 import { ArrowRight, Building2, Calculator, LineChart, Sparkles, Shield, TrendingUp, CheckCircle, Clock, Zap } from "lucide-react";
 
 export default function Index() {
@@ -18,18 +19,15 @@ export default function Index() {
   }, [loading, user, router]);
   return (
     <div className="min-h-screen bg-gradient-cream">
-      <header className="container flex items-center justify-between py-6">
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
-            <Building2 className="h-5 w-5 text-accent-foreground" />
-          </div>
-          <span className="font-display text-2xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
+      <header className="border-b border-border/60 bg-white/95 dark:bg-card/95 backdrop-blur-md sticky top-0 z-30 shadow-xs">
+        <div className="container flex items-center justify-between py-4 sm:py-5">
+          <Logo href="/" size="md" />
+          {user ? (
+            <Button asChild variant="secondary"><Link href="/app/imovel">Abrir meu plano</Link></Button>
+          ) : (
+            <Button asChild variant="ghost"><Link href="/auth">Entrar</Link></Button>
+          )}
         </div>
-        {user ? (
-          <Button asChild variant="secondary"><Link href="/app/imovel">Abrir meu plano</Link></Button>
-        ) : (
-          <Button asChild variant="ghost"><Link href="/auth">Entrar</Link></Button>
-        )}
       </header>
 
       {/* Hero Section */}
@@ -143,8 +141,11 @@ export default function Index() {
         </Button>
       </section>
 
-      <footer className="container py-10 text-xs text-muted-foreground border-t border-border/60 flex items-center justify-between">
-        <span>© {new Date().getFullYear()} Imov.Plan</span>
+      <footer className="container py-10 text-xs text-muted-foreground border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Logo size="sm" />
+          <span>© {new Date().getFullYear()}</span>
+        </div>
         <span>Cálculos didáticos. Não constituem recomendação de investimento.</span>
       </footer>
     </div>

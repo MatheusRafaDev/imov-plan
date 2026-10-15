@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
-  Building2,
   Loader2,
   Eye,
   EyeOff,
@@ -21,6 +20,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
 // ── Indicador de Força da Senha ────────────────────────────────────────────────
 function PasswordStrengthIndicator({ password }: { password: string }) {
@@ -339,14 +339,9 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
       <div className="p-4 sm:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
-        <Link href="/" className="flex items-center gap-2 mb-8 w-fit transition-transform hover:scale-105">
-          <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
-            <Building2 className="h-4 w-4 text-accent-foreground" />
-          </div>
-          <span className="font-display text-xl font-semibold">
-            Imov<span className="text-accent">.</span>Plan
-          </span>
-        </Link>
+        <div className="mb-8">
+          <Logo href="/" size="md" />
+        </div>
 
         <Card className="p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95">
           <Suspense

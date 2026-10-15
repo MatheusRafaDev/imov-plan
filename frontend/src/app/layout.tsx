@@ -19,17 +19,26 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
+      { url: "/apple-icon.svg", type: "image/svg+xml" },
       { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      {
+        rel: "mask-icon",
+        url: "/maskable-icon.svg",
+        color: "#E8590C",
+      },
     ],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#D16330",
+  themeColor: "#E8590C",
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
@@ -52,7 +61,7 @@ export default function RootLayout({
         />
         <QueryProvider>
           <AuthProvider>
-            <NextTopLoader color="#e15b31" height={3} showSpinner={false} shadow="0 0 10px #e15b31,0 0 5px #e15b31" />
+            <NextTopLoader color="#E8590C" height={3} showSpinner={false} shadow="0 0 10px #E8590C,0 0 5px #E8590C" />
             {children}
             <Toaster
               richColors

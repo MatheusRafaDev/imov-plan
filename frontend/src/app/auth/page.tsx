@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowRight, Building2, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -215,12 +216,9 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
       <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
-        <Link href="/" className="flex items-center gap-2 mb-6 sm:mb-8 w-fit transition-transform hover:scale-105">
-          <div className="h-8 w-8 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
-            <Building2 className="h-4 w-4 text-accent-foreground" />
-          </div>
-          <span className="font-display text-xl font-semibold">Imov<span className="text-accent">.</span>Plan</span>
-        </Link>
+        <div className="mb-6 sm:mb-8">
+          <Logo href="/" size="md" />
+        </div>
         <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95">
           <h2 className="font-display text-xl sm:text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
           <p className="text-xs sm:text-sm text-muted-foreground mb-6">
@@ -431,6 +429,7 @@ export default function AuthPage() {
       <div className="hidden lg:flex flex-col justify-center items-center p-8 lg:p-12 bg-gradient-ink text-primary-foreground relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
         <div className="relative z-10 max-w-md text-center space-y-4">
+          <Logo variant="dark" size="lg" className="mx-auto mb-4" />
           <h2 className="font-display text-3xl sm:text-4xl leading-tight font-semibold">A chave do seu imóvel mais perto do que você imagina.</h2>
           <p className="text-primary-foreground/70 text-sm sm:text-base">O Imov.Plan ajuda você a organizar a vida financeira para realizar o sonho do imóvel próprio, de forma simples e visual.</p>
         </div>

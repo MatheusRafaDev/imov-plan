@@ -20,29 +20,26 @@ mkdirSync(outDir, { recursive: true });
 const svgBuffer = readFileSync(svgPath);
 
 const icons = [
-  { name: "icon-192.png",          size: 192, padding: 0   },
-  { name: "icon-512.png",          size: 512, padding: 0   },
-  { name: "apple-touch-icon.png",  size: 180, padding: 0   },
-  // maskable: safe zone = central 80% → 10% padding on each side
-  { name: "icon-maskable-512.png", size: 512, padding: 52  },
+  { name: "icon-192.png",          size: 192 },
+  { name: "icon-512.png",          size: 512 },
+  { name: "apple-touch-icon.png",  size: 180 },
 ];
 
-for (const { name, size, padding } of icons) {
-  const iconSize = size - padding * 2;
+for (const { name, size } of icons) {
   await sharp(svgBuffer)
-    .resize(iconSize, iconSize)
-    .flatten({ background: padding > 0 ? "#D16330" : { r: 0, g: 0, b: 0, alpha: 0 } })
-    .extend({
-      top: padding,
-      bottom: padding,
-      left: padding,
-      right: padding,
-      background: "#D16330",
-    })
+    .resize(size, size)
     .png()
     .toFile(join(outDir, name));
 
   console.log(`✓ ${name} (${size}x${size})`);
 }
+
+// Maskable PWA icon gerado a partir do maskable-icon.svg (com safe-zone e fundo 100% preenchido)
+const maskableSvgBuffer = readFileSync(join(root, "public", "maskable-icon.svg"));
+await sharp(maskableSvgBuffer)
+  .resize(512, 512)
+  .png()
+  .toFile(join(outDir, "icon-maskable-512.png"));
+console.log(`✓ icon-maskable-512.png (512x512 maskable)`);
 
 console.log("\n✅ Ícones PWA gerados em public/icons/");

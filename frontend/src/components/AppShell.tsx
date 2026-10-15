@@ -2,10 +2,11 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Building2, Users, Calculator, LineChart, LogOut, Key, HardHat, LayoutGrid, User } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
-import { usePlanLogic } from "@/hooks/usePlanLogic";;
+import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { Button } from "@/components/ui/button";
 
 export const navPorCenario = {
@@ -32,7 +33,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const { logout, user } = useAuth();
   const { cenario, objetivo, salvarPlano, calcularBackend } = usePlanLogic();
   const pathname = usePathname();
-  const router = useRouter();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
   const homeHref = nav[0]?.to ?? "/app/imovel";
   const isStep1Filled = !!(objetivo && objetivo.valorImovel && objetivo.valorImovel > 0);
@@ -52,16 +52,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   return (
     <div className="app-shell flex flex-col bg-gradient-cream">
       {/* ── Header ── */}
-      <header className="safe-top shrink-0 border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
+      <header className="safe-top shrink-0 border-b border-border/60 bg-white/95 dark:bg-card/95 backdrop-blur-md sticky top-0 z-30 shadow-xs">
         <div className="container flex h-14 lg:h-16 items-center justify-between gap-2 lg:gap-4">
-          <Link href={homeHref} className="flex items-center gap-2 min-w-0">
-            <div className="h-7 w-7 lg:h-8 lg:w-8 shrink-0 rounded-lg bg-gradient-warm grid place-items-center shadow-glow">
-              <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-accent-foreground" />
-            </div>
-            <span className="font-display text-lg lg:text-xl font-normal truncate">
-              Imov<span className="text-accent">.</span>Plan
-            </span>
-          </Link>
+          <Logo href={homeHref} size="sm" className="min-w-0" />
 
           <nav className="hidden lg:flex items-center bg-secondary/40 rounded-full px-2 py-1.5 border border-border/50">
             {nav.map((n, index) => {
@@ -87,7 +80,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                       onClick={(e) => handleNavClick(e, n.to)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                         isActive 
-                          ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" 
+                          ? "bg-white dark:bg-card text-foreground shadow-xs ring-1 ring-border/70" 
                           : isPast 
                             ? "text-accent hover:bg-secondary/60" 
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -137,8 +130,8 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         <div className="app-content w-full px-4 sm:px-6 md:px-8 pt-6 md:pt-8 lg:pt-12 max-w-[1600px] mx-auto">{children}</div>
       </main>
 
-      {/* ── Bottom Nav (mobile) ── */}
-      <nav className="safe-bottom safe-x lg:hidden shrink-0 border-t border-border/60 bg-background/80 backdrop-blur">
+      {/* ── Bottom Nav (mobile PWA) ── */}
+      <nav className="safe-bottom safe-x lg:hidden shrink-0 border-t border-border/60 bg-white/95 dark:bg-card/95 backdrop-blur-md shadow-sm">
         <div className="flex">
           {nav.map((n, index) => {
             const active = pathname?.startsWith(n.to) || false;

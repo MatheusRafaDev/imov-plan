@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Fundo 100% preenchido para corte adaptativo (maskable safe zone) -->
+  <rect width="512" height="512" fill="#E8590C"/>
+  <g transform="translate(106, 106) scale(4.6875)">
+    <!-- Telhado do Imóvel -->
+    <path d="M11 31 L32 13 L53 31" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Colunas de Planejamento -->
+    <rect x="20" y="40" width="6" height="10" rx="1.5" fill="#FFFFFF"/>
+    <rect x="29" y="34" width="6" height="16" rx="1.5" fill="#FFFFFF"/>
+    <rect x="38" y="28" width="6" height="22" rx="1.5" fill="#FFFFFF"/>
+  </g>
+</svg>
