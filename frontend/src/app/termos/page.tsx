@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
@@ -21,7 +21,7 @@ export default function TermosPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         body { margin: 0; background: #FBFAF7; }
-        a { color: #B93F06; text-decoration: none; }
+        a { color: #E8590C; text-decoration: none; }
         a:hover { color: #8F2F03; }
         .legal-card {
           background: #FFFFFF;
@@ -36,7 +36,7 @@ export default function TermosPage() {
         }
         .hp-btn-primary {
           display: inline-block; padding: 11px 20px; border-radius: 12px;
-          background: #C94A08; color: #fff !important; font-weight: 600; font-size: 15px;
+          background: #E8590C; color: #fff !important; font-weight: 600; font-size: 15px;
           transition: background 0.15s, transform 0.1s;
         }
         .hp-btn-primary:hover { background: #A83A06; }
@@ -91,7 +91,7 @@ export default function TermosPage() {
               padding: "6px 14px",
               borderRadius: 999,
               background: "#FFFFFF",
-              color: "#B93F06",
+              color: "#E8590C",
               fontSize: 13,
               fontWeight: 700,
               textTransform: "uppercase",
@@ -143,7 +143,7 @@ export default function TermosPage() {
         {/* 1. Aceitação */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <FileText className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -158,7 +158,7 @@ export default function TermosPage() {
         {/* 2. Natureza dos Serviços */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <Scale className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -176,7 +176,7 @@ export default function TermosPage() {
         {/* 3. Premissas de Cálculo */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <HelpCircle className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -196,7 +196,7 @@ export default function TermosPage() {
         {/* 4. Cadastro e Responsabilidade da Conta */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <ShieldCheck className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -211,7 +211,7 @@ export default function TermosPage() {
         {/* 5. Propriedade Intelectual */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <FileText className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -226,7 +226,7 @@ export default function TermosPage() {
         {/* 6. Modificações e Encerramento */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <Scale className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -256,7 +256,6 @@ export default function TermosPage() {
           <nav style={{ display: "flex", gap: 24, fontSize: 14, fontWeight: 500 }}>
             <Link href="/privacidade" style={{ color: "#5E5951" }}>Política de privacidade</Link>
             <Link href="/termos" style={{ color: "#E8590C", fontWeight: 700 }}>Termos de uso</Link>
-            <Link href="/contato" style={{ color: "#5E5951" }}>Contato</Link>
           </nav>
           <div style={{ fontSize: 13, color: "#5E5951" }}>
             © {new Date().getFullYear()} Imov.Plan — Todos os direitos reservados

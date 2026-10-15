@@ -1,4 +1,4 @@
-import { ImageResponse } from "next/og";
+﻿import { ImageResponse } from "next/og";
 
 export const alt = "Imov.Plan - Planejador Financeiro para Entrada do Imóvel";
 export const size = { width: 1200, height: 630 };
@@ -47,7 +47,7 @@ export default function Image() {
             }}
           >
             <span>Imov</span>
-            <span style={{ color: "#C84400" }}>.Plan</span>
+            <span style={{ color: "#E8590C" }}>.Plan</span>
           </div>
         </div>
 

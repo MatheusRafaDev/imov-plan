@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
 
 @import "tailwindcss";
 
@@ -23,7 +23,7 @@
     --muted: 35 25% 92%;
     --muted-foreground: 220 12% 42%;
 
-    --accent: 19 100% 40%; /* #CC4100 / #C84400 — Laranja forte e nítido sobre fundos brancos */
+    --accent: 19 100% 40%; /* #E8590C / #E8590C — Laranja forte e nítido sobre fundos brancos */
     --accent-foreground: 38 40% 98%;
 
     --success: 145 35% 38%;

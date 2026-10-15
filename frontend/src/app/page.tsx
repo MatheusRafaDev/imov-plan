@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,7 +47,7 @@ function calcSim(valor: number, pct: number, aporte: number, cdiPct = 14.5) {
 }
 
 /* ─── inline SVG icons ────────────────────────────────────────────────────── */
-const CheckSvg = ({ color = "#B93F06" }: { color?: string }) => (
+const CheckSvg = ({ color = "#E8590C" }: { color?: string }) => (
   <svg
     aria-hidden="true"
     width="20"
@@ -72,7 +72,7 @@ const PlusMinusSvg = () => (
     height="22"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="#B93F06"
+    stroke="#E8590C"
     strokeWidth="2"
     strokeLinecap="round"
   >
@@ -99,7 +99,7 @@ function FeatureItem({
           height: 44,
           borderRadius: 12,
           background: "#FFF0E6",
-          color: "#B93F06",
+          color: "#E8590C",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -144,7 +144,7 @@ function StepCard({
             height: 52,
             borderRadius: 14,
             background: "#FFF0E6",
-            color: "#B93F06",
+            color: "#E8590C",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -286,7 +286,7 @@ export default function Index() {
           animation: hp-fade-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 360ms both;
         }
 
-        a { color: #B93F06; text-decoration: none; }
+        a { color: #E8590C; text-decoration: none; }
         a:hover { color: #8F2F03; }
         summary { list-style: none; cursor: pointer; }
         summary::-webkit-details-marker { display: none; }
@@ -298,14 +298,14 @@ export default function Index() {
         .hp-nav-link:hover { color: #1D1B19; }
         .hp-btn-primary {
           display: inline-block; padding: 11px 20px; border-radius: 12px;
-          background: #C94A08; color: #fff !important; font-weight: 600; font-size: 15px;
+          background: #E8590C; color: #fff !important; font-weight: 600; font-size: 15px;
           transition: background 0.15s, transform 0.1s;
         }
         .hp-btn-primary:hover { background: #A83A06; }
         .hp-btn-primary:active { transform: scale(0.98); }
         .hp-btn-hero {
           display: inline-block; padding: 16px 28px; border-radius: 14px;
-          background: #C94A08; color: #fff !important; font-weight: 600; font-size: 17px;
+          background: #E8590C; color: #fff !important; font-weight: 600; font-size: 17px;
           transition: background 0.15s, transform 0.1s;
         }
         .hp-btn-hero:hover { background: #A83A06; }
@@ -392,7 +392,7 @@ export default function Index() {
               padding: "7px 14px",
               borderRadius: 999,
               background: "#FFF0E6",
-              color: "#B93F06",
+              color: "#E8590C",
               fontSize: 14,
               fontWeight: 600,
             }}
@@ -583,7 +583,7 @@ export default function Index() {
                 fontFamily: "'Bricolage Grotesque',sans-serif",
                 fontWeight: 700,
                 fontSize: 30,
-                color: "#B93F06",
+                color: "#E8590C",
               }}
             >
               {sim.meses} meses
@@ -601,7 +601,7 @@ export default function Index() {
               marginTop: 22,
               padding: "15px 20px",
               borderRadius: 14,
-              background: "#C94A08",
+              background: "#E8590C",
               color: "#FFFFFF",
               fontWeight: 600,
               fontSize: 16,
@@ -673,7 +673,7 @@ export default function Index() {
       <section id="como" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px" }}>
         <Reveal>
           <div style={{ maxWidth: 640 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
               Como funciona
             </div>
             <h2
@@ -730,7 +730,7 @@ export default function Index() {
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px" }}>
           <Reveal>
             <div style={{ maxWidth: 640 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
                 Dentro do app
               </div>
               <h2
@@ -839,7 +839,7 @@ export default function Index() {
       <section id="recursos" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px" }}>
         <Reveal>
           <div style={{ maxWidth: 700 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
               Recursos
             </div>
             <h2
@@ -908,7 +908,7 @@ export default function Index() {
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 24px" }}>
         <Reveal>
           <div style={{ maxWidth: 640 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
               Para quem é
             </div>
             <h2
@@ -950,7 +950,7 @@ export default function Index() {
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 24px" }}>
         <Reveal>
           <div style={{ maxWidth: 640 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
               Comparativo
             </div>
             <h2
@@ -968,7 +968,7 @@ export default function Index() {
                 <tr style={{ textAlign: "left" }}>
                   <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }} />
                   <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }}>Planilha</th>
-                  <th scope="col" style={{ padding: "20px 28px", fontWeight: 700, color: "#B93F06", borderBottom: "1px solid #E8E3DA", background: "#FFF7F1" }}>Imov.Plan</th>
+                  <th scope="col" style={{ padding: "20px 28px", fontWeight: 700, color: "#E8590C", borderBottom: "1px solid #E8E3DA", background: "#FFF7F1" }}>Imov.Plan</th>
                 </tr>
               </thead>
               <tbody>
@@ -998,7 +998,7 @@ export default function Index() {
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <section id="faq" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px", display: "flex", flexWrap: "wrap", gap: 48 }}>
         <Reveal style={{ flex: "1 1 300px", minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
             Dúvidas frequentes
           </div>
           <h2
@@ -1073,7 +1073,6 @@ export default function Index() {
         <nav aria-label="Rodapé" style={{ display: "flex", flexWrap: "wrap", gap: "12px 28px", fontSize: 15, fontWeight: 500, alignItems: "flex-start" }}>
           <Link href="/privacidade" style={{ color: "#5E5951" }}>Política de privacidade</Link>
           <Link href="/termos" style={{ color: "#5E5951" }}>Termos de uso</Link>
-          <Link href="/contato" style={{ color: "#5E5951" }}>Contato</Link>
         </nav>
         <div style={{ flexBasis: "100%", borderTop: "1px solid #E8E3DA", paddingTop: 22, fontSize: 14, color: "#5E5951" }}>
           © {new Date().getFullYear()} Imov.Plan

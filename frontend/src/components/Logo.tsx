@@ -111,10 +111,10 @@ export function Logo({
           <span
             className={
               isInverted
-                ? "text-white"
+                ? "text-[#E8590C]"
                 : isDark || isWhite
-                ? "text-[#FF9A55]"
-                : "text-[#C94A08] dark:text-[#FF9A55]"
+                ? "text-[#E8590C]"
+                : "text-[#E8590C] dark:text-[#E8590C]"
             }
           >
             .Plan

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
@@ -21,7 +21,7 @@ export default function PrivacidadePage() {
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         body { margin: 0; background: #FBFAF7; }
-        a { color: #B93F06; text-decoration: none; }
+        a { color: #E8590C; text-decoration: none; }
         a:hover { color: #8F2F03; }
         .legal-card {
           background: #FFFFFF;
@@ -36,7 +36,7 @@ export default function PrivacidadePage() {
         }
         .hp-btn-primary {
           display: inline-block; padding: 11px 20px; border-radius: 12px;
-          background: #C94A08; color: #fff !important; font-weight: 600; font-size: 15px;
+          background: #E8590C; color: #fff !important; font-weight: 600; font-size: 15px;
           transition: background 0.15s, transform 0.1s;
         }
         .hp-btn-primary:hover { background: #A83A06; }
@@ -91,7 +91,7 @@ export default function PrivacidadePage() {
               padding: "6px 14px",
               borderRadius: 999,
               background: "#FFFFFF",
-              color: "#B93F06",
+              color: "#E8590C",
               fontSize: 13,
               fontWeight: 700,
               textTransform: "uppercase",
@@ -143,7 +143,7 @@ export default function PrivacidadePage() {
         {/* 1. Introdução */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <FileText className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -158,7 +158,7 @@ export default function PrivacidadePage() {
         {/* 2. Dados Coletados */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <Database className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -179,7 +179,7 @@ export default function PrivacidadePage() {
         {/* 3. Finalidade do Tratamento */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <CheckCircle2 className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -203,7 +203,7 @@ export default function PrivacidadePage() {
         {/* 4. Segurança e Armazenamento */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <Lock className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -218,7 +218,7 @@ export default function PrivacidadePage() {
         {/* 5. Direitos do Titular (LGPD) */}
         <section className="legal-card">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#B93F06" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
               <UserCheck className="w-5 h-5" />
             </span>
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
@@ -267,21 +267,7 @@ export default function PrivacidadePage() {
               <Mail className="w-4 h-4 text-[#E8590C]" />
               privacidade@imovplan.com.br
             </a>
-            <Link
-              href="/contato"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 18px",
-                background: "#C94A08",
-                borderRadius: 10,
-                fontWeight: 600,
-                color: "#FFFFFF",
-              }}
-            >
-              Ir para a página de Contato
-            </Link>
+
           </div>
         </section>
       </main>
@@ -303,7 +289,6 @@ export default function PrivacidadePage() {
           <nav style={{ display: "flex", gap: 24, fontSize: 14, fontWeight: 500 }}>
             <Link href="/privacidade" style={{ color: "#E8590C", fontWeight: 700 }}>Política de privacidade</Link>
             <Link href="/termos" style={{ color: "#5E5951" }}>Termos de uso</Link>
-            <Link href="/contato" style={{ color: "#5E5951" }}>Contato</Link>
           </nav>
           <div style={{ fontSize: 13, color: "#5E5951" }}>
             © {new Date().getFullYear()} Imov.Plan — Todos os direitos reservados

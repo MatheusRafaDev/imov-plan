@@ -77,6 +77,20 @@ export default function ObjetivoPage() {
   // Usa o isDraftLoading do React Query + Zustand para saber quando o backend terminou
   const isLoading = isDraftLoading;
 
+  // Lock/unlock scroll on .app-main when advanced settings are toggled
+  useEffect(() => {
+    const main = document.querySelector(".app-main") as HTMLElement | null;
+    if (!main) return;
+    if (showAdvanced) {
+      main.style.overflowY = "auto";
+    } else {
+      main.style.overflowY = "hidden";
+    }
+    return () => {
+      main.style.overflowY = "auto";
+    };
+  }, [showAdvanced]);
+
   const [form, setForm] = useState({
     nome: "Imóvel",
     valor_imovel: 0 as number | "",
@@ -212,19 +226,19 @@ export default function ObjetivoPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto space-y-4 animate-fade-in-up">
       <div className="animate-fade-in-up" style={{ animationDelay: "0ms" }}>
-        <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-2 flex items-center gap-2">
+        <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-1 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
         </p>
-        <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3 font-normal">Qual é o imóvel?</h1>
-        <p className="text-muted-foreground">Defina o valor e a entrada. Calculamos sua meta automaticamente.</p>
+        <h1 className="font-display text-2xl md:text-3xl mb-1 font-normal">Qual é o imóvel?</h1>
+        <p className="text-muted-foreground text-sm">Defina o valor e a entrada. Calculamos sua meta automaticamente.</p>
       </div>
 
-      <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
-        <div className="lg:col-span-3 space-y-6 order-2 lg:order-1 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-          <Card className="p-4 sm:p-6 md:p-8 space-y-6 shadow-soft border-border/60">
-            <div className="space-y-6">
+      <div className="grid lg:grid-cols-5 gap-4 lg:gap-6">
+        <div className="lg:col-span-3 space-y-4 order-2 lg:order-1 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+          <Card className="p-4 sm:p-5 space-y-4 shadow-soft border-border/60">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="nome" className="text-muted-foreground">Apelido do plano</Label>
                 <Input
@@ -232,11 +246,11 @@ export default function ObjetivoPage() {
                   value={form.nome}
                   placeholder="Imóvel"
                   onChange={(e) => updateForm({ nome: e.target.value })}
-                  className="text-lg py-6"
+                  className="text-base py-5"
                 />
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-6">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Valor do imóvel</Label>
                   <MoneyInput
@@ -362,28 +376,8 @@ export default function ObjetivoPage() {
                       />
                     </div>
 
-                    <div className="space-y-2.5">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-muted-foreground flex items-center gap-1">
-                          Custos Extras (ITBI/Cartório)
-                          <button
-                            type="button"
-                            onClick={() => setShowITBIInfo((o) => !o)}
-                            className="text-muted-foreground/60 hover:text-accent transition-colors"
-                            title="Ver regras do ITBI"
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </Label>
-                        <button
-                          type="button"
-                          onClick={() => updateForm({ percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
-                          className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent px-2 py-0.5 rounded-md border border-accent/20 transition-all active:scale-95"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Sugerir {itbiInfo.percentualTotal.toFixed(1)}%
-                        </button>
-                      </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Custos Extras (ITBI/Cartório)</Label>
 
                       <MoneyInput
                         variant="percent"
@@ -392,6 +386,25 @@ export default function ObjetivoPage() {
                         value={form.percentual_custos_extras}
                         onChange={(v) => updateForm({ percentual_custos_extras: Math.min(4, Number(v)) }, true)}
                       />
+
+                      <div className="flex items-center justify-between pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowITBIInfo((o) => !o)}
+                          className="flex items-center gap-1 text-xs text-muted-foreground/70 hover:text-accent transition-colors"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                          {showITBIInfo ? "Ocultar detalhes" : "Ver detalhes ITBI"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateForm({ percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-md transition-all active:scale-95"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Sugerir {itbiInfo.percentualTotal.toFixed(1)}%
+                        </button>
+                      </div>
 
                       {itbiInfo.isento && Number(form.valor_imovel) > 0 && (
                         <div className="flex items-start gap-2 bg-success/10 border border-success/20 rounded-lg p-2.5 text-[11px] text-success font-medium">
@@ -453,21 +466,21 @@ export default function ObjetivoPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-2 space-y-6 order-1 lg:order-2 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
-          <Card className="p-5 sm:p-8 bg-gradient-ink text-primary-foreground shadow-elevated border-0 relative overflow-hidden group">
+        <div className="lg:col-span-2 space-y-4 order-1 lg:order-2 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+          <Card className="p-4 sm:p-6 bg-gradient-ink text-primary-foreground shadow-elevated border-0 relative overflow-hidden group">
             <div className="absolute -right-10 -top-10 h-40 w-40 bg-accent/20 rounded-full blur-3xl group-hover:bg-accent/30 transition-colors duration-700" />
 
             <div className="relative z-10">
               <p className="text-sm uppercase tracking-widest text-primary-foreground/70 font-medium">Meta Total de Compra</p>
-              <p className="font-display text-5xl mt-2 mb-1">{brl(meta)}</p>
-              <p className="text-sm text-primary-foreground/60 mb-8">Soma da Entrada + Custos Extras</p>
+              <p className="font-display text-3xl mt-1 mb-0.5">{brl(meta)}</p>
+              <p className="text-xs text-primary-foreground/60 mb-4">Soma da Entrada + Custos Extras</p>
 
-              <div className="grid grid-cols-2 gap-4 sm:gap-6 pt-6 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
                 <div>
                   <p className="text-xs text-primary-foreground/60 mb-1 flex items-center gap-1.5">
                     <Percent className="h-3 w-3" /> Entrada ({form.percentual_entrada}%)
                   </p>
-                  <p className="font-display text-xl sm:text-2xl">{brl(entrada)}</p>
+              <p className="font-display text-xl sm:text-2xl">{brl(entrada)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-primary-foreground/60 mb-1 flex items-center gap-1.5">
@@ -479,16 +492,16 @@ export default function ObjetivoPage() {
             </div>
           </Card>
 
-          <Card className="p-5 sm:p-8 shadow-soft border-border/60">
+          <Card className="p-4 sm:p-6 shadow-soft border-border/60">
             <div className="flex items-center gap-3 mb-1">
               <div className="p-2 bg-accent/10 rounded-lg">
                 <Wallet className="h-5 w-5 text-accent" />
               </div>
               <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium">Falta Juntar</p>
             </div>
-            <p className="font-display text-4xl mt-3 text-foreground">{brl(falta)}</p>
+            <p className="font-display text-3xl mt-2 text-foreground">{brl(falta)}</p>
 
-            <div className="mt-8 space-y-5">
+            <div className="mt-4 space-y-3">
               <Stat icon={<Building2 className="h-4 w-4" />} label="Valor do Imóvel" value={brl(Number(form.valor_imovel) || 0)} />
               <div className="h-px w-full bg-border/40" />
               <Stat icon={<Calendar className="h-4 w-4" />} label="Tempo de Preparo" value={`${prazoMeses} meses`} />
@@ -499,7 +512,7 @@ export default function ObjetivoPage() {
         </div>
       </div>
 
-      <Card className="p-6 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-8">
+      <Card className="p-4 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest opacity-70">Tudo pronto?</p>
           <p className="font-display text-2xl md:text-3xl mt-1">Continue para a próxima etapa</p>
