@@ -114,7 +114,7 @@ export function Logo({
                 ? "text-white"
                 : isDark || isWhite
                 ? "text-[#FF9A55]"
-                : "text-[#C84400] dark:text-[#FF9A55]"
+                : "text-[#C94A08] dark:text-[#FF9A55]"
             }
           >
             .Plan

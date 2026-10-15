@@ -14,7 +14,7 @@ import { MonthYearInput } from "@/components/MonthYearInput";
 import { Building2, MapPin, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info, Percent, Calendar } from "lucide-react";
 import { calcularCustosITBI } from "@/utils/itbi";
 import { estados, cidadesPorEstado } from "@/utils/ibge-estados-cidades";
-import { ImovelFormSkeleton, MetaCardSkeleton, FaltaJuntarSkeleton } from "@/components/Skeleton";
+import { ImovelFormSkeleton, MetaCardSkeleton, FaltaJuntarSkeleton, ImovelPageSkeleton } from "@/components/Skeleton";
 
 // ITBI utility is now imported from @/utils/itbi
 
@@ -208,41 +208,21 @@ export default function ObjetivoPage() {
 
   // Skeleton loading state
   if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header skeleton */}
-        <div className="space-y-2">
-          <div className="h-5 w-24 animate-shimmer rounded" />
-          <div className="h-10 w-64 animate-shimmer rounded" />
-          <div className="h-5 w-80 animate-shimmer rounded" />
-        </div>
-
-        <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
-          <div className="lg:col-span-3 space-y-6">
-            <ImovelFormSkeleton />
-          </div>
-
-          <div className="lg:col-span-2 space-y-6">
-            <MetaCardSkeleton />
-            <FaltaJuntarSkeleton />
-          </div>
-        </div>
-      </div>
-    );
+    return <ImovelPageSkeleton />;
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div>
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up">
+      <div className="animate-fade-in-up" style={{ animationDelay: "0ms" }}>
         <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-2 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
         </p>
-        <h1 className="font-display text-3xl md:text-4xl lg:text-5x1 mb-3 font-normal">Qual é o imóvel?</h1>
+        <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3 font-normal">Qual é o imóvel?</h1>
         <p className="text-muted-foreground">Defina o valor e a entrada. Calculamos sua meta automaticamente.</p>
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
-        <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
+        <div className="lg:col-span-3 space-y-6 order-2 lg:order-1 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
           <Card className="p-4 sm:p-6 md:p-8 space-y-6 shadow-soft border-border/60">
             <div className="space-y-6">
               <div className="space-y-2">
@@ -324,7 +304,7 @@ export default function ObjetivoPage() {
               </button>
 
               {showAdvanced && (
-                <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
+                <div className="mt-6 animate-fade-in-up space-y-6">
                   {/* ─── Localização do Imóvel ─── */}
                   <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 space-y-4">
                     <p className="flex items-center gap-2 text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">
@@ -473,7 +453,7 @@ export default function ObjetivoPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
+        <div className="lg:col-span-2 space-y-6 order-1 lg:order-2 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
           <Card className="p-5 sm:p-8 bg-gradient-ink text-primary-foreground shadow-elevated border-0 relative overflow-hidden group">
             <div className="absolute -right-10 -top-10 h-40 w-40 bg-accent/20 rounded-full blur-3xl group-hover:bg-accent/30 transition-colors duration-700" />
 

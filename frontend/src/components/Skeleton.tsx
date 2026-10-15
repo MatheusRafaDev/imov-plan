@@ -92,10 +92,35 @@ export function ImovelFormSkeleton() {
   );
 }
 
+// Skeleton para a página de Imóvel (Etapa 1)
+export function ImovelPageSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up">
+      {/* Header skeleton */}
+      <div className="space-y-2">
+        <div className="h-5 w-24 animate-shimmer rounded" />
+        <div className="h-10 w-64 animate-shimmer rounded" />
+        <div className="h-5 w-80 animate-shimmer rounded" />
+      </div>
+
+      <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+        <div className="lg:col-span-3 space-y-6">
+          <ImovelFormSkeleton />
+        </div>
+
+        <div className="lg:col-span-2 space-y-6">
+          <MetaCardSkeleton />
+          <FaltaJuntarSkeleton />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Skeleton para a página de Pessoas
 export function PessoasPageSkeleton() {
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">
       {/* Header */}
       <div className="space-y-2">
         <div className="h-4 w-20 animate-shimmer rounded" />
@@ -153,7 +178,7 @@ export function PessoasPageSkeleton() {
 // Skeleton para a página de Planejamento (aportes extras + tabela)
 export function PlanejamentoPageSkeleton() {
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in-up">
       {/* Header */}
       <div className="space-y-2">
         <div className="h-4 w-20 animate-shimmer rounded" />
@@ -191,6 +216,73 @@ export function PlanejamentoPageSkeleton() {
           <div className="h-7 w-28 animate-shimmer rounded" />
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="h-10 w-full animate-shimmer rounded" style={{ opacity: 1 - i * 0.08 }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Skeleton para a página de Resultado (Etapa 4)
+export function ResultadoPageSkeleton() {
+  return (
+    <div className="max-w-screen-2xl w-full mx-auto space-y-6 px-4 sm:px-6 md:px-8 animate-fade-in-up">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="h-4 w-24 animate-shimmer rounded" />
+        <div className="h-10 w-72 animate-shimmer rounded" />
+        <div className="h-5 w-96 animate-shimmer rounded" />
+      </div>
+
+      {/* Summary cards skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="p-6 border border-border/50 rounded-xl bg-card space-y-3">
+            <div className="h-4 w-28 animate-shimmer rounded" />
+            <div className="h-8 w-44 animate-shimmer rounded" />
+            <div className="h-4 w-32 animate-shimmer rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Chart skeleton */}
+      <div className="p-6 border border-border/50 rounded-xl bg-card space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-6 w-44 animate-shimmer rounded" />
+          <div className="flex gap-4">
+            <div className="h-4 w-24 animate-shimmer rounded" />
+            <div className="h-4 w-24 animate-shimmer rounded" />
+          </div>
+        </div>
+        <div className="h-[280px] w-full animate-shimmer rounded-lg" />
+      </div>
+
+      {/* Financial & Participants skeleton */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="p-6 border border-border/50 rounded-xl bg-card space-y-4">
+          <div className="h-6 w-36 animate-shimmer rounded" />
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-8 w-full animate-shimmer rounded" />
+            ))}
+          </div>
+        </div>
+        <div className="p-6 border border-border/50 rounded-xl bg-card space-y-4">
+          <div className="h-6 w-36 animate-shimmer rounded" />
+          <div className="space-y-3 pt-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-14 w-full animate-shimmer rounded" />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Table skeleton */}
+      <div className="p-6 border border-border/50 rounded-xl bg-card space-y-4">
+        <div className="h-6 w-36 animate-shimmer rounded" />
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-9 w-full animate-shimmer rounded" style={{ opacity: 1 - i * 0.12 }} />
           ))}
         </div>
       </div>

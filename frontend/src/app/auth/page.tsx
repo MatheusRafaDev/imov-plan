@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
+  const searchParams = useSearchParams();
+  const [isLogin, setIsLogin] = useState(() => searchParams.get("modo") !== "cadastro");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -207,8 +208,14 @@ export default function AuthPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin-smooth text-primary" />
+      <div className="min-h-screen grid place-items-center bg-background animate-fade-in">
+        <div className="flex flex-col items-center gap-4 text-center p-6">
+          <Logo href="/" size="lg" className="animate-pulse-glow" />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+            <Loader2 className="h-4 w-4 animate-spin-smooth text-accent" />
+            <span>Carregando acesso seguro...</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -216,14 +223,35 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
       <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
-        <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
           <Logo href="/" size="md" />
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+            Início
+          </Link>
         </div>
-        <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95">
-          <h2 className="font-display text-xl sm:text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-            {isLogin ? "Acesse seu planejamento." : "Comece a planejar a entrada do seu imóvel."}
-          </p>
+
+        <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+          {!isLogin && (
+            <button
+              type="button"
+              onClick={handleToggleMode}
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-accent hover:text-accent/80 transition-colors mb-4 group cursor-pointer self-start bg-accent/10 px-3 py-1.5 rounded-lg border border-accent/20"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              <span>Voltar para o login</span>
+            </button>
+          )}
+
+          <div key={isLogin ? "login-header" : "register-header"} className="animate-fade-in">
+            <h2 className="font-display text-xl sm:text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-6">
+              {isLogin ? "Acesse seu planejamento." : "Comece a planejar a entrada do seu imóvel."}
+            </p>
+          </div>
 
           {generalError && (
             <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs sm:text-sm flex items-start gap-2 sm:gap-3 animate-fade-in">
@@ -255,7 +283,7 @@ export default function AuthPage() {
 
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {!isLogin && (
-              <>
+              <div className="space-y-3 sm:space-y-4 animate-fade-in-up">
                 {/* Nome */}
                 <div className="space-y-1.5">
                   <Label htmlFor="name" className="text-xs sm:text-sm">Seu nome</Label>
@@ -301,7 +329,7 @@ export default function AuthPage() {
                     </p>
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* Email */}
@@ -364,7 +392,7 @@ export default function AuthPage() {
 
             {/* Confirmar Senha */}
             {!isLogin && (
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 animate-fade-in-up">
                 <Label htmlFor="confirmPassword" className="text-xs sm:text-sm">Confirmar Senha</Label>
                 <div className="relative">
                   <Input
@@ -398,7 +426,7 @@ export default function AuthPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full mt-4 h-10 sm:h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-sm sm:text-base" disabled={loading}>
+            <Button type="submit" className="w-full mt-4 h-10 sm:h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-sm sm:text-base cursor-pointer" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin-smooth" />
@@ -420,15 +448,17 @@ export default function AuthPage() {
             </div>
           )}
           <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm">
-            <button type="button" onClick={handleToggleMode} className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+            <button type="button" onClick={handleToggleMode} className="text-muted-foreground hover:text-foreground transition-colors font-medium cursor-pointer">
               {isLogin ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
             </button>
           </div>
         </Card>
       </div>
-      <div className="hidden lg:flex flex-col justify-center items-center p-8 lg:p-12 bg-gradient-ink text-primary-foreground relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-center items-center p-8 lg:p-12 bg-gradient-ink text-primary-foreground relative overflow-hidden animate-fade-in">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
-        <div className="relative z-10 max-w-md text-center space-y-4">
+        <div className="absolute -right-20 -top-20 w-80 h-80 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 max-w-md text-center space-y-4 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
           <Logo variant="dark" size="lg" className="mx-auto mb-4" />
           <h2 className="font-display text-3xl sm:text-4xl leading-tight font-semibold">A chave do seu imóvel mais perto do que você imagina.</h2>
           <p className="text-primary-foreground/70 text-sm sm:text-base">O Imov.Plan ajuda você a organizar a vida financeira para realizar o sonho do imóvel próprio, de forma simples e visual.</p>

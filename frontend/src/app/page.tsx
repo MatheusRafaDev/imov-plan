@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import { faqItems } from "@/lib/seo";
@@ -171,6 +171,52 @@ function StepCard({
   );
 }
 
+function Reveal({
+  children,
+  className = "",
+  style = {},
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? "translateY(0)" : "translateY(24px)",
+        transition: `opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, transform 0.65s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 /* ─── page component ──────────────────────────────────────────────────────── */
 export default function Index() {
   const { user, loading } = useAuth();
@@ -205,8 +251,41 @@ export default function Index() {
       {/* Google Fonts */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap');
+        html { scroll-behavior: smooth; }
         * { box-sizing: border-box; }
         body { margin: 0; background: #FBFAF7; }
+        section[id] { scroll-margin-top: 96px; }
+
+        @keyframes hp-fade-in-up {
+          from { opacity: 0; transform: translateY(22px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes hp-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .hp-anim-hero-badge {
+          animation: hp-fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .hp-anim-hero-h1 {
+          animation: hp-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+        }
+        .hp-anim-hero-desc {
+          animation: hp-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
+        }
+        .hp-anim-hero-cta {
+          animation: hp-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
+        }
+        .hp-anim-hero-checks {
+          animation: hp-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
+        }
+        .hp-anim-hero-sim {
+          animation: hp-fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
+        }
+        .hp-anim-features-strip {
+          animation: hp-fade-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 360ms both;
+        }
+
         a { color: #B93F06; text-decoration: none; }
         a:hover { color: #8F2F03; }
         summary { list-style: none; cursor: pointer; }
@@ -282,7 +361,7 @@ export default function Index() {
             ) : (
               <>
                 <Link href="/auth" style={{ padding: "10px 16px", color: "#1D1B19", fontWeight: 600, fontSize: 15 }}>Entrar</Link>
-                <Link href="/auth" className="hp-btn-primary">Começar meu plano</Link>
+                <Link href="/auth?modo=cadastro" className="hp-btn-primary">Criar conta</Link>
               </>
             )}
           </div>
@@ -305,6 +384,7 @@ export default function Index() {
         {/* left col */}
         <div style={{ flex: "1 1 480px", minWidth: 0 }}>
           <div
+            className="hp-anim-hero-badge"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -322,7 +402,7 @@ export default function Index() {
           </div>
 
           <h1
-            className="hp-hero-h1"
+            className="hp-hero-h1 hp-anim-hero-h1"
             style={{
               margin: "22px 0 0",
               fontFamily: "'Bricolage Grotesque', sans-serif",
@@ -336,17 +416,18 @@ export default function Index() {
             <span style={{ color: "#E8590C" }}>aqui.</span>
           </h1>
 
-          <p style={{ margin: "24px 0 0", fontSize: 20, lineHeight: 1.55, color: "#5E5951", maxWidth: 540 }}>
+          <p className="hp-anim-hero-desc" style={{ margin: "24px 0 0", fontSize: 20, lineHeight: 1.55, color: "#5E5951", maxWidth: 540 }}>
             Informe o valor do imóvel e descubra quanto guardar por mês, com CDI,
             imposto de renda regressivo e aportes extras como 13º e FGTS.
           </p>
 
-          <div style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 14 }}>
+          <div className="hp-anim-hero-cta" style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 14 }}>
             <Link href={authHref} className="hp-btn-hero">Começar meu plano</Link>
             <a href="#como" className="hp-btn-ghost">Ver como funciona</a>
           </div>
 
           <ul
+            className="hp-anim-hero-checks"
             style={{
               margin: "36px 0 0",
               padding: 0,
@@ -370,6 +451,7 @@ export default function Index() {
 
         {/* right col — simulator */}
         <div
+          className="hp-anim-hero-sim"
           style={{
             flex: "1 1 400px",
             maxWidth: 500,
@@ -536,7 +618,7 @@ export default function Index() {
       </section>
 
       {/* ── FEATURES STRIP ───────────────────────────────────────────────── */}
-      <section style={{ borderTop: "1px solid #E8E3DA", borderBottom: "1px solid #E8E3DA", background: "#FFFFFF" }}>
+      <section className="hp-anim-features-strip" style={{ borderTop: "1px solid #E8E3DA", borderBottom: "1px solid #E8E3DA", background: "#FFFFFF" }}>
         <div
           style={{
             maxWidth: 1200,
@@ -589,234 +671,254 @@ export default function Index() {
 
       {/* ── COMO FUNCIONA ────────────────────────────────────────────────── */}
       <section id="como" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px" }}>
-        <div style={{ maxWidth: 640 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
-            Como funciona
+        <Reveal>
+          <div style={{ maxWidth: 640 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+              Como funciona
+            </div>
+            <h2
+              className="hp-section-h2"
+              style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+            >
+              Do valor do imóvel ao plano, em três passos
+            </h2>
           </div>
-          <h2
-            className="hp-section-h2"
-            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
-          >
-            Do valor do imóvel ao plano, em três passos
-          </h2>
-        </div>
+        </Reveal>
         <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", gap: 24 }}>
-          <StepCard
-            num="01"
-            title="Defina o imóvel"
-            text="Valor, percentual de entrada, prazo e custos extras como ITBI, escritura e registro."
-            icon={
-              <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
-              </svg>
-            }
-          />
-          <StepCard
-            num="02"
-            title="Cadastre as pessoas"
-            text="Renda principal e complementar, mais os gastos de cada um. Sugerimos o aporte ideal."
-            icon={
-              <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-                <circle cx="17" cy="9" r="2.6" /><path d="M17 14.2c2.4.3 4 2.4 4 4.8" />
-              </svg>
-            }
-          />
-          <StepCard
-            num="03"
-            title="Simule e acompanhe"
-            text="Juros compostos, IR regressivo e aportes extras, tudo em um gráfico que se atualiza na hora."
-            icon={
-              <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19V5" /><path d="M4 19h16" /><path d="M7 15l4-4 3 3 5-6" />
-              </svg>
-            }
-          />
+          <Reveal delay={0} style={{ flex: "1 1 300px", minWidth: 0, display: "flex" }}>
+            <StepCard
+              num="01"
+              title="Defina o imóvel"
+              text="Valor, percentual de entrada, prazo e custos extras como ITBI, escritura e registro."
+              icon={
+                <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
+                </svg>
+              }
+            />
+          </Reveal>
+          <Reveal delay={120} style={{ flex: "1 1 300px", minWidth: 0, display: "flex" }}>
+            <StepCard
+              num="02"
+              title="Cadastre as pessoas"
+              text="Renda principal e complementar, mais os gastos de cada um. Sugerimos o aporte ideal."
+              icon={
+                <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+                  <circle cx="17" cy="9" r="2.6" /><path d="M17 14.2c2.4.3 4 2.4 4 4.8" />
+                </svg>
+              }
+            />
+          </Reveal>
+          <Reveal delay={240} style={{ flex: "1 1 300px", minWidth: 0, display: "flex" }}>
+            <StepCard
+              num="03"
+              title="Simule e acompanhe"
+              text="Juros compostos, IR regressivo e aportes extras, tudo em um gráfico que se atualiza na hora."
+              icon={
+                <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19V5" /><path d="M4 19h16" /><path d="M7 15l4-4 3 3 5-6" />
+                </svg>
+              }
+            />
+          </Reveal>
         </div>
       </section>
 
       {/* ── APP PREVIEW ──────────────────────────────────────────────────── */}
       <section style={{ marginTop: 80, background: "#FFF0E6" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px" }}>
-          <div style={{ maxWidth: 640 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
-              Dentro do app
+          <Reveal>
+            <div style={{ maxWidth: 640 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+                Dentro do app
+              </div>
+              <h2
+                className="hp-section-h2"
+                style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+              >
+                Veja o seu plano ganhar forma
+              </h2>
+              <p style={{ margin: "18px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951" }}>
+                Acompanhe a evolução da entrada mês a mês e compare o custo das duas tabelas de
+                financiamento antes de decidir.
+              </p>
             </div>
-            <h2
-              className="hp-section-h2"
-              style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
-            >
-              Veja o seu plano ganhar forma
-            </h2>
-            <p style={{ margin: "18px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951" }}>
-              Acompanhe a evolução da entrada mês a mês e compare o custo das duas tabelas de
-              financiamento antes de decidir.
-            </p>
-          </div>
+          </Reveal>
 
           <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "stretch" }}>
             {/* chart card */}
-            <div
-              style={{
-                flex: "2 1 560px",
-                minWidth: 0,
-                background: "#FFFFFF",
-                border: "1px solid #E8E3DA",
-                borderRadius: 28,
-                padding: "28px 28px 22px",
-              }}
-            >
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
-                <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>Evolução até a meta</h3>
-                <span style={{ fontSize: 13, color: "#5E5951" }}>Exemplo ilustrativo</span>
-              </div>
-              <svg
-                role="img"
-                aria-label="Gráfico ilustrativo: o valor acumulado sobe mês a mês, com saltos nos meses de aportes extras, até alcançar a linha da meta"
-                viewBox="0 0 640 300"
-                style={{ width: "100%", height: "auto", marginTop: 18, display: "block" }}
+            <Reveal delay={80} style={{ flex: "2 1 560px", minWidth: 0, display: "flex" }}>
+              <div
+                style={{
+                  width: "100%",
+                  background: "#FFFFFF",
+                  border: "1px solid #E8E3DA",
+                  borderRadius: 28,
+                  padding: "28px 28px 22px",
+                }}
               >
-                <line x1="40" y1="250" x2="620" y2="250" stroke="#E8E3DA" strokeWidth="1.5" />
-                <line x1="40" y1="190" x2="620" y2="190" stroke="#F2EEE7" strokeWidth="1" />
-                <line x1="40" y1="130" x2="620" y2="130" stroke="#F2EEE7" strokeWidth="1" />
-                <line x1="40" y1="70" x2="620" y2="70" stroke="#1D1B19" strokeWidth="1.5" strokeDasharray="6 6" />
-                <text x="44" y="58" fontSize="13" fontWeight="600" fill="#1D1B19" fontFamily="Figtree, sans-serif">Meta: entrada + custos</text>
-                <path d="M40 250 L139 236 L238 214 L238 192 L337 168 L436 136 L436 112 L535 88 L585 70 L585 250 L40 250 Z" fill="#E8590C" fillOpacity="0.12" />
-                <polyline points="40,250 139,236 238,214 238,192 337,168 436,136 436,112 535,88 585,70" fill="none" stroke="#E8590C" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="238" cy="203" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
-                <circle cx="436" cy="124" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
-                <circle cx="585" cy="70" r="7" fill="#E8590C" />
-                <text x="248" y="236" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">13º salário</text>
-                <text x="446" y="156" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">Saque do FGTS</text>
-                <text x="40" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Hoje</text>
-                <text x="572" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Meta</text>
-              </svg>
-              <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.5, color: "#5E5951" }}>
-                Cada aporte extra encurta o caminho. O gráfico mostra o efeito na hora.
-              </p>
-            </div>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
+                  <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>Evolução até a meta</h3>
+                  <span style={{ fontSize: 13, color: "#5E5951" }}>Exemplo ilustrativo</span>
+                </div>
+                <svg
+                  role="img"
+                  aria-label="Gráfico ilustrativo: o valor acumulado sobe mês a mês, com saltos nos meses de aportes extras, até alcançar a linha da meta"
+                  viewBox="0 0 640 300"
+                  style={{ width: "100%", height: "auto", marginTop: 18, display: "block" }}
+                >
+                  <line x1="40" y1="250" x2="620" y2="250" stroke="#E8E3DA" strokeWidth="1.5" />
+                  <line x1="40" y1="190" x2="620" y2="190" stroke="#F2EEE7" strokeWidth="1" />
+                  <line x1="40" y1="130" x2="620" y2="130" stroke="#F2EEE7" strokeWidth="1" />
+                  <line x1="40" y1="70" x2="620" y2="70" stroke="#1D1B19" strokeWidth="1.5" strokeDasharray="6 6" />
+                  <text x="44" y="58" fontSize="13" fontWeight="600" fill="#1D1B19" fontFamily="Figtree, sans-serif">Meta: entrada + custos</text>
+                  <path d="M40 250 L139 236 L238 214 L238 192 L337 168 L436 136 L436 112 L535 88 L585 70 L585 250 L40 250 Z" fill="#E8590C" fillOpacity="0.12" />
+                  <polyline points="40,250 139,236 238,214 238,192 337,168 436,136 436,112 535,88 585,70" fill="none" stroke="#E8590C" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="238" cy="203" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
+                  <circle cx="436" cy="124" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
+                  <circle cx="585" cy="70" r="7" fill="#E8590C" />
+                  <text x="248" y="236" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">13º salário</text>
+                  <text x="446" y="156" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">Saque do FGTS</text>
+                  <text x="40" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Hoje</text>
+                  <text x="572" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Meta</text>
+                </svg>
+                <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.5, color: "#5E5951" }}>
+                  Cada aporte extra encurta o caminho. O gráfico mostra o efeito na hora.
+                </p>
+              </div>
+            </Reveal>
 
             {/* SAC vs PRICE card */}
-            <div
-              style={{
-                flex: "1 1 320px",
-                minWidth: 0,
-                background: "#FFFFFF",
-                border: "1px solid #E8E3DA",
-                borderRadius: 28,
-                padding: 28,
-                display: "flex",
-                flexDirection: "column",
-                gap: 22,
-              }}
-            >
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
-                <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>SAC vs PRICE</h3>
-                <span style={{ fontSize: 13, color: "#5E5951" }}>Ilustrativo</span>
-              </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
-                  <span>SAC</span>
-                  <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas caem</span>
+            <Reveal delay={180} style={{ flex: "1 1 320px", minWidth: 0, display: "flex" }}>
+              <div
+                style={{
+                  width: "100%",
+                  background: "#FFFFFF",
+                  border: "1px solid #E8E3DA",
+                  borderRadius: 28,
+                  padding: 28,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 22,
+                }}
+              >
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
+                  <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>SAC vs PRICE</h3>
+                  <span style={{ fontSize: 13, color: "#5E5951" }}>Ilustrativo</span>
                 </div>
-                <svg role="img" aria-label="Ilustração: parcelas do SAC começam altas e diminuem ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
-                  <path d="M6 12 L274 76 L274 86 L6 86 Z" fill="#E8590C" fillOpacity="0.14" />
-                  <polyline points="6,12 274,76" fill="none" stroke="#E8590C" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Menor custo total de juros.</div>
-              </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
-                  <span>PRICE</span>
-                  <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas fixas</span>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
+                    <span>SAC</span>
+                    <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas caem</span>
+                  </div>
+                  <svg role="img" aria-label="Ilustração: parcelas do SAC começam altas e diminuem ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
+                    <path d="M6 12 L274 76 L274 86 L6 86 Z" fill="#E8590C" fillOpacity="0.14" />
+                    <polyline points="6,12 274,76" fill="none" stroke="#E8590C" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Menor custo total de juros.</div>
                 </div>
-                <svg role="img" aria-label="Ilustração: parcelas da PRICE ficam constantes ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
-                  <path d="M6 38 L274 38 L274 86 L6 86 Z" fill="#1D1B19" fillOpacity="0.08" />
-                  <polyline points="6,38 274,38" fill="none" stroke="#1D1B19" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Parcela inicial menor.</div>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
+                    <span>PRICE</span>
+                    <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas fixas</span>
+                  </div>
+                  <svg role="img" aria-label="Ilustração: parcelas da PRICE ficam constantes ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
+                    <path d="M6 38 L274 38 L274 86 L6 86 Z" fill="#1D1B19" fillOpacity="0.08" />
+                    <polyline points="6,38 274,38" fill="none" stroke="#1D1B19" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Parcela inicial menor.</div>
+                </div>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
 
       {/* ── RECURSOS ─────────────────────────────────────────────────────── */}
       <section id="recursos" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px" }}>
-        <div style={{ maxWidth: 700 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
-            Recursos
+        <Reveal>
+          <div style={{ maxWidth: 700 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+              Recursos
+            </div>
+            <h2
+              className="hp-section-h2"
+              style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+            >
+              Tudo para decidir com segurança
+            </h2>
+            <p style={{ margin: "18px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951" }}>
+              Comprar um imóvel tem muitas variáveis. Cuidamos da matemática para você focar no objetivo.
+            </p>
           </div>
-          <h2
-            className="hp-section-h2"
-            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
-          >
-            Tudo para decidir com segurança
-          </h2>
-          <p style={{ margin: "18px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951" }}>
-            Comprar um imóvel tem muitas variáveis. Cuidamos da matemática para você focar no objetivo.
-          </p>
-        </div>
+        </Reveal>
         <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", gap: 24 }}>
           {/* dark card */}
-          <div style={{ flex: "1 1 440px", minWidth: 0, background: "#1D1B19", color: "#FBFAF7", borderRadius: 28, padding: 40 }}>
-            <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 28 }}>
-              Cálculo igual ao dos bancos
-            </h3>
-            <p style={{ margin: "14px 0 0", fontSize: 17, lineHeight: 1.6, color: "#C9C2B7" }}>
-              O motor segue as regras do sistema bancário, sem arredondar no meio do caminho, para as
-              projeções ficarem próximas do que o mercado pratica.
-            </p>
-            <ul style={{ margin: "28px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14, fontSize: 16 }}>
-              {[
-                "Amortização constante (SAC) e prestações fixas (PRICE)",
-                "Imposto de renda regressivo sobre os investimentos",
-                "Rendimento composto pelo CDI",
-              ].map((item) => (
-                <li key={item} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <CheckSvg color="#FF8A4C" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Reveal delay={80} style={{ flex: "1 1 440px", minWidth: 0, display: "flex" }}>
+            <div style={{ width: "100%", background: "#1D1B19", color: "#FBFAF7", borderRadius: 28, padding: 40 }}>
+              <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 28 }}>
+                Cálculo igual ao dos bancos
+              </h3>
+              <p style={{ margin: "14px 0 0", fontSize: 17, lineHeight: 1.6, color: "#C9C2B7" }}>
+                O motor segue as regras do sistema bancário, sem arredondar no meio do caminho, para as
+                projeções ficarem próximas do que o mercado pratica.
+              </p>
+              <ul style={{ margin: "28px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14, fontSize: 16 }}>
+                {[
+                  "Amortização constante (SAC) e prestações fixas (PRICE)",
+                  "Imposto de renda regressivo sobre os investimentos",
+                  "Rendimento composto pelo CDI",
+                ].map((item) => (
+                  <li key={item} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <CheckSvg color="#FF8A4C" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
           {/* light card */}
-          <div style={{ flex: "1 1 440px", minWidth: 0, background: "#FFFFFF", border: "1px solid #E8E3DA", borderRadius: 28, padding: 40 }}>
-            <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 28 }}>
-              Um plano que acompanha a vida
-            </h3>
-            <p style={{ margin: "14px 0 0", fontSize: 17, lineHeight: 1.6, color: "#5E5951" }}>
-              Adicione 13º, férias, PLR ou saque do FGTS e veja na hora quanto o prazo diminui.
-            </p>
-            <ul style={{ margin: "28px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14, fontSize: 16 }}>
-              {[
-                "Aportes irregulares, como bônus e PLR",
-                "Composição de renda familiar",
-                "Rascunho salvo na nuvem automaticamente",
-              ].map((item) => (
-                <li key={item} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <CheckSvg />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Reveal delay={180} style={{ flex: "1 1 440px", minWidth: 0, display: "flex" }}>
+            <div style={{ width: "100%", background: "#FFFFFF", border: "1px solid #E8E3DA", borderRadius: 28, padding: 40 }}>
+              <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 28 }}>
+                Um plano que acompanha a vida
+              </h3>
+              <p style={{ margin: "14px 0 0", fontSize: 17, lineHeight: 1.6, color: "#5E5951" }}>
+                Adicione 13º, férias, PLR ou saque do FGTS e veja na hora quanto o prazo diminui.
+              </p>
+              <ul style={{ margin: "28px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14, fontSize: 16 }}>
+                {[
+                  "Aportes irregulares, como bônus e PLR",
+                  "Composição de renda familiar",
+                  "Rascunho salvo na nuvem automaticamente",
+                ].map((item) => (
+                  <li key={item} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <CheckSvg />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ── PARA QUEM É ──────────────────────────────────────────────────── */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 24px" }}>
-        <div style={{ maxWidth: 640 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
-            Para quem é
+        <Reveal>
+          <div style={{ maxWidth: 640 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+              Para quem é
+            </div>
+            <h2
+              className="hp-section-h2"
+              style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+            >
+              Feito para quem está juntando a entrada
+            </h2>
           </div>
-          <h2
-            className="hp-section-h2"
-            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
-          >
-            Feito para quem está juntando a entrada
-          </h2>
-        </div>
+        </Reveal>
         <div style={{ marginTop: 44, display: "flex", flexWrap: "wrap", gap: 24 }}>
           {[
             {
@@ -831,65 +933,71 @@ export default function Index() {
               title: "Quem conta com FGTS e 13º",
               text: "Inclua os aportes do ano e veja o impacto direto no prazo até a meta.",
             },
-          ].map((item) => (
-            <div key={item.title} style={{ flex: "1 1 300px", minWidth: 0, borderTop: "3px solid #E8590C", paddingTop: 22 }}>
-              <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 24 }}>
-                {item.title}
-              </h3>
-              <p style={{ margin: "10px 0 0", fontSize: 16, lineHeight: 1.6, color: "#5E5951" }}>{item.text}</p>
-            </div>
+          ].map((item, idx) => (
+            <Reveal key={item.title} delay={idx * 100} style={{ flex: "1 1 300px", minWidth: 0, display: "flex" }}>
+              <div style={{ width: "100%", borderTop: "3px solid #E8590C", paddingTop: 22 }}>
+                <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 24 }}>
+                  {item.title}
+                </h3>
+                <p style={{ margin: "10px 0 0", fontSize: 16, lineHeight: 1.6, color: "#5E5951" }}>{item.text}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* ── COMPARATIVO ──────────────────────────────────────────────────── */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 24px" }}>
-        <div style={{ maxWidth: 640 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
-            Comparativo
+        <Reveal>
+          <div style={{ maxWidth: 640 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+              Comparativo
+            </div>
+            <h2
+              className="hp-section-h2"
+              style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+            >
+              Por que não só uma planilha?
+            </h2>
           </div>
-          <h2
-            className="hp-section-h2"
-            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
-          >
-            Por que não só uma planilha?
-          </h2>
-        </div>
-        <div style={{ marginTop: 40, overflowX: "auto", background: "#FFFFFF", border: "1px solid #E8E3DA", borderRadius: 24 }}>
-          <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse", fontSize: 16 }}>
-            <thead>
-              <tr style={{ textAlign: "left" }}>
-                <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }} />
-                <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }}>Planilha</th>
-                <th scope="col" style={{ padding: "20px 28px", fontWeight: 700, color: "#B93F06", borderBottom: "1px solid #E8E3DA", background: "#FFF7F1" }}>Imov.Plan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["Juros compostos e IR regressivo", "Você monta as fórmulas", "Já incluído"],
-                ["SAC e PRICE lado a lado", "Duas tabelas separadas", "Comparação pronta"],
-                ["Aportes extras (13º, FGTS)", "Ajuste manual", "Recalcula na hora"],
-                ["Renda de mais de uma pessoa", "Difícil de manter", "Composição integrada"],
-                ["Acesso de qualquer lugar", "Depende do arquivo", "Rascunho na nuvem"],
-              ].map(([feature, planilha, imovplan], i, arr) => {
-                const isLast = i === arr.length - 1;
-                const rowBorder = isLast ? undefined : "1px solid #F2EEE7";
-                return (
-                  <tr key={feature}>
-                    <th scope="row" style={{ padding: "18px 28px", textAlign: "left", fontWeight: 600, borderBottom: rowBorder }}>{feature}</th>
-                    <td style={{ padding: "18px 28px", color: "#5E5951", borderBottom: rowBorder }}>{planilha}</td>
-                    <td style={{ padding: "18px 28px", fontWeight: 600, borderBottom: rowBorder, background: "#FFF7F1" }}>{imovplan}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        </Reveal>
+        <Reveal delay={100}>
+          <div style={{ marginTop: 40, overflowX: "auto", background: "#FFFFFF", border: "1px solid #E8E3DA", borderRadius: 24 }}>
+            <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse", fontSize: 16 }}>
+              <thead>
+                <tr style={{ textAlign: "left" }}>
+                  <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }} />
+                  <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }}>Planilha</th>
+                  <th scope="col" style={{ padding: "20px 28px", fontWeight: 700, color: "#B93F06", borderBottom: "1px solid #E8E3DA", background: "#FFF7F1" }}>Imov.Plan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Juros compostos e IR regressivo", "Você monta as fórmulas", "Já incluído"],
+                  ["SAC e PRICE lado a lado", "Duas tabelas separadas", "Comparação pronta"],
+                  ["Aportes extras (13º, FGTS)", "Ajuste manual", "Recalcula na hora"],
+                  ["Renda de mais de uma pessoa", "Difícil de manter", "Composição integrada"],
+                  ["Acesso de qualquer lugar", "Depende do arquivo", "Rascunho na nuvem"],
+                ].map(([feature, planilha, imovplan], i, arr) => {
+                  const isLast = i === arr.length - 1;
+                  const rowBorder = isLast ? undefined : "1px solid #F2EEE7";
+                  return (
+                    <tr key={feature}>
+                      <th scope="row" style={{ padding: "18px 28px", textAlign: "left", fontWeight: 600, borderBottom: rowBorder }}>{feature}</th>
+                      <td style={{ padding: "18px 28px", color: "#5E5951", borderBottom: rowBorder }}>{planilha}</td>
+                      <td style={{ padding: "18px 28px", fontWeight: 600, borderBottom: rowBorder, background: "#FFF7F1" }}>{imovplan}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Reveal>
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <section id="faq" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px", display: "flex", flexWrap: "wrap", gap: 48 }}>
-        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+        <Reveal style={{ flex: "1 1 300px", minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
             Dúvidas frequentes
           </div>
@@ -902,8 +1010,8 @@ export default function Index() {
           <p style={{ margin: "18px 0 0", fontSize: 17, lineHeight: 1.6, color: "#5E5951" }}>
             Respostas rápidas antes de dar o primeiro passo rumo ao seu imóvel.
           </p>
-        </div>
-        <div style={{ flex: "2 1 540px", minWidth: 0, display: "flex", flexDirection: "column" }}>
+        </Reveal>
+        <Reveal delay={100} style={{ flex: "2 1 540px", minWidth: 0, display: "flex", flexDirection: "column" }}>
           {faqItems.map((item, idx) => (
             <details key={idx} className="hp-faq-details">
               <summary style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, fontWeight: 600, fontSize: 18 }}>
@@ -913,32 +1021,34 @@ export default function Index() {
               <p style={{ margin: "14px 0 0", fontSize: 16, lineHeight: 1.65, color: "#5E5951" }}>{item.answer}</p>
             </details>
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* ── CTA FINAL ────────────────────────────────────────────────────── */}
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 0" }}>
-        <div style={{ background: "#1D1B19", borderRadius: 32, padding: "72px 48px", textAlign: "center", color: "#FBFAF7" }}>
-          <h2
-            style={{
-              margin: "0 auto",
-              maxWidth: 640,
-              fontFamily: "'Bricolage Grotesque',sans-serif",
-              fontWeight: 700,
-              fontSize: 48,
-              lineHeight: 1.08,
-              letterSpacing: "-0.015em",
-            }}
-          >
-            Pronto para acelerar o seu sonho?
-          </h2>
-          <p style={{ margin: "18px auto 0", maxWidth: 520, fontSize: 18, lineHeight: 1.6, color: "#C9C2B7" }}>
-            Crie seu plano em poucos minutos e saiba exatamente quanto guardar por mês.
-          </p>
-          <Link href={authHref} className="hp-cta-big" style={{ marginTop: 32, display: "inline-block" }}>
-            Iniciar simulador agora
-          </Link>
-        </div>
+        <Reveal>
+          <div style={{ background: "#1D1B19", borderRadius: 32, padding: "72px 48px", textAlign: "center", color: "#FBFAF7" }}>
+            <h2
+              style={{
+                margin: "0 auto",
+                maxWidth: 640,
+                fontFamily: "'Bricolage Grotesque',sans-serif",
+                fontWeight: 700,
+                fontSize: 48,
+                lineHeight: 1.08,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Pronto para acelerar o seu sonho?
+            </h2>
+            <p style={{ margin: "18px auto 0", maxWidth: 520, fontSize: 18, lineHeight: 1.6, color: "#C9C2B7" }}>
+              Crie seu plano em poucos minutos e saiba exatamente quanto guardar por mês.
+            </p>
+            <Link href={authHref} className="hp-cta-big" style={{ marginTop: 32, display: "inline-block" }}>
+              Iniciar simulador agora
+            </Link>
+          </div>
+        </Reveal>
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
@@ -961,9 +1071,9 @@ export default function Index() {
           </p>
         </div>
         <nav aria-label="Rodapé" style={{ display: "flex", flexWrap: "wrap", gap: "12px 28px", fontSize: 15, fontWeight: 500, alignItems: "flex-start" }}>
-          <a href="#" style={{ color: "#5E5951" }}>Política de privacidade</a>
-          <a href="#" style={{ color: "#5E5951" }}>Termos de uso</a>
-          <a href="#" style={{ color: "#5E5951" }}>Contato</a>
+          <Link href="/privacidade" style={{ color: "#5E5951" }}>Política de privacidade</Link>
+          <Link href="/termos" style={{ color: "#5E5951" }}>Termos de uso</Link>
+          <Link href="/contato" style={{ color: "#5E5951" }}>Contato</Link>
         </nav>
         <div style={{ flexBasis: "100%", borderTop: "1px solid #E8E3DA", paddingTop: 22, fontSize: 14, color: "#5E5951" }}>
           © {new Date().getFullYear()} Imov.Plan

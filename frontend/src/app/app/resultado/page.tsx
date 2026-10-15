@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import React from "react";
-import { usePlanLogic } from "@/hooks/usePlanLogic";;
+import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { Card } from "@/components/ui/card";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ChartSkeleton } from "@/components/ui/ChartSkeleton";
 import { TableSkeleton } from "@/components/ui/TableSkeleton";
+import { ResultadoPageSkeleton } from "@/components/Skeleton";
 import { SummaryCards } from "./components/SummaryCards";
 import { ParticipantsCard } from "./components/ParticipantsCard";
 import { FinancialSummaryCard } from "./components/FinancialSummaryCard";
@@ -39,6 +40,7 @@ export default function ResultadoPage() {
     mesesConcluidos, 
     backendData,
     calculating,
+    isDraftLoading,
     progressoAtual
   } = usePlanLogic();
 
@@ -75,70 +77,79 @@ export default function ResultadoPage() {
   const participantes = extractParticipantesSummary(backendData || null);
   const chartData = extractChartData(backendData || null);
 
-  // Se não tem nenhum dado, mostrar estado vazio ou skeleton se estiver calculando
-  if (!summary || !backendData) {
-    if (calculating) {
-      return (
-        <div className="max-w-screen-2xl w-full mx-auto space-y-4 px-4 sm:px-6 md:px-8">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Calculando...</p>
-            <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-semibold text-foreground tracking-tight">Seu plano em números</h1>
-          </div>
-          <div className="flex items-center justify-center py-6">
-            <LoadingSpinner size="md" text="Gerando a sua simulação de evolução patrimonial..." />
-          </div>
-          <ChartSkeleton />
-          <TableSkeleton />
-        </div>
-      );
-    }
+  const isLoading = isDraftLoading || (calculating && !summary);
 
+  // Se estiver carregando ou calculando sem dados prévios, exibir o skeleton animado
+  if (isLoading) {
+    return <ResultadoPageSkeleton />;
+  }
+
+  // Se não tem nenhum dado e não está mais carregando, mostrar estado vazio
+  if (!summary || !backendData) {
     return (
-      <div className="max-w-screen-2xl w-full mx-auto space-y-7 px-4 md:px-6">
+      <div className="max-w-screen-2xl w-full mx-auto space-y-7 px-4 md:px-6 animate-fade-in-up">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
-          <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-semibold text-foreground tracking-tight">Seu plano em números</h1>
-          <p className="text-muted-foreground text-sm">Preencha as etapas anteriores para ver o resultado ou aguarde o cálculo.</p>
+          <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">
+            Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}
+          </p>
+          <h1 className="font-display text-3xl md:text-4xl mb-1.5 font-semibold text-foreground tracking-tight">
+            Seu plano em números
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Preencha as etapas anteriores para ver o resultado ou aguarde o cálculo.
+          </p>
         </div>
         <Card className="p-8 text-center border-border/50">
           <p className="text-muted-foreground">Complete as etapas 1 a 3 primeiro.</p>
-          <Button onClick={() => router.push("/app/imovel")} className="mt-4">Ir para Etapa 1</Button>
+          <Button onClick={() => router.push("/app/imovel")} className="mt-4">
+            Ir para Etapa 1
+          </Button>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-screen-2xl w-full mx-auto space-y-4">
+    <div className="max-w-screen-2xl w-full mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between px-4 sm:px-6 md:px-8">
+      <div className="flex items-start justify-between px-4 sm:px-6 md:px-8 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}</p>
-          <h1 className="font-display text-3xl md:text-4xl mb-1 font-normal text-foreground tracking-tight">Seu plano em números</h1>
-          <p className="text-muted-foreground text-sm">O resultado de tudo o que você preencheu nas etapas anteriores.</p>
+          <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">
+            Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}
+          </p>
+          <h1 className="font-display text-3xl md:text-4xl mb-1 font-normal text-foreground tracking-tight">
+            Seu plano em números
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            O resultado de tudo o que você preencheu nas etapas anteriores.
+          </p>
         </div>
       </div>
 
       {calculating && (
-        <div className="flex items-center justify-center py-6">
-          <LoadingSpinner size="md" text="Carregando simulação salva..." />
+        <div className="flex items-center justify-center py-4 animate-fade-in">
+          <LoadingSpinner size="md" text="Atualizando simulação..." />
         </div>
       )}
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both px-4 sm:px-6 md:px-8">
+      {/* Summary Cards */}
+      <div className="animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "100ms" }}>
         <SummaryCards summary={summary} progressoAtual={progressoAtual} />
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both px-4 sm:px-6 md:px-8">
+      {/* Investment Chart */}
+      <div className="animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "150ms" }}>
         <InvestmentChart data={chartData} summary={summary} />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both px-4 sm:px-6 md:px-8">
+      {/* Financial Summary & Participants */}
+      <div className="grid lg:grid-cols-2 gap-4 animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "200ms" }}>
         <FinancialSummaryCard summary={summary} />
         <ParticipantsCard participantes={participantes} />
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+      {/* Table */}
+      <div className="animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "250ms" }}>
         {calculating ? <TableSkeleton /> : <TabelaMesAMes />}
       </div>
     </div>
