@@ -6,7 +6,8 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { ArrowRight, Building2, Calculator, LineChart, Sparkles, Shield, TrendingUp, CheckCircle, Clock, Zap } from "lucide-react";
+import { ArrowRight, Building2, Calculator, LineChart, Sparkles, Shield, TrendingUp, CheckCircle, Clock, Zap, HelpCircle } from "lucide-react";
+import { faqItems } from "@/lib/seo";
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -128,6 +129,38 @@ export default function Index() {
               <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Rascunho salvo em nuvem automaticamente</li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      {/* FAQ Section — Otimizado para SEO & Google Rich Snippets */}
+      <section className="container py-16 md:py-24 border-t border-border/60">
+        <div className="max-w-3xl mx-auto text-center mb-12">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-accent bg-accent/10 px-3 py-1.5 rounded-full mb-3">
+            <HelpCircle className="h-3.5 w-3.5" /> Dúvidas Frequentes
+          </span>
+          <h2 className="font-display text-3xl sm:text-4xl mb-4">Perguntas frequentes sobre entrada e financiamento</h2>
+          <p className="text-muted-foreground text-base sm:text-lg">
+            Respostas claras para você tirar as principais dúvidas antes de dar o primeiro passo rumo ao seu imóvel.
+          </p>
+        </div>
+
+        <div className="max-w-4xl mx-auto space-y-4">
+          {faqItems.map((item, idx) => (
+            <details
+              key={idx}
+              className="group rounded-2xl bg-card border border-border/60 p-6 shadow-soft transition-all open:ring-1 open:ring-accent/40"
+            >
+              <summary className="font-display text-lg sm:text-xl font-semibold cursor-pointer list-none flex items-center justify-between gap-4 select-none">
+                <span>{item.question}</span>
+                <span className="text-accent transition-transform group-open:rotate-180 shrink-0 text-xl font-bold">
+                  ↓
+                </span>
+              </summary>
+              <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed border-t border-border/40 pt-4">
+                {item.answer}
+              </p>
+            </details>
+          ))}
         </div>
       </section>
 

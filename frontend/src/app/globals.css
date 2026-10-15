@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
 
 @import "tailwindcss";
 
 @layer base {
   :root {
-    /* Editorial / cozy-home palette: warm cream, deep ink, official #E8590C orange accent */
+    /* Editorial / cozy-home palette: warm cream, deep ink, laranja vibrante de alto contraste */
     --background: 38 40% 96%;
     --foreground: 220 25% 12%;
 
@@ -23,7 +23,7 @@
     --muted: 35 25% 92%;
     --muted-foreground: 220 12% 42%;
 
-    --accent: 21 89% 48%; /* #E8590C */
+    --accent: 19 100% 40%; /* #CC4100 / #C84400 — Laranja forte e nítido sobre fundos brancos */
     --accent-foreground: 38 40% 98%;
 
     --success: 145 35% 38%;
@@ -37,17 +37,17 @@
 
     --border: 32 20% 84%;
     --input: 32 20% 84%;
-    --ring: 21 89% 48%;
+    --ring: 19 100% 40%;
 
     --radius: 0.875rem;
 
-    --gradient-warm: linear-gradient(135deg, hsl(21 89% 48%) 0%, hsl(28 95% 56%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(19 100% 40%) 0%, hsl(28 95% 52%) 100%);
     --gradient-ink: linear-gradient(160deg, hsl(220 35% 14%) 0%, hsl(220 30% 22%) 100%);
     --gradient-cream: linear-gradient(180deg, hsl(38 50% 97%) 0%, hsl(35 35% 92%) 100%);
 
     --shadow-soft: 0 1px 2px hsl(220 25% 12% / 0.04), 0 8px 24px -8px hsl(220 25% 12% / 0.08);
     --shadow-elevated: 0 2px 4px hsl(220 25% 12% / 0.06), 0 24px 48px -16px hsl(220 25% 12% / 0.16);
-    --shadow-glow: 0 0 0 1px hsl(21 89% 48% / 0.2), 0 12px 32px -8px hsl(21 89% 48% / 0.35);
+    --shadow-glow: 0 0 0 1px hsl(19 100% 40% / 0.25), 0 12px 32px -8px hsl(19 100% 40% / 0.38);
 
     --sidebar-background: 38 40% 96%;
     --sidebar-foreground: 220 25% 12%;
@@ -56,7 +56,7 @@
     --sidebar-accent: 32 35% 90%;
     --sidebar-accent-foreground: 220 25% 12%;
     --sidebar-border: 32 20% 84%;
-    --sidebar-ring: 21 89% 48%;
+    --sidebar-ring: 19 100% 40%;
   }
 
   .dark {
@@ -95,26 +95,26 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-feature-settings: "ss01", "cv11";
   }
   h1 {
-    font-family: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
   }
   h2 {
-    font-family: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 600;
     letter-spacing: -0.015em;
   }
   h3 {
-    font-family: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 600;
     letter-spacing: -0.01em;
   }
   .font-display {
-    font-family: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     letter-spacing: -0.015em;
   }
   b, strong {
@@ -124,8 +124,8 @@
 }
 
 @theme {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
