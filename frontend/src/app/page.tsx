@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -325,43 +325,44 @@ export default function Index() {
         .hp-cta-big:active { transform: scale(0.98); }
         .hp-faq-details { border-top: 1px solid #E8E3DA; padding: 24px 0; }
         .hp-faq-details:last-child { border-bottom: 1px solid #E8E3DA; }
+        .hp-header-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 16px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
         @media (max-width: 767px) {
+          .hp-header-inner { padding: 12px 16px !important; }
           .hp-hero-grid { flex-direction: column !important; }
-          .hp-hero-h1 { font-size: 42px !important; }
-          .hp-section-h2 { font-size: 32px !important; }
+          .hp-hero-h1 { font-size: 36px !important; }
+          .hp-section-h2 { font-size: 28px !important; }
           .hp-nav-links { display: none !important; }
+          .hp-btn-header-login { padding: 8px 10px !important; font-size: 14px !important; }
+          .hp-btn-header-signup { padding: 8px 14px !important; font-size: 14px !important; border-radius: 10px !important; }
         }
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────── */}
       <header style={{ borderBottom: "1px solid #E8E3DA", background: "#FBFAF7", position: "sticky", top: 0, zIndex: 30 }}>
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: "0 auto",
-            padding: "18px 32px",
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
+        <div className="hp-header-inner">
           <Logo href="/" size="md" />
 
-          <nav aria-label="Principal" className="hp-nav-links" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 28 }}>
+          <nav aria-label="Principal" className="hp-nav-links" style={{ display: "flex", alignItems: "center", gap: 28 }}>
             <a href="#como" className="hp-nav-link">Como funciona</a>
             <a href="#recursos" className="hp-nav-link">Recursos</a>
             <a href="#faq" className="hp-nav-link">Perguntas</a>
           </nav>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             {user ? (
-              <Link href="/app/imovel" className="hp-btn-primary">Abrir meu plano</Link>
+              <Link href="/app/imovel" className="hp-btn-primary hp-btn-header-signup">Abrir meu plano</Link>
             ) : (
               <>
-                <Link href="/auth" style={{ padding: "10px 16px", color: "#1D1B19", fontWeight: 600, fontSize: 15 }}>Entrar</Link>
-                <Link href="/auth?modo=cadastro" className="hp-btn-primary">Criar conta</Link>
+                <Link href="/auth" className="hp-btn-header-login" style={{ padding: "10px 14px", color: "#1D1B19", fontWeight: 600, fontSize: 15, whiteSpace: "nowrap" }}>Entrar</Link>
+                <Link href="/auth?modo=cadastro" className="hp-btn-primary hp-btn-header-signup" style={{ whiteSpace: "nowrap" }}>Criar conta</Link>
               </>
             )}
           </div>

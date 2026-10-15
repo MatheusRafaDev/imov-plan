@@ -32,7 +32,7 @@ export default function AuthPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && isAuthenticated() && user) {
-      router.push("/app/imovel");
+      router.replace("/app/imovel");
     }
   }, [isAuthenticated, user, router, loading]);
 
@@ -51,7 +51,7 @@ export default function AuthPage() {
               const result = await loginWithGoogle(response.credential);
               if (result.success) {
                 toast.success("Login realizado com sucesso!");
-                router.push("/app/imovel");
+                router.replace("/app/imovel");
               } else {
                 setGeneralError(result.error || "Erro ao fazer login com Google");
               }
@@ -168,7 +168,7 @@ export default function AuthPage() {
 
     if (result.success) {
       toast.success(isLogin ? "Bem-vindo de volta!" : "Conta criada com sucesso!");
-      router.push(isLogin ? "/app/imovel" : "/app/onboarding");
+      router.replace(isLogin ? "/app/imovel" : "/app/onboarding");
     } else {
       const errorMsg = result.error || "";
       const newBackendErrors: { [key: string]: string } = {};

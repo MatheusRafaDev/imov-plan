@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import Cookies from "js-cookie";
 
 import { AppShell } from "@/components/AppShell";
 
@@ -11,8 +12,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Só redireciona se terminou o loading e nem no state nem nos cookies há usuário
     if (!loading && !isAuthenticated()) {
-      router.push("/auth");
+      const hasCookie = Cookies.get("user");
+      if (!hasCookie) {
+        router.replace("/auth");
+      }
     }
   }, [isAuthenticated, loading, router]);
 

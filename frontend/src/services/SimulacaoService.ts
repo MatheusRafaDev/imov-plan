@@ -64,10 +64,13 @@ export class SimulacaoService {
       const response = await api.get(`/simulacao/${planoId}/ultima`);
       return response.data || null;
     } catch (error: any) {
-      if (error?.response?.status === 404) {
+      const status = error?.response?.status;
+      // 404/204: sem simulação salva para o plano ainda
+      // 503/502/504: serviço temporariamente indisponível
+      if (status === 404 || status === 204 || status === 503 || status === 502 || status === 504) {
         return null;
       }
-      throw error;
+      return null;
     }
   }
 

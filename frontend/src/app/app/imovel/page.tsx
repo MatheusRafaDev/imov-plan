@@ -77,19 +77,13 @@ export default function ObjetivoPage() {
   // Usa o isDraftLoading do React Query + Zustand para saber quando o backend terminou
   const isLoading = isDraftLoading;
 
-  // Lock/unlock scroll on .app-main when advanced settings are toggled
+  // Garante scroll livre no container principal
   useEffect(() => {
     const main = document.querySelector(".app-main") as HTMLElement | null;
-    if (!main) return;
-    if (showAdvanced) {
+    if (main) {
       main.style.overflowY = "auto";
-    } else {
-      main.style.overflowY = "hidden";
     }
-    return () => {
-      main.style.overflowY = "auto";
-    };
-  }, [showAdvanced]);
+  }, []);
 
   const [form, setForm] = useState({
     nome: "Imóvel",
@@ -226,7 +220,7 @@ export default function ObjetivoPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto flex flex-col justify-between min-h-[calc(100dvh-5.5rem)] lg:min-h-[calc(100dvh-6.5rem)] space-y-4 animate-fade-in-up">
       <div className="animate-fade-in-up" style={{ animationDelay: "0ms" }}>
         <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-1 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
@@ -512,7 +506,7 @@ export default function ObjetivoPage() {
         </div>
       </div>
 
-      <Card className="p-4 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="mt-auto p-4 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest opacity-70">Tudo pronto?</p>
           <p className="font-display text-2xl md:text-3xl mt-1">Continue para a próxima etapa</p>

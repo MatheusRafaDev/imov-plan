@@ -168,36 +168,42 @@ export default function PlanosPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in-up pb-12">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up pb-12 w-full">
+      <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border/40 pb-6">
         <div>
-          <p className="text-xs uppercase tracking-widest text-accent font-medium mb-2 flex items-center gap-2">
+          <p className="text-xs uppercase tracking-widest text-accent font-medium mb-1.5 flex items-center gap-2">
             <Building2 className="h-4 w-4" /> Comparador Inteligente
           </p>
-          <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-3">Seus imóveis planejados</h1>
-          <p className="text-muted-foreground text-lg">Compare a viabilidade financeira e o tempo de cada plano.</p>
+          <h1 className="font-display text-3xl md:text-4xl lg:text-5xl mb-2 font-normal">Seus imóveis planejados</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Compare a viabilidade financeira, rentabilidade e o tempo de cada plano para a conquista da chave.</p>
         </div>
-        <Button onClick={handleCriarNovo} disabled={criando} className="bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow gap-2">
+        <Button onClick={handleCriarNovo} disabled={criando} className="bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow gap-2 h-11 px-5">
           {criando ? <Loader2 className="h-4 w-4 animate-spin-smooth" /> : <Plus className="h-4 w-4" />}
           Novo plano
         </Button>
       </div>
 
       {carregandoPlanos && planos.length === 0 ? (
-        <div className="grid place-items-center py-16 text-muted-foreground gap-2">
-          <Loader2 className="h-6 w-6 animate-spin-smooth" />
-          Carregando seus planos...
+        <div className="grid place-items-center py-24 text-muted-foreground gap-3">
+          <Loader2 className="h-8 w-8 animate-spin-smooth text-accent" />
+          <p className="text-sm">Carregando seus planos...</p>
         </div>
       ) : planos.length === 0 ? (
-        <Card className="p-6 sm:p-10 text-center space-y-4 shadow-soft border-border/60 max-w-2xl mx-auto">
-          <p className="text-muted-foreground">Você ainda não tem nenhum plano salvo.</p>
+        <Card className="p-8 sm:p-12 text-center space-y-4 shadow-soft border-border/60 max-w-2xl mx-auto my-8">
+          <div className="mx-auto w-12 h-12 rounded-full bg-accent/10 grid place-items-center text-accent">
+            <Building2 className="h-6 w-6" />
+          </div>
+          <h3 className="font-display text-2xl">Nenhum plano cadastrado ainda</h3>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Crie seu primeiro imóvel planejado para simular entradas, aportes mensais e tempo até a entrega das chaves.
+          </p>
           <Button onClick={handleCriarNovo} disabled={criando} className="bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow gap-2">
             {criando ? <Loader2 className="h-4 w-4 animate-spin-smooth" /> : <Plus className="h-4 w-4" />}
             Criar meu primeiro plano
           </Button>
         </Card>
       ) : (
-        <div className={`grid gap-6 ${temMaisDeUmPlano ? "lg:grid-cols-2" : "grid-cols-1 max-w-3xl mx-auto"}`}>
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {planos.map((plano) => {
             const isAtivo = plano.id === planoId;
             const sim = simulacoes[plano.id];

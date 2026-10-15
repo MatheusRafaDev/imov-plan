@@ -103,20 +103,52 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </nav>
 
           <div className="flex items-center gap-1 lg:gap-2">
-            <Link href="/app/perfil">
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground max-w-[160px]">
-                <User className="h-4 w-4" />
-                <span className="truncate">{user?.name?.split(" ")[0] || "Minha conta"}</span>
-              </Button>
-            </Link>
+            {(() => {
+              const isPerfilActive = pathname?.startsWith("/app/perfil");
+              return (
+                <Link href="/app/perfil">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`relative gap-2 max-w-[160px] transition-colors ${
+                      isPerfilActive
+                        ? "text-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <User className={`h-4 w-4 ${isPerfilActive ? "text-accent" : ""}`} />
+                    <span className="truncate">{user?.name?.split(" ")[0] || "Minha conta"}</span>
+                    {isPerfilActive && (
+                      <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-accent" />
+                    )}
+                  </Button>
+                </Link>
+              );
+            })()}
 
-            <Link href="/app/planos">
-              <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 text-muted-foreground hover:text-foreground">
-                <LayoutGrid className="h-4 w-4" />
-                <span className="hidden sm:inline">Meus Planos</span>
-                <span className="inline sm:hidden text-xs">Planos</span>
-              </Button>
-            </Link>
+            {(() => {
+              const isPlanosActive = pathname?.startsWith("/app/planos");
+              return (
+                <Link href="/app/planos">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`relative gap-1 sm:gap-2 transition-colors ${
+                      isPlanosActive
+                        ? "text-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <LayoutGrid className={`h-4 w-4 ${isPlanosActive ? "text-accent" : ""}`} />
+                    <span className="hidden sm:inline">Meus Planos</span>
+                    <span className="inline sm:hidden text-xs">Planos</span>
+                    {isPlanosActive && (
+                      <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-accent" />
+                    )}
+                  </Button>
+                </Link>
+              );
+            })()}
 
             <Button type="button" variant="ghost" size="sm" onClick={() => void logout()} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />
