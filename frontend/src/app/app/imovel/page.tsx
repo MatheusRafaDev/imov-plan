@@ -506,7 +506,7 @@ export default function ObjetivoPage() {
         </div>
       </div>
 
-      <Card className="mt-auto p-4 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="mt-auto p-5 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest opacity-70">Tudo pronto?</p>
           <p className="font-display text-2xl md:text-3xl mt-1">Continue para a próxima etapa</p>
