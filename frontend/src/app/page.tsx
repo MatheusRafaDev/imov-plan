@@ -467,18 +467,7 @@ export default function Index() {
             <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>
               Simule agora
             </h2>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#5E5951",
-                background: "#F2EEE7",
-                padding: "5px 10px",
-                borderRadius: 999,
-              }}
-            >
-              Sem cadastro
-            </span>
+
           </div>
 
           {/* slider: valor */}
@@ -594,22 +583,6 @@ export default function Index() {
             <span>Rendimento do CDI ≈ {sim.rendFmt}</span>
           </div>
 
-          <Link
-            href={authHref}
-            style={{
-              display: "block",
-              marginTop: 22,
-              padding: "15px 20px",
-              borderRadius: 14,
-              background: "#E8590C",
-              color: "#FFFFFF",
-              fontWeight: 600,
-              fontSize: 16,
-              textAlign: "center",
-            }}
-          >
-            Salvar e refinar meu plano
-          </Link>
           <p style={{ margin: "14px 0 0", fontSize: 12.5, lineHeight: 1.5, color: "#5E5951" }}>
             Estimativa didática com CDI de {sim.cdiFmt}% a.a. e IR de 15%. Não constitui
             recomendação de investimento.
@@ -1024,32 +997,6 @@ export default function Index() {
         </Reveal>
       </section>
 
-      {/* ── CTA FINAL ────────────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 0" }}>
-        <Reveal>
-          <div style={{ background: "#1D1B19", borderRadius: 32, padding: "72px 48px", textAlign: "center", color: "#FBFAF7" }}>
-            <h2
-              style={{
-                margin: "0 auto",
-                maxWidth: 640,
-                fontFamily: "'Bricolage Grotesque',sans-serif",
-                fontWeight: 700,
-                fontSize: 48,
-                lineHeight: 1.08,
-                letterSpacing: "-0.015em",
-              }}
-            >
-              Pronto para acelerar o seu sonho?
-            </h2>
-            <p style={{ margin: "18px auto 0", maxWidth: 520, fontSize: 18, lineHeight: 1.6, color: "#C9C2B7" }}>
-              Crie seu plano em poucos minutos e saiba exatamente quanto guardar por mês.
-            </p>
-            <Link href={authHref} className="hp-cta-big" style={{ marginTop: 32, display: "inline-block" }}>
-              Iniciar simulador agora
-            </Link>
-          </div>
-        </Reveal>
-      </section>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
       <footer

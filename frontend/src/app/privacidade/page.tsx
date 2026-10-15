@@ -236,40 +236,6 @@ export default function PrivacidadePage() {
           </ul>
         </section>
 
-        {/* 6. Dúvidas e Contato */}
-        <section className="legal-card" style={{ background: "#FFF7F1", borderColor: "#FFD8BF" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#E8590C", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFFFF" }}>
-              <Mail className="w-5 h-5" />
-            </span>
-            <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
-              6. Encarregado de Dados e Contato
-            </h2>
-          </div>
-          <p style={{ margin: "0 0 16px", fontSize: 16, lineHeight: 1.7, color: "#5E5951" }}>
-            Se você tiver dúvidas sobre esta Política de Privacidade ou desejar exercer qualquer um dos seus direitos da LGPD, entre em contato diretamente com nossa equipe:
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-            <a
-              href="mailto:privacidade@imovplan.com.br"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 18px",
-                background: "#FFFFFF",
-                border: "1px solid #E8E3DA",
-                borderRadius: 10,
-                fontWeight: 600,
-                color: "#1D1B19",
-              }}
-            >
-              <Mail className="w-4 h-4 text-[#E8590C]" />
-              privacidade@imovplan.com.br
-            </a>
-
-          </div>
-        </section>
       </main>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}

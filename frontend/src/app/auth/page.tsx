@@ -235,16 +235,6 @@ export default function AuthPage() {
         </div>
 
         <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-          {!isLogin && (
-            <button
-              type="button"
-              onClick={handleToggleMode}
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-accent hover:text-accent/80 transition-colors mb-4 group cursor-pointer self-start bg-accent/10 px-3 py-1.5 rounded-lg border border-accent/20"
-            >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              <span>Voltar para o login</span>
-            </button>
-          )}
 
           <div key={isLogin ? "login-header" : "register-header"} className="animate-fade-in">
             <h2 className="font-display text-xl sm:text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
