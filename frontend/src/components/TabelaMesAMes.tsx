@@ -107,8 +107,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       "Extras",
       "Aporte Mes",
       ...(showFinancials ? [
-        "Rendimento Bruto", 
-        "IR", 
         "Rendimento Liquido", 
         ...pessoas.map(p => `Acum. ${p.nome.split(" ")[0]}`),
         "Acumulado"
@@ -128,8 +126,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
         r.aportesExtras.toFixed(2),
         (r.aporteRegular + r.aportesExtras).toFixed(2),
         ...(showFinancials ? [
-          r.rendimentoBruto.toFixed(2),
-          r.imposto.toFixed(2),
           r.rendimentoLiquido.toFixed(2),
           ...pessoas.map(p => (r.saldoPorPessoa[p.id] || 0).toFixed(2)),
           r.saldoAcumulado.toFixed(2)
@@ -331,8 +327,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 <Th right>Aporte Mês</Th>
                 {showFinancials && (
                   <>
-                    <Th right>Rend. Bruto</Th>
-                    <Th right>IR</Th>
                     <Th right>Rend. Líq.</Th>
                     {pessoas.map(p => (
                       <Th key={`acc-${p.id}`} right>Acum. {p.nome.split(" ")[0]}</Th>
@@ -453,14 +447,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
 
                     {showFinancials && (
                       <>
-                        <Td right className="text-muted-foreground">
-                          {brl(r.rendimentoBruto)}
-                        </Td>
-
-                        <Td right className="text-muted-foreground/70">
-                          {brl(r.imposto)}
-                        </Td>
-
                         <Td right className="text-success font-medium">
                           {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
                         </Td>
@@ -518,8 +504,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                 <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.totalMes)}</td>
                 {showFinancials && (
                   <>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-80">{brl(totals.rendBruto)}</td>
-                    <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none opacity-60">{brl(totals.ir)}</td>
                     <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none text-success">
                       {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                     </td>
