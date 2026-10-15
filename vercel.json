@@ -1,19 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "builds": [
+  "services": {
+    "web": {
+      "root": "frontend"
+    },
+    "api": {
+      "root": "backend",
+      "runtime": "container",
+      "entrypoint": "Dockerfile.vercel"
+    }
+  },
+  "rewrites": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/next"
+      "source": "/api/:path*",
+      "destination": "/api"
     },
     {
-      "src": "backend/Dockerfile.vercel",
-      "use": "@vercel/docker"
+      "source": "/((?!api/).*)",
+      "destination": "/web"
     }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/backend/$1" },
-    { "src": "/(.*)", "dest": "/frontend/$1" }
   ],
   "env": {
     "NEXT_PUBLIC_API_URL": "https://{{project-name}}.vercel.app"
