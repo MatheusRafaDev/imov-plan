@@ -3,10 +3,12 @@
   "version": 2,
   "services": {
     "web": {
-      "root": "frontend"
+      "root": "frontend",
+      "framework": "nextjs"
     },
     "api": {
       "root": "backend",
+      "framework": "container",
       "runtime": "container",
       "entrypoint": "Dockerfile.vercel"
     }
