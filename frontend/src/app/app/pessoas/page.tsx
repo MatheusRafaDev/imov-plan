@@ -370,7 +370,7 @@ export default function PessoasPage() {
                         const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais;
                         setForm(prev => ({ ...prev, aporte_mensal: Math.max(0, novaSobra) }));
                       }}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${!form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${!form.usar_gastos_detalhados ? 'bg-background font-medium' : 'text-muted-foreground'}`}
                     >
                       Valor Direto
                     </button>
@@ -384,7 +384,7 @@ export default function PessoasPage() {
                         const novaSobra = (Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0) - gastosTotais;
                         setForm(prev => ({ ...prev, aporte_mensal: Math.max(0, novaSobra) }));
                       }}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${form.usar_gastos_detalhados ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground'}`}
+                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${form.usar_gastos_detalhados ? 'bg-background font-medium' : 'text-muted-foreground'}`}
                     >
                       Detalhado
                     </button>

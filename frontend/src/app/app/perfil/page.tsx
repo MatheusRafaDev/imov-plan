@@ -126,7 +126,7 @@ export default function PerfilPage() {
       {/* Cabecalho */}
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left">
         <div className="h-20 w-20 rounded-2xl bg-gradient-warm shadow-glow flex items-center justify-center shrink-0">
-          <span className="font-display text-2xl font-medium text-white shadow-sm">
+          <span className="font-display text-2xl font-medium text-white">
             {getInitials(name || "U")}
           </span>
         </div>
