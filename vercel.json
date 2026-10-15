@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
   "services": {
     "web": {
       "root": "frontend",
@@ -8,22 +7,22 @@
     },
     "api": {
       "root": "backend",
-      "framework": "container",
-      "runtime": "container",
       "entrypoint": "Dockerfile.vercel"
     }
   },
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "/api/:match*"
+      "destination": {
+        "service": "api",
+        "path": "/api/:match*"
+      }
     },
     {
       "source": "/:path*",
-      "destination": "/web/:path*"
+      "destination": {
+        "service": "web"
+      }
     }
-  ],
-  "env": {
-    "NEXT_PUBLIC_API_URL": "https://{{project-name}}.vercel.app"
-  }
+  ]
 }
