@@ -2,13 +2,176 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { ArrowRight, Building2, Calculator, LineChart, Sparkles, Shield, TrendingUp, CheckCircle, Clock, Zap, HelpCircle } from "lucide-react";
 import { faqItems } from "@/lib/seo";
 
+/* ─── helpers ─────────────────────────────────────────────────────────────── */
+const brl = (v: number) =>
+  v.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  });
+
+function calcSim(valor: number, pct: number, aporte: number, cdiPct = 14.5) {
+  const cdi = cdiPct / 100;
+  const ir = 0.15;
+  const entrada = (valor * pct) / 100;
+  const custos = valor * 0.05;
+  const meta = entrada + custos;
+  const im = Math.pow(1 + cdi, 1 / 12) - 1;
+  const il = im * (1 - ir);
+  const meses = Math.max(
+    1,
+    Math.ceil(Math.log(1 + (meta * il) / aporte) / Math.log(1 + il))
+  );
+  const rend = Math.max(
+    0,
+    (aporte * (Math.pow(1 + il, meses) - 1)) / il - aporte * meses
+  );
+  return {
+    entrada,
+    custos,
+    meta,
+    meses,
+    anos: (meses / 12).toFixed(1).replace(".", ","),
+    rendFmt: brl(rend),
+    entradaFmt: brl(entrada),
+    custosFmt: brl(custos),
+    entradaW: ((entrada / meta) * 100).toFixed(1) + "%",
+    custosW: ((custos / meta) * 100).toFixed(1) + "%",
+    cdiFmt: cdiPct.toFixed(1).replace(".", ","),
+  };
+}
+
+/* ─── inline SVG icons ────────────────────────────────────────────────────── */
+const CheckSvg = ({ color = "#B93F06" }: { color?: string }) => (
+  <svg
+    aria-hidden="true"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0, marginTop: 2 }}
+  >
+    <path d="M5 12.5l4.5 4.5L19 7" />
+  </svg>
+);
+
+const PlusMinusSvg = () => (
+  <svg
+    aria-hidden="true"
+    style={{ flexShrink: 0 }}
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#B93F06"
+    strokeWidth="2"
+    strokeLinecap="round"
+  >
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+/* ─── small sub-components ────────────────────────────────────────────────── */
+function FeatureItem({
+  icon,
+  title,
+  sub,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <div style={{ flex: "1 1 220px", display: "flex", alignItems: "center", gap: 14 }}>
+      <span
+        style={{
+          flexShrink: 0,
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          background: "#FFF0E6",
+          color: "#B93F06",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {icon}
+      </span>
+      <div>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>{title}</div>
+        <div style={{ fontSize: 14, color: "#5E5951" }}>{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function StepCard({
+  icon,
+  num,
+  title,
+  text,
+}: {
+  icon: React.ReactNode;
+  num: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div
+      style={{
+        flex: "1 1 300px",
+        minWidth: 0,
+        background: "#FFFFFF",
+        border: "1px solid #E8E3DA",
+        borderRadius: 24,
+        padding: 32,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            background: "#FFF0E6",
+            color: "#B93F06",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {icon}
+        </span>
+        <span
+          style={{
+            fontFamily: "'Bricolage Grotesque',sans-serif",
+            fontWeight: 700,
+            fontSize: 44,
+            color: "#E8E3DA",
+          }}
+        >
+          {num}
+        </span>
+      </div>
+      <h3 style={{ margin: "24px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 24 }}>
+        {title}
+      </h3>
+      <p style={{ margin: "10px 0 0", fontSize: 16, lineHeight: 1.6, color: "#5E5951" }}>{text}</p>
+    </div>
+  );
+}
+
+/* ─── page component ──────────────────────────────────────────────────────── */
 export default function Index() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -18,178 +181,794 @@ export default function Index() {
       router.push("/app/imovel");
     }
   }, [loading, user, router]);
+
+  /* simulator state */
+  const [valor, setValor] = useState(500000);
+  const [pct, setPct] = useState(20);
+  const [aporte, setAporte] = useState(3200);
+
+  const sim = calcSim(valor, pct, aporte);
+
+  const authHref = user ? "/app/imovel" : "/auth";
+
   return (
-    <div className="min-h-screen bg-gradient-cream">
-      <header className="border-b border-border/60 bg-white/95 dark:bg-card/95 backdrop-blur-md sticky top-0 z-30 shadow-xs">
-        <div className="container flex items-center justify-between py-4 sm:py-5">
+    <div
+      style={{
+        width: "100%",
+        background: "#FBFAF7",
+        fontFamily: "'Figtree', system-ui, sans-serif",
+        color: "#1D1B19",
+        margin: 0,
+        padding: 0,
+      }}
+    >
+      {/* Google Fonts */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #FBFAF7; }
+        a { color: #B93F06; text-decoration: none; }
+        a:hover { color: #8F2F03; }
+        summary { list-style: none; cursor: pointer; }
+        summary::-webkit-details-marker { display: none; }
+        a:focus-visible, summary:focus-visible, input:focus-visible {
+          outline: 3px solid #1D1B19; outline-offset: 3px;
+        }
+        input[type=range] { accent-color: #E8590C; }
+        .hp-nav-link { color: #5E5951; font-weight: 500; font-size: 15px; transition: color 0.15s; }
+        .hp-nav-link:hover { color: #1D1B19; }
+        .hp-btn-primary {
+          display: inline-block; padding: 11px 20px; border-radius: 12px;
+          background: #C94A08; color: #fff !important; font-weight: 600; font-size: 15px;
+          transition: background 0.15s, transform 0.1s;
+        }
+        .hp-btn-primary:hover { background: #A83A06; }
+        .hp-btn-primary:active { transform: scale(0.98); }
+        .hp-btn-hero {
+          display: inline-block; padding: 16px 28px; border-radius: 14px;
+          background: #C94A08; color: #fff !important; font-weight: 600; font-size: 17px;
+          transition: background 0.15s, transform 0.1s;
+        }
+        .hp-btn-hero:hover { background: #A83A06; }
+        .hp-btn-hero:active { transform: scale(0.98); }
+        .hp-btn-ghost {
+          display: inline-block; padding: 15px 26px; border-radius: 14px;
+          border: 1.5px solid #CFC8BC; color: #1D1B19 !important; font-weight: 600; font-size: 17px;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .hp-btn-ghost:hover { border-color: #B0A898; background: #F2EEE7; }
+        .hp-cta-big {
+          display: inline-block; padding: 18px 34px; border-radius: 14px;
+          background: #E8590C; color: #1D1B19 !important; font-weight: 700; font-size: 18px;
+          transition: background 0.15s, transform 0.1s;
+        }
+        .hp-cta-big:hover { background: #CC4800; }
+        .hp-cta-big:active { transform: scale(0.98); }
+        .hp-faq-details { border-top: 1px solid #E8E3DA; padding: 24px 0; }
+        .hp-faq-details:last-child { border-bottom: 1px solid #E8E3DA; }
+        @media (max-width: 767px) {
+          .hp-hero-grid { flex-direction: column !important; }
+          .hp-hero-h1 { font-size: 42px !important; }
+          .hp-section-h2 { font-size: 32px !important; }
+          .hp-nav-links { display: none !important; }
+        }
+      `}</style>
+
+      {/* ── HEADER ───────────────────────────────────────────────────────── */}
+      <header style={{ borderBottom: "1px solid #E8E3DA", background: "#FBFAF7", position: "sticky", top: 0, zIndex: 30 }}>
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: "0 auto",
+            padding: "18px 32px",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
           <Logo href="/" size="md" />
-          {user ? (
-            <Button asChild variant="secondary"><Link href="/app/imovel">Abrir meu plano</Link></Button>
-          ) : (
-            <Button asChild variant="ghost"><Link href="/auth">Entrar</Link></Button>
-          )}
+
+          <nav aria-label="Principal" className="hp-nav-links" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 28 }}>
+            <a href="#como" className="hp-nav-link">Como funciona</a>
+            <a href="#recursos" className="hp-nav-link">Recursos</a>
+            <a href="#faq" className="hp-nav-link">Perguntas</a>
+          </nav>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {user ? (
+              <Link href="/app/imovel" className="hp-btn-primary">Abrir meu plano</Link>
+            ) : (
+              <>
+                <Link href="/auth" style={{ padding: "10px 16px", color: "#1D1B19", fontWeight: 600, fontSize: 15 }}>Entrar</Link>
+                <Link href="/auth" className="hp-btn-primary">Começar meu plano</Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container grid lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
-        <div className="space-y-6 animate-fade-in-up">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-accent bg-accent/10 px-3 py-1.5 rounded-full">
-            <Sparkles className="h-3 w-3" /> Planejamento para a entrada
-          </span>
-          <h1 className="font-display text-5xl md:text-7xl leading-[1.05]">
-            O imóvel dos seus sonhos começa <em className="text-accent not-italic">aqui</em>.
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <section
+        className="hp-hero-grid"
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "72px 32px 80px",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 64,
+        }}
+      >
+        {/* left col */}
+        <div style={{ flex: "1 1 480px", minWidth: 0 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 14px",
+              borderRadius: 999,
+              background: "#FFF0E6",
+              color: "#B93F06",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#E8590C" }} />
+            Planejamento para a entrada
+          </div>
+
+          <h1
+            className="hp-hero-h1"
+            style={{
+              margin: "22px 0 0",
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              fontWeight: 700,
+              fontSize: 68,
+              lineHeight: 1.02,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            O imóvel dos seus sonhos começa{" "}
+            <span style={{ color: "#E8590C" }}>aqui.</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-lg">
-            Informe o valor do imóvel e descubra exatamente quanto você precisa guardar por mês com simulação de CDI, IR regressivo e aportes extras.
+
+          <p style={{ margin: "24px 0 0", fontSize: 20, lineHeight: 1.55, color: "#5E5951", maxWidth: 540 }}>
+            Informe o valor do imóvel e descubra quanto guardar por mês, com CDI,
+            imposto de renda regressivo e aportes extras como 13º e FGTS.
           </p>
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Button asChild size="lg" className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow h-12 px-7">
-              <Link href={user ? "/app/imovel" : "/auth"}>
-                Começar meu plano <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="lg" className="h-12">
-              <a href="#como">Como funciona</a>
-            </Button>
+
+          <div style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 14 }}>
+            <Link href={authHref} className="hp-btn-hero">Começar meu plano</Link>
+            <a href="#como" className="hp-btn-ghost">Ver como funciona</a>
           </div>
-          <div className="flex gap-6 pt-6 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Sem planilha</span>
-            <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Simulação real</span>
-            <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> Inteligente</span>
-          </div>
+
+          <ul
+            style={{
+              margin: "36px 0 0",
+              padding: 0,
+              listStyle: "none",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "12px 28px",
+              fontSize: 15,
+              fontWeight: 500,
+              color: "#1D1B19",
+            }}
+          >
+            {["Sem planilha", "Funciona para casal", "SAC e PRICE"].map((item) => (
+              <li key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckSvg />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
-        
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-warm blur-3xl opacity-20 rounded-full" />
-          <div className="relative rounded-3xl bg-gradient-ink text-primary-foreground p-8 shadow-elevated">
-            <p className="text-xs uppercase tracking-widest opacity-60">Exemplo</p>
-            <p className="font-display text-2xl mt-1">Apê de R$ 500.000</p>
-            <div className="mt-6 space-y-3">
-              <Row label="Entrada (20%)" value="R$ 100.000" />
-              <Row label="Custos extras (5%)" value="R$ 25.000" />
-              <Row label="Aporte mensal" value="R$ 3.200" />
-              <div className="h-px bg-white/10 my-4" />
-              <Row label="Atinge meta em" value="34 meses" highlight />
-              <Row label="Lucro com CDI" value="≈ R$ 14.700" highlight />
+
+        {/* right col — simulator */}
+        <div
+          style={{
+            flex: "1 1 400px",
+            maxWidth: 500,
+            minWidth: 0,
+            background: "#FFFFFF",
+            border: "1px solid #E8E3DA",
+            borderRadius: 28,
+            padding: 30,
+            boxShadow: "0 24px 60px -24px rgba(29,27,25,0.22)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>
+              Simule agora
+            </h2>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#5E5951",
+                background: "#F2EEE7",
+                padding: "5px 10px",
+                borderRadius: 999,
+              }}
+            >
+              Sem cadastro
+            </span>
+          </div>
+
+          {/* slider: valor */}
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+              <label htmlFor="hp-valor" style={{ fontSize: 15, color: "#5E5951" }}>Valor do imóvel</label>
+              <output style={{ fontWeight: 700, fontSize: 18 }}>{brl(valor)}</output>
+            </div>
+            <input
+              id="hp-valor"
+              type="range"
+              min={150000}
+              max={2000000}
+              step={10000}
+              value={valor}
+              onChange={(e) => setValor(Number(e.target.value))}
+              style={{ width: "100%", marginTop: 10 }}
+            />
+          </div>
+
+          {/* slider: entrada % */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+              <label htmlFor="hp-entrada" style={{ fontSize: 15, color: "#5E5951" }}>Entrada</label>
+              <output style={{ fontWeight: 700, fontSize: 18 }}>{pct}%</output>
+            </div>
+            <input
+              id="hp-entrada"
+              type="range"
+              min={10}
+              max={50}
+              step={1}
+              value={pct}
+              onChange={(e) => setPct(Number(e.target.value))}
+              style={{ width: "100%", marginTop: 10 }}
+            />
+          </div>
+
+          {/* slider: aporte mensal */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+              <label htmlFor="hp-aporte" style={{ fontSize: 15, color: "#5E5951" }}>Quanto guardo por mês</label>
+              <output style={{ fontWeight: 700, fontSize: 18 }}>{brl(aporte)}</output>
+            </div>
+            <input
+              id="hp-aporte"
+              type="range"
+              min={500}
+              max={20000}
+              step={100}
+              value={aporte}
+              onChange={(e) => setAporte(Number(e.target.value))}
+              style={{ width: "100%", marginTop: 10 }}
+            />
+          </div>
+
+          {/* progress bar */}
+          <div style={{ marginTop: 26, paddingTop: 22, borderTop: "1px solid #E8E3DA" }}>
+            <div style={{ display: "flex", height: 12, borderRadius: 999, overflow: "hidden", background: "#F2EEE7" }}>
+              <div style={{ width: sim.entradaW, background: "#E8590C" }} />
+              <div style={{ width: sim.custosW, background: "#1D1B19" }} />
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                gap: "8px 16px",
+                marginTop: 12,
+                fontSize: 14,
+                color: "#5E5951",
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: "#E8590C" }} />
+                Entrada {sim.entradaFmt}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: "#1D1B19" }} />
+                Custos extras (5%) {sim.custosFmt}
+              </span>
+            </div>
+          </div>
+
+          {/* result */}
+          <div
+            style={{
+              marginTop: 22,
+              padding: "18px 20px",
+              borderRadius: 18,
+              background: "#FFF0E6",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              gap: "6px 16px",
+            }}
+          >
+            <span style={{ fontSize: 15, color: "#5E5951" }}>Você chega lá em</span>
+            <span
+              style={{
+                fontFamily: "'Bricolage Grotesque',sans-serif",
+                fontWeight: 700,
+                fontSize: 30,
+                color: "#B93F06",
+              }}
+            >
+              {sim.meses} meses
+            </span>
+          </div>
+          <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 12, fontSize: 14, color: "#5E5951" }}>
+            <span>≈ {sim.anos} anos</span>
+            <span>Rendimento do CDI ≈ {sim.rendFmt}</span>
+          </div>
+
+          <Link
+            href={authHref}
+            style={{
+              display: "block",
+              marginTop: 22,
+              padding: "15px 20px",
+              borderRadius: 14,
+              background: "#C94A08",
+              color: "#FFFFFF",
+              fontWeight: 600,
+              fontSize: 16,
+              textAlign: "center",
+            }}
+          >
+            Salvar e refinar meu plano
+          </Link>
+          <p style={{ margin: "14px 0 0", fontSize: 12.5, lineHeight: 1.5, color: "#5E5951" }}>
+            Estimativa didática com CDI de {sim.cdiFmt}% a.a. e IR de 15%. Não constitui
+            recomendação de investimento.
+          </p>
+        </div>
+      </section>
+
+      {/* ── FEATURES STRIP ───────────────────────────────────────────────── */}
+      <section style={{ borderTop: "1px solid #E8E3DA", borderBottom: "1px solid #E8E3DA", background: "#FFFFFF" }}>
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: "0 auto",
+            padding: "30px 32px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "24px 32px",
+          }}
+        >
+          <FeatureItem
+            title="SAC e PRICE"
+            sub="Compare as duas tabelas"
+            icon={
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19V5" /><path d="M4 19h16" /><path d="M7 15l4-4 3 3 5-6" />
+              </svg>
+            }
+          />
+          <FeatureItem
+            title="IR regressivo"
+            sub="Líquido, não só bruto"
+            icon={
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 5L5 19" /><circle cx="7" cy="7" r="2.2" /><circle cx="17" cy="17" r="2.2" />
+              </svg>
+            }
+          />
+          <FeatureItem
+            title="13º, férias e FGTS"
+            sub="Aportes extras no plano"
+            icon={
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" />
+              </svg>
+            }
+          />
+          <FeatureItem
+            title="Renda de casal"
+            sub="Várias pessoas, um plano"
+            icon={
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+                <circle cx="17" cy="9" r="2.6" /><path d="M17 14.2c2.4.3 4 2.4 4 4.8" />
+              </svg>
+            }
+          />
+        </div>
+      </section>
+
+      {/* ── COMO FUNCIONA ────────────────────────────────────────────────── */}
+      <section id="como" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px" }}>
+        <div style={{ maxWidth: 640 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            Como funciona
+          </div>
+          <h2
+            className="hp-section-h2"
+            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+          >
+            Do valor do imóvel ao plano, em três passos
+          </h2>
+        </div>
+        <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", gap: 24 }}>
+          <StepCard
+            num="01"
+            title="Defina o imóvel"
+            text="Valor, percentual de entrada, prazo e custos extras como ITBI, escritura e registro."
+            icon={
+              <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
+              </svg>
+            }
+          />
+          <StepCard
+            num="02"
+            title="Cadastre as pessoas"
+            text="Renda principal e complementar, mais os gastos de cada um. Sugerimos o aporte ideal."
+            icon={
+              <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+                <circle cx="17" cy="9" r="2.6" /><path d="M17 14.2c2.4.3 4 2.4 4 4.8" />
+              </svg>
+            }
+          />
+          <StepCard
+            num="03"
+            title="Simule e acompanhe"
+            text="Juros compostos, IR regressivo e aportes extras, tudo em um gráfico que se atualiza na hora."
+            icon={
+              <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19V5" /><path d="M4 19h16" /><path d="M7 15l4-4 3 3 5-6" />
+              </svg>
+            }
+          />
+        </div>
+      </section>
+
+      {/* ── APP PREVIEW ──────────────────────────────────────────────────── */}
+      <section style={{ marginTop: 80, background: "#FFF0E6" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px" }}>
+          <div style={{ maxWidth: 640 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+              Dentro do app
+            </div>
+            <h2
+              className="hp-section-h2"
+              style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+            >
+              Veja o seu plano ganhar forma
+            </h2>
+            <p style={{ margin: "18px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951" }}>
+              Acompanhe a evolução da entrada mês a mês e compare o custo das duas tabelas de
+              financiamento antes de decidir.
+            </p>
+          </div>
+
+          <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "stretch" }}>
+            {/* chart card */}
+            <div
+              style={{
+                flex: "2 1 560px",
+                minWidth: 0,
+                background: "#FFFFFF",
+                border: "1px solid #E8E3DA",
+                borderRadius: 28,
+                padding: "28px 28px 22px",
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
+                <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>Evolução até a meta</h3>
+                <span style={{ fontSize: 13, color: "#5E5951" }}>Exemplo ilustrativo</span>
+              </div>
+              <svg
+                role="img"
+                aria-label="Gráfico ilustrativo: o valor acumulado sobe mês a mês, com saltos nos meses de aportes extras, até alcançar a linha da meta"
+                viewBox="0 0 640 300"
+                style={{ width: "100%", height: "auto", marginTop: 18, display: "block" }}
+              >
+                <line x1="40" y1="250" x2="620" y2="250" stroke="#E8E3DA" strokeWidth="1.5" />
+                <line x1="40" y1="190" x2="620" y2="190" stroke="#F2EEE7" strokeWidth="1" />
+                <line x1="40" y1="130" x2="620" y2="130" stroke="#F2EEE7" strokeWidth="1" />
+                <line x1="40" y1="70" x2="620" y2="70" stroke="#1D1B19" strokeWidth="1.5" strokeDasharray="6 6" />
+                <text x="44" y="58" fontSize="13" fontWeight="600" fill="#1D1B19" fontFamily="Figtree, sans-serif">Meta: entrada + custos</text>
+                <path d="M40 250 L139 236 L238 214 L238 192 L337 168 L436 136 L436 112 L535 88 L585 70 L585 250 L40 250 Z" fill="#E8590C" fillOpacity="0.12" />
+                <polyline points="40,250 139,236 238,214 238,192 337,168 436,136 436,112 535,88 585,70" fill="none" stroke="#E8590C" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="238" cy="203" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
+                <circle cx="436" cy="124" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
+                <circle cx="585" cy="70" r="7" fill="#E8590C" />
+                <text x="248" y="236" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">13º salário</text>
+                <text x="446" y="156" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">Saque do FGTS</text>
+                <text x="40" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Hoje</text>
+                <text x="572" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Meta</text>
+              </svg>
+              <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.5, color: "#5E5951" }}>
+                Cada aporte extra encurta o caminho. O gráfico mostra o efeito na hora.
+              </p>
+            </div>
+
+            {/* SAC vs PRICE card */}
+            <div
+              style={{
+                flex: "1 1 320px",
+                minWidth: 0,
+                background: "#FFFFFF",
+                border: "1px solid #E8E3DA",
+                borderRadius: 28,
+                padding: 28,
+                display: "flex",
+                flexDirection: "column",
+                gap: 22,
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
+                <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>SAC vs PRICE</h3>
+                <span style={{ fontSize: 13, color: "#5E5951" }}>Ilustrativo</span>
+              </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
+                  <span>SAC</span>
+                  <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas caem</span>
+                </div>
+                <svg role="img" aria-label="Ilustração: parcelas do SAC começam altas e diminuem ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
+                  <path d="M6 12 L274 76 L274 86 L6 86 Z" fill="#E8590C" fillOpacity="0.14" />
+                  <polyline points="6,12 274,76" fill="none" stroke="#E8590C" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Menor custo total de juros.</div>
+              </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
+                  <span>PRICE</span>
+                  <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas fixas</span>
+                </div>
+                <svg role="img" aria-label="Ilustração: parcelas da PRICE ficam constantes ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
+                  <path d="M6 38 L274 38 L274 86 L6 86 Z" fill="#1D1B19" fillOpacity="0.08" />
+                  <polyline points="6,38 274,38" fill="none" stroke="#1D1B19" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Parcela inicial menor.</div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Como Funciona Section */}
-      <section id="como" className="container py-16 md:py-24 grid md:grid-cols-3 gap-6">
-        {[
-          { icon: Building2, title: "Defina o imóvel", text: "Valor, % de entrada, prazo e custos extras (ITBI, escritura, registro)." },
-          { icon: Calculator, title: "Cadastre as pessoas", text: "Renda principal e complementar, gastos de cada um. Sugerimos o aporte ideal." },
-          { icon: LineChart, title: "Simule e acompanhe", text: "Juros compostos, IR regressivo e aportes extras — tudo em um gráfico." },
-        ].map((s, i) => (
-          <div key={i} className="rounded-2xl bg-card border border-border/60 p-6 shadow-soft hover:shadow-elevated transition-shadow duration-300">
-            <div className="h-10 w-10 rounded-lg bg-secondary grid place-items-center mb-4"><s.icon className="h-5 w-5" /></div>
-            <h3 className="font-display text-xl mb-2">{s.title}</h3>
-            <p className="text-sm text-muted-foreground">{s.text}</p>
+      {/* ── RECURSOS ─────────────────────────────────────────────────────── */}
+      <section id="recursos" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px" }}>
+        <div style={{ maxWidth: 700 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            Recursos
           </div>
-        ))}
-      </section>
-
-      {/* Mais Informações / Detalhes (Adicionado a pedido do usuário) */}
-      <section className="container py-16 md:py-24 border-t border-border/60">
-        <div className="max-w-3xl mx-auto text-center mb-12">
-          <h2 className="font-display text-4xl mb-4">Tudo que você precisa para tomar a melhor decisão</h2>
-          <p className="text-muted-foreground text-lg">
-            Planejar a compra de um imóvel envolve muitas variáveis. Nossa plataforma cuida da matemática complexa para que você foque apenas no seu objetivo final.
+          <h2
+            className="hp-section-h2"
+            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+          >
+            Tudo para decidir com segurança
+          </h2>
+          <p style={{ margin: "18px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951" }}>
+            Comprar um imóvel tem muitas variáveis. Cuidamos da matemática para você focar no objetivo.
           </p>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="rounded-2xl bg-card border border-border/60 p-8 shadow-soft">
-            <h3 className="font-display text-2xl mb-4 flex items-center gap-2">
-              <CheckCircle className="h-6 w-6 text-accent" /> Paridade Matemática Exata
+        <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", gap: 24 }}>
+          {/* dark card */}
+          <div style={{ flex: "1 1 440px", minWidth: 0, background: "#1D1B19", color: "#FBFAF7", borderRadius: 28, padding: 40 }}>
+            <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 28 }}>
+              Cálculo igual ao dos bancos
             </h3>
-            <p className="text-muted-foreground mb-4">
-              Diferente de simuladores comuns que arredondam valores, nosso motor de cálculo foi desenvolvido seguindo as exatas normas do sistema bancário (Price e SAC), garantindo que as projeções reflitam fielmente o mercado.
+            <p style={{ margin: "14px 0 0", fontSize: 17, lineHeight: 1.6, color: "#C9C2B7" }}>
+              O motor segue as regras do sistema bancário, sem arredondar no meio do caminho, para as
+              projeções ficarem próximas do que o mercado pratica.
             </p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Amortização Constante (SAC) e Prestações Fixas (PRICE)</li>
-              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Cálculo de Imposto de Renda Regressivo sobre investimentos</li>
-              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Rendimento composto via CDI atualizado</li>
+            <ul style={{ margin: "28px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14, fontSize: 16 }}>
+              {[
+                "Amortização constante (SAC) e prestações fixas (PRICE)",
+                "Imposto de renda regressivo sobre os investimentos",
+                "Rendimento composto pelo CDI",
+              ].map((item) => (
+                <li key={item} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <CheckSvg color="#FF8A4C" />
+                  {item}
+                </li>
+              ))}
             </ul>
           </div>
-
-          <div className="rounded-2xl bg-card border border-border/60 p-8 shadow-soft">
-            <h3 className="font-display text-2xl mb-4 flex items-center gap-2">
-              <Clock className="h-6 w-6 text-accent" /> Planejamento Flexível
+          {/* light card */}
+          <div style={{ flex: "1 1 440px", minWidth: 0, background: "#FFFFFF", border: "1px solid #E8E3DA", borderRadius: 28, padding: 40 }}>
+            <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 28 }}>
+              Um plano que acompanha a vida
             </h3>
-            <p className="text-muted-foreground mb-4">
-              Sabemos que a vida muda. Por isso, você pode adicionar aportes extras anuais, como seu 13º salário, férias ou saques do FGTS, e ver imediatamente o impacto disso na redução do seu tempo de espera.
+            <p style={{ margin: "14px 0 0", fontSize: 17, lineHeight: 1.6, color: "#5E5951" }}>
+              Adicione 13º, férias, PLR ou saque do FGTS e veja na hora quanto o prazo diminui.
             </p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Injeção de valores irregulares (Bônus, PLR)</li>
-              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Composição de renda familiar inteligente</li>
-              <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent" /> Rascunho salvo em nuvem automaticamente</li>
+            <ul style={{ margin: "28px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14, fontSize: 16 }}>
+              {[
+                "Aportes irregulares, como bônus e PLR",
+                "Composição de renda familiar",
+                "Rascunho salvo na nuvem automaticamente",
+              ].map((item) => (
+                <li key={item} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <CheckSvg />
+                  {item}
+                </li>
+              ))}
             </ul>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section — Otimizado para SEO & Google Rich Snippets */}
-      <section className="container py-16 md:py-24 border-t border-border/60">
-        <div className="max-w-3xl mx-auto text-center mb-12">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-accent bg-accent/10 px-3 py-1.5 rounded-full mb-3">
-            <HelpCircle className="h-3.5 w-3.5" /> Dúvidas Frequentes
-          </span>
-          <h2 className="font-display text-3xl sm:text-4xl mb-4">Perguntas frequentes sobre entrada e financiamento</h2>
-          <p className="text-muted-foreground text-base sm:text-lg">
-            Respostas claras para você tirar as principais dúvidas antes de dar o primeiro passo rumo ao seu imóvel.
+      {/* ── PARA QUEM É ──────────────────────────────────────────────────── */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 24px" }}>
+        <div style={{ maxWidth: 640 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            Para quem é
+          </div>
+          <h2
+            className="hp-section-h2"
+            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+          >
+            Feito para quem está juntando a entrada
+          </h2>
+        </div>
+        <div style={{ marginTop: 44, display: "flex", flexWrap: "wrap", gap: 24 }}>
+          {[
+            {
+              title: "Primeiro imóvel",
+              text: "Descubra quanto guardar por mês e em quanto tempo a entrada fica pronta.",
+            },
+            {
+              title: "Casais e famílias",
+              text: "Una rendas e gastos de cada pessoa e veja o aporte conjunto que cabe no orçamento.",
+            },
+            {
+              title: "Quem conta com FGTS e 13º",
+              text: "Inclua os aportes do ano e veja o impacto direto no prazo até a meta.",
+            },
+          ].map((item) => (
+            <div key={item.title} style={{ flex: "1 1 300px", minWidth: 0, borderTop: "3px solid #E8590C", paddingTop: 22 }}>
+              <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 24 }}>
+                {item.title}
+              </h3>
+              <p style={{ margin: "10px 0 0", fontSize: 16, lineHeight: 1.6, color: "#5E5951" }}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── COMPARATIVO ──────────────────────────────────────────────────── */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 24px" }}>
+        <div style={{ maxWidth: 640 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            Comparativo
+          </div>
+          <h2
+            className="hp-section-h2"
+            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+          >
+            Por que não só uma planilha?
+          </h2>
+        </div>
+        <div style={{ marginTop: 40, overflowX: "auto", background: "#FFFFFF", border: "1px solid #E8E3DA", borderRadius: 24 }}>
+          <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse", fontSize: 16 }}>
+            <thead>
+              <tr style={{ textAlign: "left" }}>
+                <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }} />
+                <th scope="col" style={{ padding: "20px 28px", fontWeight: 600, color: "#5E5951", borderBottom: "1px solid #E8E3DA" }}>Planilha</th>
+                <th scope="col" style={{ padding: "20px 28px", fontWeight: 700, color: "#B93F06", borderBottom: "1px solid #E8E3DA", background: "#FFF7F1" }}>Imov.Plan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["Juros compostos e IR regressivo", "Você monta as fórmulas", "Já incluído"],
+                ["SAC e PRICE lado a lado", "Duas tabelas separadas", "Comparação pronta"],
+                ["Aportes extras (13º, FGTS)", "Ajuste manual", "Recalcula na hora"],
+                ["Renda de mais de uma pessoa", "Difícil de manter", "Composição integrada"],
+                ["Acesso de qualquer lugar", "Depende do arquivo", "Rascunho na nuvem"],
+              ].map(([feature, planilha, imovplan], i, arr) => {
+                const isLast = i === arr.length - 1;
+                const rowBorder = isLast ? undefined : "1px solid #F2EEE7";
+                return (
+                  <tr key={feature}>
+                    <th scope="row" style={{ padding: "18px 28px", textAlign: "left", fontWeight: 600, borderBottom: rowBorder }}>{feature}</th>
+                    <td style={{ padding: "18px 28px", color: "#5E5951", borderBottom: rowBorder }}>{planilha}</td>
+                    <td style={{ padding: "18px 28px", fontWeight: 600, borderBottom: rowBorder, background: "#FFF7F1" }}>{imovplan}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <section id="faq" style={{ maxWidth: 1200, margin: "0 auto", padding: "104px 32px 24px", display: "flex", flexWrap: "wrap", gap: 48 }}>
+        <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#B93F06" }}>
+            Dúvidas frequentes
+          </div>
+          <h2
+            className="hp-section-h2"
+            style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+          >
+            Entrada e financiamento, sem enrolação
+          </h2>
+          <p style={{ margin: "18px 0 0", fontSize: 17, lineHeight: 1.6, color: "#5E5951" }}>
+            Respostas rápidas antes de dar o primeiro passo rumo ao seu imóvel.
           </p>
         </div>
-
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div style={{ flex: "2 1 540px", minWidth: 0, display: "flex", flexDirection: "column" }}>
           {faqItems.map((item, idx) => (
-            <details
-              key={idx}
-              className="group rounded-2xl bg-card border border-border/60 p-6 shadow-soft transition-all open:ring-1 open:ring-accent/40"
-            >
-              <summary className="font-display text-lg sm:text-xl font-semibold cursor-pointer list-none flex items-center justify-between gap-4 select-none">
-                <span>{item.question}</span>
-                <span className="text-accent transition-transform group-open:rotate-180 shrink-0 text-xl font-bold">
-                  ↓
-                </span>
+            <details key={idx} className="hp-faq-details">
+              <summary style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, fontWeight: 600, fontSize: 18 }}>
+                {item.question}
+                <PlusMinusSvg />
               </summary>
-              <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed border-t border-border/40 pt-4">
-                {item.answer}
-              </p>
+              <p style={{ margin: "14px 0 0", fontSize: 16, lineHeight: 1.65, color: "#5E5951" }}>{item.answer}</p>
             </details>
           ))}
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="container py-16 md:py-24 border-t border-border/60 text-center">
-        <h2 className="font-display text-4xl mb-6">Pronto para acelerar seu sonho?</h2>
-        <Button asChild size="lg" className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow h-12 px-10">
-          <Link href={user ? "/app/imovel" : "/auth"}>
-            Iniciar Simulador Agora <Zap className="ml-2 h-4 w-4" />
+      {/* ── CTA FINAL ────────────────────────────────────────────────────── */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px 0" }}>
+        <div style={{ background: "#1D1B19", borderRadius: 32, padding: "72px 48px", textAlign: "center", color: "#FBFAF7" }}>
+          <h2
+            style={{
+              margin: "0 auto",
+              maxWidth: 640,
+              fontFamily: "'Bricolage Grotesque',sans-serif",
+              fontWeight: 700,
+              fontSize: 48,
+              lineHeight: 1.08,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            Pronto para acelerar o seu sonho?
+          </h2>
+          <p style={{ margin: "18px auto 0", maxWidth: 520, fontSize: 18, lineHeight: 1.6, color: "#C9C2B7" }}>
+            Crie seu plano em poucos minutos e saiba exatamente quanto guardar por mês.
+          </p>
+          <Link href={authHref} className="hp-cta-big" style={{ marginTop: 32, display: "inline-block" }}>
+            Iniciar simulador agora
           </Link>
-        </Button>
+        </div>
       </section>
 
-      <footer className="container py-10 text-xs text-muted-foreground border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      {/* ── FOOTER ───────────────────────────────────────────────────────── */}
+      <footer
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "56px 32px 48px",
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          gap: "28px 48px",
+        }}
+      >
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
           <Logo size="sm" />
-          <span>© {new Date().getFullYear()}</span>
+          <p style={{ margin: "16px 0 0", maxWidth: 420, fontSize: 14, lineHeight: 1.6, color: "#5E5951" }}>
+            Cálculos didáticos. Não constituem recomendação de investimento. Os resultados dependem das
+            premissas informadas, como CDI e imposto de renda.
+          </p>
         </div>
-        <span>Cálculos didáticos. Não constituem recomendação de investimento.</span>
+        <nav aria-label="Rodapé" style={{ display: "flex", flexWrap: "wrap", gap: "12px 28px", fontSize: 15, fontWeight: 500, alignItems: "flex-start" }}>
+          <a href="#" style={{ color: "#5E5951" }}>Política de privacidade</a>
+          <a href="#" style={{ color: "#5E5951" }}>Termos de uso</a>
+          <a href="#" style={{ color: "#5E5951" }}>Contato</a>
+        </nav>
+        <div style={{ flexBasis: "100%", borderTop: "1px solid #E8E3DA", paddingTop: 22, fontSize: 14, color: "#5E5951" }}>
+          © {new Date().getFullYear()} Imov.Plan
+        </div>
       </footer>
-    </div>
-  );
-}
-
-function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <span className="text-sm opacity-70">{label}</span>
-      <span className={`font-display text-lg num ${highlight ? "text-accent" : ""}`}>{value}</span>
     </div>
   );
 }
