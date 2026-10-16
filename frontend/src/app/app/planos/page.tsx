@@ -115,23 +115,43 @@ export default function PlanosPage() {
     setExcluindo(planoAExcluir.id);
     try {
       await excluirPlano(planoAExcluir.id);
-      toast.success("Plano excluído.");
+      
       const planoExcluidoEraAtivo = planoAExcluir.id === planoId;
-      const proximoPlano = planos.find((plano) => plano.id !== planoAExcluir?.id);
-      if (planoExcluidoEraAtivo) {
-        if (proximoPlano) {
-          setPlanoId(proximoPlano.id);
-          router.push("/app/imovel");
-        } else {
-          resetPlan();
-          router.push("/app/imovel");
-        }
-      }
+      const outrosPlanos = planos.filter((plano) => plano.id !== planoAExcluir.id);
+
       setSimulacoes(prev => {
         const updated = { ...prev };
         delete updated[planoAExcluir.id];
         return updated;
       });
+
+      if (planoExcluidoEraAtivo) {
+        if (outrosPlanos.length > 0) {
+          const proximoPlano = outrosPlanos[0];
+          setPlanoId(proximoPlano.id);
+          toast.success(`Plano excluído. Redirecionando para o plano ativo "${proximoPlano.nomePlano}".`);
+          router.push("/app/imovel");
+        } else {
+          resetPlan();
+          toast.success("Plano excluído.");
+          router.push("/app/imovel");
+        }
+      } else {
+        // Excluiu um plano que não era o ativo: cai para o plano ativo atual
+        const planoAtivoAtual = outrosPlanos.find(p => p.id === planoId);
+        if (planoAtivoAtual) {
+          toast.success(`Plano excluído. Retornando ao plano ativo "${planoAtivoAtual.nomePlano}".`);
+          router.push("/app/imovel");
+        } else if (outrosPlanos.length > 0) {
+          setPlanoId(outrosPlanos[0].id);
+          toast.success(`Plano excluído. Redirecionando para o plano ativo "${outrosPlanos[0].nomePlano}".`);
+          router.push("/app/imovel");
+        } else {
+          resetPlan();
+          toast.success("Plano excluído.");
+          router.push("/app/imovel");
+        }
+      }
     } catch {
       toast.error("Não foi possível excluir o plano. Tente novamente.");
     } finally {
