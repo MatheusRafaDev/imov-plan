@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
-import { type Pessoa, type GastoDetalhado } from "@/context/PlanContext";;
+import { type Pessoa, type GastoDetalhado } from "@/context/PlanContext";
+import { useDebouncedCallback } from "use-debounce";
 import PessoaCard from "@/components/PessoaCard";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -209,8 +210,11 @@ export default function PessoasPage() {
       tipoInvestimento: form.tipoInvestimento || undefined,
     };
 
-    setPessoas([...pessoas, novaPessoa]);
+    const novasPessoas = [...pessoas, novaPessoa];
+    setPessoas(novasPessoas);
     setObjetivo(prev => prev ? { ...prev, valorJaGuardado: novoTotalObjetivo } : prev);
+    saveDraft({ pessoas: novasPessoas, objetivo: objetivo ? { ...objetivo, valorJaGuardado: novoTotalObjetivo } : undefined });
+    debouncedRecalcularSimulacao();
     setForm(resetForm());
     setNovoGastoForm({ nome: "", valor: 0 });
     setShowAddForm(false);
@@ -223,16 +227,29 @@ export default function PessoasPage() {
   const efetivarRemocao = () => {
     if (pessoaParaRemover) {
       const remainingPeople = pessoas.filter((p) => p.id !== pessoaParaRemover);
+      const novoTotal = remainingPeople.reduce((sum, p) => sum + Number(p.valorAtual ?? p.valorInicial ?? 0), 0);
 
       setPessoas(remainingPeople);
       setObjetivo(prev => prev ? {
         ...prev,
-        valorJaGuardado: remainingPeople.reduce((sum, p) => sum + Number(p.valorAtual ?? p.valorInicial ?? 0), 0),
+        valorJaGuardado: novoTotal,
       } : prev);
+
+      saveDraft({ pessoas: remainingPeople, objetivo: objetivo ? { ...objetivo, valorJaGuardado: novoTotal } : undefined });
+      debouncedRecalcularSimulacao();
 
       setPessoaParaRemover(null);
     }
   };
+
+  const debouncedRecalcularSimulacao = useDebouncedCallback(async () => {
+    try {
+      const savedId = await salvarPlano();
+      if (savedId && !savedId.startsWith("local-draft")) {
+        await calcularBackend(savedId).catch(() => {});
+      }
+    } catch {}
+  }, 1200);
 
   const atualizarPessoa = (pId: string, patch: Partial<Pessoa>) => {
     setPessoas((prev) => {
@@ -248,6 +265,7 @@ export default function PessoasPage() {
         updated.gastos_mensais = calcularGastos(updated);
       }
 
+      let nextObjetivo = objetivo;
       if (patch.valorInicial !== undefined || patch.valorAtual !== undefined) {
         const novoValorNum = Number(patch.valorAtual ?? patch.valorInicial ?? 0);
         updated.valorInicial = patch.valorInicial !== undefined ? patch.valorInicial : (patch.valorAtual ?? novoValorNum);
@@ -263,9 +281,14 @@ export default function PessoasPage() {
           return s + (val || 0);
         }, 0);
         setObjetivo(prev => prev ? { ...prev, valorJaGuardado: newSum } : null);
+        nextObjetivo = objetivo ? { ...objetivo, valorJaGuardado: newSum } : null;
       }
 
       arr[idx] = updated;
+
+      saveDraft({ pessoas: arr, objetivo: nextObjetivo || undefined });
+      debouncedRecalcularSimulacao();
+
       return arr;
     });
   };

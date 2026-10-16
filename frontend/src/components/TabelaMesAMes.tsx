@@ -94,6 +94,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   const setDiaDoAporteMes = usePlanStore(state => state.setDiaDoAporteMes);
   const setPessoas = usePlanStore(state => state.setPessoas);
   const objetivo = usePlanStore(state => state.objetivo);
+  const setObjetivo = usePlanStore(state => state.setObjetivo);
   const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
   const tipoInvestimento = objetivo?.tipoInvestimento || "cdb_100";
 
@@ -339,6 +340,34 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
 
   const handleSaveAcumulado = async (novosSaldos: Record<string, number>) => {
     if (!selectedRow) return;
+
+    // Se estiver editando o Mês 0 ("Início"):
+    // Atualiza o saldo inicial de cada participante e o valor já guardado do plano,
+    // recalculando toda a simulação para atualizar toda a cadeia de valores.
+    if (selectedRow.mes === 0) {
+      const novasPessoas = pessoas.map(p => {
+        const novoValor = novosSaldos[p.id] !== undefined ? Number(novosSaldos[p.id]) : Number(p.valorInicial || 0);
+        return {
+          ...p,
+          valorInicial: novoValor,
+          valorAtual: novoValor,
+          dataValorAtual: new Date().toISOString(),
+        };
+      });
+      const novoTotalGuardado = novasPessoas.reduce((acc, p) => acc + Number(p.valorInicial || 0), 0);
+      
+      setPessoas(novasPessoas);
+      setObjetivo(prev => prev ? { ...prev, valorJaGuardado: novoTotalGuardado } : null);
+      
+      const savedId = await salvarPlano({
+        pessoas: novasPessoas,
+        objetivo: objetivo ? { ...objetivo, valorJaGuardado: novoTotalGuardado } : undefined
+      });
+      if (savedId) await calcularBackend(savedId);
+      toast.success("Saldo inicial guardado atualizado com sucesso!");
+      return;
+    }
+
     const mesDataPrefix = selectedRow.data.split("T")[0];
 
     // Remove ajustes anteriores deste mês para que um novo valor de acumulado
@@ -568,12 +597,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                             key={`s-${p.id}`} 
                             right 
                             onDoubleClick={(e) => {
-                              if (isZero) return;
                               e.stopPropagation();
                               openModal(r.mes, "acumulado", p.id);
                             }}
-                            className={`font-normal text-sm text-muted-foreground ${isZero ? "" : "cursor-pointer"}`}
-                            title={isZero ? undefined : `Duplo clique para calibrar saldo acumulado de ${p.nome}`}
+                            className="font-normal text-sm text-muted-foreground cursor-pointer"
+                            title={isZero ? `Duplo clique para alterar saldo inicial guardado de ${p.nome}` : `Duplo clique para calibrar saldo acumulado de ${p.nome}`}
                           >
                             {brl(r.saldoPorPessoa[p.id] || 0)}
                           </Td>
@@ -582,12 +610,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                         <Td 
                           right 
                           onDoubleClick={(e) => {
-                            if (isZero) return;
                             e.stopPropagation();
                             openModal(r.mes, "acumulado");
                           }}
-                          className={`font-medium text-sm text-foreground ${isZero ? "" : "cursor-pointer"}`}
-                          title={isZero ? undefined : "Duplo clique para calibrar saldo acumulado"}
+                          className="font-medium text-sm text-foreground cursor-pointer"
+                          title={isZero ? "Duplo clique para alterar saldo inicial guardado" : "Duplo clique para calibrar saldo acumulado"}
                         >
                           {brl(r.saldoAcumulado)}
                         </Td>
@@ -595,12 +622,10 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                     )}
                     
                     <Td right className="group">
-                      {!isZero && (
-                        <RowActions 
-                          onOpenModal={(tab) => openModal(r.mes, tab)} 
-                          onOpenDetalheDiario={allowDailyDetail ? () => setMesDetalheDiario(r.mes) : undefined}
-                        />
-                      )}
+                      <RowActions 
+                        onOpenModal={(tab) => openModal(r.mes, isZero ? "acumulado" : tab)} 
+                        onOpenDetalheDiario={!isZero && allowDailyDetail ? () => setMesDetalheDiario(r.mes) : undefined}
+                      />
                     </Td>
                   </tr>
                 );

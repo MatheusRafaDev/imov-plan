@@ -92,20 +92,28 @@ namespace ImovPlan.Application.Services
             var meses = 0;
             var dataReferencia = planejamento.DataInicio ?? DateTime.UtcNow;
 
-            // Um checkpoint substitui o saldo teórico da conta. Se for posterior
-            // ao início do plano, a conta fica sem saldo até a data informada.
+            // O saldo inicial (Mês 0) reflete o patrimônio guardado do participante (PatrimonioInicial ou ValorAtual)
             foreach (var pid in participantesDb.Keys)
             {
-                if (!checkpoints.TryGetValue(pid, out var checkpoint)) continue;
-                var saldoAnterior = saldosIndividuais[pid];
-                
-                // Considera o checkpoint válido para o saldo inicial (Mês 0) se ele foi 
-                // definido em um mês anterior ou no mesmo mês de início do plano.
-                bool isCheckpointBeforeOrAtStart = checkpoint.Data.Year < dataReferencia.Year || 
-                                                   (checkpoint.Data.Year == dataReferencia.Year && checkpoint.Data.Month <= dataReferencia.Month);
-                
-                saldosIndividuais[pid] = isCheckpointBeforeOrAtStart ? checkpoint.Valor : 0m;
-                saldoConjunto += saldosIndividuais[pid] - saldoAnterior;
+                var saldoTeorico = saldosTeoricosIniciais[pid];
+                if (checkpoints.TryGetValue(pid, out var checkpoint))
+                {
+                    bool isCheckpointBeforeOrAtStart = checkpoint.Data.Year < dataReferencia.Year || 
+                                                       (checkpoint.Data.Year == dataReferencia.Year && checkpoint.Data.Month <= dataReferencia.Month);
+                    
+                    saldosIndividuais[pid] = isCheckpointBeforeOrAtStart 
+                        ? checkpoint.Valor 
+                        : (saldoTeorico > 0 ? saldoTeorico : checkpoint.Valor);
+                }
+                else
+                {
+                    saldosIndividuais[pid] = saldoTeorico;
+                }
+            }
+            saldoConjunto = saldosIndividuais.Values.Sum();
+            if (saldoConjunto == 0 && (planejamento.ValorJaGuardado ?? 0m) > 0)
+            {
+                saldoConjunto = planejamento.ValorJaGuardado.GetValueOrDefault();
             }
             valorJaGuardado = saldoConjunto;
             totalInvestido = saldoConjunto;

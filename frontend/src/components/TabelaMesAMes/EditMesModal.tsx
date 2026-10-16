@@ -71,12 +71,14 @@ export function EditMesModal({
   onDeleteExtra,
   onSaveAcumulado,
 }: EditMesModalProps) {
-  const [activeTab, setActiveTab] = useState<ModalTab>(initialTab);
+  const [activeTab, setActiveTab] = useState<ModalTab>(mes === 0 ? "acumulado" : initialTab);
 
   // Formatar data abreviada (ex: Jan/26)
   const dataFormatada = (() => {
     try {
+      if (!data) return "";
       const d = new Date(data);
+      if (isNaN(d.getTime())) return "";
       const str = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", "/");
       return str.charAt(0).toUpperCase() + str.slice(1);
     } catch {
@@ -175,7 +177,7 @@ export function EditMesModal({
         <div className="px-4 py-3 border-b border-border/50 bg-secondary/20 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="text-sm font-semibold text-foreground truncate">
-              Mês {mes}{dataFormatada ? ` · ${dataFormatada}` : ""}
+              {mes === 0 ? "Início · Saldo Inicial Guardado" : `Mês ${mes}${dataFormatada ? ` · ${dataFormatada}` : ""}`}
             </h3>
             {atingiuMeta && (
               <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-success/15 text-success border border-success/30 shrink-0">
@@ -185,7 +187,7 @@ export function EditMesModal({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            {onOpenDetalheDiario && (
+            {mes !== 0 && onOpenDetalheDiario && (
               <button
                 type="button"
                 onClick={() => {
@@ -210,51 +212,53 @@ export function EditMesModal({
           </div>
         </div>
 
-        {/* Segmented Control / Tabs */}
-        <div className="p-3 pb-0">
-          <div className="flex p-1 bg-secondary/50 rounded-xl gap-1 text-xs font-medium">
-            <button
-              type="button"
-              onClick={() => setActiveTab("aportes")}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
-                activeTab === "aportes"
-                  ? "bg-card text-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Aportes
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("extras")}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === "extras"
-                  ? "bg-card text-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span>Extras</span>
-              {extrasDoMes.length > 0 && (
-                <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.2 rounded-full font-semibold">
-                  {extrasDoMes.length}
-                </span>
-              )}
-            </button>
-            {showFinancials && (
+        {/* Segmented Control / Tabs (apenas para meses normais) */}
+        {mes !== 0 && (
+          <div className="p-3 pb-0">
+            <div className="flex p-1 bg-secondary/50 rounded-xl gap-1 text-xs font-medium">
               <button
                 type="button"
-                onClick={() => setActiveTab("acumulado")}
+                onClick={() => setActiveTab("aportes")}
                 className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
-                  activeTab === "acumulado"
+                  activeTab === "aportes"
                     ? "bg-card text-foreground font-semibold shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Acumulado
+                Aportes
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => setActiveTab("extras")}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === "extras"
+                    ? "bg-card text-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>Extras</span>
+                {extrasDoMes.length > 0 && (
+                  <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.2 rounded-full font-semibold">
+                    {extrasDoMes.length}
+                  </span>
+                )}
+              </button>
+              {showFinancials && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("acumulado")}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-center transition-all ${
+                    activeTab === "acumulado"
+                      ? "bg-card text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Acumulado
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Conteúdo do Modal */}
         <div className="p-4 space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
@@ -435,6 +439,11 @@ export function EditMesModal({
           {/* ═══════════ ABA 3: ACUMULADO ═══════════ */}
           {activeTab === "acumulado" && (
             <div className="space-y-3">
+              {mes === 0 && (
+                <div className="p-2.5 rounded-xl bg-accent/10 border border-accent/20 text-xs text-foreground/90 leading-relaxed">
+                  Defina o valor que cada participante já tem guardado no início do planejamento. Toda a simulação e a evolução diária serão recalculadas a partir destes saldos.
+                </div>
+              )}
               {pessoas.map((p) => {
                 const planejado = saldosAcumulados[p.id] || 0;
                 const atual = draftAcumulado[p.id] !== undefined ? draftAcumulado[p.id] : planejado;
@@ -444,7 +453,7 @@ export function EditMesModal({
                   <div key={p.id} className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span className="font-medium text-foreground">{p.nome}</span>
-                      <span className="text-muted-foreground">Projetado: {brl(planejado)}</span>
+                      <span className="text-muted-foreground">{mes === 0 ? "Atual:" : "Projetado:"} {brl(planejado)}</span>
                     </div>
 
                     <MoneyInput
