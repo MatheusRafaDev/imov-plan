@@ -9,7 +9,7 @@ namespace ImovPlan.Application.Validators
         public AporteExtraDtoValidator()
         {
             RuleFor(x => x.Data).NotEmpty().WithMessage("A data do aporte extra é obrigatória.");
-            RuleFor(x => x.Valor).GreaterThan(0).WithMessage("O valor do aporte extra deve ser maior que zero.");
+            RuleFor(x => x.Valor).NotEqual(0).WithMessage("O valor do aporte extra não pode ser zero.");
             RuleFor(x => x.Origem).NotEmpty().WithMessage("A origem do aporte extra é obrigatória.");
         }
     }
@@ -98,9 +98,7 @@ namespace ImovPlan.Application.Validators
     {
         public AporteExtraDraftDtoValidator()
         {
-            // Allow incomplete aportes extras for drafts
-            RuleFor(x => x.Valor).GreaterThanOrEqualTo(0)
-                .WithMessage("O valor do aporte extra não pode ser negativo.");
+            // Permite aportes regulares e ajustes de saldo (positivos ou negativos) no rascunho
         }
     }
 

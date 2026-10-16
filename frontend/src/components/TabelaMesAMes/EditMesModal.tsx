@@ -329,7 +329,9 @@ export function EditMesModal({
                         <span className="text-[10px] text-muted-foreground">{extra.pessoaNome || "Conjunto"}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-semibold text-accent">+{brl(extra.valor)}</span>
+                        <span className={`font-semibold ${extra.valor >= 0 ? "text-accent" : "text-muted-foreground"}`}>
+                          {extra.valor >= 0 ? `+${brl(extra.valor)}` : `-${brl(Math.abs(extra.valor))}`}
+                        </span>
                         <button
                           type="button"
                           onClick={() => onDeleteExtra(extra.index)}

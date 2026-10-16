@@ -212,7 +212,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       rendimentoLiquido: r.rendimentoLiquido,
       saldoAcumulado: r.totalAcumulado,
       atingiu: sim.mesesParaAtingir === r.mes && sim.atingiuMeta,
-      isExtra: r.aportesExtras > 0,
+      isExtra: Math.abs(r.aportesExtras) > 0.001,
       aporteFinalPorPessoa: Object.fromEntries(
         (r.participantes || []).map(p => [p.participanteId, p.aporteMensal])
       ),
@@ -339,27 +339,49 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
 
   const handleSaveAcumulado = async (novosSaldos: Record<string, number>) => {
     if (!selectedRow) return;
+    const mesDataPrefix = selectedRow.data.split("T")[0];
+
+    // Remove ajustes anteriores deste mês para que um novo valor de acumulado
+    // substitua o ajuste anterior em vez de duplicar ou acumular.
+    const outrosExtras = (aportesExtras || []).filter(e => {
+      const isMesAtual = e.data && e.data.startsWith(mesDataPrefix);
+      const isAjuste = e.origem && (e.origem.startsWith("Ajuste") || e.origem.toLowerCase().includes("ajuste"));
+      return !(isMesAtual && isAjuste);
+    });
+
     const novosLancamentosExtras: any[] = [];
+
     pessoas.forEach(p => {
+      // Verifica se já havia um ajuste de saldo anterior para este participante neste mês
+      const ajusteExistente = (aportesExtras || []).find(e => 
+        e.data && e.data.startsWith(mesDataPrefix) && 
+        e.pessoaId === p.id && 
+        e.origem && (e.origem.startsWith("Ajuste") || e.origem.toLowerCase().includes("ajuste"))
+      );
+      const valorAjusteAntigo = ajusteExistente ? Number(ajusteExistente.valor || 0) : 0;
+
+      // Saldo projetado base antes do ajuste anterior deste mês
       const current = selectedRow.saldoPorPessoa[p.id] || 0;
+      const saldoBaseSemAjuste = current - valorAjusteAntigo;
+
       const newValue = novosSaldos[p.id] !== undefined ? novosSaldos[p.id] : current;
-      const diff = newValue - current;
+      const diff = newValue - saldoBaseSemAjuste;
+
       if (Math.abs(diff) > 0.01) {
         novosLancamentosExtras.push({
           pessoaId: p.id,
           pessoaNome: p.nome.split(" ")[0],
-          origem: diff > 0 ? "Ajuste de Saldo (Rendimento/Depósito)" : "Ajuste de Saldo (Retirada/Perda)",
+          origem: "Ajuste de Saldo",
           valor: diff,
-          data: selectedRow.data.split("T")[0]
+          data: mesDataPrefix
         });
       }
     });
-    if (novosLancamentosExtras.length > 0) {
-      const updatedExtras = [...aportesExtras, ...novosLancamentosExtras];
-      setAportesExtras(() => updatedExtras);
-      const savedId = await salvarPlano({ aportesExtras: updatedExtras });
-      if (savedId) await calcularBackend(savedId);
-    }
+
+    const updatedExtras = [...outrosExtras, ...novosLancamentosExtras];
+    setAportesExtras(() => updatedExtras);
+    const savedId = await salvarPlano({ aportesExtras: updatedExtras });
+    if (savedId) await calcularBackend(savedId);
   };
 
   if (!displayRows.length) return null;

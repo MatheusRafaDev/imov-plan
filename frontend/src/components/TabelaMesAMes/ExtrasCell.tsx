@@ -83,14 +83,14 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
           }
         }}
         className={`inline-flex items-center justify-end gap-1 px-1.5 py-0.5 rounded transition-colors border border-transparent cursor-pointer ${
-          total > 0 
+          Math.abs(total) > 0.001 
             ? "hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" 
             : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/40"
         }`}
-        title={total > 0 ? "Clique para ver lista · Duplo clique para gerenciar/adicionar" : "Duplo clique para adicionar aporte extra"}
+        title={Math.abs(total) > 0.001 ? "Clique para ver lista · Duplo clique para gerenciar/adicionar" : "Duplo clique para adicionar aporte extra"}
       >
-        {total > 0 ? `+${brl(total)}` : "—"}
-        {total > 0 && (open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)}
+        {Math.abs(total) > 0.001 ? (total > 0 ? `+${brl(total)}` : `-${brl(Math.abs(total))}`) : "—"}
+        {Math.abs(total) > 0.001 && (open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)}
       </span>
 
       {open && canOpen && typeof document !== "undefined" && createPortal(
@@ -139,7 +139,9 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
                         <span className="text-xs text-muted-foreground">{item.pessoaNome || "Conjunto"}</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="num text-accent font-semibold">+{brl(item.valor)}</span>
+                        <span className={`num font-semibold ${item.valor >= 0 ? "text-accent" : "text-muted-foreground"}`}>
+                          {item.valor >= 0 ? `+${brl(item.valor)}` : `-${brl(Math.abs(item.valor))}`}
+                        </span>
                         <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title="Editar">
                           <Edit2 className="h-4 w-4" />
                         </button>
@@ -161,7 +163,9 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
               ))}
               <div className="flex justify-between text-[11px] font-semibold pt-1 border-t border-border/50">
                 <span className="text-muted-foreground">Total extras</span>
-                <span className="num text-accent">+{brl(total)}</span>
+                <span className={`num font-semibold ${total >= 0 ? "text-accent" : "text-muted-foreground"}`}>
+                  {total >= 0 ? `+${brl(total)}` : `-${brl(Math.abs(total))}`}
+                </span>
               </div>
               {onDoubleClick && (
                 <button
