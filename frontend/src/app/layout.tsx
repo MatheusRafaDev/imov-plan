@@ -82,7 +82,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-import { KeepAliveFrontend } from "@/components/KeepAliveFrontend";
 
 export default function RootLayout({
   children,
@@ -121,7 +120,6 @@ export default function RootLayout({
             />
           </AuthProvider>
         </QueryProvider>
-        <KeepAliveFrontend />
         <PwaRegister />
       </body>
     </html>

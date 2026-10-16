@@ -246,7 +246,6 @@ builder.Services.AddHttpClient<ILocationProvider, ImovPlan.Infrastructure.Servic
 
 // Background Services
 builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoService>();
-builder.Services.AddHostedService<ImovPlan.API.Services.KeepAliveService>();
 builder.Services.AddHostedService<ImovPlan.API.Services.MongoDbIndexInitializer>();
 
 var app = builder.Build();
