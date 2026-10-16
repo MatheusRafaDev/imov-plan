@@ -16,7 +16,7 @@ import { usePlanStore } from "@/store/usePlanStore";
 import { ArrowRight, Plus, Trash2, X, AlertCircle, Pencil, Wallet, TrendingUp, Loader2, Sparkles } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
-import { StatusAtualInvestimento } from "@/components/StatusAtualInvestimento";
+import { AtualizarSaldoGuardadoModal } from "@/components/AtualizarSaldoGuardadoModal";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
@@ -274,53 +274,16 @@ export default function PlanejamentoPage() {
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer" 
-              onClick={() => setIsEditingTotal(!isEditingTotal)} 
-              title={isEditingTotal ? "Fechar edição" : "Atualizar valor guardado hoje"}
+              onClick={() => setIsEditingTotal(true)} 
+              title="Atualizar saldo guardado hoje"
             >
-              {isEditingTotal ? <X className="h-4 w-4" /> : <Pencil className="h-3.5 w-3.5" />}
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
           </div>
           <div className="space-y-4">
-            <div className={`flex ${isEditingTotal ? 'flex-col gap-3' : 'justify-between items-end'}`}>
-              {isEditingTotal ? (
-                <div className="w-full animate-fade-in space-y-3 bg-secondary/10 p-3.5 rounded-xl border border-border/40">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground font-medium">Atualize o saldo de cada participante</span>
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setIsEditingTotal(false)} 
-                        className="h-7 px-2.5 text-xs font-semibold text-accent hover:text-accent hover:bg-accent/10 rounded-lg cursor-pointer"
-                      >
-                        Concluir
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setIsEditingTotal(false)} 
-                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer"
-                        title="Fechar edição"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <StatusAtualInvestimento />
-                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
-                    <span className="text-muted-foreground font-medium">Soma total guardada:</span>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="font-display font-bold text-foreground text-sm sm:text-base num">{brl(totalGuardado)}</span>
-                      <span className="text-[11px] text-muted-foreground font-medium">de {brl(meta)}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <span className="font-display text-3xl sm:text-4xl num leading-none tracking-tight text-foreground">{brl(totalGuardado)}</span>
-                  <span className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium whitespace-nowrap">de {brl(meta)}</span>
-                </>
-              )}
+            <div className="flex justify-between items-end">
+              <span className="font-display text-3xl sm:text-4xl num leading-none tracking-tight text-foreground">{brl(totalGuardado)}</span>
+              <span className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium whitespace-nowrap">de {brl(meta)}</span>
             </div>
             <div className="relative h-2.5 sm:h-3 w-full bg-secondary rounded-full overflow-hidden">
               <div
@@ -339,6 +302,12 @@ export default function PlanejamentoPage() {
             </div>
           </div>
         </Card>
+
+        {/* Modal para atualizar o saldo guardado de cada participante com conforto e espaço */}
+        <AtualizarSaldoGuardadoModal
+          isOpen={isEditingTotal}
+          onClose={() => setIsEditingTotal(false)}
+        />
 
         <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:border-border/60">
           <div className="space-y-2">
