@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Eye, EyeOff, AlertCircle, Mail, Lock, User, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 
@@ -38,7 +38,7 @@ export default function AuthPage() {
 
   // Initialize Google Identity Services once
   useEffect(() => {
-    if (typeof window === 'undefined' || googleInitialized) return;
+    if (typeof window === "undefined" || googleInitialized) return;
 
     const initGoogle = () => {
       const google = (window as any).google;
@@ -60,16 +60,16 @@ export default function AuthPage() {
         });
 
         // Render the official Google button
-        const buttonDiv = document.getElementById('google-signin-button');
+        const buttonDiv = document.getElementById("google-signin-button");
         if (buttonDiv) {
           google.accounts.id.renderButton(buttonDiv, {
-            theme: 'outline',
-            size: 'medium',
-            type: 'standard',
-            text: 'signin_with',
-            shape: 'rectangular',
-            logo_alignment: 'left',
-            width: 300
+            theme: "outline",
+            size: "large",
+            type: "standard",
+            text: "continue_with",
+            shape: "pill",
+            logo_alignment: "left",
+            width: 340,
           });
         }
 
@@ -131,7 +131,6 @@ export default function AuthPage() {
         } else if (parsedDate > today) {
           errors.dataNascimento = "A data de nascimento não pode ser no futuro.";
         } else {
-          // Cálculo de idade
           let age = today.getFullYear() - parsedDate.getFullYear();
           const monthDiff = today.getMonth() - parsedDate.getMonth();
           if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsedDate.getDate())) {
@@ -198,8 +197,8 @@ export default function AuthPage() {
     }
   };
 
-  const handleToggleMode = () => {
-    setIsLogin(!isLogin);
+  const handleSwitchTab = (loginMode: boolean) => {
+    setIsLogin(loginMode);
     setFormErrors({});
     setGeneralError(null);
     setPassword("");
@@ -234,17 +233,47 @@ export default function AuthPage() {
           </Link>
         </div>
 
-        <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-
-          <div key={isLogin ? "login-header" : "register-header"} className="animate-fade-in">
-            <h2 className="font-display text-xl sm:text-2xl mb-2">{isLogin ? "Entrar" : "Criar conta"}</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-              {isLogin ? "Acesse seu planejamento." : "Comece a planejar a entrada do seu imóvel."}
+        <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95 rounded-2xl sm:rounded-3xl animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+          {/* Header */}
+          <div key={isLogin ? "login-header" : "register-header"} className="animate-fade-in mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-display">
+              {isLogin ? "Acesse sua conta" : "Crie sua conta"}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
+              {isLogin
+                ? "Entre para acompanhar os cômodos, compras e orçamentos."
+                : "Comece a planejar a conquista do seu imóvel próprio."}
             </p>
           </div>
 
+          {/* Segmented Switcher (Tabs) */}
+          <div className="flex bg-muted/70 p-1 rounded-2xl mb-6 border border-border/40">
+            <button
+              type="button"
+              onClick={() => handleSwitchTab(true)}
+              className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-medium transition-all cursor-pointer ${
+                isLogin
+                  ? "bg-card text-foreground shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Entrar
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchTab(false)}
+              className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-medium transition-all cursor-pointer ${
+                !isLogin
+                  ? "bg-card text-foreground shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Criar conta
+            </button>
+          </div>
+
           {generalError && (
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs sm:text-sm flex items-start gap-2 sm:gap-3 animate-fade-in">
+            <div className="mb-5 p-3 sm:p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs sm:text-sm flex items-start gap-2.5 animate-fade-in">
               <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-semibold text-destructive text-xs sm:text-sm">Atenção</h4>
@@ -253,68 +282,57 @@ export default function AuthPage() {
             </div>
           )}
 
-          {/* Botão oficial do Google */}
-          <div id="google-signin-button" className="w-full mb-4 flex justify-center"></div>
-
-          {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-            <div className="text-xs text-center text-red-500/80 mt-2">
-              Login com Google desabilitado: configure NEXT_PUBLIC_GOOGLE_CLIENT_ID no .env.local
-            </div>
-          )}
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border/50" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Ou continuar com email</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div className="space-y-3 sm:space-y-4 animate-fade-in-up">
+              <div className="space-y-4 animate-fade-in-up">
                 {/* Nome */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="name" className="text-xs sm:text-sm">Seu nome</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (formErrors.name) setFormErrors(prev => ({ ...prev, name: "" }));
-                      if (generalError) setGeneralError(null);
-                    }}
-                    disabled={loading}
-                    placeholder="João Silva"
-                    className={`h-10 sm:h-11 text-sm transition-all ${formErrors.name ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
-                  />
+                  <Label htmlFor="name" className="text-xs sm:text-sm font-medium">Nome completo</Label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
+                    <Input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (formErrors.name) setFormErrors(prev => ({ ...prev, name: "" }));
+                        if (generalError) setGeneralError(null);
+                      }}
+                      disabled={loading}
+                      placeholder="Seu nome completo"
+                      className={`pl-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.name ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                    />
+                  </div>
                   {formErrors.name && (
                     <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                      <AlertCircle className="h-3 w-3" />
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                       {formErrors.name}
                     </p>
                   )}
                 </div>
+
                 {/* Data de Nascimento */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="dataNascimento" className="text-xs sm:text-sm">Data de Nascimento</Label>
-                  <Input
-                    id="dataNascimento"
-                    type="date"
-                    value={dataNascimento}
-                    onChange={(e) => {
-                      setDataNascimento(e.target.value);
-                      if (formErrors.dataNascimento) setFormErrors(prev => ({ ...prev, dataNascimento: "" }));
-                      if (generalError) setGeneralError(null);
-                    }}
-                    disabled={loading}
-                    className={`h-10 sm:h-11 text-sm transition-all ${formErrors.dataNascimento ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
-                  />
+                  <Label htmlFor="dataNascimento" className="text-xs sm:text-sm font-medium">Data de Nascimento</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
+                    <Input
+                      id="dataNascimento"
+                      type="date"
+                      value={dataNascimento}
+                      onChange={(e) => {
+                        setDataNascimento(e.target.value);
+                        if (formErrors.dataNascimento) setFormErrors(prev => ({ ...prev, dataNascimento: "" }));
+                        if (generalError) setGeneralError(null);
+                      }}
+                      disabled={loading}
+                      className={`pl-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.dataNascimento ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                    />
+                  </div>
                   {formErrors.dataNascimento && (
                     <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                      <AlertCircle className="h-3 w-3" />
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                       {formErrors.dataNascimento}
                     </p>
                   )}
@@ -324,23 +342,26 @@ export default function AuthPage() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (formErrors.email) setFormErrors(prev => ({ ...prev, email: "" }));
-                  if (generalError) setGeneralError(null);
-                }}
-                disabled={loading}
-                placeholder="voce@exemplo.com"
-                className={`h-10 sm:h-11 text-sm transition-all ${formErrors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
-              />
+              <Label htmlFor="email" className="text-xs sm:text-sm font-medium">E-mail</Label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (formErrors.email) setFormErrors(prev => ({ ...prev, email: "" }));
+                    if (generalError) setGeneralError(null);
+                  }}
+                  disabled={loading}
+                  placeholder="voce@exemplo.com"
+                  className={`pl-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                />
+              </div>
               {formErrors.email && (
                 <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                  <AlertCircle className="h-3 w-3" />
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   {formErrors.email}
                 </p>
               )}
@@ -348,8 +369,19 @@ export default function AuthPage() {
 
             {/* Senha */}
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs sm:text-sm">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-xs sm:text-sm font-medium">Senha</Label>
+                {isLogin && (
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-xs sm:text-sm font-medium text-accent hover:underline transition-colors"
+                  >
+                    Esqueci minha senha
+                  </Link>
+                )}
+              </div>
               <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -361,20 +393,21 @@ export default function AuthPage() {
                   }}
                   disabled={loading}
                   placeholder="Mínimo 6 caracteres"
-                  className={`pr-10 h-10 sm:h-11 text-sm transition-all ${formErrors.password ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                  className={`pl-10 pr-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.password ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
                   tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {formErrors.password && (
                 <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                  <AlertCircle className="h-3 w-3" />
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   {formErrors.password}
                 </p>
               )}
@@ -383,8 +416,9 @@ export default function AuthPage() {
             {/* Confirmar Senha */}
             {!isLogin && (
               <div className="space-y-1.5 animate-fade-in-up">
-                <Label htmlFor="confirmPassword" className="text-xs sm:text-sm">Confirmar Senha</Label>
+                <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium">Confirmar Senha</Label>
                 <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
@@ -396,54 +430,120 @@ export default function AuthPage() {
                     }}
                     disabled={loading}
                     placeholder="Repita sua senha"
-                    className={`pr-10 h-10 sm:h-11 text-sm transition-all ${formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                    className={`pl-10 pr-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
                     tabIndex={-1}
+                    aria-label={showConfirmPassword ? "Ocultar senha" : "Exibir senha"}
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {formErrors.confirmPassword && (
                   <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                    <AlertCircle className="h-3 w-3" />
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                     {formErrors.confirmPassword}
                   </p>
                 )}
               </div>
             )}
 
-            <Button type="submit" className="w-full mt-4 h-10 sm:h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-sm sm:text-base cursor-pointer" disabled={loading}>
+            {/* Primary Action Button */}
+            <Button
+              type="submit"
+              className="w-full mt-2 h-11 sm:h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-sm sm:text-base font-semibold rounded-xl cursor-pointer transition-all"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin-smooth" />
                   Aguarde...
                 </>
               ) : (
-                <>
-                  {isLogin ? "Entrar" : "Criar conta"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
+                isLogin ? "Entrar na conta" : "Criar minha conta"
               )}
             </Button>
           </form>
-          {isLogin && (
-            <div className="mt-4 text-center text-xs sm:text-sm">
-              <Link href="/auth/forgot-password" className="text-muted-foreground hover:text-foreground transition-colors">
-                Esqueci minha senha
-              </Link>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border/60" />
             </div>
-          )}
-          <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm">
-            <button type="button" onClick={handleToggleMode} className="text-muted-foreground hover:text-foreground transition-colors font-medium cursor-pointer">
-              {isLogin ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
-            </button>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-3 text-muted-foreground font-medium">OU</span>
+            </div>
+          </div>
+
+          {/* Google Sign-in */}
+          <div className="w-full flex flex-col items-center">
+            <div id="google-signin-button" className="w-full flex justify-center [&_iframe]:!w-full [&_iframe]:!max-w-none" />
+
+            {!googleInitialized && (
+              <button
+                type="button"
+                onClick={() => {
+                  const googleBtn = document.querySelector('#google-signin-button div[role="button"]') as HTMLElement;
+                  if (googleBtn) {
+                    googleBtn.click();
+                  } else if ((window as any).google?.accounts?.id) {
+                    (window as any).google.accounts.id.prompt();
+                  } else {
+                    toast.info("Serviço Google indisponível no momento.");
+                  }
+                }}
+                className="w-full h-11 sm:h-12 flex items-center justify-center gap-2.5 rounded-full border border-border/80 bg-card hover:bg-muted/40 font-medium text-xs sm:text-sm transition-colors text-foreground cursor-pointer shadow-xs"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span>Continuar com Google</span>
+              </button>
+            )}
+
+            {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+              <div className="text-[11px] text-center text-muted-foreground/70 mt-2">
+                Login com Google requer configuração do NEXT_PUBLIC_GOOGLE_CLIENT_ID
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Footer Switcher */}
+          <div className="mt-6 text-center text-xs sm:text-sm text-muted-foreground">
+            {isLogin ? (
+              <>
+                Ainda não tem conta no ImovPlan?{" "}
+                <button
+                  type="button"
+                  onClick={() => handleSwitchTab(false)}
+                  className="font-semibold text-accent hover:underline cursor-pointer transition-colors"
+                >
+                  Cadastre-se gratuitamente
+                </button>
+              </>
+            ) : (
+              <>
+                Já tem uma conta no ImovPlan?{" "}
+                <button
+                  type="button"
+                  onClick={() => handleSwitchTab(true)}
+                  className="font-semibold text-accent hover:underline cursor-pointer transition-colors"
+                >
+                  Acesse sua conta
+                </button>
+              </>
+            )}
           </div>
         </Card>
       </div>
+
+      {/* Right Column Showcase */}
       <div className="hidden lg:flex flex-col justify-center items-center p-8 lg:p-12 bg-gradient-ink text-primary-foreground relative overflow-hidden animate-fade-in">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
@@ -451,7 +551,7 @@ export default function AuthPage() {
         <div className="relative z-10 max-w-md text-center space-y-4 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
           <Logo variant="dark" size="lg" className="mx-auto mb-4" />
           <h2 className="font-display text-3xl sm:text-4xl leading-tight font-semibold">A chave do seu imóvel mais perto do que você imagina.</h2>
-          <p className="text-primary-foreground/70 text-sm sm:text-base">O Imov.Plan ajuda você a organizar a vida financeira para realizar o sonho do imóvel próprio, de forma simples e visual.</p>
+          <p className="text-primary-foreground/70 text-sm sm:text-base">O ImovPlan ajuda você a organizar a vida financeira para realizar o sonho do imóvel próprio, de forma simples e visual.</p>
         </div>
       </div>
     </div>
