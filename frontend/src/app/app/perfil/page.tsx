@@ -20,10 +20,11 @@ import {
   ShieldCheck,
   MailCheck,
   ArrowRight,
+  LogOut,
 } from "lucide-react";
 
 export default function PerfilPage() {
-  const { user, updateUser, deleteAccount, forgotPassword } = useAuth();
+  const { user, updateUser, deleteAccount, forgotPassword, logout } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -124,19 +125,31 @@ export default function PerfilPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up pb-12">
       {/* Cabecalho */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left">
-        <div className="h-20 w-20 rounded-2xl bg-gradient-warm shadow-glow flex items-center justify-center shrink-0">
-          <span className="font-display text-2xl font-medium text-white">
-            {getInitials(name || "U")}
-          </span>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left">
+          <div className="h-20 w-20 rounded-2xl bg-gradient-warm shadow-glow flex items-center justify-center shrink-0">
+            <span className="font-display text-2xl font-medium text-white">
+              {getInitials(name || "U")}
+            </span>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-accent font-medium mb-1 flex items-center justify-center sm:justify-start gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" /> Meu Perfil
+            </p>
+            <h1 className="font-display text-2xl sm:text-3xl font-normal text-foreground">{name || "Usuario"}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-widest text-accent font-medium mb-1 flex items-center justify-center sm:justify-start gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5" /> Meu Perfil
-          </p>
-          <h1 className="font-display text-2xl sm:text-3xl font-normal text-foreground">{name || "Usuario"}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
-        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void logout()}
+          className="w-full sm:w-auto border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 gap-2 shrink-0 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sair da conta</span>
+        </Button>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 items-start">

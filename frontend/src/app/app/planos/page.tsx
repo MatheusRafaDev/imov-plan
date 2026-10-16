@@ -351,6 +351,24 @@ export default function PlanosPage() {
               </Card>
             );
           })}
+
+          {/* Card para Adicionar Novo Plano */}
+          <Card
+            onClick={criando ? undefined : handleCriarNovo}
+            className="glass p-6 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[280px] sm:min-h-[340px] text-muted-foreground hover:text-foreground group rounded-xl shadow-soft"
+          >
+            <div className="h-14 w-14 rounded-full bg-secondary/80 group-hover:bg-accent/10 grid place-items-center mb-3.5 transition-colors">
+              {criando ? (
+                <Loader2 className="h-6 w-6 animate-spin-smooth text-accent" />
+              ) : (
+                <Plus className="h-6 w-6 text-muted-foreground group-hover:text-accent transition-colors" />
+              )}
+            </div>
+            <h3 className="font-display text-xl font-semibold text-foreground">Novo imóvel planejado</h3>
+            <p className="text-sm text-center mt-2 max-w-[260px] text-muted-foreground leading-relaxed">
+              Adicione outro imóvel para comparar valores de entrada, prazos e rentabilidade.
+            </p>
+          </Card>
         </div>
       )}
 

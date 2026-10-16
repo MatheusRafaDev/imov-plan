@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { PublicHeader } from "@/components/PublicHeader";
 import { FileText, Scale, AlertTriangle, ShieldCheck, HelpCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export default function TermosPage() {
@@ -43,54 +44,7 @@ export default function TermosPage() {
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────── */}
-      <header
-        className="safe-top"
-        style={{
-          borderBottom: "1px solid #E8E3DA",
-          background: "#FBFAF7",
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          paddingTop: "env(safe-area-inset-top, 0px)",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            padding: "18px 24px",
-            paddingLeft: "calc(24px + env(safe-area-inset-left, 0px))",
-            paddingRight: "calc(24px + env(safe-area-inset-right, 0px))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
-          <Logo href="/" size="md" />
-
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <Link
-              href="/"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                color: "#5E5951",
-                fontWeight: 600,
-                fontSize: 15,
-                transition: "color 0.15s",
-              }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar ao início
-            </Link>
-            <Link href="/auth" className="hp-btn-primary">
-              Começar meu plano
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* ── HERO BANNER ──────────────────────────────────────────────────── */}
       <div style={{ borderBottom: "1px solid #E8E3DA", background: "#FFF0E6", padding: "56px 24px" }}>

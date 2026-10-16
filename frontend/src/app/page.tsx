@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
+import { PublicHeader } from "@/components/PublicHeader";
 import { faqItems } from "@/lib/seo";
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
@@ -352,38 +353,7 @@ export default function Index() {
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────── */}
-      <header
-        className="safe-top"
-        style={{
-          borderBottom: "1px solid #E8E3DA",
-          background: "#FBFAF7",
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          paddingTop: "env(safe-area-inset-top, 0px)",
-        }}
-      >
-        <div className="hp-header-inner">
-          <Logo href="/" size="md" />
-
-          <nav aria-label="Principal" className="hp-nav-links" style={{ display: "flex", alignItems: "center", gap: 28 }}>
-            <a href="#como" className="hp-nav-link">Como funciona</a>
-            <a href="#recursos" className="hp-nav-link">Recursos</a>
-            <a href="#faq" className="hp-nav-link">Perguntas</a>
-          </nav>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            {user ? (
-              <Link href="/app/imovel" className="hp-btn-primary hp-btn-header-signup">Abrir meu plano</Link>
-            ) : (
-              <>
-                <Link href="/auth" className="hp-btn-header-login" style={{ padding: "10px 14px", color: "#1D1B19", fontWeight: 600, fontSize: 15, whiteSpace: "nowrap" }}>Entrar</Link>
-                <Link href="/auth?modo=cadastro" className="hp-btn-primary hp-btn-header-signup" style={{ whiteSpace: "nowrap" }}>Criar conta</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section

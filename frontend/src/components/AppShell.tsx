@@ -150,7 +150,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               );
             })()}
 
-            <Button type="button" variant="ghost" size="sm" onClick={() => void logout()} className="text-muted-foreground hover:text-destructive">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => void logout()}
+              className="hidden sm:inline-flex text-muted-foreground hover:text-destructive"
+              title="Sair"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
