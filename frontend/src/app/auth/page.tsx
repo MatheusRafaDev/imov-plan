@@ -42,25 +42,40 @@ export default function AuthPage() {
 
     let resizeObserver: ResizeObserver | null = null;
 
+    let isRendering = false;
     const renderGoogleButton = () => {
+      if (isRendering) return;
       const google = (window as any).google;
       const buttonDiv = document.getElementById("google-signin-button");
       if (!google || !google.accounts?.id || !buttonDiv) return;
 
-      const rect = buttonDiv.getBoundingClientRect();
-      const measuredWidth = Math.floor(rect.width || buttonDiv.offsetWidth || 340);
-      const buttonWidth = Math.min(400, Math.max(200, measuredWidth));
+      isRendering = true;
+      try {
+        const rect = buttonDiv.getBoundingClientRect();
+        const parentRect = buttonDiv.parentElement?.getBoundingClientRect();
+        const measuredWidth = Math.floor(
+          (rect.width > 50 ? rect.width : 0) ||
+          parentRect?.width ||
+          buttonDiv.offsetWidth ||
+          340
+        );
+        const buttonWidth = Math.min(400, Math.max(200, measuredWidth));
 
-      buttonDiv.innerHTML = "";
-      google.accounts.id.renderButton(buttonDiv, {
-        theme: "outline",
-        size: "large",
-        type: "standard",
-        text: "continue_with",
-        shape: "pill",
-        logo_alignment: "left",
-        width: buttonWidth,
-      });
+        buttonDiv.innerHTML = "";
+        google.accounts.id.renderButton(buttonDiv, {
+          theme: "outline",
+          size: "large",
+          type: "standard",
+          text: "continue_with",
+          shape: "rectangular",
+          logo_alignment: "left",
+          width: buttonWidth,
+        });
+      } finally {
+        setTimeout(() => {
+          isRendering = false;
+        }, 150);
+      }
     };
 
     const initGoogle = () => {
@@ -90,7 +105,7 @@ export default function AuthPage() {
           resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
               const currentWidth = Math.floor(entry.contentRect.width);
-              if (currentWidth && Math.abs(currentWidth - lastWidth) > 5) {
+              if (currentWidth && Math.abs(currentWidth - lastWidth) > 8) {
                 lastWidth = currentWidth;
                 renderGoogleButton();
               }
@@ -528,7 +543,12 @@ export default function AuthPage() {
 
           {/* Google Sign-in */}
           <div className="w-full flex flex-col items-center">
-            <div id="google-signin-button" className="w-full flex justify-center [&_iframe]:!w-full [&_iframe]:!max-w-none" />
+            <div
+              id="google-signin-button"
+              className={`w-full flex justify-center min-h-[40px] [&>div]:!w-full [&_iframe]:!w-full [&_iframe]:!max-w-none rounded-lg overflow-hidden ${
+                !googleInitialized ? "hidden" : ""
+              }`}
+            />
 
             {!googleInitialized && (
               <button
@@ -543,7 +563,7 @@ export default function AuthPage() {
                     toast.info("Serviço Google indisponível no momento.");
                   }
                 }}
-                className="w-full h-9 sm:h-10 flex items-center justify-center gap-2 rounded-full border border-border/80 bg-card hover:bg-muted/40 font-medium text-xs transition-colors text-foreground cursor-pointer shadow-xs"
+                className="w-full h-10 flex items-center justify-center gap-2.5 rounded-lg border border-border/80 bg-card hover:bg-muted/40 font-medium text-xs sm:text-sm transition-colors text-foreground cursor-pointer shadow-xs"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -551,7 +571,7 @@ export default function AuthPage() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
-                <span>Continuar com Google</span>
+                <span>Continuar com o Google</span>
               </button>
             )}
 
