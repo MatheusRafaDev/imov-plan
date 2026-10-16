@@ -66,11 +66,11 @@ export default function TermosPage() {
             style={{ animationDelay: "200ms" }}
           >
             <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
               Uso gratuito para simulações
             </span>
             <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <ShieldCheck className="w-4 h-4 text-success shrink-0" />
               Transparência metodológica
             </span>
             <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">

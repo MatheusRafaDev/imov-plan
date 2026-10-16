@@ -38,7 +38,7 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
       ? "bg-destructive"
       : passed === 2
       ? "bg-yellow-500"
-      : "bg-green-500";
+      : "bg-success";
 
   if (!password) return null;
 
@@ -59,7 +59,7 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
           <li
             key={c.label}
             className={`flex items-center gap-1.5 text-xs transition-colors ${
-              c.ok ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+              c.ok ? "text-success font-medium" : "text-muted-foreground"
             }`}
           >
             {c.ok ? (
@@ -201,8 +201,8 @@ function ResetPasswordForm() {
   if (sucesso) {
     return (
       <div className="space-y-4 text-center animate-fade-in">
-        <div className="mx-auto h-12 w-12 rounded-full bg-green-500/10 grid place-items-center">
-          <ShieldCheck className="h-6 w-6 text-green-500" />
+        <div className="mx-auto h-12 w-12 rounded-full bg-success/10 grid place-items-center">
+          <ShieldCheck className="h-6 w-6 text-success" />
         </div>
         <h2 className="font-display text-2xl">Senha redefinida!</h2>
         <p className="text-sm text-muted-foreground">
@@ -294,7 +294,7 @@ function ResetPasswordForm() {
             </button>
           </div>
           {confirmPassword && newPassword && confirmPassword === newPassword && (
-            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5 mt-1 animate-fade-in">
+            <p className="text-xs text-success font-medium flex items-center gap-1.5 mt-1 animate-fade-in">
               <CheckCircle2 className="h-3.5 w-3.5" /> As senhas coincidem
             </p>
           )}

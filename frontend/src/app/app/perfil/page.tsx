@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/context/AuthContext";
 import { UsuarioService, UpdateProfilePayload } from "@/services/UsuarioService";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   MailCheck,
   ArrowRight,
   LogOut,
+  X,
 } from "lucide-react";
 
 export default function PerfilPage() {
@@ -258,15 +260,26 @@ export default function PerfilPage() {
             )}
           </Card>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void logout()}
-          className="w-full sm:w-auto border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 gap-2 shrink-0 transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Sair da conta</span>
-        </Button>
+          {/* Sessão / Sair da Conta */}
+          <Card className="border-border/60 bg-white dark:bg-card p-6 shadow-soft flex flex-col justify-between">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-1">
+                <LogOut className="h-4 w-4 text-muted-foreground" /> Sessão
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Desconecte sua conta com segurança neste dispositivo.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void logout()}
+              className="w-full border-border/70 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 font-medium shadow-sm gap-2 transition-all"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sair da conta</span>
+            </Button>
+          </Card>
 
 
           {/* Zona de Risco */}
@@ -291,15 +304,29 @@ export default function PerfilPage() {
       </div>
 
       {/* Modal de exclusao */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain bg-background/80 p-4 backdrop-blur-sm">
-          <Card className="my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto w-full max-w-md p-6 space-y-4 shadow-lg border-destructive/20 animate-in fade-in zoom-in-95">
-            <h3 className="text-lg font-display text-destructive flex items-center gap-2">
+      {showDeleteModal && typeof document !== "undefined" && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+        >
+          <Card className="relative w-full max-w-md p-6 space-y-4 shadow-2xl border-destructive/20 animate-in zoom-in-95 overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
+            <button
+              type="button"
+              onClick={() => !deleting && setShowDeleteModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              title="Fechar"
+              disabled={deleting}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <h3 className="text-lg font-display text-destructive flex items-center gap-2 pr-6">
               <Trash2 className="h-5 w-5" />
               Excluir Conta
             </h3>
             <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja apagar sua conta? Esta acao nao pode ser desfeita e todos os seus planos serao excluidos.
+              Tem certeza que deseja apagar sua conta? Esta ação não pode ser desfeita e todos os seus planos serão excluídos.
             </p>
             <div className="flex gap-3 justify-end pt-4">
               <Button
@@ -322,12 +349,13 @@ export default function PerfilPage() {
                   }
                 }}
               >
-                {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin-smooth" />}
                 Excluir Conta
               </Button>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

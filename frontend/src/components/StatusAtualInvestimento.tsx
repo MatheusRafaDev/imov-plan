@@ -4,17 +4,14 @@ import { useState } from "react";
 import { Check, Pencil, RefreshCw, Save, X } from "lucide-react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { MoneyInput } from "@/components/MoneyInput";
-import { DateInput } from "@/components/DateInput";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { brl, rendimentoEstimadoDiario } from "@/lib/finance";
-import { toLocalDateIso } from "@/utils/dates";
+import { brl, rendimentoEstimadoMensal } from "@/lib/finance";
 
 export function StatusAtualInvestimento() {
   const { pessoas, salvarPlano, calcularBackend, progressoAtualPorPessoa, objetivo } = usePlanLogic();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [value, setValue] = useState<number | "">(0);
-  const [date, setDate] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
 
   if (!pessoas.length) return null;
@@ -25,21 +22,19 @@ export function StatusAtualInvestimento() {
     setEditingId(pessoa.id);
     const saldoPessoa = progressoAtualPorPessoa[pessoa.id] ?? Number(pessoa.valorAtual ?? pessoa.valorInicial ?? 0);
     setValue(saldoPessoa);
-    setDate(pessoa.dataValorAtual || toLocalDateIso(new Date()) || "");
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setValue(0);
-    setDate("");
   };
 
   const saveCheckpoint = async (pessoaId: string) => {
-    if (!date || value === "" || Number(value) < 0) return;
+    if (value === "" || Number(value) < 0) return;
 
     const updatedPeople = pessoas.map((pessoa) =>
       pessoa.id === pessoaId
-        ? { ...pessoa, valorAtual: Number(value), valorInicial: Number(value), dataValorAtual: date }
+        ? { ...pessoa, valorAtual: Number(value), valorInicial: Number(value), dataValorAtual: new Date().toISOString() }
         : pessoa
     );
 
@@ -67,7 +62,7 @@ export function StatusAtualInvestimento() {
           {pessoas.map((pessoa) => {
             const hasCheckpoint = pessoa.valorAtual != null && pessoa.dataValorAtual;
             const saldoPessoa = progressoAtualPorPessoa[pessoa.id] ?? Number(pessoa.valorAtual ?? pessoa.valorInicial ?? 0);
-            const rendDiario = rendimentoEstimadoDiario(saldoPessoa, taxaCdiAnual, pessoa.tipoInvestimento);
+            const rendMensal = rendimentoEstimadoMensal(saldoPessoa, taxaCdiAnual, pessoa.tipoInvestimento);
             return (
               <button
                 key={pessoa.id}
@@ -79,7 +74,7 @@ export function StatusAtualInvestimento() {
                   {saldoPessoa > 0 ? (
                     <div>
                       <p className="text-sm font-semibold text-foreground mt-0.5">{brl(saldoPessoa)}</p>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">+{brl(rendDiario)}/dia</p>
+                      <p className="text-[10px] text-success font-semibold">+{brl(rendMensal)}/mês</p>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground/60 mt-0.5 italic">Não informado</p>
@@ -103,12 +98,11 @@ export function StatusAtualInvestimento() {
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-foreground shrink-0">{editingPessoa.nome.split(" ")[0]}</span>
             <span className="text-muted-foreground/40 text-xs">·</span>
-            <MoneyInput variant="money" min={0} value={value} onChange={setValue} className="h-7 text-xs w-28 sm:w-32" />
-            <DateInput value={date} onChange={setDate} className="h-7 text-xs w-28 sm:w-32" />
+            <MoneyInput variant="money" min={0} value={value} onChange={setValue} className="h-7 text-xs w-32" />
           </div>
           {Number(value || 0) > 0 && (
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
-              +{brl(rendimentoEstimadoDiario(Number(value || 0), taxaCdiAnual, editingPessoa.tipoInvestimento))}/dia
+            <span className="text-[11px] text-success font-semibold whitespace-nowrap">
+              +{brl(rendimentoEstimadoMensal(Number(value || 0), taxaCdiAnual, editingPessoa.tipoInvestimento))}/mês
             </span>
           )}
           <div className="flex items-center gap-1 ml-auto shrink-0">
@@ -118,7 +112,7 @@ export function StatusAtualInvestimento() {
             <Button
               size="sm"
               onClick={() => saveCheckpoint(editingPessoa.id)}
-              disabled={savingId === editingPessoa.id || value === "" || !date}
+              disabled={savingId === editingPessoa.id || value === ""}
               className="h-7 px-2.5 text-xs gap-1"
             >
               {savingId === editingPessoa.id

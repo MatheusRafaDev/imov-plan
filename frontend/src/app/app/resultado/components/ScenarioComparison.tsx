@@ -67,7 +67,7 @@ export function ScenarioComparison() {
     if (!isSelected) return `${base} border-border/40 text-muted-foreground/60 hover:border-border hover:text-muted-foreground`;
     if (key === "pessimista") return `${base} border-rose-500/50 bg-rose-500/8 text-rose-400`;
     if (key === "realista")   return `${base} border-accent/60 bg-accent/8 text-accent`;
-    return                           `${base} border-emerald-500/50 bg-emerald-500/8 text-emerald-400`;
+    return                           `${base} border-success/50 bg-success/10 text-success font-semibold`;
   };
 
   return (

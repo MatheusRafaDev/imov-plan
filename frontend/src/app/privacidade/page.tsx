@@ -66,15 +66,15 @@ export default function PrivacidadePage() {
             style={{ animationDelay: "200ms" }}
           >
             <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
               Em conformidade com a LGPD (Lei 13.709/18)
             </span>
             <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
-              <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
+              <Lock className="w-4 h-4 text-success shrink-0" />
               Criptografia em repouso e trânsito
             </span>
             <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
-              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <UserCheck className="w-4 h-4 text-success shrink-0" />
               Você no controle dos seus dados
             </span>
           </div>

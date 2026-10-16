@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
-import { brl, rendimentoEstimadoDiario, type Aporte } from "@/lib/finance";
+import { brl, rendimentoEstimadoMensal, type Aporte } from "@/lib/finance";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -70,21 +71,6 @@ export default function PlanejamentoPage() {
     pessoa_id: "",
   });
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (extraParaExcluir && !excluindoAporte) {
-          setExtraParaExcluir(null);
-        } else if (isAportesExtrasModalOpen && !salvandoAporte) {
-          setIsAportesExtrasModalOpen(false);
-          setEditingAporteIndex(null);
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [extraParaExcluir, excluindoAporte, isAportesExtrasModalOpen, salvandoAporte]);
-
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
   const totalGuardado = progressoAtual;
 
@@ -105,10 +91,19 @@ export default function PlanejamentoPage() {
   const progressoPercent = Math.min(100, meta > 0 ? (totalGuardado / meta) * 100 : 0);
 
   const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
-  const totalRendimentoDiario = pessoas.reduce((acc, p) => {
+  const totalRendimentoMensal = pessoas.reduce((acc, p) => {
     const saldoP = progressoAtualPorPessoa[p.id] ?? Number(p.valorAtual ?? p.valorInicial ?? 0);
-    return acc + rendimentoEstimadoDiario(saldoP, taxaCdiAnual, p.tipoInvestimento);
+    return acc + rendimentoEstimadoMensal(saldoP, taxaCdiAnual, p.tipoInvestimento);
   }, 0);
+
+  const calcularGastosPessoa = (p: typeof pessoas[number]) =>
+    p.usar_gastos_detalhados
+      ? (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor || 0), 0)
+      : Number(p.gastos_mensais || 0);
+
+  const rendaTotalGeral = pessoas.reduce((s, p) => s + (Number(p.renda_mensal || 0) + Number(p.renda_complementar || 0)), 0);
+  const gastosTotaisGeral = pessoas.reduce((s, p) => s + calcularGastosPessoa(p), 0);
+  const sobraTotal = rendaTotalGeral - gastosTotaisGeral;
 
   const abrirModalNovoAporte = () => {
     setEditingAporteIndex(null);
@@ -275,19 +270,50 @@ export default function PlanejamentoPage() {
         <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Progresso atual da meta</p>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => setIsEditingTotal(!isEditingTotal)} title="Atualizar valor guardado hoje">
-              <Pencil className="h-3.5 w-3.5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer" 
+              onClick={() => setIsEditingTotal(!isEditingTotal)} 
+              title={isEditingTotal ? "Fechar edição" : "Atualizar valor guardado hoje"}
+            >
+              {isEditingTotal ? <X className="h-4 w-4" /> : <Pencil className="h-3.5 w-3.5" />}
             </Button>
           </div>
           <div className="space-y-4">
             <div className={`flex ${isEditingTotal ? 'flex-col gap-3' : 'justify-between items-end'}`}>
               {isEditingTotal ? (
-                <div className="w-full animate-fade-in space-y-3 bg-secondary/10 p-3 rounded-xl border border-border/40">
-                  <p className="text-xs text-muted-foreground font-medium flex items-center justify-between">
-                    <span>Atualize o saldo de cada participante</span>
-                    <Button variant="ghost" size="sm" onClick={() => setIsEditingTotal(false)} className="h-6 px-2 text-xs">Concluir</Button>
-                  </p>
+                <div className="w-full animate-fade-in space-y-3 bg-secondary/10 p-3.5 rounded-xl border border-border/40">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium">Atualize o saldo de cada participante</span>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setIsEditingTotal(false)} 
+                        className="h-7 px-2.5 text-xs font-semibold text-accent hover:text-accent hover:bg-accent/10 rounded-lg cursor-pointer"
+                      >
+                        Concluir
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => setIsEditingTotal(false)} 
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer"
+                        title="Fechar edição"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <StatusAtualInvestimento />
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
+                    <span className="text-muted-foreground font-medium">Soma total guardada:</span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-display font-bold text-foreground text-sm sm:text-base num">{brl(totalGuardado)}</span>
+                      <span className="text-[11px] text-muted-foreground font-medium">de {brl(meta)}</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -303,10 +329,10 @@ export default function PlanejamentoPage() {
               />
             </div>
             <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground pt-0.5">
-              {totalRendimentoDiario > 0 ? (
-                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+              {totalRendimentoMensal > 0 ? (
+                <span className="flex items-center gap-1.5 text-success font-semibold text-xs">
                   <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                  <span>+{brl(totalRendimentoDiario)}/dia hoje</span>
+                  <span>+{brl(totalRendimentoMensal)}/mês hoje</span>
                 </span>
               ) : <span />}
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground text-right font-semibold">{progressoPercent.toFixed(1)}% alcançado</span>
@@ -314,22 +340,42 @@ export default function PlanejamentoPage() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Aporte mensal (Programado)</p>
-          <p className="font-display text-4xl sm:text-5xl num mt-3 leading-none text-foreground font-semibold">{brl(aporteTotal)}</p>
+        <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:border-border/60">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Capacidade & Aporte</p>
+              <span className="text-[10px] text-muted-foreground font-medium">
+                {sobraTotal > aporteTotal 
+                  ? `Sobra livre: ${brl(sobraTotal - aporteTotal)}` 
+                  : sobraTotal === aporteTotal 
+                    ? "100% da sobra líquida" 
+                    : "Aporte acima da sobra"}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 pt-0.5">
+              <p className="font-display text-3xl sm:text-4xl num leading-none text-foreground font-semibold">{brl(aporteTotal)}</p>
+              <span className="text-xs text-muted-foreground font-medium">/mês planejado</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+              <span>Renda: <strong className="text-foreground font-medium">{brl(rendaTotalGeral)}</strong></span>
+              {gastosTotaisGeral > 0 && (
+                <span>Despesas: <strong className="text-foreground font-medium">{brl(gastosTotaisGeral)}</strong></span>
+              )}
+            </div>
+          </div>
 
-          <div className="mt-6 space-y-2.5">
+          <div className="mt-4 pt-3 border-t border-border/40 space-y-2">
             {pessoas.map(p => {
-              const nameInitial = p.nome.charAt(0).toUpperCase();
+              const nameInitial = p.nome ? p.nome.charAt(0).toUpperCase() : "?";
               return (
-                <div key={p.id} className="flex justify-between items-center bg-secondary/30 p-2.5 rounded-xl border border-border/40 transition-colors hover:bg-secondary/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-7 w-7 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[11px] font-medium shadow-sm">
+                <div key={p.id} className="flex justify-between items-center bg-secondary/30 p-2 sm:p-2.5 rounded-xl border border-border/40 transition-colors hover:bg-secondary/50">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="h-6 w-6 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-bold shadow-xs shrink-0">
                       {nameInitial}
                     </div>
-                    <span className="text-sm font-medium text-foreground/90">{p.nome.split(" ")[0]}</span>
+                    <span className="text-xs sm:text-sm font-medium text-foreground/90 truncate">{p.nome.split(" ")[0]}</span>
                   </div>
-                  <span className="num font-semibold text-sm">{brl(Number(p.aporte_mensal || 0))}</span>
+                  <span className="num font-semibold text-xs sm:text-sm shrink-0">{brl(Number(p.aporte_mensal || 0))}</span>
                 </div>
               );
             })}
@@ -338,15 +384,13 @@ export default function PlanejamentoPage() {
       </div>
 
       {/* Modal Aportes Extras */}
-      {isAportesExtrasModalOpen && (
+      {isAportesExtrasModalOpen && typeof document !== "undefined" && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => !salvandoAporte && (setIsAportesExtrasModalOpen(false), setEditingAporteIndex(null))}
           role="dialog"
           aria-modal="true"
         >
           <div 
-            onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
           >
             {/* Linha decorativa de topo */}
@@ -369,7 +413,7 @@ export default function PlanejamentoPage() {
                 type="button"
                 className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
                 onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}
-                title="Fechar (Esc)"
+                title="Fechar"
                 disabled={salvandoAporte}
               >
                 <X className="h-4 w-4" />
@@ -484,19 +528,18 @@ export default function PlanejamentoPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal de Confirmação de Exclusão de Aporte Extra */}
-      {extraParaExcluir && (
+      {extraParaExcluir && typeof document !== "undefined" && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => !excluindoAporte && setExtraParaExcluir(null)}
           role="dialog"
           aria-modal="true"
         >
           <div 
-            onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
@@ -504,7 +547,7 @@ export default function PlanejamentoPage() {
               type="button"
               onClick={() => !excluindoAporte && setExtraParaExcluir(null)}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-              title="Fechar (Esc)"
+              title="Fechar"
               disabled={excluindoAporte}
             >
               <X className="h-4 w-4" />
@@ -559,72 +602,83 @@ export default function PlanejamentoPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6 sm:gap-8 pt-8 border-t border-border/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <div className="space-y-4">
-          <Card className="p-0 overflow-hidden shadow-soft border-border/60 hover:border-accent/40 transition-all bg-white dark:bg-card rounded-2xl group">
-            {/* Header do Card (estilo Meus Planos / PessoaCard) */}
-            <div className="p-5 flex items-start justify-between gap-3 border-b border-border/40 bg-secondary/20">
+      <div className="space-y-6 pt-6 border-t border-border/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        {/* Card Aportes Extras */}
+        <Card className="p-0 overflow-hidden shadow-soft border-border/60 hover:border-accent/40 transition-all bg-white dark:bg-card rounded-2xl group">
+          {/* Header do Card */}
+          <div className="p-4 sm:p-5 flex items-start sm:items-center justify-between gap-3 border-b border-border/40 bg-secondary/20">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
+                <Wallet className="h-4 w-4" />
+              </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-
-                  <h2 className="font-display text-lg font-semibold text-foreground leading-tight">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-display text-base sm:text-lg font-semibold text-foreground leading-tight">
                     Aportes extras
                   </h2>
+                  {aportesExtras.length > 0 && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent">
+                      {aportesExtras.length} {aportesExtras.length === 1 ? "aporte" : "aportes"}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Recursos eventuais para turbinar sua meta.
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Recursos pontuais cadastrados para acelerar sua conquista.
                 </p>
               </div>
-              <Button 
-                size="sm" 
-                onClick={abrirModalNovoAporte} 
-                className="h-9 px-3 rounded-xl text-xs font-medium bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow shrink-0 flex items-center gap-1.5"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Adicionar
-              </Button>
             </div>
+            <Button 
+              size="sm" 
+              onClick={abrirModalNovoAporte} 
+              className="h-9 px-3 rounded-xl text-xs font-medium bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow shrink-0 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Adicionar aporte</span>
+            </Button>
+          </div>
 
-            {aportesExtras.length === 0 ? (
-              <div 
-                onClick={abrirModalNovoAporte}
-                className="p-8 text-center cursor-pointer hover:bg-secondary/10 transition-colors flex flex-col items-center justify-center group/empty"
-              >
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 border border-accent/20 text-accent shadow-inner transition-transform group-hover/empty:scale-105 duration-300">
-                  <Wallet className="h-6 w-6" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground mb-1">Nenhum aporte extra cadastrado</h3>
-                <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
-                  Adicione 13º salário, bônus ou venda de bens para acelerar a entrega das chaves.
-                </p>
-                <span className="text-xs text-accent font-medium mt-3 inline-flex items-center gap-1 hover:underline">
-                  + Lançar primeiro aporte
-                </span>
+          {aportesExtras.length === 0 ? (
+            <div 
+              onClick={abrirModalNovoAporte}
+              className="p-6 text-center cursor-pointer hover:bg-secondary/10 transition-colors flex flex-col items-center justify-center group/empty"
+            >
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent shadow-inner transition-transform group-hover/empty:scale-105 duration-300">
+                <Wallet className="h-5 w-5" />
               </div>
-            ) : (
-              <div className="p-4 space-y-2.5">
+              <h3 className="text-sm font-semibold text-foreground mb-0.5">Nenhum aporte extra cadastrado</h3>
+              <p className="text-xs text-muted-foreground max-w-[320px] leading-relaxed">
+                Adicione 13º salário, bônus ou venda de bens para acelerar a entrega das chaves.
+              </p>
+              <span className="text-xs text-accent font-medium mt-2 inline-flex items-center gap-1 hover:underline">
+                + Lançar primeiro aporte
+              </span>
+            </div>
+          ) : (
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {aportesExtras.map((a, index) => (
                   <div 
                     key={index} 
-                    className="p-3.5 rounded-xl border border-border/50 bg-secondary/15 hover:bg-secondary/35 transition-all flex items-center justify-between gap-3 group/item"
+                    className="p-3 rounded-xl border border-border/50 bg-secondary/15 hover:bg-secondary/35 transition-all flex items-center justify-between gap-2.5 group/item"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-9 w-9 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
-                        <TrendingUp className="h-4 w-4" />
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
+                        <TrendingUp className="h-3.5 w-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-display text-base font-semibold text-foreground num leading-none">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-display text-sm font-semibold text-foreground num leading-none">
                             +{brl(Number(a.valor))}
                           </span>
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full shrink-0">
+                          <span className="text-[9px] font-medium uppercase tracking-wider text-accent bg-accent/10 px-1.5 py-0.5 rounded-full shrink-0">
                             {a.origem}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 truncate">
+                        <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
                           <span>{formatarDataAporte(a.data)}</span>
                           <span className="text-border">•</span>
                           <span className="font-medium text-foreground/80">{a.pessoaNome ?? "Conjunto"}</span>
@@ -632,42 +686,43 @@ export default function PlanejamentoPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       <Button 
                         size="icon" 
                         variant="ghost" 
                         onClick={() => editarAporte(index)} 
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
                         title="Editar"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3 w-3" />
                       </Button>
                       <Button 
                         size="icon" 
                         variant="ghost" 
                         onClick={() => removerAporte(index)} 
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
                         title="Excluir"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                 ))}
-
-                {/* Resumo Total no rodapé */}
-                <div className="pt-2.5 border-t border-border/40 flex items-center justify-between px-1 text-xs">
-                  <span className="text-muted-foreground font-medium">Total em aportes extras</span>
-                  <span className="font-display text-sm font-semibold text-accent num">
-                    +{brl(aportesExtras.reduce((acc, a) => acc + Number(a.valor || 0), 0))}
-                  </span>
-                </div>
               </div>
-            )}
-          </Card>
-        </div>
 
-        <div className="space-y-3 sm:space-y-4 min-w-0">
+              {/* Resumo Total no rodapé */}
+              <div className="pt-2 border-t border-border/40 flex items-center justify-between px-1 text-xs">
+                <span className="text-muted-foreground font-medium">Total em aportes extras</span>
+                <span className="font-display text-sm font-semibold text-accent num">
+                  +{brl(aportesExtras.reduce((acc, a) => acc + Number(a.valor || 0), 0))}
+                </span>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Tabela Mês a Mês em Largura Completa */}
+        <div className="w-full min-w-0">
           <TabelaMesAMes showFinancials={false} showCompletedToggle={false} showCenarioSelector={false} />
         </div>
       </div>

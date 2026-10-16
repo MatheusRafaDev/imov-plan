@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { usePlanos, useCriarPlano, useExcluirPlano, useRenomearPlano } from "@/hooks/usePlanos";
 import { Card } from "@/components/ui/card";
@@ -93,6 +94,8 @@ export default function PlanosPage() {
     try {
       const novoId = await criarNovoPlano();
       if (novoId) {
+        resetPlan();
+        setPlanoId(novoId);
         toast.success("Novo plano criado!");
         router.push("/app/imovel");
       } else {
@@ -137,16 +140,6 @@ export default function PlanosPage() {
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && planoAExcluir && !excluindo) {
-        setPlanoAExcluir(null);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [planoAExcluir, excluindo]);
-
   const handleSalvarNome = async (id: string) => {
     if (!nomeTemp.trim()) return;
     setSalvandoNome(true);
@@ -178,7 +171,8 @@ export default function PlanosPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up pb-12 w-full">
+    <>
+      <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up pb-12 w-full">
       <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border/40 pb-6">
         <div>
           <p className="text-xs uppercase tracking-widest text-accent font-medium mb-1.5 flex items-center gap-2">
@@ -381,90 +375,110 @@ export default function PlanosPage() {
           </Card>
         </div>
       )}
+    </div>
 
-      {/* Modal de Confirmação de Exclusão */}
-      {planoAExcluir && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => !excluindo && setPlanoAExcluir(null)}
-          role="dialog"
-          aria-modal="true"
+      <DeletePlanoModal
+        plano={planoAExcluir}
+        onClose={() => !excluindo && setPlanoAExcluir(null)}
+        onConfirm={confirmarExcluir}
+        isExcluding={Boolean(excluindo)}
+      />
+    </>
+  );
+}
+
+function DeletePlanoModal({
+  plano,
+  onClose,
+  onConfirm,
+  isExcluding,
+}: {
+  plano: { id: string; nome: string } | null;
+  onClose: () => void;
+  onConfirm: () => void;
+  isExcluding: boolean;
+}) {
+  if (!plano || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div 
+        className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-modal-box text-card-foreground overflow-hidden font-sans"
+      >
+        {/* Linha decorativa de topo */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
+
+        {/* Botão Fechar */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          title="Fechar"
+          disabled={isExcluding}
         >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
-          >
-            {/* Linha decorativa de topo */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
+          <X className="h-4 w-4" />
+        </button>
 
-            {/* Botão Fechar */}
-            <button
-              type="button"
-              onClick={() => !excluindo && setPlanoAExcluir(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-              title="Fechar (Esc)"
-              disabled={!!excluindo}
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* Ícone e Título */}
-            <div className="flex items-start gap-4 pt-1">
-              <div className="h-12 w-12 shrink-0 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-center shadow-xs">
-                <Trash2 className="h-6 w-6" />
-              </div>
-              <div className="flex-1 min-w-0 pr-6">
-                <h3 className="font-display text-xl font-semibold text-foreground tracking-tight">
-                  Excluir plano?
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                  Tem certeza que deseja excluir o plano <strong className="text-foreground font-semibold">&quot;{planoAExcluir.nome}&quot;</strong>?
-                </p>
-              </div>
-            </div>
-
-            {/* Alerta de consequência */}
-            <div className="mt-4 p-3 rounded-xl bg-destructive/5 border border-destructive/15 text-xs text-destructive/90 flex items-start gap-2.5">
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-              <span className="leading-relaxed">
-                Esta ação é irreversível. O planejamento, metas salvas e simulações deste imóvel serão permanentemente apagados.
-              </span>
-            </div>
-
-            {/* Ações */}
-            <div className="flex items-center gap-3 mt-6">
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80" 
-                onClick={() => setPlanoAExcluir(null)} 
-                disabled={excluindo === planoAExcluir.id}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="button" 
-                variant="destructive" 
-                className="flex-1 h-11 rounded-xl font-medium shadow-sm hover:opacity-95 flex items-center justify-center gap-2" 
-                onClick={confirmarExcluir} 
-                disabled={excluindo === planoAExcluir.id}
-              >
-                {excluindo === planoAExcluir.id ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin-smooth" />
-                    <span>Excluindo...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4" />
-                    <span>Sim, excluir</span>
-                  </>
-                )}
-              </Button>
-            </div>
+        {/* Ícone e Título */}
+        <div className="flex items-start gap-4 pt-1">
+          <div className="h-12 w-12 shrink-0 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-center shadow-xs">
+            <Trash2 className="h-6 w-6" />
+          </div>
+          <div className="flex-1 min-w-0 pr-6">
+            <h3 className="font-display text-xl font-semibold text-foreground tracking-tight">
+              Excluir plano?
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+              Tem certeza que deseja excluir o plano <strong className="text-foreground font-semibold">&quot;{plano.nome}&quot;</strong>?
+            </p>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Alerta de consequência */}
+        <div className="mt-4 p-3 rounded-xl bg-destructive/5 border border-destructive/15 text-xs text-destructive/90 flex items-start gap-2.5">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+          <span className="leading-relaxed">
+            Esta ação é irreversível. O planejamento, metas salvas e simulações deste imóvel serão permanentemente apagados.
+          </span>
+        </div>
+
+        {/* Ações */}
+        <div className="flex items-center gap-3 mt-6">
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80" 
+            onClick={onClose} 
+            disabled={isExcluding}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            type="button" 
+            variant="destructive" 
+            className="flex-1 h-11 rounded-xl font-medium shadow-sm hover:opacity-95 flex items-center justify-center gap-2" 
+            onClick={onConfirm} 
+            disabled={isExcluding}
+          >
+            {isExcluding ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin-smooth" />
+                <span>Excluindo...</span>
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4" />
+                <span>Sim, excluir</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

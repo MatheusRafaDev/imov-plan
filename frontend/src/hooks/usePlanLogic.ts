@@ -157,23 +157,25 @@ export function usePlanLogic() {
     return await saveDraftCore(patch);
   };
 
-  // Calcula o progresso atual com base no último mês concluído ou saldos individuais corrigidos dia a dia
-  const taxaCdi = Number(state.objetivo?.taxaCdiAnual ?? 10.5);
+  // Calcula o progresso atual com base no último mês concluído ou saldos individuais informados com evolução diária
   let progressoAtual = Number(state.objetivo?.valorJaGuardado || 0);
   const progressoAtualPorPessoa: Record<string, number> = {};
+  const taxaCdiAnual = Number(state.objetivo?.taxaCdiAnual ?? 10.5);
   
   state.pessoas.forEach(p => {
     const valorBase = Number(p.valorAtual ?? p.valorInicial ?? 0);
-    const evolucao = calcularEvolucaoDiariaAteHoje(valorBase, p.dataValorAtual, taxaCdi, p.tipoInvestimento);
-    progressoAtualPorPessoa[p.id] = evolucao.diasUteisDecorridos > 0 ? evolucao.saldoAtualizado : valorBase;
+    const evolucao = p.dataValorAtual
+      ? calcularEvolucaoDiariaAteHoje(valorBase, p.dataValorAtual, taxaCdiAnual, p.tipoInvestimento).saldoAtualizado
+      : valorBase;
+    progressoAtualPorPessoa[p.id] = evolucao;
   });
 
   const somaPessoasGuardado = state.pessoas.reduce(
     (acc, p) => acc + Number(progressoAtualPorPessoa[p.id] || 0),
     0
   );
-  if (progressoAtual === 0 && somaPessoasGuardado > 0) {
-    progressoAtual = somaPessoasGuardado;
+  if (somaPessoasGuardado > 0) {
+    progressoAtual = Math.max(progressoAtual, somaPessoasGuardado);
   }
 
   if (state.mesesConcluidos.length > 0 && simulacaoData?.detalhesMensais) {

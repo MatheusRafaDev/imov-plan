@@ -135,7 +135,7 @@ export default function ProntoPage() {
             <>
               {/* Compatibility Alert */}
               {rendaMensal > 0 && (
-                <div className={`rounded-xl p-4 flex items-start gap-3 text-sm border ${parcelaCompativel ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
+                <div className={`rounded-xl p-4 flex items-start gap-3 text-sm border ${parcelaCompativel ? "bg-success/10 border-success/30 text-success font-medium" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
                   <Info className="h-4 w-4 mt-0.5 shrink-0" />
                   <span>
                     {parcelaCompativel

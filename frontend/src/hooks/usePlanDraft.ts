@@ -72,7 +72,7 @@ export function usePlanDraft(planoId: string | null) {
             tipoInvestimento: draftData.objetivo.tipoInvestimento,
             estado: draftData.objetivo.estado || undefined,
             cidade: draftData.objetivo.cidade || undefined,
-          } : undefined,
+          } : null,
           pessoas: (draftData.pessoas || []).map((p: any) => ({
             id: p.id,
             nome: p.nome,

@@ -26,7 +26,7 @@
     --accent: 21 90% 48%; /* #E8590C — Laranja vibrante oficial da marca */
     --accent-foreground: 38 40% 98%;
 
-    --success: 145 35% 38%;
+    --success: 145 50% 28%;
     --success-foreground: 38 40% 98%;
 
     --warning: 38 85% 50%;
@@ -74,7 +74,7 @@
     --muted-foreground: 38 12% 65%;
     --accent: 24 100% 67%; /* #FF9A55 highlight on dark */
     --accent-foreground: 220 30% 8%;
-    --success: 145 40% 50%;
+    --success: 145 45% 42%;
     --success-foreground: 220 30% 8%;
     --warning: 38 85% 55%;
     --warning-foreground: 220 30% 8%;

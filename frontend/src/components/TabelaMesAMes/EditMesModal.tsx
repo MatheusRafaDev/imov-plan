@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { 
   X, 
@@ -69,17 +69,6 @@ export function EditMesModal({
   onSaveAcumulado,
 }: EditMesModalProps) {
   const [activeTab, setActiveTab] = useState<ModalTab>(initialTab);
-
-  // Handle ESC key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
 
   // Formatar data abreviada (ex: Jan/26)
   const dataFormatada = (() => {
@@ -171,7 +160,6 @@ export function EditMesModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/60 backdrop-blur-[2px] animate-modal-backdrop">
       <div 
         className="fixed inset-0 -z-10" 
-        onClick={onClose} 
         aria-hidden="true" 
       />
 
@@ -197,7 +185,7 @@ export function EditMesModal({
             type="button"
             onClick={onClose}
             className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
-            title="Fechar (Esc)"
+            title="Fechar"
           >
             <X className="w-4 h-4" />
           </button>

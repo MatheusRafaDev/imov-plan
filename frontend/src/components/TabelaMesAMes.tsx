@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import React from "react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanStore } from "@/store/usePlanStore";
@@ -30,7 +31,7 @@ function DisplayAporte({ value, planned, isEdited }: { value: number; planned: n
 }
 
 function Th({ children, right, className = "" }: { children?: React.ReactNode; right?: boolean; className?: string }) {
-  return <th className={`px-3.5 py-3 text-xs font-medium text-muted-foreground whitespace-nowrap select-none ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
+  return <th className={`px-2.5 sm:px-3.5 py-2.5 sm:py-3 text-xs font-medium text-muted-foreground whitespace-nowrap select-none ${right ? "text-right" : "text-left"} ${className}`}>{children}</th>;
 }
 
 function Td({ 
@@ -52,7 +53,7 @@ function Td({
       suppressHydrationWarning={suppressHydrationWarning} 
       onDoubleClick={onDoubleClick}
       title={title}
-      className={`px-3 py-3 num text-sm text-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}
+      className={`px-2.5 sm:px-3 py-2.5 sm:py-3 num text-xs sm:text-sm text-foreground whitespace-nowrap ${right ? "text-right" : "text-left"} ${className}`}
       {...rest}
     >
       {children}
@@ -347,7 +348,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       
         {/* Usando block e min-w-full mas limitando o overflow num scroll container estável */}
                 
-        <div className={`overflow-x-auto bg-card -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0 lg:rounded-xl lg:shadow-sm border-y sm:border border-border/40 transition-opacity duration-300 custom-scrollbar ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+        <div className={`overflow-x-auto bg-card rounded-2xl shadow-soft border border-border/50 transition-opacity duration-300 custom-scrollbar ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
           <table className="w-full text-sm font-sans border-collapse relative">
             <thead className="bg-card text-muted-foreground border-b border-border/60">
               <tr>
@@ -528,13 +529,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
             </tbody>
             <tfoot className="bg-gradient-ink text-primary-foreground shadow-elevated">
               <tr className="font-medium relative">
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-left border-none font-semibold">Total Geral</td>
-                <td className="px-3 py-4 num text-sm border-none">{""}</td>
+                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-left border-none font-semibold">Total Geral</td>
+                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm border-none">{""}</td>
                 {pessoas.map(p => (
-                  <td key={p.id} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.aportePorPessoa[p.id])}</td>
+                  <td key={p.id} className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none">{brl(totals.aportePorPessoa[p.id])}</td>
                 ))}
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.extras)}</td>
-                <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none">{brl(totals.totalMes)}</td>
+                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none">{brl(totals.extras)}</td>
+                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none font-semibold">{brl(totals.totalMes)}</td>
                 {showFinancials && (
                   <>
                     <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none text-success">
@@ -590,15 +591,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       )}
 
       {/* Modal de Confirmação de Exclusão de Aporte Extra */}
-      {extraParaExcluir && (
+      {extraParaExcluir && typeof document !== "undefined" && createPortal(
         <div 
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => !excluindoExtra && setExtraParaExcluir(null)}
           role="dialog"
           aria-modal="true"
         >
           <div 
-            onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden font-sans"
           >
             {/* Linha decorativa de topo */}
@@ -609,7 +608,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               type="button"
               onClick={() => !excluindoExtra && setExtraParaExcluir(null)}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-              title="Fechar (Esc)"
+              title="Fechar"
               disabled={excluindoExtra}
             >
               <X className="h-4 w-4" />
@@ -670,7 +669,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -38,8 +38,12 @@ export function useCriarPlano() {
       const { data } = await api.post(`/plano/user/${usuarioId}/novo`);
       return data.id as string;
     },
-    onSuccess: () => {
+    onSuccess: (novoId) => {
       queryClient.invalidateQueries({ queryKey: ['planos', usuarioId] });
+      if (novoId) {
+        queryClient.removeQueries({ queryKey: ['planDraft', novoId] });
+        queryClient.removeQueries({ queryKey: ['simulacao', novoId] });
+      }
     },
   });
 }
