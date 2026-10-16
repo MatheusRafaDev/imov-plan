@@ -32,7 +32,7 @@ api.interceptors.response.use(
         !url.includes('/auth/reset-password') &&
         !url.includes('/usuario/')
       ) {
-        Cookies.remove('user');
+        Cookies.remove('user', { path: '/' });
         window.location.href = '/auth';
       }
     }

@@ -545,7 +545,7 @@ export default function AuthPage() {
           <div className="w-full flex flex-col items-center">
             <div
               id="google-signin-button"
-              className={`w-full flex justify-center min-h-[40px] [&>div]:!w-full [&_iframe]:!w-full [&_iframe]:!max-w-none rounded-lg overflow-hidden ${
+              className={`w-full flex justify-center min-h-[40px] ${
                 !googleInitialized ? "hidden" : ""
               }`}
             />

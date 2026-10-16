@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dataNascimento: dbUser.dataNascimento,
         };
         setUser(updatedUser);
-        Cookies.set("user", JSON.stringify(updatedUser), { expires: 7 });
+        Cookies.set("user", JSON.stringify(updatedUser), { expires: 7, path: "/" });
       } catch (err: any) {
         const status = err?.response?.status;
         if (status === 401 || status === 403) {
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.post("/auth/register", { email, password, name, dataNascimento });
       const { user: userData } = response.data;
       setUser(userData);
-      Cookies.set("user", JSON.stringify(userData), { expires: 7 });
+      Cookies.set("user", JSON.stringify(userData), { expires: 7, path: "/" });
 
       dispatchAuthEvent();
       return { success: true };
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.post("/auth/login", { email, password });
       const { user: userData } = response.data;
       setUser(userData);
-      Cookies.set("user", JSON.stringify(userData), { expires: 7 });
+      Cookies.set("user", JSON.stringify(userData), { expires: 7, path: "/" });
       dispatchAuthEvent();
       return { success: true };
     } catch (err: any) {
