@@ -183,7 +183,7 @@ export function DetalheMesDiarioModal({
       <div 
         role="dialog"
         aria-modal="true"
-        className="relative z-50 w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border/80 bg-card text-card-foreground shadow-2xl overflow-hidden animate-modal-box font-sans"
+        className="relative z-50 w-full max-w-6xl xl:max-w-7xl max-h-[92vh] flex flex-col rounded-3xl border border-border/80 bg-card text-card-foreground shadow-2xl overflow-hidden animate-modal-box font-sans"
       >
         {/* Cabeçalho */}
         <div className="px-5 sm:px-6 py-3.5 border-b border-border/50 bg-secondary/15 flex items-center justify-between gap-3 shrink-0">
