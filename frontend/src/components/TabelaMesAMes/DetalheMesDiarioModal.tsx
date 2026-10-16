@@ -170,9 +170,9 @@ export function DetalheMesDiarioModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-background/70 backdrop-blur-sm animate-modal-backdrop">
+      {/* Backdrop não fecha ao clicar fora - saída somente pelo botão X */}
       <div 
         className="fixed inset-0 -z-10" 
-        onClick={onClose}
         aria-hidden="true" 
       />
 
