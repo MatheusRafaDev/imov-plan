@@ -55,12 +55,55 @@ export function usePlanLogic() {
           estado: payload.objetivo.estado || undefined,
           cidade: payload.objetivo.cidade || undefined,
         } : null,
-        pessoas: payload.pessoas || [],
-        bancoEscolhido: payload.bancoEscolhido || null,
-        aportesExtras: payload.aportesExtras || [],
-        aportesRegularesEditados: payload.aportesRegularesEditados || {},
-        aportesRegularesEditadosPorPessoa: payload.aportesRegularesEditadosPorPessoa || {},
-        mesesConcluidos: payload.mesesConcluidos || [],
+        pessoas: (payload.pessoas || []).map((p: any) => ({
+          id: p.id,
+          nome: p.nome || "",
+          renda_mensal: Number(p.renda_mensal) || 0,
+          renda_complementar: Number(p.renda_complementar) || 0,
+          gastos_mensais: Number(p.gastos_mensais) || 0,
+          usar_gastos_detalhados: Boolean(p.usar_gastos_detalhados),
+          gastos_detalhados: (p.gastos_detalhados || []).map((g: any) => ({
+            id: g.id,
+            nome: g.nome || "",
+            valor: Number(g.valor) || 0,
+            categoria: g.categoria || "",
+          })),
+          aporte_mensal: Number(p.aporte_mensal) || 0,
+          diaAporte: p.diaAporte !== undefined && p.diaAporte !== null && p.diaAporte !== "" ? Number(p.diaAporte) : 5,
+          valorInicial: Number(p.valorInicial) || 0,
+          tipoInvestimento: p.tipoInvestimento || undefined,
+          valorAtual: p.valorAtual !== undefined && p.valorAtual !== null && p.valorAtual !== "" ? Number(p.valorAtual) : Number(p.valorInicial) || 0,
+          dataValorAtual: p.dataValorAtual || new Date().toISOString(),
+        })),
+        bancoEscolhido: payload.bancoEscolhido ? {
+          id: payload.bancoEscolhido.id,
+          nome: payload.bancoEscolhido.nome || "",
+          taxa: Number(payload.bancoEscolhido.taxa) || 0,
+        } : null,
+        aportesExtras: (payload.aportesExtras || []).map((a: any) => ({
+          data: a.data || new Date().toISOString(),
+          valor: Number(a.valor) || 0,
+          origem: a.origem || "",
+          pessoaNome: a.pessoaNome || undefined,
+          pessoaId: a.pessoaId || undefined,
+        })),
+        aportesRegularesEditados: Object.fromEntries(
+          Object.entries(payload.aportesRegularesEditados || {})
+            .filter(([k, v]) => !isNaN(Number(k)) && !isNaN(Number(v)))
+            .map(([k, v]) => [Number(k), Number(v)])
+        ),
+        aportesRegularesEditadosPorPessoa: Object.fromEntries(
+          Object.entries(payload.aportesRegularesEditadosPorPessoa || {})
+            .map(([pid, mesMap]) => [
+              pid,
+              Object.fromEntries(
+                Object.entries(mesMap || {})
+                  .filter(([k, v]) => !isNaN(Number(k)) && !isNaN(Number(v)))
+                  .map(([k, v]) => [Number(k), Number(v)])
+              )
+            ])
+        ),
+        mesesConcluidos: (payload.mesesConcluidos || []).map((m: any) => Number(m)).filter((m: number) => !isNaN(m)),
       };
 
       const formattedPayloadStr = JSON.stringify(formattedPayload);
@@ -78,7 +121,7 @@ export function usePlanLogic() {
           } catch (error: any) {
             const status = error?.response?.status;
             if (status !== 401) {
-              console.error('[saveDraftCore] Erro ao salvar draft:', status || error?.message);
+              console.error('[saveDraftCore] Erro ao salvar draft:', status || error?.message, error?.response?.data);
             }
             resolve(null);
           }
