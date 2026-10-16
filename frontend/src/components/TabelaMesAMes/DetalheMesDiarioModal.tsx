@@ -182,23 +182,22 @@ export function DetalheMesDiarioModal({
         className="relative z-50 w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border/80 bg-card text-card-foreground shadow-2xl overflow-hidden animate-modal-box font-sans"
       >
         {/* Cabeçalho */}
-        <div className="px-5 sm:px-6 py-4 border-b border-border/50 bg-secondary/15 flex items-center justify-between gap-3 shrink-0">
+        <div className="px-5 sm:px-6 py-3.5 border-b border-border/50 bg-secondary/15 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 shrink-0 rounded-2xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shadow-xs">
-              <CalendarDays className="h-5 w-5" />
+            <div className="h-9 w-9 shrink-0 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shadow-xs">
+              <CalendarDays className="h-4.5 w-4.5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground truncate">
+                <h3 className="font-display text-base sm:text-lg font-bold text-foreground truncate">
                   Evolução Diária · Mês {mes}
                 </h3>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
                   {resultado.nomeMes}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
-                <Sparkles className="h-3.5 w-3.5 text-success shrink-0" />
-                <span>{resultado.diasUteisTotais} dias úteis com rendimento CDI a {taxaCdiAnual}% a.a.</span>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                {resultado.diasUteisTotais} dias úteis com rendimento CDI a {taxaCdiAnual}% a.a.
               </p>
             </div>
           </div>
@@ -206,27 +205,28 @@ export function DetalheMesDiarioModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-colors shrink-0 cursor-pointer"
+            className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-colors shrink-0 cursor-pointer"
             title="Fechar"
+            aria-label="Fechar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Corpo com scroll */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
           {/* Card de Configuração: Quando cai o aporte */}
-          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4 sm:p-5 space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-foreground font-semibold text-sm sm:text-base">
-                  <Clock className="h-4 w-4 text-accent" />
+          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-3.5 sm:p-4 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 text-foreground font-semibold text-xs sm:text-sm">
+                  <Clock className="h-3.5 w-3.5 text-accent" />
                   <span>Quando caem os aportes neste mês?</span>
                 </div>
-                <p className="text-xs text-muted-foreground max-w-xl">
+                <p className="text-[11px] text-muted-foreground max-w-xl">
                   {pessoas && pessoas.length > 1 
-                    ? "Cada pessoa pode aportar em um dia diferente (conforme a data de recebimento do salário). O dinheiro rende antes e passa a render mais a partir do momento em que cada depósito é creditado."
-                    : "Defina o dia exato do depósito. O dinheiro rende antes da data com o saldo inicial e passa a render mais a partir do dia em que o aporte entra."}
+                    ? "Defina o dia em que o depósito de cada participante cai para render mais juros."
+                    : "Defina o dia exato do depósito. O dinheiro rende antes e passa a render mais a partir deste dia."}
                 </p>
               </div>
 
@@ -236,14 +236,14 @@ export function DetalheMesDiarioModal({
                   size="sm"
                   variant="outline"
                   onClick={handleSalvarComoPadrao}
-                  className="text-xs h-8 px-3 border-accent/30 hover:bg-accent/10 text-foreground cursor-pointer shrink-0"
+                  className="text-xs h-7 px-2.5 border-accent/30 hover:bg-accent/10 text-foreground cursor-pointer shrink-0"
                 >
                   {salvandoPadrao ? (
                     <>
                       <Check className="h-3.5 w-3.5 mr-1 text-success" /> Padrão salvo!
                     </>
                   ) : (
-                    "Usar dia como padrão"
+                    "Usar como padrão"
                   )}
                 </Button>
               )}
@@ -346,7 +346,7 @@ export function DetalheMesDiarioModal({
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent bg-accent/20 px-2.5 py-0.5 rounded-full border border-accent/30">
-                      ✨ Hoje · Dia {diaHoje}
+                      Hoje · Dia {diaHoje}
                     </span>
                     <span className="text-xs text-foreground font-semibold">
                       Posição Atual em Tempo Real
@@ -497,7 +497,7 @@ export function DetalheMesDiarioModal({
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isHoje && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent text-accent-foreground shadow-2xs">
-                                ✨ Dia Atual
+                                Dia Atual
                               </span>
                             )}
                             {item.detalhesAportesRegulares && item.detalhesAportesRegulares.length > 0 ? (
