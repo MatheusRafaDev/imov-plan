@@ -24,6 +24,7 @@ export interface DetalheMesDiarioModalProps {
   mes: number;
   dataReferencia: string;
   saldoInicialMes: number;
+  saldosIniciaisPorPessoa?: Record<string, number>;
   aporteRegular: number;
   aportesExtras?: Array<{ data?: string; valor: number; origem?: string; pessoaNome?: string }>;
   taxaCdiAnual?: number;
@@ -45,6 +46,7 @@ export function DetalheMesDiarioModal({
   mes,
   dataReferencia,
   saldoInicialMes,
+  saldosIniciaisPorPessoa,
   aporteRegular,
   aportesExtras = [],
   taxaCdiAnual = 10.5,
@@ -111,6 +113,7 @@ export function DetalheMesDiarioModal({
     return calcularEvolucaoDiariaDoMes({
       dataReferencia,
       saldoInicialMes,
+      saldosIniciaisPorPessoa,
       aporteRegular,
       diaAporteRegular: diaAporte,
       aportesParticipantes,
@@ -118,13 +121,14 @@ export function DetalheMesDiarioModal({
       taxaCdiAnual,
       tipoInvestimento,
     });
-  }, [dataReferencia, saldoInicialMes, aporteRegular, diaAporte, aportesParticipantes, aportesExtras, taxaCdiAnual, tipoInvestimento]);
+  }, [dataReferencia, saldoInicialMes, saldosIniciaisPorPessoa, aporteRegular, diaAporte, aportesParticipantes, aportesExtras, taxaCdiAnual, tipoInvestimento]);
 
-  const saldoHoje = useMemo(() => {
+  const itemHoje = useMemo(() => {
     if (!isMesAtual) return null;
-    const itemHoje = resultado.dias.find(d => d.dia === diaHoje);
-    return itemHoje ? itemHoje.saldoFinal : null;
+    return resultado.dias.find(d => d.dia === diaHoje) || null;
   }, [isMesAtual, resultado.dias, diaHoje]);
+
+  const saldoHoje = itemHoje ? itemHoje.saldoFinal : null;
 
   // Auto-scroll suave para o dia de hoje quando o modal abrir no mês atual
   useEffect(() => {
@@ -362,6 +366,15 @@ export function DetalheMesDiarioModal({
                 <p className="font-display text-lg sm:text-2xl font-extrabold text-accent num">
                   {brl(saldoHoje)}
                 </p>
+                {pessoas && pessoas.length > 1 && itemHoje?.saldoPorPessoa && (
+                  <div className="flex items-center gap-1.5 mt-1 sm:justify-end text-[11px] text-muted-foreground flex-wrap">
+                    {pessoas.map(p => (
+                      <span key={p.id} className="bg-background/60 px-2 py-0.5 rounded-md border border-border/40">
+                        {p.nome.split(" ")[0]}: <strong className="text-foreground">{brl(itemHoje.saldoPorPessoa?.[p.id] ?? 0)}</strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -453,6 +466,14 @@ export function DetalheMesDiarioModal({
                     <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Saldo Início</th>
                     <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Aporte Entrada</th>
                     <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Rendimento do Dia</th>
+                    {pessoas && pessoas.map(p => (
+                      <th key={p.id} className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">
+                        <div className="flex flex-col items-end">
+                          <span className="text-foreground font-semibold">{p.nome.split(" ")[0]}</span>
+                          <span className="text-[10px] font-normal text-muted-foreground/70">saldo</span>
+                        </div>
+                      </th>
+                    ))}
                     <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Saldo Fim do Dia</th>
                   </tr>
                 </thead>
@@ -556,6 +577,28 @@ export function DetalheMesDiarioModal({
                             <span className="text-muted-foreground/40 text-[11px]">R$ 0,00</span>
                           )}
                         </td>
+
+                        {/* Colunas Individuais por Pessoa */}
+                        {pessoas && pessoas.map(p => {
+                          const saldoPessoa = item.saldoPorPessoa?.[p.id] ?? 0;
+                          const aportePessoa = item.aportePorPessoa?.[p.id] ?? 0;
+                          const hasAportePessoa = aportePessoa > 0;
+
+                          return (
+                            <td key={p.id} className="px-3.5 py-2.5 text-right whitespace-nowrap num">
+                              <div className="flex flex-col items-end">
+                                <span className={isHoje ? "font-bold text-accent" : "font-medium text-foreground"}>
+                                  {brl(saldoPessoa)}
+                                </span>
+                                {hasAportePessoa && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-accent bg-accent/15 px-1.5 py-0.2 rounded border border-accent/25 mt-0.5 shadow-2xs">
+                                    +{brl(aportePessoa)}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
 
                         {/* Saldo Final */}
                         <td className={`px-3.5 py-2.5 text-right whitespace-nowrap num ${isHoje ? "text-accent font-extrabold text-sm" : "font-semibold text-foreground"}`}>

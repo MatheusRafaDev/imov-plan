@@ -701,6 +701,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
         if (!row) return null;
         const prevRow = displayRows.find(x => x.mes === mesDetalheDiario - 1);
         const saldoInicialMes = prevRow ? prevRow.saldoAcumulado : (Number(sim?.valorJaGuardado) || 0);
+        const saldosIniciaisMes = prevRow?.saldoPorPessoa ?? Object.fromEntries(pessoas.map(p => [p.id, Number(p.valorInicial || 0)]));
         const rowExtras = (aportesExtras || []).filter(e => e?.data && row?.data && e.data.startsWith(row.data.split("T")[0]));
         const diaAporteConfig = diasDoAportePorMes[mesDetalheDiario] ?? diaDoAporte ?? 5;
         const participantesDoMes = pessoas.map(p => ({
@@ -717,6 +718,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
             mes={row.mes}
             dataReferencia={row.data}
             saldoInicialMes={saldoInicialMes}
+            saldosIniciaisPorPessoa={saldosIniciaisMes}
             aporteRegular={row.aporteRegular}
             aportesExtras={rowExtras}
             taxaCdiAnual={taxaCdiAnual}

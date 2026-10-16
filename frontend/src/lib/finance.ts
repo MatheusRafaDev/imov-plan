@@ -281,6 +281,8 @@ export type EvolucaoDiaItem = {
   rendimentoAcumuladoAteDia: number;
   saldoFinal: number;
   isDiaAporteRegular: boolean;
+  saldoPorPessoa?: Record<string, number>;
+  aportePorPessoa?: Record<string, number>;
 };
 
 export type EvolucaoMesResultado = {
@@ -309,7 +311,8 @@ export function calcularEvolucaoDiariaDoMes(params: {
   aporteRegular: number;
   diaAporteRegular?: number;
   aportesParticipantes?: AporteParticipanteConfig[];
-  aportesExtras?: Array<{ data?: string; valor: number; origem?: string; pessoaNome?: string }>;
+  saldosIniciaisPorPessoa?: Record<string, number>;
+  aportesExtras?: Array<{ data?: string; valor: number; origem?: string; pessoaNome?: string; pessoaId?: string }>;
   taxaCdiAnual: number;
   tipoInvestimento?: string;
 }): EvolucaoMesResultado {
@@ -338,6 +341,20 @@ export function calcularEvolucaoDiariaDoMes(params: {
   let totalAportesExtrasMes = 0;
   let diasUteisTotais = 0;
 
+  // Inicializa saldos individuais diários
+  const saldosPessoasAtual: Record<string, number> = {};
+  if (params.aportesParticipantes && params.aportesParticipantes.length > 0) {
+    const totalPessoas = params.aportesParticipantes.length;
+    params.aportesParticipantes.forEach((ap, idx) => {
+      const pid = ap.pessoaId || `p-${idx}`;
+      if (params.saldosIniciaisPorPessoa && params.saldosIniciaisPorPessoa[pid] !== undefined) {
+        saldosPessoasAtual[pid] = Number(params.saldosIniciaisPorPessoa[pid]) || 0;
+      } else {
+        saldosPessoasAtual[pid] = totalPessoas > 0 ? (params.saldoInicialMes / totalPessoas) : 0;
+      }
+    });
+  }
+
   const dias: EvolucaoDiaItem[] = [];
 
   for (let dia = 1; dia <= diasNoMes; dia++) {
@@ -352,13 +369,17 @@ export function calcularEvolucaoDiariaDoMes(params: {
     // Aportes Regulares por participante ou pelo dia padrão configurado
     let aporteReg = 0;
     const aportesRegularesDesteDia: Array<{ pessoaId?: string; pessoaNome?: string; valor: number }> = [];
+    const aportesDoDiaPorPessoa: Record<string, number> = {};
 
     if (params.aportesParticipantes && params.aportesParticipantes.length > 0) {
-      params.aportesParticipantes.forEach(ap => {
+      params.aportesParticipantes.forEach((ap, idx) => {
+        const pid = ap.pessoaId || `p-${idx}`;
+        aportesDoDiaPorPessoa[pid] = 0;
         const diaPessoa = Math.min(Math.max(1, ap.diaAporte ?? 5), diasNoMes);
         if (diaPessoa === dia && (ap.valor || 0) > 0) {
           const val = Math.max(0, ap.valor);
           aporteReg += val;
+          aportesDoDiaPorPessoa[pid] = val;
           aportesRegularesDesteDia.push({
             pessoaId: ap.pessoaId,
             pessoaNome: ap.pessoaNome || "Participante",
@@ -388,6 +409,13 @@ export function calcularEvolucaoDiariaDoMes(params: {
     const somaExtrasDia = extrasDesteDia.reduce((s, e) => s + (Number(e.valor) || 0), 0);
     totalAportesExtrasMes += somaExtrasDia;
 
+    // Adiciona extras individuais aos aportes da pessoa
+    extrasDesteDia.forEach(e => {
+      if (e.pessoaId && aportesDoDiaPorPessoa[e.pessoaId] !== undefined) {
+        aportesDoDiaPorPessoa[e.pessoaId] += (Number(e.valor) || 0);
+      }
+    });
+
     const totalAportesDoDia = aporteReg + somaExtrasDia;
     const saldoInicial = saldoAtual;
     const saldoAposAporte = saldoInicial + totalAportesDoDia;
@@ -397,6 +425,24 @@ export function calcularEvolucaoDiariaDoMes(params: {
 
     const saldoFinal = saldoAposAporte + rendimentoDoDia;
     saldoAtual = saldoFinal;
+
+    // Atualiza saldo individual diário de cada pessoa
+    const saldoDiarioPorPessoaSnapshot: Record<string, number> = {};
+    if (params.aportesParticipantes && params.aportesParticipantes.length > 0) {
+      const totalSaldosComAporte = Object.entries(saldosPessoasAtual).reduce((acc, [pid, sBase]) => {
+        return acc + sBase + (aportesDoDiaPorPessoa[pid] || 0);
+      }, 0);
+
+      params.aportesParticipantes.forEach((ap, idx) => {
+        const pid = ap.pessoaId || `p-${idx}`;
+        const saldoBaseComAporte = (saldosPessoasAtual[pid] || 0) + (aportesDoDiaPorPessoa[pid] || 0);
+        const proporcao = totalSaldosComAporte > 0 ? (saldoBaseComAporte / totalSaldosComAporte) : (1 / params.aportesParticipantes!.length);
+        const rendimentoPessoa = rendimentoDoDia * proporcao;
+        const saldoFinalPessoa = saldoBaseComAporte + rendimentoPessoa;
+        saldosPessoasAtual[pid] = saldoFinalPessoa;
+        saldoDiarioPorPessoaSnapshot[pid] = saldoFinalPessoa;
+      });
+    }
 
     dias.push({
       dia,
@@ -411,6 +457,7 @@ export function calcularEvolucaoDiariaDoMes(params: {
         origem: e.origem || "Aporte Extra",
         valor: Number(e.valor) || 0,
         pessoaNome: e.pessoaNome,
+        pessoaId: e.pessoaId,
       })),
       totalAportesDoDia,
       saldoAposAporte,
@@ -418,6 +465,8 @@ export function calcularEvolucaoDiariaDoMes(params: {
       rendimentoAcumuladoAteDia: totalRendimentoMes,
       saldoFinal,
       isDiaAporteRegular: aportesRegularesDesteDia.length > 0,
+      saldoPorPessoa: Object.keys(saldoDiarioPorPessoaSnapshot).length > 0 ? saldoDiarioPorPessoaSnapshot : undefined,
+      aportePorPessoa: Object.keys(aportesDoDiaPorPessoa).length > 0 ? aportesDoDiaPorPessoa : undefined,
     });
   }
 
