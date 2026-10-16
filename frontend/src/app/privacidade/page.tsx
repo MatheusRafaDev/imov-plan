@@ -1,228 +1,249 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { PublicHeader } from "@/components/PublicHeader";
-import { ShieldCheck, Lock, UserCheck, Database, FileText, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Lock, UserCheck, Database, FileText, ArrowLeft, CheckCircle2 } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Política de Privacidade",
+  description:
+    "Entenda como o Imov.Plan protege e trata seus dados patrimoniais e financeiros em conformidade rigorosa com a LGPD.",
+  alternates: {
+    canonical: "/privacidade",
+  },
+};
 
 export default function PrivacidadePage() {
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        background: "#FBFAF7",
-        fontFamily: "'Figtree', system-ui, sans-serif",
-        color: "#1D1B19",
-        margin: 0,
-        padding: 0,
-      }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap');
-        * { box-sizing: border-box; }
-        body { margin: 0; background: #FBFAF7; }
-        a { color: #E8590C; text-decoration: none; }
-        a:hover { color: #8F2F03; }
-        .legal-card {
-          background: #FFFFFF;
-          border: 1px solid #E8E3DA;
-          border-radius: 20px;
-          padding: 32px;
-          margin-bottom: 24px;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .legal-card:hover {
-          box-shadow: 0 12px 32px -12px rgba(29,27,25,0.08);
-        }
-        .hp-btn-primary {
-          display: inline-block; padding: 11px 20px; border-radius: 12px;
-          background: #E8590C; color: #fff !important; font-weight: 600; font-size: 15px;
-          transition: background 0.15s, transform 0.1s;
-        }
-        .hp-btn-primary:hover { background: #A83A06; }
-      `}</style>
-
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-accent/20 selection:text-accent">
       {/* ── HEADER ───────────────────────────────────────────────────────── */}
       <PublicHeader />
 
       {/* ── HERO BANNER ──────────────────────────────────────────────────── */}
-      <div style={{ borderBottom: "1px solid #E8E3DA", background: "#FFF0E6", padding: "56px 24px" }}>
-        <div style={{ maxWidth: 880, margin: "0 auto" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
-              borderRadius: 999,
-              background: "#FFFFFF",
-              color: "#E8590C",
-              fontSize: 13,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              marginBottom: 16,
-            }}
+      <section className="border-b border-border/60 bg-gradient-to-b from-accent/5 via-accent/[0.02] to-background pt-8 pb-12 sm:pt-12 sm:pb-16 px-4 sm:px-6 relative overflow-hidden">
+        <div className="max-w-4xl mx-auto">
+          {/* Back link */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground hover:text-accent transition-colors group mb-6 animate-fade-in-up"
+            style={{ animationDelay: "0ms" }}
           >
-            <ShieldCheck className="w-4 h-4 text-[#E8590C]" />
-            Privacidade e Segurança
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            Voltar para o início
+          </Link>
+
+          {/* Badge */}
+          <div>
+            <span
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-card border border-border/80 shadow-soft text-accent text-xs font-bold uppercase tracking-wider mb-5 animate-fade-in-up"
+              style={{ animationDelay: "50ms" }}
+            >
+              <ShieldCheck className="w-4 h-4 text-accent" />
+              Privacidade e Segurança
+            </span>
           </div>
 
+          {/* Title */}
           <h1
-            style={{
-              margin: 0,
-              fontFamily: "'Bricolage Grotesque', sans-serif",
-              fontSize: "clamp(34px, 5vw, 48px)",
-              fontWeight: 700,
-              lineHeight: 1.12,
-              letterSpacing: "-0.02em",
-              color: "#1D1B19",
-            }}
+            className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground font-sans animate-fade-in-up"
+            style={{ animationDelay: "100ms" }}
           >
             Política de Privacidade
           </h1>
-          <p style={{ margin: "16px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951", maxWidth: 680 }}>
+
+          {/* Subtitle */}
+          <p
+            className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mt-4 animate-fade-in-up"
+            style={{ animationDelay: "150ms" }}
+          >
             No Imov.Plan, levamos a segurança e o sigilo das suas informações financeiras a sério.
             Conheça de forma transparente como seus dados são tratados em conformidade com a LGPD.
           </p>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 24, fontSize: 13, color: "#5E5951" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.7)", padding: "6px 12px", borderRadius: 8 }}>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          {/* Pill tags */}
+          <div
+            className="flex flex-wrap gap-2.5 sm:gap-3 mt-6 text-xs sm:text-sm text-foreground/85 animate-fade-in-up"
+            style={{ animationDelay: "200ms" }}
+          >
+            <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               Em conformidade com a LGPD (Lei 13.709/18)
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.7)", padding: "6px 12px", borderRadius: 8 }}>
-              <Lock className="w-4 h-4 text-emerald-600" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
+              <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
               Criptografia em repouso e trânsito
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.7)", padding: "6px 12px", borderRadius: 8 }}>
-              <UserCheck className="w-4 h-4 text-emerald-600" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/70 shadow-soft font-medium">
+              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
               Você no controle dos seus dados
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── CONTEÚDO ─────────────────────────────────────────────────────── */}
-      <main style={{ maxWidth: 880, margin: "0 auto", padding: "48px 24px 80px" }}>
+      <main className="max-w-4xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-6 flex-1">
         {/* 1. Introdução */}
-        <section className="legal-card">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
+        <section
+          className="bg-card border border-border/60 rounded-2xl p-6 sm:p-8 shadow-soft hover:shadow-elevated transition-all duration-300 animate-fade-in-up group"
+          style={{ animationDelay: "250ms" }}
+        >
+          <div className="flex items-center gap-3.5 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0 shadow-xs transition-transform group-hover:scale-105 duration-200">
               <FileText className="w-5 h-5" />
-            </span>
-            <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
               1. Visão Geral e Compromisso
             </h2>
           </div>
-          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: "#5E5951" }}>
-            Esta Política de Privacidade descreve como a plataforma <strong>Imov.Plan</strong> coleta, armazena, processa e protege as informações dos usuários. Nosso propósito é fornecer cálculos, estimativas de compra imobiliária e simulações com o máximo de precisão, mantendo a privacidade estrita de seus dados patrimoniais.
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Esta Política de Privacidade descreve como a plataforma <strong className="text-foreground font-semibold">Imov.Plan</strong> coleta, armazena, processa e protege as informações dos usuários. Nosso propósito é fornecer cálculos, estimativas de compra imobiliária e simulações com o máximo de precisão, mantendo a privacidade estrita de seus dados patrimoniais.
           </p>
         </section>
 
         {/* 2. Dados Coletados */}
-        <section className="legal-card">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
+        <section
+          className="bg-card border border-border/60 rounded-2xl p-6 sm:p-8 shadow-soft hover:shadow-elevated transition-all duration-300 animate-fade-in-up group"
+          style={{ animationDelay: "300ms" }}
+        >
+          <div className="flex items-center gap-3.5 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0 shadow-xs transition-transform group-hover:scale-105 duration-200">
               <Database className="w-5 h-5" />
-            </span>
-            <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
               2. Quais Dados Coletamos
             </h2>
           </div>
-          <p style={{ margin: "0 0 16px", fontSize: 16, lineHeight: 1.7, color: "#5E5951" }}>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4">
             Coletamos apenas as informações estritamente necessárias para a prestação do serviço e o cálculo das projeções:
           </p>
-          <ul style={{ margin: 0, paddingLeft: 20, color: "#5E5951", fontSize: 15, lineHeight: 1.8 }}>
-            <li><strong>Dados de Identificação e Cadastro:</strong> Nome, endereço de e-mail e foto de perfil pública caso realize login via Google OAuth.</li>
-            <li><strong>Dados de Planejamento Imobiliário:</strong> Valor estimado do imóvel, percentual de entrada desejado, data pretendida e custos de cartório/ITBI estimados.</li>
-            <li><strong>Dados Financeiros para Simulação:</strong> Renda informada, estimativas de gastos, valores iniciais guardados e aportes mensais ou extras (ex: 13º salário e FGTS).</li>
-            <li><strong>Metadados Técnicos:</strong> Informações técnicas de sessão, cookies de autenticação e histórico de conexões estritamente para manter você conectado com segurança.</li>
+          <ul className="space-y-3 text-sm sm:text-base text-muted-foreground leading-relaxed pl-1">
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span><strong className="text-foreground font-semibold">Dados de Identificação e Cadastro:</strong> Nome, endereço de e-mail e foto de perfil pública caso realize login via Google OAuth.</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span><strong className="text-foreground font-semibold">Dados de Planejamento Imobiliário:</strong> Valor estimado do imóvel, percentual de entrada desejado, data pretendida e custos de cartório/ITBI estimados.</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span><strong className="text-foreground font-semibold">Dados Financeiros para Simulação:</strong> Renda informada, estimativas de gastos, valores iniciais guardados e aportes mensais ou extras (ex: 13º salário e FGTS).</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span><strong className="text-foreground font-semibold">Metadados Técnicos:</strong> Informações técnicas de sessão, cookies de autenticação e histórico de conexões estritamente para manter você conectado com segurança.</span>
+            </li>
           </ul>
         </section>
 
         {/* 3. Finalidade do Tratamento */}
-        <section className="legal-card">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
+        <section
+          className="bg-card border border-border/60 rounded-2xl p-6 sm:p-8 shadow-soft hover:shadow-elevated transition-all duration-300 animate-fade-in-up group"
+          style={{ animationDelay: "350ms" }}
+        >
+          <div className="flex items-center gap-3.5 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0 shadow-xs transition-transform group-hover:scale-105 duration-200">
               <CheckCircle2 className="w-5 h-5" />
-            </span>
-            <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
               3. Para Que Utilizamos Seus Dados
             </h2>
           </div>
-          <p style={{ margin: "0 0 12px", fontSize: 16, lineHeight: 1.7, color: "#5E5951" }}>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4">
             Seus dados são tratados para as seguintes finalidades legítimas:
           </p>
-          <ul style={{ margin: 0, paddingLeft: 20, color: "#5E5951", fontSize: 15, lineHeight: 1.8 }}>
-            <li>Executar os algoritmos de projeção financeira (juros compostos, CDI, IR regressivo, amortização SAC e PRICE).</li>
-            <li>Salvar os rascunhos e cenários para que você possa acessá-los de qualquer dispositivo.</li>
-            <li>Permitir a gestão de múltiplos participantes e planejamento compartilhado para casais e famílias.</li>
-            <li>Garantir a segurança da sua conta e prevenir fraudes ou acessos não autorizados.</li>
+          <ul className="space-y-3 text-sm sm:text-base text-muted-foreground leading-relaxed pl-1">
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span>Executar os algoritmos de projeção financeira (juros compostos, CDI, IR regressivo, amortização SAC e PRICE).</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span>Salvar os rascunhos e cenários para que você possa acessá-los de qualquer dispositivo.</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span>Permitir a gestão de múltiplos participantes e planejamento compartilhado para casais e famílias.</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span>Garantir a segurança da sua conta e prevenir fraudes ou acessos não autorizados.</span>
+            </li>
           </ul>
-          <div style={{ marginTop: 18, padding: "14px 18px", borderRadius: 12, background: "#F2EEE7", borderLeft: "4px solid #E8590C", fontSize: 14.5, color: "#1D1B19" }}>
-            <strong>Compromisso de não comercialização:</strong> O Imov.Plan <strong>nunca</strong> vende, aluga ou compartilha seus dados pessoais ou financeiros com corretoras, construtoras, imobiliárias ou terceiros para fins de marketing sem sua solicitação expressa.
+          <div className="mt-6 p-4 sm:p-5 rounded-xl bg-accent/5 border-l-4 border-accent border-y border-r border-accent/20 text-sm sm:text-base text-foreground leading-relaxed">
+            <strong className="font-semibold text-accent">Compromisso de não comercialização:</strong> O Imov.Plan <strong className="font-semibold">nunca</strong> vende, aluga ou compartilha seus dados pessoais ou financeiros com corretoras, construtoras, imobiliárias ou terceiros para fins de marketing sem sua solicitação expressa.
           </div>
         </section>
 
         {/* 4. Segurança e Armazenamento */}
-        <section className="legal-card">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
+        <section
+          className="bg-card border border-border/60 rounded-2xl p-6 sm:p-8 shadow-soft hover:shadow-elevated transition-all duration-300 animate-fade-in-up group"
+          style={{ animationDelay: "400ms" }}
+        >
+          <div className="flex items-center gap-3.5 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0 shadow-xs transition-transform group-hover:scale-105 duration-200">
               <Lock className="w-5 h-5" />
-            </span>
-            <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
               4. Armazenamento e Medidas de Segurança
             </h2>
           </div>
-          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: "#5E5951" }}>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
             Utilizamos infraestrutura em nuvem segura com padrões modernos de proteção. Todas as comunicações entre seu navegador e nossos servidores são protegidas por criptografia SSL/TLS (HTTPS). Senhas são criptografadas com hash criptográfico unidirecional seguro (bcrypt), impedindo que qualquer membro da nossa equipe ou terceiro tenha acesso à sua credencial.
           </p>
         </section>
 
         {/* 5. Direitos do Titular (LGPD) */}
-        <section className="legal-card">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF0E6", display: "flex", alignItems: "center", justifyContent: "center", color: "#E8590C" }}>
+        <section
+          className="bg-card border border-border/60 rounded-2xl p-6 sm:p-8 shadow-soft hover:shadow-elevated transition-all duration-300 animate-fade-in-up group"
+          style={{ animationDelay: "450ms" }}
+        >
+          <div className="flex items-center gap-3.5 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0 shadow-xs transition-transform group-hover:scale-105 duration-200">
               <UserCheck className="w-5 h-5" />
-            </span>
-            <h2 style={{ margin: 0, fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, fontWeight: 700 }}>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
               5. Seus Direitos (LGPD)
             </h2>
           </div>
-          <p style={{ margin: "0 0 12px", fontSize: 16, lineHeight: 1.7, color: "#5E5951" }}>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4">
             Nos termos do artigo 18 da Lei Geral de Proteção de Dados (Lei 13.709/2018), você possui o direito de:
           </p>
-          <ul style={{ margin: 0, paddingLeft: 20, color: "#5E5951", fontSize: 15, lineHeight: 1.8 }}>
-            <li>Confirmar a existência de tratamento dos seus dados.</li>
-            <li>Acessar, corrigir ou atualizar seus dados a qualquer momento pelo menu de Perfil.</li>
-            <li>Solicitar a portabilidade ou exportação dos seus planos e simulações.</li>
-            <li><strong>Excluir integralmente sua conta e dados cadastrais:</strong> essa opção fica disponível diretamente no menu do aplicativo em tempo real.</li>
+          <ul className="space-y-3 text-sm sm:text-base text-muted-foreground leading-relaxed pl-1">
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span>Confirmar a existência de tratamento dos seus dados.</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span>Acessar, corrigir ou atualizar seus dados a qualquer momento pelo menu de Perfil.</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span>Solicitar a portabilidade ou exportação dos seus planos e simulações.</span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+              <span><strong className="text-foreground font-semibold">Excluir integralmente sua conta e dados cadastrais:</strong> essa opção fica disponível diretamente no menu do aplicativo em tempo real.</span>
+            </li>
           </ul>
         </section>
-
       </main>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer style={{ borderTop: "1px solid #E8E3DA", background: "#FBFAF7", padding: "48px 24px" }}>
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 20,
-          }}
-        >
+      <footer className="border-t border-border/60 bg-card py-10 px-4 sm:px-6 mt-12 animate-fade-in">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <Logo size="sm" />
-          <nav style={{ display: "flex", gap: 24, fontSize: 14, fontWeight: 500 }}>
-            <Link href="/privacidade" style={{ color: "#E8590C", fontWeight: 700 }}>Política de privacidade</Link>
-            <Link href="/termos" style={{ color: "#5E5951" }}>Termos de uso</Link>
+          <nav className="flex flex-wrap items-center justify-center gap-6 text-sm font-medium">
+            <Link href="/privacidade" className="text-accent font-semibold hover:underline">
+              Política de privacidade
+            </Link>
+            <Link href="/termos" className="text-muted-foreground hover:text-accent transition-colors">
+              Termos de uso
+            </Link>
           </nav>
-          <div style={{ fontSize: 13, color: "#5E5951" }}>
+          <div className="text-xs text-muted-foreground text-center sm:text-right">
             © {new Date().getFullYear()} Imov.Plan — Todos os direitos reservados
           </div>
         </div>

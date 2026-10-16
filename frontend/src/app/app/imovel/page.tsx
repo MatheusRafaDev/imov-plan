@@ -14,7 +14,7 @@ import { MonthYearInput } from "@/components/MonthYearInput";
 import { Building2, MapPin, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info, Percent, Calendar } from "lucide-react";
 import { calcularCustosITBI } from "@/utils/itbi";
 import { estados, cidadesPorEstado } from "@/utils/ibge-estados-cidades";
-import { ImovelFormSkeleton, MetaCardSkeleton, FaltaJuntarSkeleton, ImovelPageSkeleton } from "@/components/Skeleton";
+import { ImovelPageSkeleton } from "@/components/Skeleton";
 
 // ITBI utility is now imported from @/utils/itbi
 
@@ -220,7 +220,7 @@ export default function ObjetivoPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col justify-between min-h-[calc(100dvh-5.5rem)] lg:min-h-[calc(100dvh-6.5rem)] space-y-4 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in-up pb-8">
       <div className="animate-fade-in-up" style={{ animationDelay: "0ms" }}>
         <p className="text-xs uppercase tracking-widest text-orange-500 font-medium mb-1 flex items-center gap-2">
           <Building2 className="h-4 w-4" /> Etapa 1 de 4
@@ -506,11 +506,11 @@ export default function ObjetivoPage() {
         </div>
       </div>
 
-      <Card className="mt-auto p-5 bg-gradient-ink text-primary-foreground shadow-elevated flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="p-4 sm:p-5 bg-gradient-ink text-primary-foreground shadow-elevated rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest opacity-70">Tudo pronto?</p>
-          <p className="font-display text-2xl md:text-3xl mt-1">Continue para a próxima etapa</p>
-          <p className="text-xs opacity-70 mt-1">Siga para definir quem participará do plano com você.</p>
+          <p className="text-[10px] uppercase tracking-widest opacity-70 font-medium">Tudo pronto?</p>
+          <p className="font-display text-xl sm:text-2xl mt-0.5">Continue para a próxima etapa</p>
+          <p className="text-xs opacity-70 mt-0.5">Siga para definir quem participará do plano com você.</p>
         </div>
         <Button
           onClick={salvar}

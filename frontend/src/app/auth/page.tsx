@@ -36,6 +36,14 @@ export default function AuthPage() {
     }
   }, [isAuthenticated, user, router, loading]);
 
+  const loginWithGoogleRef = useRef(loginWithGoogle);
+  const routerRef = useRef(router);
+
+  useEffect(() => {
+    loginWithGoogleRef.current = loginWithGoogle;
+    routerRef.current = router;
+  }, [loginWithGoogle, router]);
+
   // Initialize Google Identity Services once
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -80,42 +88,47 @@ export default function AuthPage() {
 
     const initGoogle = () => {
       const google = (window as any).google;
-      if (google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-        google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-          callback: async (response: any) => {
-            if (response.credential && googleCredentialInFlight.current !== response.credential) {
-              googleCredentialInFlight.current = response.credential;
-              const result = await loginWithGoogle(response.credential);
-              if (result.success) {
-                toast.success("Login realizado com sucesso!");
-                router.replace("/app/imovel");
-              } else {
-                setGeneralError(result.error || "Erro ao fazer login com Google");
+      const buttonDiv = document.getElementById("google-signin-button");
+      if (google && google.accounts?.id && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+        if (!(window as any).__googleIdInitialized) {
+          google.accounts.id.initialize({
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+            callback: async (response: any) => {
+              if (response.credential && googleCredentialInFlight.current !== response.credential) {
+                googleCredentialInFlight.current = response.credential;
+                const result = await loginWithGoogleRef.current(response.credential);
+                if (result.success) {
+                  toast.success("Login realizado com sucesso!");
+                  routerRef.current.replace("/app/imovel");
+                } else {
+                  setGeneralError(result.error || "Erro ao fazer login com Google");
+                }
               }
-            }
-          },
-        });
-
-        renderGoogleButton();
-
-        const buttonDiv = document.getElementById("google-signin-button");
-        if (buttonDiv && typeof ResizeObserver !== "undefined") {
-          let lastWidth = Math.floor(buttonDiv.getBoundingClientRect().width);
-          resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-              const currentWidth = Math.floor(entry.contentRect.width);
-              if (currentWidth && Math.abs(currentWidth - lastWidth) > 8) {
-                lastWidth = currentWidth;
-                renderGoogleButton();
-              }
-            }
+            },
           });
-          resizeObserver.observe(buttonDiv);
+          (window as any).__googleIdInitialized = true;
         }
 
-        setGoogleInitialized(true);
-        return true;
+        if (buttonDiv) {
+          renderGoogleButton();
+
+          if (typeof ResizeObserver !== "undefined" && !resizeObserver) {
+            let lastWidth = Math.floor(buttonDiv.getBoundingClientRect().width);
+            resizeObserver = new ResizeObserver((entries) => {
+              for (const entry of entries) {
+                const currentWidth = Math.floor(entry.contentRect.width);
+                if (currentWidth && Math.abs(currentWidth - lastWidth) > 8) {
+                  lastWidth = currentWidth;
+                  renderGoogleButton();
+                }
+              }
+            });
+            resizeObserver.observe(buttonDiv);
+          }
+
+          setGoogleInitialized(true);
+          return true;
+        }
       }
       return false;
     };
@@ -135,7 +148,7 @@ export default function AuthPage() {
     return () => {
       resizeObserver?.disconnect();
     };
-  }, [loginWithGoogle, router]);
+  }, []);
 
   // Validações locais ao submeter
   const validateForm = () => {

@@ -4,22 +4,37 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
-import { brl, type Aporte } from "@/lib/finance";
+import { brl, rendimentoEstimadoDiario, type Aporte } from "@/lib/finance";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { MoneyInput } from "@/components/MoneyInput";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { DateInput } from "@/components/DateInput";
-import { ArrowRight, Plus, Trash2, X, AlertCircle, Pencil, Wallet, Calendar, TrendingDown, Check } from "lucide-react";
+import { usePlanStore } from "@/store/usePlanStore";
+import { ArrowRight, Plus, Trash2, X, AlertCircle, Pencil, Wallet, TrendingUp, Loader2, Sparkles } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 import { StatusAtualInvestimento } from "@/components/StatusAtualInvestimento";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
 
+const formatarDataAporte = (dataIso?: string) => {
+  if (!dataIso) return "Data não informada";
+  try {
+    const raw = dataIso.split("T")[0];
+    const parts = raw.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return new Date(dataIso + "T12:00:00").toLocaleDateString("pt-BR");
+  } catch {
+    return dataIso;
+  }
+};
+
 export default function PlanejamentoPage() {
-  const { cenario, objetivo, setObjetivo, pessoas, setPessoas, aportesExtras, setAportesExtras, salvarPlano, calcularBackend, backendData, calculating, isDraftLoading, progressoAtual } = usePlanLogic();
+  const { cenario, objetivo, pessoas, aportesExtras, setAportesExtras, salvarPlano, calcularBackend, backendData, calculating, isDraftLoading, progressoAtual, progressoAtualPorPessoa } = usePlanLogic();
   const router = useRouter();
   const pathname = usePathname();
   const nav = navPorCenario[cenario] ?? navPorCenario.entrada;
@@ -27,25 +42,7 @@ export default function PlanejamentoPage() {
   const totalSteps = nav.length;
 
   const isLoading = isDraftLoading;
-
   const [isEditingTotal, setIsEditingTotal] = useState(false);
-
-  const handleUpdateTotal = (novoTotal: number | "") => {
-    const val = novoTotal === "" ? 0 : novoTotal;
-    setObjetivo(prev => prev ? { ...prev, valorJaGuardado: val } : null);
-    
-    setPessoas(prev => {
-      if (prev.length === 1) {
-        return [{ ...prev[0], valorInicial: val }];
-      }
-      const currentTotal = prev.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
-      if (currentTotal <= 0) {
-          return prev.map((p, i) => i === 0 ? { ...p, valorInicial: val } : { ...p, valorInicial: 0 });
-      }
-      const factor = val / currentTotal;
-      return prev.map(p => ({ ...p, valorInicial: Number(p.valorInicial ?? 0) * factor }));
-    });
-  };
 
   const prosseguir = async () => {
     const savedId = await salvarPlano();
@@ -61,13 +58,32 @@ export default function PlanejamentoPage() {
   
   const [isAportesExtrasModalOpen, setIsAportesExtrasModalOpen] = useState(false);
   const [editingAporteIndex, setEditingAporteIndex] = useState<number | null>(null);
+  const [salvandoAporte, setSalvandoAporte] = useState(false);
+  const [extraParaExcluir, setExtraParaExcluir] = useState<{ index: number; aporte: Aporte } | null>(null);
+  const [excluindoAporte, setExcluindoAporte] = useState(false);
   
   const [novoAporte, setNovoAporte] = useState({
     data: new Date().toISOString().slice(0, 10),
-    valor: 0 as number | "",
+    valor: "" as number | "",
     origem: "13º Salário",
+    origemCustom: "",
     pessoa_id: "",
   });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (extraParaExcluir && !excluindoAporte) {
+          setExtraParaExcluir(null);
+        } else if (isAportesExtrasModalOpen && !salvandoAporte) {
+          setIsAportesExtrasModalOpen(false);
+          setEditingAporteIndex(null);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [extraParaExcluir, excluindoAporte, isAportesExtrasModalOpen, salvandoAporte]);
 
   const aporteTotal = pessoas.reduce((s, p) => s + Number(p.aporte_mensal ?? 0), 0);
   const totalGuardado = progressoAtual;
@@ -86,37 +102,83 @@ export default function PlanejamentoPage() {
   const faltaParaMeta = meta - totalGuardado;
   const aporteNecessario = faltaParaMeta > 0 && prazoMeses > 0 ? faltaParaMeta / prazoMeses : 0;
 
-  // Usa a data projetada do backend para atingir a meta com aportes atuais
   const progressoPercent = Math.min(100, meta > 0 ? (totalGuardado / meta) * 100 : 0);
 
-  const adicionarAporte = () => {
-    if (!novoAporte.valor) return;
+  const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
+  const totalRendimentoDiario = pessoas.reduce((acc, p) => {
+    const saldoP = progressoAtualPorPessoa[p.id] ?? Number(p.valorAtual ?? p.valorInicial ?? 0);
+    return acc + rendimentoEstimadoDiario(saldoP, taxaCdiAnual, p.tipoInvestimento);
+  }, 0);
+
+  const abrirModalNovoAporte = () => {
+    setEditingAporteIndex(null);
+    setNovoAporte({
+      data: new Date().toISOString().slice(0, 10),
+      valor: "",
+      origem: "13º Salário",
+      origemCustom: "",
+      pessoa_id: "",
+    });
+    setIsAportesExtrasModalOpen(true);
+  };
+
+  const adicionarAporte = async () => {
+    const val = Number(novoAporte.valor);
+    if (!val || val <= 0) {
+      toast.error("Informe um valor maior que zero para o aporte.");
+      return;
+    }
     const pessoa = pessoas.find(p => p.id === novoAporte.pessoa_id);
+    const origemFinal = novoAporte.origem === "Outro" && novoAporte.origemCustom.trim()
+      ? novoAporte.origemCustom.trim()
+      : novoAporte.origem;
+
     const aporte: Aporte = {
-      data: novoAporte.data,
-      valor: novoAporte.valor,
-      origem: novoAporte.origem,
+      data: novoAporte.data || new Date().toISOString().slice(0, 10),
+      valor: val,
+      origem: origemFinal,
       pessoaId: pessoa?.id,
       pessoaNome: pessoa ? pessoa.nome : undefined,
     };
-    
-    if (editingAporteIndex !== null) {
-      const updated = [...aportesExtras];
-      updated[editingAporteIndex] = aporte;
+
+    setSalvandoAporte(true);
+    try {
+      let updated: Aporte[];
+      if (editingAporteIndex !== null) {
+        updated = [...aportesExtras];
+        updated[editingAporteIndex] = aporte;
+      } else {
+        updated = [...aportesExtras, aporte];
+      }
+
       setAportesExtras(updated);
+      usePlanStore.getState().hydrate({ aportesExtras: updated });
+      const savedId = await salvarPlano({ aportesExtras: updated });
+      const idToUse = savedId || usePlanStore.getState().planoId;
+      if (idToUse) {
+        await calcularBackend(idToUse, { aportesExtras: updated });
+      }
+
+      toast.success(editingAporteIndex !== null ? "Aporte extra atualizado com sucesso!" : "Aporte extra adicionado com sucesso!");
+      setIsAportesExtrasModalOpen(false);
       setEditingAporteIndex(null);
-    } else {
-      setAportesExtras([...aportesExtras, aporte]);
+    } catch (err) {
+      console.error("Erro ao salvar aporte extra:", err);
+      toast.error("Erro ao salvar aporte extra. Tente novamente.");
+    } finally {
+      setSalvandoAporte(false);
     }
-    setNovoAporte({ ...novoAporte, valor: 0 });
   };
 
   const editarAporte = (index: number) => {
     const aporte = aportesExtras[index];
+    if (!aporte) return;
+    const isStandardOrigem = ORIGENS.includes(aporte.origem);
     setNovoAporte({
       data: aporte.data,
       valor: Number(aporte.valor),
-      origem: aporte.origem,
+      origem: isStandardOrigem ? aporte.origem : "Outro",
+      origemCustom: isStandardOrigem ? "" : aporte.origem,
       pessoa_id: aporte.pessoaId ?? "",
     });
     setEditingAporteIndex(index);
@@ -124,7 +186,32 @@ export default function PlanejamentoPage() {
   };
 
   const removerAporte = (index: number) => {
-    setAportesExtras(aportesExtras.filter((_, i) => i !== index));
+    const aporte = aportesExtras[index];
+    if (!aporte) return;
+    setExtraParaExcluir({ index, aporte });
+  };
+
+  const confirmarRemoverAporte = async () => {
+    if (!extraParaExcluir) return;
+    const indexToDelete = extraParaExcluir.index;
+    setExcluindoAporte(true);
+    try {
+      const updated = aportesExtras.filter((_, i) => i !== indexToDelete);
+      setAportesExtras(updated);
+      usePlanStore.getState().hydrate({ aportesExtras: updated });
+      const savedId = await salvarPlano({ aportesExtras: updated });
+      const idToUse = savedId || usePlanStore.getState().planoId;
+      if (idToUse) {
+        await calcularBackend(idToUse, { aportesExtras: updated });
+      }
+      toast.success("Aporte extra excluído e planejamento recalculado!");
+      setExtraParaExcluir(null);
+    } catch (err) {
+      console.error("Erro ao excluir aporte:", err);
+      toast.error("Erro ao excluir aporte extra.");
+    } finally {
+      setExcluindoAporte(false);
+    }
   };
 
   if (isLoading) {
@@ -209,20 +296,27 @@ export default function PlanejamentoPage() {
                 </>
               )}
             </div>
-            <div className="relative h-2.5 sm:h-3 w-full bg-secondary/80 rounded-full overflow-hidden shadow-inner">
+            <div className="relative h-2.5 sm:h-3 w-full bg-secondary rounded-full overflow-hidden">
               <div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out"
+                className="h-full bg-accent rounded-full transition-all duration-700 ease-out"
                 style={{ width: `${progressoPercent}%` }}
               />
-              <div className="absolute top-0 left-0 w-full h-full bg-white/20 animate-pulse mix-blend-overlay" />
             </div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground text-right font-semibold">{progressoPercent.toFixed(1)}% alcançado</p>
+            <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground pt-0.5">
+              {totalRendimentoDiario > 0 ? (
+                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                  <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                  <span>+{brl(totalRendimentoDiario)}/dia hoje</span>
+                </span>
+              ) : <span />}
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground text-right font-semibold">{progressoPercent.toFixed(1)}% alcançado</span>
+            </div>
           </div>
         </Card>
 
         <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Aporte mensal (Programado)</p>
-          <p className="font-display text-4xl sm:text-5xl num mt-3 leading-none bg-gradient-to-br from-accent to-accent/70 bg-clip-text text-transparent">{brl(aporteTotal)}</p>
+          <p className="font-display text-4xl sm:text-5xl num mt-3 leading-none text-foreground font-semibold">{brl(aporteTotal)}</p>
 
           <div className="mt-6 space-y-2.5">
             {pessoas.map(p => {
@@ -245,64 +339,99 @@ export default function PlanejamentoPage() {
 
       {/* Modal Aportes Extras */}
       {isAportesExtrasModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain bg-primary/10 px-3 sm:px-4 py-4 sm:py-6 backdrop-blur-sm">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
-          <div className="relative z-[10000] my-auto max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-border/50 bg-card/95 p-4 sm:p-6 text-card-foreground shadow-[0_45px_120px_-60px_rgba(15,23,42,0.8)] ring-1 ring-slate-900/10">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => !salvandoAporte && (setIsAportesExtrasModalOpen(false), setEditingAporteIndex(null))}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
+          >
+            {/* Linha decorativa de topo */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-accent" />
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border/50 pb-3 sm:pb-4">
-              <div>
-                <h2 className="font-display text-lg sm:text-xl font-semibold text-foreground">
-                  {editingAporteIndex !== null ? "Editar Aporte Extra" : "Adicionar Aporte Extra"}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Aporte pontual para acelerar seu plano.</p>
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-border/40">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
+                  <Wallet className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-semibold text-foreground leading-tight">
+                    {editingAporteIndex !== null ? "Editar Aporte Extra" : "Adicionar Aporte Extra"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Recurso pontual para acelerar sua conquista.</p>
+                </div>
               </div>
-              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-secondary" onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}>
+              <button 
+                type="button"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+                onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}
+                title="Fechar (Esc)"
+                disabled={salvandoAporte}
+              >
                 <X className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
 
             {/* Form Content */}
-            <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+            <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Valor do aporte</Label>
+                <Label className="text-xs font-medium text-foreground">Valor do aporte</Label>
                 <MoneyInput
                   variant="money"
+                  min={0}
                   value={novoAporte.valor}
-                  onChange={(v) => setNovoAporte({ ...novoAporte, valor: v })}
-                  className="h-10 sm:h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-base sm:text-lg text-foreground shadow-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20"
+                  onChange={(v) => setNovoAporte(prev => ({ ...prev, valor: v }))}
+                  placeholder="R$ 0,00"
+                  className="h-11 w-full rounded-xl border border-border bg-background px-3 text-lg font-semibold text-foreground focus:ring-2 focus:ring-accent"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Data do aporte</Label>
-                <DateInput
+                <Label className="text-xs font-medium text-foreground">Data do recebimento / aporte</Label>
+                <input
+                  type="date"
                   value={novoAporte.data}
-                  onChange={(v) => setNovoAporte({ ...novoAporte, data: v })}
-                  className="w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20 text-foreground"
+                  onChange={(e) => setNovoAporte(prev => ({ ...prev, data: e.target.value }))}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Origem</Label>
+                <Label className="text-xs font-medium text-foreground">Origem do recurso</Label>
                 <select
                   value={novoAporte.origem}
-                  onChange={(e) => setNovoAporte({ ...novoAporte, origem: e.target.value })}
-                  className="w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none transition focus:border-primary/80 focus:ring-1 focus:ring-primary/20 text-foreground"
+                  onChange={(e) => setNovoAporte(prev => ({ ...prev, origem: e.target.value }))}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
                 >
                   {ORIGENS.map((o) => (
                     <option key={o} value={o}>{o}</option>
                   ))}
                 </select>
+                {novoAporte.origem === "Outro" && (
+                  <Input
+                    placeholder="Especifique a origem (ex: Restituição IR)"
+                    value={novoAporte.origemCustom}
+                    onChange={(e) => setNovoAporte(prev => ({ ...prev, origemCustom: e.target.value }))}
+                    className="h-10 mt-2 rounded-xl text-sm"
+                  />
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quem contribuiu?</Label>
-                <div className="flex flex-wrap gap-1.5">
+                <Label className="text-xs font-medium text-foreground">Quem contribuiu?</Label>
+                <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: "" })}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${novoAporte.pessoa_id === "" ? 'bg-primary text-primary-foreground border border-primary shadow-sm' : 'bg-background text-muted-foreground border border-border hover:border-primary/60 hover:text-foreground'}`}
+                    onClick={() => setNovoAporte(prev => ({ ...prev, pessoa_id: "" }))}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
+                      novoAporte.pessoa_id === ""
+                        ? 'bg-primary text-primary-foreground shadow-xs ring-1 ring-primary'
+                        : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/50'
+                    }`}
                   >
                     Conjunto
                   </button>
@@ -310,31 +439,123 @@ export default function PlanejamentoPage() {
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => setNovoAporte({ ...novoAporte, pessoa_id: p.id })}
-                      className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${novoAporte.pessoa_id === p.id ? 'bg-primary text-primary-foreground border border-primary shadow-sm' : 'bg-background text-muted-foreground border border-border hover:border-primary/60 hover:text-foreground'}`}
+                      onClick={() => setNovoAporte(prev => ({ ...prev, pessoa_id: p.id }))}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
+                        novoAporte.pessoa_id === p.id
+                          ? 'bg-primary text-primary-foreground shadow-xs ring-1 ring-primary'
+                          : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/50'
+                      }`}
                     >
-                      {p.nome}
+                      {p.nome.split(" ")[0]}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Footer Summary / Actions */}
-            {Number(novoAporte.valor) > 0 && (
-              <p className="text-xs text-muted-foreground text-center mb-3 sm:mb-4 italic">
-                Resumo: {brl(Number(novoAporte.valor))} em {novoAporte.data ? new Date(novoAporte.data + "T12:00:00").toLocaleDateString("pt-BR") : "data de hoje"} ({novoAporte.pessoa_id ? pessoas.find(p => p.id === novoAporte.pessoa_id)?.nome : "Conjunto"})
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2 border-t border-border/50 pt-3 sm:pt-4">
-              <Button variant="ghost" className="h-9 px-4 text-sm" onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}>Cancelar</Button>
-              <Button
-                onClick={() => { adicionarAporte(); setIsAportesExtrasModalOpen(false); }}
-                className="h-9 bg-primary text-primary-foreground px-4 text-sm"
-                disabled={novoAporte.valor === "" || novoAporte.valor <= 0}
+            {/* Footer Actions */}
+            <div className="flex items-center gap-3 pt-3 border-t border-border/40">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80" 
+                onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}
+                disabled={salvandoAporte}
               >
-                <Plus className="h-4 w-4 mr-1.5" /> {editingAporteIndex !== null ? "Salvar" : "Adicionar"}
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={adicionarAporte}
+                disabled={salvandoAporte || !novoAporte.valor || Number(novoAporte.valor) <= 0}
+                className="flex-1 h-11 rounded-xl bg-gradient-warm text-accent-foreground font-semibold hover:opacity-95 shadow-glow disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {salvandoAporte ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin-smooth" />
+                    <span>Calculando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    <span>{editingAporteIndex !== null ? "Salvar alterações" : "Adicionar aporte"}</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Aporte Extra */}
+      {extraParaExcluir && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => !excluindoAporte && setExtraParaExcluir(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
+            <button
+              type="button"
+              onClick={() => !excluindoAporte && setExtraParaExcluir(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              title="Fechar (Esc)"
+              disabled={excluindoAporte}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex items-start gap-4 pt-1">
+              <div className="h-12 w-12 shrink-0 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-center shadow-xs">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div className="flex-1 min-w-0 pr-6">
+                <h3 className="font-display text-xl font-semibold text-foreground tracking-tight">
+                  Excluir aporte extra?
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  Tem certeza que deseja excluir o aporte de <strong className="text-foreground font-semibold">{brl(Number(extraParaExcluir.aporte.valor))}</strong> ({extraParaExcluir.aporte.origem})?
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 p-3 rounded-xl bg-destructive/5 border border-destructive/15 text-xs text-destructive/90 flex items-start gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+              <span className="leading-relaxed">
+                O saldo acumulado e as projeções do planejamento serão recalculados automaticamente.
+              </span>
+            </div>
+            <div className="flex items-center gap-3 mt-6">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80" 
+                onClick={() => setExtraParaExcluir(null)} 
+                disabled={excluindoAporte}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="button" 
+                variant="destructive" 
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm hover:opacity-95 flex items-center justify-center gap-2" 
+                onClick={confirmarRemoverAporte} 
+                disabled={excluindoAporte}
+              >
+                {excluindoAporte ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin-smooth" />
+                    <span>Recalculando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>Sim, excluir</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -343,68 +564,107 @@ export default function PlanejamentoPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6 sm:gap-8 pt-8 border-t border-border/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <div className="space-y-4">
-          <div className="rounded-3xl border border-border/40 bg-gradient-to-b from-card/80 to-card/30 p-5 sm:p-6 lg:p-8 shadow-sm backdrop-blur-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-2">
-              <div>
-                <h2 className="font-display text-xl sm:text-2xl font-medium">Aportes extras</h2>
-                <p className="text-[13px] sm:text-sm text-muted-foreground mt-1">Recursos eventuais para turbinar sua meta.</p>
+          <Card className="p-0 overflow-hidden shadow-soft border-border/60 hover:border-accent/40 transition-all bg-white dark:bg-card rounded-2xl group">
+            {/* Header do Card (estilo Meus Planos / PessoaCard) */}
+            <div className="p-5 flex items-start justify-between gap-3 border-b border-border/40 bg-secondary/20">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+
+                  <h2 className="font-display text-lg font-semibold text-foreground leading-tight">
+                    Aportes extras
+                  </h2>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recursos eventuais para turbinar sua meta.
+                </p>
               </div>
-              {aportesExtras.length > 0 && (
-                <Button variant="outline" onClick={() => setIsAportesExtrasModalOpen(true)} className="shadow-sm rounded-xl text-sm h-10 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 transition-colors">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar
-                </Button>
-              )}
+              <Button 
+                size="sm" 
+                onClick={abrirModalNovoAporte} 
+                className="h-9 px-3 rounded-xl text-xs font-medium bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow shrink-0 flex items-center gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar
+              </Button>
             </div>
 
             {aportesExtras.length === 0 ? (
-              <div className="mt-6 sm:mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-secondary/20 py-10 sm:py-14 px-4 sm:px-6 text-center transition-all duration-300 hover:bg-secondary/40 hover:border-primary/30 group cursor-pointer" onClick={() => setIsAportesExtrasModalOpen(true)}>
-                <div className="mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-primary/10 shadow-inner transition-transform group-hover:scale-110 duration-500 ease-out relative">
-                  <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-20" />
-                  <Wallet className="h-7 w-7 sm:h-8 sm:w-8 text-primary relative z-10" />
+              <div 
+                onClick={abrirModalNovoAporte}
+                className="p-8 text-center cursor-pointer hover:bg-secondary/10 transition-colors flex flex-col items-center justify-center group/empty"
+              >
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 border border-accent/20 text-accent shadow-inner transition-transform group-hover/empty:scale-105 duration-300">
+                  <Wallet className="h-6 w-6" />
                 </div>
-                <h3 className="text-base sm:text-lg font-medium text-foreground mb-1.5">Nenhum aporte extra adicionado</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
-                  Turbine o seu planejamento adicionando recursos como décimo terceiro, bônus ou vendas de bens.
+                <h3 className="text-sm font-semibold text-foreground mb-1">Nenhum aporte extra cadastrado</h3>
+                <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
+                  Adicione 13º salário, bônus ou venda de bens para acelerar a entrega das chaves.
                 </p>
-                <Button className="bg-primary shadow-lg shadow-primary/20 text-primary-foreground transition-all rounded-xl h-10 px-6 font-medium group-hover:-translate-y-0.5">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Lançar aporte extra
-                </Button>
+                <span className="text-xs text-accent font-medium mt-3 inline-flex items-center gap-1 hover:underline">
+                  + Lançar primeiro aporte
+                </span>
               </div>
             ) : (
-              <div className="mt-6 space-y-3">
+              <div className="p-4 space-y-2.5">
                 {aportesExtras.map((a, index) => (
-                  <div key={index} className="group relative rounded-xl border border-border/40 bg-card p-3 transition-all duration-300 hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 shrink-0 shadow-sm">
-                           <TrendingDown className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-display font-semibold num text-base text-foreground leading-none">{brl(Number(a.valor))}</p>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-muted-foreground mt-1.5 font-medium">
-                            <span className="flex items-center bg-secondary/80 px-2 py-0.5 rounded-md text-foreground/80"><Calendar className="h-3 w-3 mr-1.5 opacity-70" /> {new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
-                            <span className="bg-secondary/80 px-2 py-0.5 rounded-md text-foreground/80">{a.origem}</span>
-                            <span className="rounded-md bg-accent/10 px-2 py-0.5 text-accent">{a.pessoaNome ?? "Conjunto"}</span>
-                          </div>
-                        </div>
+                  <div 
+                    key={index} 
+                    className="p-3.5 rounded-xl border border-border/50 bg-secondary/15 hover:bg-secondary/35 transition-all flex items-center justify-between gap-3 group/item"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
+                        <TrendingUp className="h-4 w-4" />
                       </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-display text-base font-semibold text-foreground num leading-none">
+                            +{brl(Number(a.valor))}
+                          </span>
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full shrink-0">
+                            {a.origem}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 truncate">
+                          <span>{formatarDataAporte(a.data)}</span>
+                          <span className="text-border">•</span>
+                          <span className="font-medium text-foreground/80">{a.pessoaNome ?? "Conjunto"}</span>
+                        </p>
+                      </div>
+                    </div>
 
-                      <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all self-end sm:self-auto translate-x-0 sm:translate-x-2 sm:group-hover:translate-x-0">
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); editarAporte(index); }} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removerAporte(index); }} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => editarAporte(index)} 
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
+                        title="Editar"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => removerAporte(index)} 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 ))}
+
+                {/* Resumo Total no rodapé */}
+                <div className="pt-2.5 border-t border-border/40 flex items-center justify-between px-1 text-xs">
+                  <span className="text-muted-foreground font-medium">Total em aportes extras</span>
+                  <span className="font-display text-sm font-semibold text-accent num">
+                    +{brl(aportesExtras.reduce((acc, a) => acc + Number(a.valor || 0), 0))}
+                  </span>
+                </div>
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
         <div className="space-y-3 sm:space-y-4 min-w-0">

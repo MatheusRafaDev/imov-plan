@@ -17,7 +17,6 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
 }) {
   const [open, setOpen] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
-  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
   const [editOrigem, setEditOrigem] = useState("");
   const [editValor, setEditValor] = useState("0");
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -58,7 +57,6 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
       ) {
         setOpen(false);
         setEditingIdx(null);
-        setConfirmDeleteIdx(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -112,33 +110,26 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
                         if (e.target.value === "__custom__") setEditOrigem("");
                         else setEditOrigem(e.target.value);
                       }} className="w-full h-8 px-2 rounded-md border border-border bg-background text-xs">
-                        {["13º Salário","Férias","Bônus","PLR","Renda Extra","Venda de Bem","Restituição IR"].includes(editOrigem) ? null : (
+                        {["13º Salário","Férias","Bônus","Hora Extra","PLR","Renda Extra","Venda de Bem","Restituição IR"].includes(editOrigem) ? null : (
                           <option value={editOrigem}>{editOrigem || "Personalizado"}</option>
                         )}
                         <option value="13º Salário">13º Salário</option>
                         <option value="Férias">Férias</option>
                         <option value="Bônus">Bônus</option>
+                        <option value="Hora Extra">Hora Extra</option>
                         <option value="PLR">PLR</option>
                         <option value="Renda Extra">Renda Extra</option>
                         <option value="Venda de Bem">Venda de Bem</option>
                         <option value="Restituição IR">Restituição IR</option>
                         <option value="__custom__">Outro...</option>
                       </select>
-                      {!["13º Salário","Férias","Bônus","PLR","Renda Extra","Venda de Bem","Restituição IR"].includes(editOrigem) && (
+                      {!["13º Salário","Férias","Bônus","Hora Extra","PLR","Renda Extra","Venda de Bem","Restituição IR"].includes(editOrigem) && (
                         <input type="text" value={editOrigem} onChange={e => setEditOrigem(e.target.value)} placeholder="Digite..." className="w-full h-8 px-2 rounded-md border border-border bg-background text-xs" />
                       )}
                       <MoneyInput variant="money" min={0} value={Number(editValor) || 0} onChange={(v) => setEditValor(v === "" ? "0" : v.toString())} className="h-8 text-xs bg-background border-border" />
                       <div className="flex gap-1.5">
                         <button type="button" onClick={() => setEditingIdx(null)} className="flex-1 rounded-md border border-border/60 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground">Cancelar</button>
                         <button type="button" disabled={!editOrigem.trim() || Number(editValor) <= 0} onClick={() => { onEditExtra(item.index, editOrigem.trim(), Number(editValor)); setEditingIdx(null); }} className="flex-1 rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Salvar</button>
-                      </div>
-                    </div>
-                  ) : confirmDeleteIdx === item.index ? (
-                    <div className="space-y-2 p-2 rounded-lg bg-destructive/10 border border-destructive/20 mt-1">
-                      <p className="text-xs text-destructive font-medium text-center">Apagar este aporte?</p>
-                      <div className="flex gap-1.5">
-                        <button type="button" onClick={() => setConfirmDeleteIdx(null)} className="flex-1 rounded-md border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors">Cancelar</button>
-                        <button type="button" onClick={() => { onDeleteExtra(item.index); setConfirmDeleteIdx(null); }} className="flex-1 rounded-md bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors">Apagar</button>
                       </div>
                     </div>
                   ) : (
@@ -152,7 +143,15 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
                         <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all" title="Editar">
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        <button type="button" onClick={() => setConfirmDeleteIdx(item.index)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" title="Excluir">
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setOpen(false);
+                            onDeleteExtra(item.index);
+                          }} 
+                          className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" 
+                          title="Excluir"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

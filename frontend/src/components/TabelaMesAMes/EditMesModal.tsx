@@ -41,6 +41,7 @@ const ORIGENS_PREDEFINIDAS = [
   "13º Salário",
   "Férias",
   "Bônus",
+  "Hora Extra",
   "PLR",
   "Renda Extra",
   "Venda de Bem",

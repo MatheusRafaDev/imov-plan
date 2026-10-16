@@ -2,14 +2,13 @@ import { usePlanStore } from '@/store/usePlanStore';
 import { useSaveDraft, usePlanDraft } from '@/hooks/usePlanDraft';
 import { useCalcularSimulacao, useUltimaSimulacao } from '@/hooks/useSimulacao';
 import { useDebouncedCallback } from 'use-debounce';
-import { useQueryClient } from '@tanstack/react-query';
+import { calcularEvolucaoDiariaAteHoje } from '@/lib/finance';
 
 // Fila global para serializar requisições de salvamento e evitar concorrência
 let globalSaveQueue: Promise<any> = Promise.resolve();
 
 export function usePlanLogic() {
   const state = usePlanStore();
-  const queryClient = useQueryClient();
   const planoId = state.planoId;
 
   // 1. Data Fetching (Queries)
@@ -104,7 +103,11 @@ export function usePlanLogic() {
     debouncedSaveDraft(patch);
   };
 
-  const calcularBackend = async (planoIdOverride?: string | null) => {
+  const calcularBackend = async (planoIdOverride?: string | null, patchOverride?: any) => {
+    if (patchOverride) {
+      usePlanStore.getState().hydrate(patchOverride);
+      usePlanStore.getState().setLastCalculatedPayloadStr("");
+    }
     const currentState = usePlanStore.getState();
     const idToUse = planoIdOverride || currentState.planoId;
     if (!idToUse) {
@@ -139,13 +142,14 @@ export function usePlanLogic() {
     };
 
     const payloadStr = JSON.stringify(payload);
-    if (payloadStr === currentState.lastCalculatedPayloadStr) {
+    if (!patchOverride && payloadStr === currentState.lastCalculatedPayloadStr) {
       console.log("[calcularBackend] Nenhuma mudança detectada. Pulando recalculo para poupar o backend.");
       return;
     }
     
-    await calcularSimulacao({ planoId: idToUse, payload });
+    const res = await calcularSimulacao({ planoId: idToUse, payload });
     currentState.setLastCalculatedPayloadStr(payloadStr);
+    return res;
   };
 
   const salvarPlano = async (patch?: any) => {
@@ -153,13 +157,24 @@ export function usePlanLogic() {
     return await saveDraftCore(patch);
   };
 
-  // Calcula o progresso atual com base no último mês concluído
+  // Calcula o progresso atual com base no último mês concluído ou saldos individuais corrigidos dia a dia
+  const taxaCdi = Number(state.objetivo?.taxaCdiAnual ?? 10.5);
   let progressoAtual = Number(state.objetivo?.valorJaGuardado || 0);
-  let progressoAtualPorPessoa: Record<string, number> = {};
+  const progressoAtualPorPessoa: Record<string, number> = {};
   
   state.pessoas.forEach(p => {
-    progressoAtualPorPessoa[p.id] = Number(p.valorInicial || 0);
+    const valorBase = Number(p.valorAtual ?? p.valorInicial ?? 0);
+    const evolucao = calcularEvolucaoDiariaAteHoje(valorBase, p.dataValorAtual, taxaCdi, p.tipoInvestimento);
+    progressoAtualPorPessoa[p.id] = evolucao.diasUteisDecorridos > 0 ? evolucao.saldoAtualizado : valorBase;
   });
+
+  const somaPessoasGuardado = state.pessoas.reduce(
+    (acc, p) => acc + Number(progressoAtualPorPessoa[p.id] || 0),
+    0
+  );
+  if (progressoAtual === 0 && somaPessoasGuardado > 0) {
+    progressoAtual = somaPessoasGuardado;
+  }
 
   if (state.mesesConcluidos.length > 0 && simulacaoData?.detalhesMensais) {
     const ultimoMes = Math.max(...state.mesesConcluidos);

@@ -1,5 +1,17 @@
 import { expect, test, describe } from 'vitest';
-import { calcularMeta, simular, aporteNecessarioParaPrazo, mesesParaMeta, aliquotaIR, totalMesMaisRendimentoLiquido } from './finance';
+import { 
+  calcularMeta, 
+  simular, 
+  aporteNecessarioParaPrazo, 
+  mesesParaMeta, 
+  aliquotaIR, 
+  totalMesMaisRendimentoLiquido, 
+  rendimentoEstimadoDiario, 
+  taxaDiariaEfetivaPorTipoInvestimento,
+  contarDiasUteis,
+  calcularSaldoCompostoDiario,
+  gerarMarcosEvolucaoDiaria
+} from './finance';
 
 describe('finance.ts unit tests', () => {
   test('calcularMeta', () => {
@@ -145,5 +157,50 @@ describe('finance.ts unit tests', () => {
     expect(res.rows[0]?.saldoAcumulado).toBe(0);
     expect(res.rows[1]?.saldoAcumulado).toBe(2500);
     expect(res.rows[2]?.saldoAcumulado).toBe(2500);
+  });
+
+  test('rendimentoEstimadoDiario e taxaDiariaEfetivaPorTipoInvestimento', () => {
+    // CDB 100% CDI com taxa 10.5% a.a. sobre 25.000
+    const taxaDiaria = taxaDiariaEfetivaPorTipoInvestimento(10.5, 'cdb_100');
+    expect(taxaDiaria).toBeGreaterThan(0.00039);
+    expect(taxaDiaria).toBeLessThan(0.00041);
+
+    const rendimentoDia = rendimentoEstimadoDiario(25000, 10.5, 'cdb_100');
+    // 25.000 * 0.0003964 ~= 9.91
+    expect(rendimentoDia).toBeGreaterThan(9.5);
+    expect(rendimentoDia).toBeLessThan(10.5);
+
+    // Saldo zerado retorna 0
+    expect(rendimentoEstimadoDiario(0, 10.5, 'cdb_100')).toBe(0);
+  });
+
+  test('contarDiasUteis conta apenas dias de semana', () => {
+    // 2026-10-12 (segunda) até 2026-10-16 (sexta) = 4 dias úteis
+    expect(contarDiasUteis('2026-10-12', '2026-10-16')).toBe(4);
+    // Sexta para segunda = 1 dia útil (apenas a segunda)
+    expect(contarDiasUteis('2026-10-16', '2026-10-19')).toBe(1);
+    // Data invertida ou igual
+    expect(contarDiasUteis('2026-10-16', '2026-10-16')).toBe(0);
+  });
+
+  test('calcularSaldoCompostoDiario e gerarMarcosEvolucaoDiaria', () => {
+    // 25.000 a 10.5% CDI por 30 dias úteis
+    const res = calcularSaldoCompostoDiario(25000, 30, 10.5, 'cdb_100');
+    expect(res.saldoAtualizado).toBeGreaterThan(25000);
+    expect(res.rendimentoAcumulado).toBeGreaterThan(250);
+    // O rendimento diário no dia 30 é maior do que no dia 0
+    const rendInicial = rendimentoEstimadoDiario(25000, 10.5, 'cdb_100');
+    expect(res.rendimentoNaqueleDia).toBeGreaterThan(rendInicial);
+
+    // Marcos de evolução
+    const marcos = gerarMarcosEvolucaoDiaria(25000, 10.5, 'cdb_100');
+    expect(marcos.length).toBe(6);
+    expect(marcos[0].saldo).toBe(25000);
+    expect(marcos[5].saldo).toBeGreaterThan(27000);
+    // Cada marco tem rendimento naquele ponto estritamente crescente
+    for (let i = 1; i < marcos.length; i++) {
+      expect(marcos[i].rendimentoNaqueleDia).toBeGreaterThan(marcos[i - 1].rendimentoNaqueleDia);
+      expect(marcos[i].saldo).toBeGreaterThan(marcos[i - 1].saldo);
+    }
   });
 });

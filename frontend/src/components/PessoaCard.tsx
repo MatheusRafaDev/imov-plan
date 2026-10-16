@@ -1,10 +1,34 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { brl } from "@/lib/finance";
-import { User, Pencil, Trash2, Plus, Check, Wallet, Briefcase, TrendingDown } from "lucide-react";
+import { DateInput } from "@/components/DateInput";
+import { 
+  brl, 
+  rendimentoEstimadoDiario, 
+  rendimentoEstimadoMensal,
+  calcularEvolucaoDiariaAteHoje,
+  gerarMarcosEvolucaoDiaria
+} from "@/lib/finance";
+import { 
+  User, 
+  Pencil, 
+  Trash2, 
+  Plus, 
+  Check, 
+  Wallet, 
+  Briefcase, 
+  TrendingDown, 
+  TrendingUp, 
+  CreditCard,
+  ChevronDown,
+  Sparkles,
+  Coins,
+  Clock
+} from "lucide-react";
 import { useState } from "react";
 import type { Pessoa, GastoDetalhado } from "@/context/PlanContext";
 
@@ -13,11 +37,21 @@ const calcularGastos = (p: Partial<Pessoa>) =>
     ? (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor), 0)
     : Number(p.gastos_mensais || 0);
 
+const TIPOS_INVESTIMENTO = [
+  { value: "cdb_100", label: "CDB 100% CDI (Recomendado)" },
+  { value: "tesouro_selic", label: "Tesouro Selic" },
+  { value: "poupanca", label: "Poupança" },
+  { value: "lci_lca", label: "LCI / LCA (Isento de IR)" },
+  { value: "fundo_di", label: "Fundo DI / Conta Remunerada" },
+  { value: "conta_corrente", label: "Conta Corrente (Sem rendimento)" },
+];
+
 export default function PessoaCard({
   p,
   index,
   totalGuardadoObjetivo,
   progressoAtual,
+  taxaCdiAnual = 10.5,
   remover,
   atualizarPessoa
 }: {
@@ -25,24 +59,47 @@ export default function PessoaCard({
   index: number;
   totalGuardadoObjetivo: number;
   progressoAtual: number;
+  taxaCdiAnual?: number;
   remover: (id: string) => void;
-  atualizarPessoa: (id: string, patch: Partial<Pessoa>) => void
+  atualizarPessoa: (id: string, patch: Partial<Pessoa>) => void;
 }) {
-  const isNew = !p.renda_mensal && !p.aporte_mensal && !p.gastos_mensais && !p.valorInicial;
+  const isNew = !p.renda_mensal && !p.aporte_mensal && !p.gastos_mensais && !p.valorInicial && !p.valorAtual;
   const [isEditing, setIsEditing] = useState(isNew);
   const [novoGasto, setNovoGasto] = useState({ nome: "", valor: 0 });
+
+  const [showProjecaoDiaria, setShowProjecaoDiaria] = useState(false);
+
+  const rendaTotal = Number(p.renda_mensal || 0) + Number(p.renda_complementar || 0);
   const gastosTotais = calcularGastos(p);
-  const sobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - gastosTotais;
+  const sobra = rendaTotal - gastosTotais;
+  const aporteAtual = Number(p.aporte_mensal || 0);
+  const valorInicial = Number(p.valorInicial || 0);
+
+  // Evolução acumulada com juros compostos diários desde a data do saldo informado
+  const valorBase = Number(p.valorAtual ?? p.valorInicial ?? 0);
+  const evolucaoAteHoje = calcularEvolucaoDiariaAteHoje(valorBase, p.dataValorAtual, taxaCdiAnual, p.tipoInvestimento);
+
+  // Se progressoAtual (da simulação/meses concluídos) existe, usa ele; senão usa a evolução corrigida até hoje
+  const saldoAcumulado = progressoAtual > 0 
+    ? progressoAtual 
+    : (evolucaoAteHoje.diasUteisDecorridos > 0 ? evolucaoAteHoje.saldoAtualizado : valorBase);
+
+  const rendimentoAcumulado = Math.max(0, saldoAcumulado - valorInicial);
+  const rendimentoDiario = progressoAtual > 0 
+    ? rendimentoEstimadoDiario(saldoAcumulado, taxaCdiAnual, p.tipoInvestimento)
+    : evolucaoAteHoje.rendimentoNaqueleDia;
+  const rendimentoMensal = rendimentoEstimadoMensal(saldoAcumulado, taxaCdiAnual, p.tipoInvestimento);
+
+  const marcosEvolucao = gerarMarcosEvolucaoDiaria(saldoAcumulado, taxaCdiAnual, p.tipoInvestimento);
 
   const role = index === 0 ? "Titular" : "Participante";
-  const valorInicial = p.valorInicial ?? 0;
-  const percent = totalGuardadoObjetivo > 0 ? Math.min(100, Math.max(0, (progressoAtual / totalGuardadoObjetivo) * 100)) : 0;
+  const percent = totalGuardadoObjetivo > 0 ? Math.min(100, Math.max(0, (saldoAcumulado / totalGuardadoObjetivo) * 100)) : 0;
 
   const handleAddGasto = () => {
-    if (!novoGasto.nome || !novoGasto.valor) return;
-    const newGastos = [...(p.gastos_detalhados || []), { id: Math.random().toString(), nome: novoGasto.nome, valor: novoGasto.valor }];
+    if (!novoGasto.nome.trim() || !novoGasto.valor) return;
+    const newGastos = [...(p.gastos_detalhados || []), { id: Math.random().toString(), nome: novoGasto.nome.trim(), valor: novoGasto.valor }];
     const updatedGastos = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
-    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - updatedGastos;
+    const novaSobra = rendaTotal - updatedGastos;
     atualizarPessoa(p.id, { gastos_detalhados: newGastos, aporte_mensal: Math.max(0, novaSobra) });
     setNovoGasto({ nome: "", valor: 0 });
   };
@@ -50,156 +107,210 @@ export default function PessoaCard({
   const handleRemoveGasto = (id: string) => {
     const newGastos = (p.gastos_detalhados || []).filter(g => g.id !== id);
     const updatedGastos = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
-    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - updatedGastos;
+    const novaSobra = rendaTotal - updatedGastos;
     atualizarPessoa(p.id, { gastos_detalhados: newGastos, aporte_mensal: Math.max(0, novaSobra) });
   };
 
   const handleUpdateGasto = (gId: string, patch: Partial<GastoDetalhado>) => {
     const newGastos = (p.gastos_detalhados || []).map(g => g.id === gId ? { ...g, ...patch } : g);
     const updatedGastos = newGastos.reduce((acc, g) => acc + Number(g.valor), 0);
-    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - updatedGastos;
+    const novaSobra = rendaTotal - updatedGastos;
     atualizarPessoa(p.id, { gastos_detalhados: newGastos, aporte_mensal: Math.max(0, novaSobra) });
   };
 
   const handleUpdateRenda = (field: 'renda_mensal' | 'renda_complementar', value: number) => {
-    const gastosTotais = p.usar_gastos_detalhados
-      ? (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor), 0)
-      : Number(p.gastos_mensais || 0);
-    const novaSobra = (field === 'renda_mensal' ? value : Number(p.renda_mensal)) +
-                      (field === 'renda_complementar' ? value : Number(p.renda_complementar || 0)) -
-                      gastosTotais;
+    const novaRendaTotal = (field === 'renda_mensal' ? value : Number(p.renda_mensal || 0)) +
+                          (field === 'renda_complementar' ? value : Number(p.renda_complementar || 0));
+    const novaSobra = novaRendaTotal - gastosTotais;
     atualizarPessoa(p.id, { [field]: value, aporte_mensal: Math.max(0, novaSobra) });
   };
 
   const handleUpdateGastosDiretos = (value: number) => {
-    const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - value;
+    const novaSobra = rendaTotal - value;
     atualizarPessoa(p.id, { gastos_mensais: value, aporte_mensal: Math.max(0, novaSobra) });
   };
 
-  if (!isEditing) {
-    const rendaTotal = Number(p.renda_mensal) + Number(p.renda_complementar || 0);
-    return (
-      <Card className="glass p-6 shadow-soft space-y-4 transition-all hover:shadow-elevated border-border/60 relative overflow-hidden group">
-        <div className="absolute -right-12 -top-12 h-32 w-32 bg-accent/5 rounded-full blur-2xl group-hover:bg-accent/10 transition-colors duration-700" />
+  const getTipoInvestimentoLabel = (tipo?: string) => {
+    const found = TIPOS_INVESTIMENTO.find(t => t.value === tipo);
+    return found ? found.label.split(" (")[0] : "CDB 100% CDI";
+  };
 
-        {/* Header */}
-        <div className="flex items-start justify-between relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 shrink-0 rounded-full bg-secondary grid place-items-center border border-border/50 shadow-sm">
-              <span className="font-display font-medium text-lg text-muted-foreground">{p.nome.charAt(0).toUpperCase()}</span>
+  // ───────────────────────────────────────────────────────────────────────────
+  // MODO DE VISUALIZAÇÃO (RESUMO)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (!isEditing) {
+    return (
+      <Card className="group p-0 overflow-hidden shadow-soft hover:shadow-elevated border-border/70 hover:border-accent/40 transition-all duration-300 bg-white dark:bg-card rounded-3xl animate-fade-in-up">
+        {/* Header do Card */}
+        <div className={`p-5 sm:p-6 flex items-start justify-between gap-3 border-b border-border/50 ${index === 0 ? "bg-accent/5" : "bg-secondary/25"}`}>
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-secondary to-secondary/60 border border-border/70 flex items-center justify-center shadow-xs">
+              <span className="font-display font-bold text-lg text-foreground">
+                {p.nome ? p.nome.charAt(0).toUpperCase() : "?"}
+              </span>
             </div>
-            <div>
-              <h3 className="font-display text-base font-semibold text-foreground leading-tight">{p.nome}</h3>
-              <p className="text-[10px] uppercase tracking-widest text-accent font-medium mt-0.5">{role}</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display text-lg font-bold text-foreground leading-tight truncate">
+                  {p.nome || "Participante"}
+                </h3>
+                <span className={`inline-flex items-center text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full shrink-0 ${index === 0 ? "text-accent bg-accent/10 border border-accent/20" : "text-muted-foreground bg-secondary border border-border/60"}`}>
+                  {role}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {index === 0 ? "Responsável principal pelo planejamento" : "Coparticipante no plano"}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary/80">
-              <Pencil className="h-4 w-4" />
+          <div className="flex items-center gap-1 shrink-0">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsEditing(true)} 
+              className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-xl transition-colors cursor-pointer"
+            >
+              <Pencil className="h-3.5 w-3.5 text-accent" />
+              <span>Editar</span>
             </Button>
             {index > 0 && (
-              <Button variant="ghost" size="icon" onClick={() => remover(p.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => remover(p.id)} 
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors cursor-pointer"
+                title="Remover participante"
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
         </div>
 
-        <div className="relative z-10 space-y-3">
-          {/* Renda */}
-          <div className="bg-secondary/30 rounded-xl p-3 border border-border/40">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex items-center gap-1.5 mb-2">
-              <Briefcase className="h-3 w-3" /> Renda
-            </p>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Principal</span>
-                <span className="num font-medium">{brl(Number(p.renda_mensal))}</span>
-              </div>
-              {Number(p.renda_complementar) > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Extra</span>
-                  <span className="num font-medium">{brl(Number(p.renda_complementar))}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm font-semibold pt-1.5 border-t border-border/40 mt-1">
-                <span>Total</span>
-                <span className="num">{brl(rendaTotal)}</span>
-              </div>
+        {/* Conteúdo do Card */}
+        <div className="p-5 sm:p-6 space-y-4">
+          {/* Métricas: Renda e Gastos */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="bg-secondary/20 rounded-2xl p-3.5 border border-border/40">
+              <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5 text-muted-foreground" /> Receitas
+              </p>
+              <p className="font-display text-lg sm:text-xl font-bold num text-foreground">{brl(rendaTotal)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                {Number(p.renda_complementar) > 0 ? `Principal + Extra` : `Salário líquido`}
+              </p>
+            </div>
+            <div className="bg-secondary/20 rounded-2xl p-3.5 border border-border/40">
+              <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <TrendingDown className="h-3.5 w-3.5 text-destructive/80" /> Despesas
+              </p>
+              <p className="font-display text-lg sm:text-xl font-bold num text-destructive">{brl(gastosTotais)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                {p.usar_gastos_detalhados && (p.gastos_detalhados || []).length > 0
+                  ? `${(p.gastos_detalhados || []).length} item(ns) detalhado(s)`
+                  : `Gastos mensais`}
+              </p>
             </div>
           </div>
 
-          {/* Gastos */}
-          <div className="bg-destructive/5 rounded-xl p-3 border border-destructive/10">
-            <p className="text-[10px] uppercase tracking-widest text-destructive/70 font-medium flex items-center gap-1.5 mb-2">
-              <TrendingDown className="h-3 w-3" /> Gastos
-            </p>
-            <div className="space-y-1.5">
-              {p.usar_gastos_detalhados && (p.gastos_detalhados || []).length > 0 ? (
-                <>
-                  {(p.gastos_detalhados || []).map(g => (
-                    <div key={g.id} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground truncate mr-2">{g.nome}</span>
-                      <span className="num text-destructive/80 shrink-0">{brl(g.valor)}</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between text-sm font-semibold pt-1.5 border-t border-destructive/10 mt-1">
-                    <span>Total</span>
-                    <span className="num text-destructive">{brl(gastosTotais)}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex justify-between text-sm font-semibold">
-                  <span>Total</span>
-                  <span className="num text-destructive">{brl(gastosTotais)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sobra */}
-          <div className={`rounded-xl p-3 border flex items-center justify-between ${sobra >= 0 ? "bg-[#3B6D11]/5 border-[#3B6D11]/15" : "bg-destructive/5 border-destructive/15"}`}>
-            <span className="text-sm font-medium flex items-center gap-1.5 text-muted-foreground">
-              <Wallet className="h-3.5 w-3.5" /> Sobra mensal
-            </span>
-            <span className={`font-display text-lg num font-semibold ${sobra >= 0 ? "text-[#3B6D11] dark:text-[#80B551]" : "text-destructive"}`}>
-              {brl(sobra)}
-            </span>
-          </div>
-
-          {/* Aporte mensal */}
-          <div className="bg-primary/5 rounded-xl p-3 border border-primary/15">
-            <span className="text-sm font-medium flex items-center gap-1.5 text-primary">
-              <Wallet className="h-3.5 w-3.5" /> Aporte mensal
-            </span>
-            <span className="font-display text-lg num font-semibold text-primary">
-              {brl(Number(p.aporte_mensal || 0))}
-            </span>
-          </div>
-
-          {/* Valor guardado */}
-          <div className="bg-secondary/50 rounded-xl p-3 border border-border/50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">Valor guardado</span>
-              <span className="text-xs font-display text-accent font-semibold bg-accent/10 px-2 py-0.5 rounded-full">
-                {percent.toFixed(1)}%
+          {/* Destaque Financeiro */}
+          <div className="bg-secondary/30 rounded-2xl p-4 sm:p-5 space-y-3.5 border border-border/50">
+            <div className="flex justify-between items-center pb-3 border-b border-border/40">
+              <span className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+                <Wallet className="h-4 w-4 text-muted-foreground" /> Sobra livre estimada
+              </span>
+              <span className={`font-display text-base sm:text-lg font-bold num ${sobra >= 0 ? "text-success" : "text-destructive"}`}>
+                {brl(sobra)}
               </span>
             </div>
-            <div className="w-full bg-secondary/80 rounded-full h-1.5 overflow-hidden mb-2">
-              <div className="bg-accent h-full rounded-full transition-all duration-300 ease-out" style={{ width: `${percent}%` }} />
+
+            <div className="flex justify-between items-center pb-3 border-b border-border/40">
+              <span className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-1.5">
+                <TrendingUp className="h-4 w-4 text-accent" /> Aporte mensal planejado
+              </span>
+              <span className="font-display text-base sm:text-lg font-bold num text-foreground">
+                {brl(aporteAtual)}
+              </span>
             </div>
-            <div className="flex items-end justify-between">
-              <span className="font-display text-xl num font-semibold">{brl(progressoAtual)}</span>
-                {progressoAtual > 0 && (
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
-                  {p.tipoInvestimento === "poupanca" ? "Poupança" :
-                   p.tipoInvestimento === "cdb_100" ? "CDB / Renda Fixa" :
-                   p.tipoInvestimento === "cdb_120" ? "CDB 120% CDI" :
-                   p.tipoInvestimento === "tesouro_selic" ? "Tesouro Selic" :
-                   p.tipoInvestimento === "lci_lca" ? "LCI / LCA" :
-                   p.tipoInvestimento === "fundo_di" ? "Fundo DI" :
-                   p.tipoInvestimento === "conta_corrente" ? "Conta Corrente" : "Investimento"}
+
+            <div className="pt-0.5 space-y-2">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Coins className="h-4 w-4 text-accent" /> Já guardado hoje
                 </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-base font-bold num text-foreground">{brl(saldoAcumulado)}</span>
+                  {saldoAcumulado > 0 && (
+                    <>
+                      {percent > 0 && (
+                        <span className="text-[10px] font-display font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">
+                          {percent.toFixed(0)}% da meta
+                        </span>
+                      )}
+                      <span className="text-[10px] font-display font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                        {getTipoInvestimentoLabel(p.tipoInvestimento)}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Cálculo do rendimento gerado naquele dia com base no acumulado */}
+              {saldoAcumulado > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 text-xs bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-3 py-2 rounded-xl">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="font-medium text-foreground/85">Rendimento naquele dia:</span>
+                      <strong className="num font-bold text-emerald-700 dark:text-emerald-300">
+                        +{brl(rendimentoDiario)}/dia
+                      </strong>
+                      <span className="opacity-70 text-[11px] hidden sm:inline">
+                        (~{brl(rendimentoMensal)}/mês)
+                      </span>
+                    </div>
+                    {rendimentoAcumulado > 0 && (
+                      <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-white/70 dark:bg-card/70 px-2 py-0.5 rounded-full shrink-0 border border-emerald-500/20">
+                        +{brl(rendimentoAcumulado)} total
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Botão para ver como o rendimento e saldo mudam a cada dia que passa */}
+                  <button
+                    type="button"
+                    onClick={() => setShowProjecaoDiaria(!showProjecaoDiaria)}
+                    className="w-full flex items-center justify-between text-[11px] font-medium text-accent hover:text-accent/80 transition-colors py-1 px-1 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>{showProjecaoDiaria ? "Ocultar progressão diária" : "Como o rendimento cresce dia a dia (juros sobre juros)"}</span>
+                    </span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showProjecaoDiaria ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {showProjecaoDiaria && (
+                    <div className="p-3 bg-secondary/35 dark:bg-secondary/20 rounded-2xl border border-border/50 space-y-2 animate-fade-in text-xs">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground pb-1 border-b border-border/40 font-semibold uppercase tracking-wider">
+                        <span>Ponto no tempo</span>
+                        <span>Saldo estimado</span>
+                        <span>Rendimento naquele ponto</span>
+                      </div>
+                      <div className="space-y-1.5 pt-0.5">
+                        {marcosEvolucao.map((m, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-border/20 last:border-0">
+                            <span className="text-muted-foreground font-medium text-[11px]">{m.label}</span>
+                            <span className="num font-semibold text-foreground text-xs">{brl(m.saldo)}</span>
+                            <span className="num font-bold text-emerald-600 dark:text-emerald-400 text-xs">+{brl(m.rendimentoNaqueleDia)}/dia</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground pt-1 italic text-center">
+                        * Conforme os dias passam, o saldo acumula juros e o rendimento diário fica maior.
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -208,163 +319,360 @@ export default function PessoaCard({
     );
   }
 
-  // Edit Mode
+  // ───────────────────────────────────────────────────────────────────────────
+  // MODO DE EDIÇÃO (REFORMULADO COM ALTA FIDELIDADE)
+  // ───────────────────────────────────────────────────────────────────────────
   return (
-    <Card className="glass p-6 shadow-soft border-accent/40 animate-fade-in-up flex flex-col gap-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 w-full">
-          <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-secondary to-secondary/50 grid place-items-center shadow-inner">
-            <User className="h-5 w-5 text-muted-foreground" />
+    <Card className="bg-white dark:bg-card p-5 sm:p-7 shadow-soft hover:shadow-elevated border border-border/80 focus-within:border-accent/40 rounded-3xl transition-all duration-300 flex flex-col gap-5 animate-fade-in-up">
+      {/* ── CABEÇALHO DO PARTICIPANTE ─────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/40">
+        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+          <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-accent/15 via-accent/5 to-secondary border border-accent/25 flex items-center justify-center text-accent font-display font-bold text-xl shadow-xs">
+            {p.nome ? p.nome.charAt(0).toUpperCase() : <User className="h-5 w-5" />}
           </div>
-          <Input 
-            value={p.nome} 
-            onChange={e => atualizarPessoa(p.id, { nome: e.target.value })} 
-            className="font-display text-xl font-semibold border-none px-0 focus-visible:ring-0 h-auto bg-transparent" 
-            placeholder="Nome do participante"
-          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`inline-flex items-center text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full ${index === 0 ? "text-accent bg-accent/10 border border-accent/20" : "text-muted-foreground bg-secondary border border-border/60"}`}>
+                {role}
+              </span>
+              <span className="text-[11px] text-muted-foreground hidden sm:inline">• Clique para editar o nome</span>
+            </div>
+            <Input 
+              value={p.nome} 
+              onChange={e => atualizarPessoa(p.id, { nome: e.target.value })} 
+              className="font-display text-xl sm:text-2xl font-bold border-none px-0 focus-visible:ring-0 h-auto bg-transparent text-foreground placeholder:text-muted-foreground/40 leading-none" 
+              placeholder="Nome da pessoa"
+            />
+          </div>
         </div>
         {index > 0 && (
-          <Button variant="ghost" size="icon" onClick={() => remover(p.id)} className="shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors">
-            <Trash2 className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => remover(p.id)} 
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors cursor-pointer"
+            title="Remover participante"
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      <div className="space-y-5">
-        {/* Rendas */}
-        <div className="bg-secondary/20 rounded-xl p-4 border border-border/50">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex items-center gap-1.5 mb-3">
-            <Briefcase className="h-3 w-3" /> Receitas
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-4">
+        {/* ── SEÇÃO 1: RECEITAS ────────────────────────────────────────────── */}
+        <div className="bg-secondary/25 rounded-2xl p-4 sm:p-4.5 border border-border/50 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Briefcase className="h-3.5 w-3.5 text-accent" />
+              <span>Receitas Mensais</span>
+            </p>
+            <span className="text-xs font-medium text-muted-foreground">
+              Total: <strong className="font-bold text-foreground num">{brl(rendaTotal)}</strong>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Principal</Label>
-              <MoneyInput variant="money" min={0} value={Number(p.renda_mensal)} onChange={v => handleUpdateRenda('renda_mensal', v === "" ? 0 : v)} className="bg-background" />
+              <Label className="text-xs font-medium text-foreground">Renda Principal</Label>
+              <div className="relative">
+                <MoneyInput 
+                  variant="money" 
+                  min={0} 
+                  value={Number(p.renda_mensal || 0)} 
+                  onChange={v => handleUpdateRenda('renda_mensal', v === "" ? 0 : v)} 
+                  className="bg-white dark:bg-card border-border/70 hover:border-border focus:border-accent rounded-xl shadow-2xs h-10 text-sm font-semibold"
+                  placeholder="0,00"
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Extra</Label>
-              <MoneyInput variant="money" min={0} value={Number(p.renda_complementar || 0)} onChange={v => handleUpdateRenda('renda_complementar', v === "" ? 0 : v)} className="bg-background" />
+              <Label className="text-xs font-medium text-foreground">Renda Extra / Bônus</Label>
+              <div className="relative">
+                <MoneyInput 
+                  variant="money" 
+                  min={0} 
+                  value={Number(p.renda_complementar || 0)} 
+                  onChange={v => handleUpdateRenda('renda_complementar', v === "" ? 0 : v)} 
+                  className="bg-white dark:bg-card border-border/70 hover:border-border focus:border-accent rounded-xl shadow-2xs h-10 text-sm font-semibold"
+                  placeholder="0,00"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Despesas */}
-        <div className="bg-destructive/5 rounded-xl p-4 border border-destructive/10">
-          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 mb-3">
-            <p className="text-[10px] uppercase tracking-widest text-destructive/80 font-medium flex items-center gap-1.5">
-              <TrendingDown className="h-3 w-3" /> Despesas
+        {/* ── SEÇÃO 2: DESPESAS ────────────────────────────────────────────── */}
+        <div className="bg-secondary/25 rounded-2xl p-4 sm:p-4.5 border border-border/50 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <CreditCard className="h-3.5 w-3.5 text-destructive" />
+              <span>Despesas Mensais</span>
             </p>
-            <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5 bg-background/50 hover:bg-background" onClick={() => {
-              const novoModo = !p.usar_gastos_detalhados;
-              atualizarPessoa(p.id, { usar_gastos_detalhados: novoModo });
-              const gastosTotais = novoModo
-                ? (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor), 0)
-                : Number(p.gastos_mensais || 0);
-              const novaSobra = Number(p.renda_mensal) + Number(p.renda_complementar || 0) - gastosTotais;
-              atualizarPessoa(p.id, { aporte_mensal: Math.max(0, novaSobra) });
-            }}>
-              {p.usar_gastos_detalhados ? "Usar Valor Direto" : "Detalhar Gastos"}
-            </Button>
+            {/* Toggle elegante para Detalhar ou Valor Direto */}
+            <div className="flex bg-secondary border border-border/60 rounded-lg p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => {
+                  atualizarPessoa(p.id, { usar_gastos_detalhados: false });
+                  const novaSobra = rendaTotal - Number(p.gastos_mensais || 0);
+                  atualizarPessoa(p.id, { aporte_mensal: Math.max(0, novaSobra) });
+                }}
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all cursor-pointer ${!p.usar_gastos_detalhados ? "bg-white dark:bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Valor Total
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  atualizarPessoa(p.id, { usar_gastos_detalhados: true });
+                  const newGastosTotais = (p.gastos_detalhados || []).reduce((acc, g) => acc + Number(g.valor), 0);
+                  const novaSobra = rendaTotal - newGastosTotais;
+                  atualizarPessoa(p.id, { aporte_mensal: Math.max(0, novaSobra) });
+                }}
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all cursor-pointer ${p.usar_gastos_detalhados ? "bg-white dark:bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Detalhar Gastos
+              </button>
+            </div>
           </div>
-          
+
           {!p.usar_gastos_detalhados ? (
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Despesa Mensal Total</Label>
-              <MoneyInput variant="money" min={0} value={Number(p.gastos_mensais)} onChange={v => handleUpdateGastosDiretos(v === "" ? 0 : v)} className="bg-background" />
+              <Label className="text-xs font-medium text-foreground">Total de Despesas do Mês</Label>
+              <MoneyInput 
+                variant="money" 
+                min={0} 
+                value={Number(p.gastos_mensais || 0)} 
+                onChange={v => handleUpdateGastosDiretos(v === "" ? 0 : v)} 
+                className="bg-white dark:bg-card border-border/70 hover:border-border focus:border-accent rounded-xl shadow-2xs h-10 text-sm font-semibold"
+                placeholder="0,00"
+              />
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 pt-1">
               {(p.gastos_detalhados || []).map(g => (
-                <div key={g.id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-background p-2 rounded-lg border border-border/40 shadow-sm">
-                  <Input value={g.nome} onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} className="flex-1 bg-transparent border-none focus-visible:ring-0" placeholder="Ex: Aluguel" />
-                  <div className="flex items-center gap-2 sm:gap-2">
-                    <div className="flex-1 sm:w-28 sm:flex-none">
-                      <MoneyInput variant="money" min={0} value={g.valor} onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} className="bg-transparent border-none focus-visible:ring-0 text-right" />
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleRemoveGasto(g.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                <div key={g.id} className="flex items-center gap-2 bg-white dark:bg-card p-2 rounded-xl border border-border/60 shadow-2xs">
+                  <Input 
+                    value={g.nome} 
+                    onChange={e => handleUpdateGasto(g.id, { nome: e.target.value })} 
+                    className="flex-1 bg-transparent border-none focus-visible:ring-0 text-xs sm:text-sm font-medium px-2 h-8" 
+                    placeholder="Ex: Moradia, Alimentação" 
+                  />
+                  <div className="w-28 sm:w-32 shrink-0">
+                    <MoneyInput 
+                      variant="money" 
+                      min={0} 
+                      value={g.valor} 
+                      onChange={v => handleUpdateGasto(g.id, { valor: v === "" ? 0 : v })} 
+                      className="bg-secondary/40 border-none focus-visible:ring-0 text-right h-8 text-xs sm:text-sm font-semibold" 
+                    />
                   </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer" 
+                    onClick={() => handleRemoveGasto(g.id)}
+                    title="Excluir item"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               ))}
-              <div className="flex flex-wrap sm:flex-nowrap gap-2 items-end pt-1">
-                <div className="flex-1 space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Novo Gasto</Label>
-                  <Input placeholder="Ex: Mercado" className="bg-background" value={novoGasto.nome} onChange={e => setNovoGasto({ ...novoGasto, nome: e.target.value })} />
+
+              {/* Linha para adicionar novo gasto */}
+              <div className="flex gap-2 items-end pt-1">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Adicionar Categoria</Label>
+                  <Input 
+                    placeholder="Ex: Mercado, Lazer" 
+                    className="bg-white dark:bg-card border-border/70 rounded-xl h-9 text-xs" 
+                    value={novoGasto.nome} 
+                    onChange={e => setNovoGasto({ ...novoGasto, nome: e.target.value })} 
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddGasto();
+                      }
+                    }}
+                  />
                 </div>
-                <div className="w-28 shrink-0 space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor</Label>
-                  <MoneyInput variant="money" min={0} placeholder="R$" className="bg-background" value={novoGasto.valor} onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} />
+                <div className="w-28 sm:w-32 shrink-0 space-y-1">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Valor (R$)</Label>
+                  <MoneyInput 
+                    variant="money" 
+                    min={0} 
+                    placeholder="0,00" 
+                    className="bg-white dark:bg-card border-border/70 rounded-xl h-9 text-xs" 
+                    value={novoGasto.valor} 
+                    onChange={v => setNovoGasto({ ...novoGasto, valor: v === "" ? 0 : v })} 
+                  />
                 </div>
-                <Button size="icon" className="h-9 w-9 bg-primary text-primary-foreground shrink-0 shadow-sm hover:shadow-md transition-all" onClick={handleAddGasto} disabled={!novoGasto.nome || !novoGasto.valor}>
+                <Button 
+                  size="icon" 
+                  className="h-9 w-9 bg-accent text-accent-foreground shrink-0 rounded-xl shadow-xs hover:bg-accent/90 transition-all cursor-pointer" 
+                  onClick={handleAddGasto} 
+                  disabled={!novoGasto.nome.trim() || !novoGasto.valor}
+                  title="Inserir despesa"
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+
               {gastosTotais > 0 && (
-                <div className="flex justify-between items-center pt-3 px-1 border-t border-destructive/10 mt-3">
-                  <span className="text-[10px] uppercase tracking-widest text-destructive/80 font-medium">Total Despesas</span>
-                  <span className="font-semibold text-destructive">{brl(gastosTotais)}</span>
+                <div className="flex justify-between items-center pt-2 px-1 text-xs">
+                  <span className="text-muted-foreground font-medium">Soma dos gastos detalhados:</span>
+                  <span className="font-bold text-destructive num">{brl(gastosTotais)}</span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Investimentos & Aportes */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className={`bg-accent/5 rounded-xl p-4 border border-accent/10 space-y-2 flex flex-col justify-between ${valorInicial > 0 ? "col-span-2 sm:col-span-1" : ""}`}>
-            <Label className="text-xs font-medium text-accent flex items-center gap-1.5">
-              <Wallet className="h-3 w-3" /> Já Guardado
-            </Label>
-            <div className="flex gap-2">
+        {/* ── SEÇÃO 3: FLUXO MENSAL & APORTE PLANEJADO (HARMONIZADO) ──────── */}
+        <div className="bg-gradient-to-br from-secondary/40 via-card to-secondary/20 rounded-2xl p-4 sm:p-5 border border-border/70 shadow-2xs space-y-4">
+          {/* Card de Sobra */}
+          <div className="flex items-center justify-between pb-3 border-b border-border/40 gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Wallet className="h-3.5 w-3.5 text-accent" />
+                <span>Sobra Líquida Estimada</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Receita ({brl(rendaTotal)}) − Despesas ({brl(gastosTotais)})
+              </p>
+            </div>
+            <div className="text-right">
+              <span className={`font-display text-xl sm:text-2xl font-bold num ${sobra >= 0 ? "text-success" : "text-destructive"}`}>
+                {brl(sobra)}
+              </span>
+              <span className="block text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+                {sobra >= 0 ? "Capacidade do mês" : "Atenção: déficit"}
+              </span>
+            </div>
+          </div>
+
+          {/* Campo de Aporte Planejado */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-accent" />
+                <span>Aporte Mensal Planejado</span>
+              </Label>
+              {sobra > 0 && aporteAtual !== sobra && (
+                <button
+                  type="button"
+                  onClick={() => atualizarPessoa(p.id, { aporte_mensal: Math.max(0, sobra) })}
+                  className="text-[11px] font-semibold text-accent hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <Sparkles className="h-3 w-3" /> Usar toda a sobra ({brl(sobra)})
+                </button>
+              )}
+            </div>
+            <div className="relative">
               <MoneyInput
                 variant="money"
                 min={0}
-                value={valorInicial}
-                onChange={v => atualizarPessoa(p.id, { valorInicial: v === "" ? 0 : v })}
-                className="bg-background font-medium flex-1"
+                value={aporteAtual}
+                onChange={v => atualizarPessoa(p.id, { aporte_mensal: v === "" ? 0 : v })}
+                className="bg-white dark:bg-card border-border/70 hover:border-border focus:border-accent rounded-xl shadow-2xs h-11 text-base font-bold text-foreground"
+                placeholder="R$ 0,00"
               />
             </div>
-            {valorInicial > 0 && (
-              <div className="mt-2 space-y-1.5 animate-in slide-in-from-top-1 fade-in duration-200">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Onde está guardado?</Label>
-                <select
-                  value={p.tipoInvestimento || ""}
-                  onChange={(e) => atualizarPessoa(p.id, { tipoInvestimento: e.target.value })}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione o tipo</option>
-                  <option value="poupanca">Poupança</option>
-                  <option value="cdb_100">CDB 100%</option>
-                </select>
-
-              </div>
-            )}
-          </div>
-          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-2 flex flex-col justify-between">
-            <Label className="text-xs font-medium text-primary flex items-center gap-1.5">
-              <TrendingDown className="h-3 w-3 rotate-180" /> Aporte Mensal
-            </Label>
-            <MoneyInput
-              variant="money"
-              min={0}
-              value={Number(p.aporte_mensal || 0)}
-              onChange={v => atualizarPessoa(p.id, { aporte_mensal: v === "" ? 0 : v })}
-              className="bg-background font-medium"
-            />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Valor que esta pessoa irá direcionar mensalmente para a meta da entrada.
+            </p>
           </div>
         </div>
 
-        {/* Sobra */}
-        <div className={`rounded-xl p-4 flex items-center justify-between transition-colors border shadow-sm ${sobra >= 0 ? "bg-[#3B6D11]/10 border-[#3B6D11]/20 text-[#3B6D11] dark:text-[#80B551]" : "bg-destructive/10 border-destructive/20 text-destructive"}`}>
-          <span className="text-sm font-medium">Sobra Mensal Estimada</span>
-          <span className="font-display text-xl num font-semibold">{brl(sobra)}</span>
+        {/* ── SEÇÃO 4: RESERVA ATUAL (JÁ GUARDADO HOJE) ────────────────────── */}
+        <div className="bg-secondary/25 rounded-2xl p-4 sm:p-4.5 border border-border/50 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Coins className="h-3.5 w-3.5 text-accent" />
+              <span>Já Guardado Hoje</span>
+            </p>
+            <span className="text-[11px] text-muted-foreground">Patrimônio acumulado</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-start">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Valor Informado</Label>
+              <MoneyInput
+                variant="money"
+                min={0}
+                value={p.valorAtual ?? p.valorInicial ?? 0}
+                onChange={v => {
+                  const val = v === "" ? 0 : Number(v);
+                  atualizarPessoa(p.id, { valorInicial: val, valorAtual: val });
+                }}
+                className="bg-white dark:bg-card border-border/70 hover:border-border focus:border-accent rounded-xl shadow-2xs h-10 text-sm font-semibold"
+                placeholder="0,00"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Data em que guardou</Label>
+              <DateInput
+                value={p.dataValorAtual || ""}
+                onChange={(date) => atualizarPessoa(p.id, { dataValorAtual: date })}
+                className="bg-white dark:bg-card border-border/70 hover:border-border focus:border-accent rounded-xl shadow-2xs h-10 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Onde está aplicado?</Label>
+              <div className="relative">
+                <select
+                  value={p.tipoInvestimento || "cdb_100"}
+                  onChange={(e) => atualizarPessoa(p.id, { tipoInvestimento: e.target.value })}
+                  className="w-full h-10 rounded-xl border border-border/70 bg-white dark:bg-card px-3 pr-8 text-xs font-medium text-foreground focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 appearance-none shadow-2xs cursor-pointer"
+                >
+                  {TIPOS_INVESTIMENTO.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          {Number(p.valorAtual ?? p.valorInicial ?? 0) > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-3 py-2 rounded-xl">
+                <Sparkles className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex-1">
+                  <span>Rendimento naquele dia: </span>
+                  <strong className="num font-bold text-emerald-700 dark:text-emerald-300">
+                    +{brl(rendimentoEstimadoDiario(Number(p.valorAtual ?? p.valorInicial ?? 0), taxaCdiAnual, p.tipoInvestimento))}/dia
+                  </strong>
+                  <span className="opacity-75 text-[11px] ml-1.5">
+                    (aprox. {brl(rendimentoEstimadoMensal(Number(p.valorAtual ?? p.valorInicial ?? 0), taxaCdiAnual, p.tipoInvestimento))}/mês a {taxaCdiAnual}% CDI)
+                  </span>
+                </div>
+              </div>
+
+              {p.dataValorAtual && evolucaoAteHoje.diasUteisDecorridos > 0 && (
+                <div className="text-[11px] text-muted-foreground bg-secondary/40 px-3 py-2 rounded-xl border border-border/40 flex items-center justify-between">
+                  <span>{evolucaoAteHoje.diasUteisDecorridos} dias úteis decorridos desde a data informada</span>
+                  <span className="font-semibold text-foreground">Saldo corrigido hoje: {brl(evolucaoAteHoje.saldoAtualizado)}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <Button onClick={() => setIsEditing(false)} className="w-full bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow h-12 text-base mt-2">
-        <Check className="h-5 w-5 mr-2" /> Salvar Alterações
-      </Button>
+      {/* ── BOTÃO DE CONCLUIR EDIÇÃO ─────────────────────────────────────── */}
+      <div className="pt-2 flex items-center gap-3">
+        <Button 
+          variant="outline"
+          onClick={() => setIsEditing(false)} 
+          className="w-full h-11 text-sm font-semibold border-border/80 hover:bg-secondary/60 hover:border-accent/40 text-foreground rounded-xl transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-2"
+        >
+          <Check className="h-4 w-4 text-accent" />
+          <span>Concluir edição deste participante</span>
+        </Button>
+      </div>
     </Card>
   );
 }

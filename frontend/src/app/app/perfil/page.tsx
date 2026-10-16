@@ -141,15 +141,6 @@ export default function PerfilPage() {
           </div>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void logout()}
-          className="w-full sm:w-auto border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 gap-2 shrink-0 transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Sair da conta</span>
-        </Button>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 items-start">
@@ -266,6 +257,17 @@ export default function PerfilPage() {
               </div>
             )}
           </Card>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void logout()}
+          className="w-full sm:w-auto border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 gap-2 shrink-0 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sair da conta</span>
+        </Button>
+
 
           {/* Zona de Risco */}
           <Card className="border-destructive/20 bg-destructive/5 p-6 shadow-sm flex flex-col justify-between">

@@ -127,6 +127,137 @@ export function taxaMensalEfetivaPorTipoInvestimento(taxaCdiAnual: number, tipo?
   return taxaMensalEfetiva(taxaCdiAnual, percentualCdiPorTipoInvestimento(tipo));
 }
 
+export function taxaDiariaEfetivaPorTipoInvestimento(taxaCdiAnual: number, tipo?: string) {
+  const anual = (taxaCdiAnual / 100) * (percentualCdiPorTipoInvestimento(tipo) / 100);
+  if (anual <= 0) return 0;
+  // Convenção padrão do mercado financeiro brasileiro: 252 dias úteis no ano
+  return Math.pow(1 + anual, 1 / 252) - 1;
+}
+
+export function rendimentoEstimadoDiario(valor: number, taxaCdiAnual: number, tipo?: string) {
+  if (valor <= 0) return 0;
+  return valor * taxaDiariaEfetivaPorTipoInvestimento(taxaCdiAnual, tipo);
+}
+
+/**
+ * Conta a quantidade de dias úteis (segunda a sexta-feira) entre duas datas.
+ */
+export function contarDiasUteis(dataInicio: Date | string, dataFim: Date | string): number {
+  const d1 = typeof dataInicio === "string" ? new Date(dataInicio.includes("T") ? dataInicio : `${dataInicio}T12:00:00`) : new Date(dataInicio);
+  const d2 = typeof dataFim === "string" ? new Date(dataFim.includes("T") ? dataFim : `${dataFim}T12:00:00`) : new Date(dataFim);
+
+  if (Number.isNaN(d1.getTime()) || Number.isNaN(d2.getTime()) || d2 <= d1) return 0;
+
+  let count = 0;
+  const cur = new Date(d1);
+  cur.setHours(12, 0, 0, 0);
+  const end = new Date(d2);
+  end.setHours(12, 0, 0, 0);
+
+  while (cur < end) {
+    cur.setDate(cur.getDate() + 1);
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Calcula o saldo composto acumulado a partir de um valor base, taxa e quantidade de dias úteis decorridos.
+ * Saldo(t) = Saldo_0 * (1 + taxaDiaria)^dias
+ */
+export function calcularSaldoCompostoDiario(
+  valorBase: number,
+  diasUteis: number,
+  taxaCdiAnual: number,
+  tipo?: string
+): { saldoAtualizado: number; rendimentoAcumulado: number; rendimentoNaqueleDia: number } {
+  if (valorBase <= 0) {
+    return { saldoAtualizado: 0, rendimentoAcumulado: 0, rendimentoNaqueleDia: 0 };
+  }
+
+  const taxaDiaria = taxaDiariaEfetivaPorTipoInvestimento(taxaCdiAnual, tipo);
+  if (taxaDiaria <= 0 || diasUteis <= 0) {
+    return {
+      saldoAtualizado: valorBase,
+      rendimentoAcumulado: 0,
+      rendimentoNaqueleDia: valorBase * taxaDiaria,
+    };
+  }
+
+  const saldoAtualizado = valorBase * Math.pow(1 + taxaDiaria, diasUteis);
+  const rendimentoAcumulado = saldoAtualizado - valorBase;
+  const rendimentoNaqueleDia = saldoAtualizado * taxaDiaria;
+
+  return {
+    saldoAtualizado,
+    rendimentoAcumulado,
+    rendimentoNaqueleDia,
+  };
+}
+
+/**
+ * Calcula a evolução do saldo e do rendimento dia a dia até hoje com base na data do saldo informado.
+ */
+export function calcularEvolucaoDiariaAteHoje(
+  valorBase: number,
+  dataReferencia: string | Date | null | undefined,
+  taxaCdiAnual: number,
+  tipo?: string
+) {
+  if (!dataReferencia || valorBase <= 0) {
+    const rendimentoNaqueleDia = rendimentoEstimadoDiario(valorBase, taxaCdiAnual, tipo);
+    return {
+      saldoAtualizado: valorBase,
+      rendimentoAcumulado: 0,
+      rendimentoNaqueleDia,
+      diasUteisDecorridos: 0,
+    };
+  }
+
+  const hoje = new Date();
+  const diasUteis = contarDiasUteis(dataReferencia, hoje);
+  const resultado = calcularSaldoCompostoDiario(valorBase, diasUteis, taxaCdiAnual, tipo);
+
+  return {
+    ...resultado,
+    diasUteisDecorridos: diasUteis,
+  };
+}
+
+/**
+ * Retorna marcos de projeção para demonstrar como o rendimento cresce dia a dia
+ * devido aos juros compostos diários (ex: Hoje, 7 dias, 30 dias, 90 dias, 180 dias, 252 dias).
+ */
+export function gerarMarcosEvolucaoDiaria(
+  valorBase: number,
+  taxaCdiAnual: number,
+  tipo?: string
+) {
+  const marcos = [
+    { label: "Hoje (Início)", diasUteis: 0 },
+    { label: "Em 7 dias úteis", diasUteis: 7 },
+    { label: "Em 30 dias úteis", diasUteis: 30 },
+    { label: "Em 60 dias úteis (~3 meses)", diasUteis: 60 },
+    { label: "Em 126 dias úteis (~6 meses)", diasUteis: 126 },
+    { label: "Em 252 dias úteis (1 ano)", diasUteis: 252 },
+  ];
+
+  return marcos.map((m) => {
+    const { saldoAtualizado, rendimentoAcumulado, rendimentoNaqueleDia } =
+      calcularSaldoCompostoDiario(valorBase, m.diasUteis, taxaCdiAnual, tipo);
+    return {
+      label: m.label,
+      diasUteis: m.diasUteis,
+      saldo: saldoAtualizado,
+      rendimentoAcumulado,
+      rendimentoNaqueleDia,
+    };
+  });
+}
+
 export function rendimentoEstimadoMensal(valor: number, taxaCdiAnual: number, tipo?: string) {
   return valor * taxaMensalEfetivaPorTipoInvestimento(taxaCdiAnual, tipo);
 }

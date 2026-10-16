@@ -21,8 +21,8 @@ const generateObjectId = () => {
 };
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { brl } from "@/lib/finance";
-import { Plus, Trash2, ArrowRight, X, Wallet, Pencil, Check, TrendingDown } from "lucide-react";
+import { brl, rendimentoEstimadoDiario, rendimentoEstimadoMensal } from "@/lib/finance";
+import { Plus, Trash2, ArrowRight, X, Wallet, TrendingUp, AlertTriangle, ChevronDown, Coins, Sparkles } from "lucide-react";
 import { PessoasPageSkeleton } from "@/components/Skeleton";
 
 const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados?: GastoDetalhado[]; gastos_mensais?: number | "" }) => {
@@ -34,10 +34,7 @@ const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados
 export default function PessoasPage() {
   const { pessoas, setPessoas, saveDraft, salvarPlano, objetivo, setObjetivo, cenario, planoId, calcularBackend, calculating, isDraftLoading, progressoAtual, progressoAtualPorPessoa } = usePlanLogic();
   
-  const [isEditingTotal, setIsEditingTotal] = useState(false);
   const totalObjetivo = Number(objetivo?.valorJaGuardado ?? 0);
-  const sumValores = pessoas.reduce((s, p) => s + (p.valorInicial ?? 0), 0);
-  const diffTotal = totalObjetivo - sumValores;
   
   const isLoading = isDraftLoading;
 
@@ -258,24 +255,6 @@ export default function PessoasPage() {
     });
   };
 
-  const handleUpdateTotal = (novoTotal: number | "") => {
-    const val = novoTotal === "" ? 0 : novoTotal;
-    setObjetivo(prev => prev ? { ...prev, valorJaGuardado: val } : null);
-    
-    setPessoas(prev => {
-      if (prev.length === 1) {
-        return [{ ...prev[0], valorInicial: val }];
-      }
-
-      const currentTotal = prev.reduce((sum, p) => sum + Number(p.valorInicial ?? 0), 0);
-      // Without a distribution already entered, never infer a split by income or equally.
-      if (currentTotal <= 0) return prev;
-
-      const factor = val / currentTotal;
-      return prev.map(p => ({ ...p, valorInicial: Number(p.valorInicial ?? 0) * factor }));
-    });
-  };
-
   const gastosTotaisForm = calcularGastos(form);
   const sobraForm = ((Number(form.renda_mensal) || 0) + (Number(form.renda_complementar) || 0)) - gastosTotaisForm;
 
@@ -300,7 +279,8 @@ export default function PessoasPage() {
             p={p} 
             index={index}
             totalGuardadoObjetivo={progressoAtual > 0 ? progressoAtual : totalObjetivo}
-            progressoAtual={progressoAtualPorPessoa[p.id] ?? (p.valorInicial || 0)}
+            progressoAtual={progressoAtualPorPessoa[p.id] ?? Number(p.valorAtual ?? p.valorInicial ?? 0)}
+            taxaCdiAnual={Number(objetivo?.taxaCdiAnual ?? 10.5)}
             remover={confirmarRemocao} 
             atualizarPessoa={atualizarPessoa} 
           />
@@ -309,7 +289,7 @@ export default function PessoasPage() {
         {!showAddForm ? (
           <Card 
             onClick={() => setShowAddForm(true)}
-            className="glass p-6 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-secondary/20 cursor-pointer transition-all flex flex-col items-center justify-center min-h-[160px] md:min-h-[220px] text-muted-foreground hover:text-foreground group rounded-xl"
+            className="bg-white/80 dark:bg-card/80 p-6 border-2 border-dashed border-border/60 hover:border-accent/50 hover:bg-white dark:hover:bg-card cursor-pointer transition-all flex flex-col items-center justify-center min-h-[220px] text-muted-foreground hover:text-foreground group rounded-2xl shadow-soft"
           >
             <div className="h-12 w-12 rounded-full bg-secondary/80 group-hover:bg-accent/10 grid place-items-center mb-3 transition-colors">
               <Plus className="h-6 w-6 text-muted-foreground group-hover:text-accent transition-colors" />
@@ -320,7 +300,7 @@ export default function PessoasPage() {
             </p>
           </Card>
         ) : (
-          <Card className="p-6 border-dashed shadow-none space-y-4 relative animate-fade-in-up">
+          <Card className="bg-white dark:bg-card p-6 border border-border/60 rounded-2xl shadow-soft space-y-4 relative animate-fade-in-up">
             <button 
               onClick={() => {
                 setShowAddForm(false);
@@ -442,60 +422,108 @@ export default function PessoasPage() {
                 )}
               </div>
 
-              {/* Já Guardado + Tipo de Investimento + Aporte */}
-              <div className="pt-2 border-t border-border/50 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Já Guardado */}
-                  <div className="bg-accent/5 rounded-xl p-3 border border-accent/10 space-y-2 col-span-2 sm:col-span-1">
-                    <Label className="text-xs font-medium text-accent flex items-center gap-1.5">
-                      <Wallet className="h-3 w-3" /> Já Guardado
+              {/* Fluxo Mensal: Sobra e Aporte Planejado */}
+              <div className="bg-gradient-to-br from-secondary/40 via-card to-secondary/20 rounded-2xl p-4 border border-border/70 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between pb-2.5 border-b border-border/40 gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Wallet className="h-3.5 w-3.5 text-accent" />
+                      <span>Sobra Líquida Estimada</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Renda − Despesas
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`font-display text-xl font-bold num ${sobraForm >= 0 ? "text-success" : "text-destructive"}`}>
+                      {brl(sobraForm)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <TrendingUp className="h-3.5 w-3.5 text-accent" />
+                      <span>Aporte Mensal Planejado</span>
                     </Label>
+                    {sobraForm > 0 && Number(form.aporte_mensal) !== sobraForm && (
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, aporte_mensal: Math.max(0, sobraForm) })}
+                        className="text-[11px] font-semibold text-accent hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <Sparkles className="h-3 w-3" /> Usar sobra ({brl(sobraForm)})
+                      </button>
+                    )}
+                  </div>
+                  <MoneyInput
+                    variant="money"
+                    min={0}
+                    value={form.aporte_mensal}
+                    onChange={(v) => setForm({ ...form, aporte_mensal: v })}
+                    placeholder="Deixe em branco para usar a sobra"
+                    className="bg-white dark:bg-card border-border/70 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              {/* Reserva Atual (Já Guardado) */}
+              <div className="bg-secondary/25 rounded-2xl p-4 border border-border/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Coins className="h-3.5 w-3.5 text-accent" />
+                    <span>Já Guardado Hoje</span>
+                  </p>
+                  <span className="text-[11px] text-muted-foreground">Patrimônio acumulado</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-foreground">Valor Acumulado</Label>
                     <MoneyInput
                       variant="money"
                       min={0}
                       value={form.valorInicial}
                       onChange={(v) => setForm({ ...form, valorInicial: v })}
-                      placeholder="R$ 0"
+                      placeholder="0,00"
+                      className="bg-white dark:bg-card border-border/70 rounded-xl"
                     />
-                    {Number(form.valorInicial) > 0 && (
-                      <div className="space-y-1 pt-1">
-                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Onde está guardado?</Label>
-                        <select
-                          value={form.tipoInvestimento}
-                          onChange={(e) => setForm({ ...form, tipoInvestimento: e.target.value })}
-                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <option value="">Selecione o tipo</option>
-                          <option value="poupanca">Poupança</option>
-                          <option value="cdb_100">CDB 100%</option>
-                        </select>
-                      </div>
-                    )}
                   </div>
-
-                  {/* Aporte Mensal */}
-                  <div className="bg-primary/5 rounded-xl p-3 border border-primary/10 space-y-2 col-span-2 sm:col-span-1">
-                    <Label className="text-xs font-medium text-primary flex items-center gap-1.5">
-                      <TrendingDown className="h-3 w-3 rotate-180" /> Aporte Mensal
-                    </Label>
-                    <MoneyInput
-                      variant="money"
-                      min={0}
-                      value={form.aporte_mensal}
-                      onChange={(v) => setForm({ ...form, aporte_mensal: v })}
-                      placeholder="Automático"
-                    />
-                    <p className="text-[10px] text-muted-foreground">Deixe em branco para usar a sobra mensal.</p>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-foreground">Onde está aplicado?</Label>
+                    <div className="relative">
+                      <select
+                        value={form.tipoInvestimento || "cdb_100"}
+                        onChange={(e) => setForm({ ...form, tipoInvestimento: e.target.value })}
+                        className="w-full h-10 rounded-xl border border-border/70 bg-white dark:bg-card px-3 pr-8 text-xs font-medium text-foreground focus:outline-none focus:border-accent appearance-none shadow-2xs cursor-pointer"
+                      >
+                        <option value="cdb_100">CDB 100% CDI</option>
+                        <option value="tesouro_selic">Tesouro Selic</option>
+                        <option value="poupanca">Poupança</option>
+                        <option value="lci_lca">LCI / LCA</option>
+                        <option value="fundo_di">Fundo DI</option>
+                        <option value="conta_corrente">Conta Corrente</option>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    </div>
                   </div>
                 </div>
+
+                {Number(form.valorInicial || 0) > 0 && (
+                  <div className="flex items-center gap-2 text-xs bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-3 py-2 rounded-xl">
+                    <Sparkles className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <div className="flex-1">
+                      <span>Rendimento naquele dia: </span>
+                      <strong className="num font-bold text-emerald-700 dark:text-emerald-300">
+                        +{brl(rendimentoEstimadoDiario(Number(form.valorInicial || 0), Number(objetivo?.taxaCdiAnual ?? 10.5), form.tipoInvestimento))}/dia
+                      </strong>
+                      <span className="opacity-75 text-[11px] ml-1.5">
+                        (aprox. {brl(rendimentoEstimadoMensal(Number(form.valorInicial || 0), Number(objetivo?.taxaCdiAnual ?? 10.5), form.tipoInvestimento))}/mês a {Number(objetivo?.taxaCdiAnual ?? 10.5)}% CDI)
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {form.nome && (
-                <div className={`p-3 rounded-xl flex justify-between items-center transition-colors ${sobraForm >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                  <span className="text-xs font-medium uppercase tracking-wider">Sobra Estimada</span>
-                  <span className="font-display text-xl num">{brl(sobraForm)}</span>
-                </div>
-              )}
             </div>
             
             <div className="flex items-center gap-3 pt-2">
@@ -531,28 +559,73 @@ export default function PessoasPage() {
       )}
 
       {pessoaParaRemover && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <Card className="my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-md w-full p-6 shadow-xl border-border/50 animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
-                <Trash2 className="h-6 w-6 text-destructive" />
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setPessoaParaRemover(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
+          >
+            {/* Linha decorativa de topo */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
+
+            {/* Botão Fechar */}
+            <button
+              type="button"
+              onClick={() => setPessoaParaRemover(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              title="Fechar (Esc)"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Ícone e Título */}
+            <div className="flex items-start gap-4 pt-1">
+              <div className="h-12 w-12 shrink-0 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-center shadow-xs">
+                <Trash2 className="h-6 w-6" />
               </div>
-              <div className="space-y-2">
-                <h3 className="font-display text-xl">Remover pessoa?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Tem certeza que deseja remover <strong>{pessoas.find(p => p.id === pessoaParaRemover)?.nome || "esta pessoa"}</strong> do planejamento? Esta ação não poderá ser desfeita.
+              <div className="flex-1 min-w-0 pr-6">
+                <h3 className="font-display text-xl font-semibold text-foreground tracking-tight">
+                  Remover participante?
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  Tem certeza que deseja remover <strong className="text-foreground font-semibold">{pessoas.find(p => p.id === pessoaParaRemover)?.nome || "este participante"}</strong> do planejamento?
                 </p>
               </div>
-              <div className="flex items-center gap-3 w-full pt-4">
-                <Button variant="outline" className="flex-1" onClick={() => setPessoaParaRemover(null)}>
-                  Cancelar
-                </Button>
-                <Button variant="destructive" className="flex-1" onClick={efetivarRemocao}>
-                  Remover
-                </Button>
-              </div>
             </div>
-          </Card>
+
+            {/* Alerta de consequência */}
+            <div className="mt-4 p-3 rounded-xl bg-destructive/5 border border-destructive/15 text-xs text-destructive/90 flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+              <span className="leading-relaxed">
+                As rendas e aportes deste participante deixarão de compor os cálculos da entrada e do prazo do imóvel.
+              </span>
+            </div>
+
+            {/* Ações */}
+            <div className="flex items-center gap-3 mt-6">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80" 
+                onClick={() => setPessoaParaRemover(null)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="button" 
+                variant="destructive" 
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm hover:opacity-95 flex items-center justify-center gap-2" 
+                onClick={efetivarRemocao}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Sim, remover</span>
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

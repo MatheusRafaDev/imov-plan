@@ -686,109 +686,67 @@ export default function Index() {
       </section>
 
       {/* ── APP PREVIEW ──────────────────────────────────────────────────── */}
-      <section style={{ marginTop: 80, background: "#FFF0E6" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 32px" }}>
+      <section style={{ marginTop: 64, background: "#FFF0E6" }}>
+        <div style={{ maxWidth: 1040, margin: "0 auto", padding: "64px 24px" }}>
           <Reveal>
-            <div style={{ maxWidth: 640 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
+            <div style={{ maxWidth: 580 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#E8590C" }}>
                 Dentro do app
               </div>
               <h2
                 className="hp-section-h2"
-                style={{ margin: "14px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: "-0.015em" }}
+                style={{ margin: "10px 0 0", fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 32, lineHeight: 1.15, letterSpacing: "-0.015em" }}
               >
                 Veja o seu plano ganhar forma
               </h2>
-              <p style={{ margin: "18px 0 0", fontSize: 18, lineHeight: 1.6, color: "#5E5951" }}>
-                Acompanhe a evolução da entrada mês a mês e compare o custo das duas tabelas de
-                financiamento antes de decidir.
+              <p style={{ margin: "12px 0 0", fontSize: 15, lineHeight: 1.55, color: "#5E5951" }}>
+                Acompanhe a evolução da entrada mês a mês e veja o impacto de cada aporte até
+                alcançar a sua meta.
               </p>
             </div>
           </Reveal>
 
-          <div style={{ marginTop: 48, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "stretch" }}>
+          <div style={{ marginTop: 32 }}>
             {/* chart card */}
-            <Reveal delay={80} style={{ flex: "2 1 560px", minWidth: 0, display: "flex" }}>
+            <Reveal delay={80} style={{ width: "100%", display: "flex" }}>
               <div
                 style={{
                   width: "100%",
                   background: "#FFFFFF",
                   border: "1px solid #E8E3DA",
-                  borderRadius: 28,
-                  padding: "28px 28px 22px",
+                  borderRadius: 24,
+                  padding: "24px 24px 18px",
+                  boxShadow: "0 4px 20px -4px rgba(29, 27, 25, 0.05)",
                 }}
               >
                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
-                  <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>Evolução até a meta</h3>
-                  <span style={{ fontSize: 13, color: "#5E5951" }}>Exemplo ilustrativo</span>
+                  <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 18 }}>Evolução até a meta</h3>
+                  <span style={{ fontSize: 12, color: "#5E5951" }}>Exemplo ilustrativo</span>
                 </div>
                 <svg
                   role="img"
                   aria-label="Gráfico ilustrativo: o valor acumulado sobe mês a mês, com saltos nos meses de aportes extras, até alcançar a linha da meta"
                   viewBox="0 0 640 300"
-                  style={{ width: "100%", height: "auto", marginTop: 18, display: "block" }}
+                  style={{ width: "100%", height: "auto", marginTop: 14, display: "block" }}
                 >
                   <line x1="40" y1="250" x2="620" y2="250" stroke="#E8E3DA" strokeWidth="1.5" />
                   <line x1="40" y1="190" x2="620" y2="190" stroke="#F2EEE7" strokeWidth="1" />
                   <line x1="40" y1="130" x2="620" y2="130" stroke="#F2EEE7" strokeWidth="1" />
                   <line x1="40" y1="70" x2="620" y2="70" stroke="#1D1B19" strokeWidth="1.5" strokeDasharray="6 6" />
-                  <text x="44" y="58" fontSize="13" fontWeight="600" fill="#1D1B19" fontFamily="Figtree, sans-serif">Meta: entrada + custos</text>
+                  <text x="44" y="58" fontSize="11.5" fontWeight="600" fill="#1D1B19" fontFamily="Figtree, sans-serif">Meta: entrada + custos</text>
                   <path d="M40 250 L139 236 L238 214 L238 192 L337 168 L436 136 L436 112 L535 88 L585 70 L585 250 L40 250 Z" fill="#E8590C" fillOpacity="0.12" />
-                  <polyline points="40,250 139,236 238,214 238,192 337,168 436,136 436,112 535,88 585,70" fill="none" stroke="#E8590C" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="238" cy="203" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
-                  <circle cx="436" cy="124" r="6" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
-                  <circle cx="585" cy="70" r="7" fill="#E8590C" />
-                  <text x="248" y="236" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">13º salário</text>
-                  <text x="446" y="156" fontSize="13" fill="#5E5951" fontFamily="Figtree, sans-serif">Saque do FGTS</text>
-                  <text x="40" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Hoje</text>
-                  <text x="572" y="274" fontSize="12" fill="#5E5951" fontFamily="Figtree, sans-serif">Meta</text>
+                  <polyline points="40,250 139,236 238,214 238,192 337,168 436,136 436,112 535,88 585,70" fill="none" stroke="#E8590C" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="238" cy="203" r="5" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
+                  <circle cx="436" cy="124" r="5" fill="#FFFFFF" stroke="#1D1B19" strokeWidth="2.5" />
+                  <circle cx="585" cy="70" r="6" fill="#E8590C" />
+                  <text x="248" y="234" fontSize="11" fill="#5E5951" fontFamily="Figtree, sans-serif">13º salário</text>
+                  <text x="446" y="154" fontSize="11" fill="#5E5951" fontFamily="Figtree, sans-serif">Saque do FGTS</text>
+                  <text x="40" y="272" fontSize="11" fill="#5E5951" fontFamily="Figtree, sans-serif">Hoje</text>
+                  <text x="576" y="272" fontSize="11" fill="#5E5951" fontFamily="Figtree, sans-serif">Meta</text>
                 </svg>
-                <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.5, color: "#5E5951" }}>
+                <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.5, color: "#5E5951" }}>
                   Cada aporte extra encurta o caminho. O gráfico mostra o efeito na hora.
                 </p>
-              </div>
-            </Reveal>
-
-            {/* SAC vs PRICE card */}
-            <Reveal delay={180} style={{ flex: "1 1 320px", minWidth: 0, display: "flex" }}>
-              <div
-                style={{
-                  width: "100%",
-                  background: "#FFFFFF",
-                  border: "1px solid #E8E3DA",
-                  borderRadius: 28,
-                  padding: 28,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 22,
-                }}
-              >
-                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 16px", alignItems: "baseline" }}>
-                  <h3 style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 22 }}>SAC vs PRICE</h3>
-                  <span style={{ fontSize: 13, color: "#5E5951" }}>Ilustrativo</span>
-                </div>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
-                    <span>SAC</span>
-                    <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas caem</span>
-                  </div>
-                  <svg role="img" aria-label="Ilustração: parcelas do SAC começam altas e diminuem ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
-                    <path d="M6 12 L274 76 L274 86 L6 86 Z" fill="#E8590C" fillOpacity="0.14" />
-                    <polyline points="6,12 274,76" fill="none" stroke="#E8590C" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
-                  <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Menor custo total de juros.</div>
-                </div>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
-                    <span>PRICE</span>
-                    <span style={{ fontWeight: 500, color: "#5E5951" }}>parcelas fixas</span>
-                  </div>
-                  <svg role="img" aria-label="Ilustração: parcelas da PRICE ficam constantes ao longo do tempo" viewBox="0 0 280 90" style={{ width: "100%", height: "auto", marginTop: 8, display: "block" }}>
-                    <path d="M6 38 L274 38 L274 86 L6 86 Z" fill="#1D1B19" fillOpacity="0.08" />
-                    <polyline points="6,38 274,38" fill="none" stroke="#1D1B19" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
-                  <div style={{ marginTop: 6, fontSize: 14, color: "#5E5951" }}>Parcela inicial menor.</div>
-                </div>
               </div>
             </Reveal>
           </div>
@@ -826,7 +784,7 @@ export default function Index() {
               </p>
               <ul style={{ margin: "28px 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14, fontSize: 16 }}>
                 {[
-                  "Amortização constante (SAC) e prestações fixas (PRICE)",
+                  "Cálculo preciso de amortização e projeção de parcelas",
                   "Imposto de renda regressivo sobre os investimentos",
                   "Rendimento composto pelo CDI",
                 ].map((item) => (
@@ -934,7 +892,7 @@ export default function Index() {
               <tbody>
                 {[
                   ["Juros compostos e IR regressivo", "Você monta as fórmulas", "Já incluído"],
-                  ["SAC e PRICE lado a lado", "Duas tabelas separadas", "Comparação pronta"],
+                  ["Custos de ITBI e documentação", "Estimativa manual", "Cálculo automático"],
                   ["Aportes extras (13º, FGTS)", "Ajuste manual", "Recalcula na hora"],
                   ["Renda de mais de uma pessoa", "Difícil de manter", "Composição integrada"],
                   ["Acesso de qualquer lugar", "Depende do arquivo", "Rascunho na nuvem"],

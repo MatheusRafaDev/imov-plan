@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import React from "react";
-import { usePlanLogic } from "@/hooks/usePlanLogic";;
-import { brl, type CenarioSimulacao } from "@/lib/finance";
-import { Check, Loader2, Download } from "lucide-react";
+import { usePlanLogic } from "@/hooks/usePlanLogic";
+import { usePlanStore } from "@/store/usePlanStore";
+import { brl } from "@/lib/finance";
+import { Check, Loader2, Download, Trash2, AlertTriangle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { RowActions } from "./TabelaMesAMes/RowActions";
 import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
 import { EditMesModal, type ModalTab } from "./TabelaMesAMes/EditMesModal";
@@ -58,7 +61,7 @@ function Td({
 }
 
 
-export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true, showCenarioSelector = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
+export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
   const {
     pessoas,
     aportesExtras,
@@ -71,14 +74,23 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     mesesConcluidos,
     setMesesConcluidos,
     backendData,
-    cenarioSimulacao,
-    setCenarioSimulacao,
     calculating,
-    objetivo,
   } = usePlanLogic();
   const [editingMes, setEditingMes] = useState<number | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<ModalTab>("aportes");
   const [modalFocusPessoaId, setModalFocusPessoaId] = useState<string | null>(null);
+  const [extraParaExcluir, setExtraParaExcluir] = useState<{ index: number; origem: string; valor: number; pessoaNome?: string; data?: string } | null>(null);
+  const [excluindoExtra, setExcluindoExtra] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && extraParaExcluir && !excluindoExtra) {
+        setExtraParaExcluir(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [extraParaExcluir, excluindoExtra]);
 
   const openModal = (mes: number, tab: ModalTab = "aportes", pessoaId: string | null = null) => {
     setEditingMes(mes);
@@ -245,12 +257,40 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     if (savedId) await calcularBackend(savedId);
   };
 
-  const handleDeleteExtra = async (index: number) => {
-    const next = aportesExtras.filter((_, i) => i !== index);
-    setAportesExtras(() => next);
-    saveDraft({ aportesExtras: next });
-    const savedId = await salvarPlano({ aportesExtras: next });
-    if (savedId) await calcularBackend(savedId);
+  const handleDeleteExtra = (index: number) => {
+    const extra = aportesExtras[index];
+    if (!extra) return;
+    setExtraParaExcluir({
+      index,
+      origem: extra.origem || "Aporte Extra",
+      valor: extra.valor || 0,
+      pessoaNome: extra.pessoaNome,
+      data: extra.data
+    });
+  };
+
+  const confirmarExclusaoExtra = async () => {
+    if (!extraParaExcluir) return;
+    const indexToDelete = extraParaExcluir.index;
+    setExcluindoExtra(true);
+    try {
+      const next = aportesExtras.filter((_, i) => i !== indexToDelete);
+      setAportesExtras(() => next);
+      usePlanStore.getState().hydrate({ aportesExtras: next });
+      saveDraft({ aportesExtras: next });
+      const savedId = await salvarPlano({ aportesExtras: next });
+      const idToUse = savedId || usePlanStore.getState().planoId;
+      if (idToUse) {
+        await calcularBackend(idToUse, { aportesExtras: next });
+      }
+      toast.success("Aporte extra excluído e planejamento recalculado!");
+      setExtraParaExcluir(null);
+    } catch (err) {
+      console.error("Erro ao excluir aporte extra:", err);
+      toast.error("Não foi possível excluir o aporte extra.");
+    } finally {
+      setExcluindoExtra(false);
+    }
   };
 
   const handleSaveAcumulado = async (novosSaldos: Record<string, number>) => {
@@ -293,7 +333,15 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           </div>
 
           <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
-
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              className="text-xs h-8 gap-1.5 border-border/80 hover:bg-secondary/50 text-foreground cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-accent" />
+              Exportar CSV
+            </Button>
           </div>
         </div>
       
@@ -539,6 +587,90 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           onDeleteExtra={handleDeleteExtra}
           onSaveAcumulado={handleSaveAcumulado}
         />
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Aporte Extra */}
+      {extraParaExcluir && (
+        <div 
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => !excluindoExtra && setExtraParaExcluir(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden font-sans"
+          >
+            {/* Linha decorativa de topo */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
+
+            {/* Botão Fechar */}
+            <button
+              type="button"
+              onClick={() => !excluindoExtra && setExtraParaExcluir(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              title="Fechar (Esc)"
+              disabled={excluindoExtra}
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Ícone e Título */}
+            <div className="flex items-start gap-4 pt-1">
+              <div className="h-12 w-12 shrink-0 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-center shadow-xs">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div className="flex-1 min-w-0 pr-6">
+                <h3 className="font-display text-xl font-semibold text-foreground tracking-tight">
+                  Excluir aporte extra?
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  Tem certeza que deseja excluir o aporte de <strong className="text-foreground font-semibold">{brl(extraParaExcluir.valor)}</strong> ({extraParaExcluir.origem}{extraParaExcluir.pessoaNome ? ` · ${extraParaExcluir.pessoaNome}` : ""})?
+                </p>
+              </div>
+            </div>
+
+            {/* Alerta de consequência */}
+            <div className="mt-4 p-3 rounded-xl bg-destructive/5 border border-destructive/15 text-xs text-destructive/90 flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+              <span className="leading-relaxed">
+                O saldo acumulado e as projeções do planejamento serão recalculados automaticamente.
+              </span>
+            </div>
+
+            {/* Ações */}
+            <div className="flex items-center gap-3 mt-6">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80" 
+                onClick={() => setExtraParaExcluir(null)} 
+                disabled={excluindoExtra}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="button" 
+                variant="destructive" 
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm hover:opacity-95 flex items-center justify-center gap-2" 
+                onClick={confirmarExclusaoExtra} 
+                disabled={excluindoExtra}
+              >
+                {excluindoExtra ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin-smooth" />
+                    <span>Recalculando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>Sim, excluir</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
