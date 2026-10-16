@@ -294,7 +294,7 @@ export function usePlanLogic() {
 
         const diaCorrespondente = evolucaoMes.dias.find(d => d.dia === diaHoje) || evolucaoMes.dias[evolucaoMes.dias.length - 1];
 
-        if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
+        if (somaPessoasGuardado === 0 && diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
           pAtual = diaCorrespondente.saldoFinal;
 
           // Distribui proporcionalmente o saldo de fechamento do dia atual entre os participantes respeitando o dia de cada um

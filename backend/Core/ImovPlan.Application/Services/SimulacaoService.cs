@@ -95,20 +95,10 @@ namespace ImovPlan.Application.Services
             // O saldo inicial (Mês 0) reflete o patrimônio guardado do participante (PatrimonioInicial ou ValorAtual)
             foreach (var pid in participantesDb.Keys)
             {
-                var saldoTeorico = saldosTeoricosIniciais[pid];
-                if (checkpoints.TryGetValue(pid, out var checkpoint))
-                {
-                    bool isCheckpointBeforeOrAtStart = checkpoint.Data.Year < dataReferencia.Year || 
-                                                       (checkpoint.Data.Year == dataReferencia.Year && checkpoint.Data.Month <= dataReferencia.Month);
-                    
-                    saldosIndividuais[pid] = isCheckpointBeforeOrAtStart 
-                        ? checkpoint.Valor 
-                        : (saldoTeorico > 0 ? saldoTeorico : checkpoint.Valor);
-                }
-                else
-                {
-                    saldosIndividuais[pid] = saldoTeorico;
-                }
+                var p = participantesDb[pid];
+                var saldoTeorico = p.PatrimonioInicial?.Valor ?? 0m;
+                var valorAtual = p.ValorAtual ?? 0m;
+                saldosIndividuais[pid] = valorAtual > 0 ? valorAtual : saldoTeorico;
             }
             saldoConjunto = saldosIndividuais.Values.Sum();
             if (saldoConjunto == 0 && (planejamento.ValorJaGuardado ?? 0m) > 0)
@@ -158,20 +148,6 @@ namespace ImovPlan.Application.Services
             {
                 meses++;
                 dataReferencia = dataReferencia.AddMonths(1);
-
-                foreach (var pid in participantesDb.Keys)
-                {
-                    if (!checkpoints.TryGetValue(pid, out var checkpoint) ||
-                        checkpoint.Data.Year != dataReferencia.Year ||
-                        checkpoint.Data.Month != dataReferencia.Month)
-                        continue;
-
-                    var saldoAnterior = saldosIndividuais[pid];
-                    if (saldoAnterior == checkpoint.Valor) continue;
-                    saldosIndividuais[pid] = checkpoint.Valor;
-                    saldoConjunto += checkpoint.Valor - saldoAnterior;
-                    totalInvestido += checkpoint.Valor;
-                }
 
                 // Aportes extras globais vs individuais
                 var extrasGlobaisMes = 0m;
