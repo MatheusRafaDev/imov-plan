@@ -294,15 +294,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
 
           <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
 
-            
-
-            <button
-              onClick={handleExportCSV}
-              title="Baixar planilha"
-              className="bg-secondary/40 border border-border/50 rounded-xl p-2 flex items-center justify-center shadow-soft text-muted-foreground hover:text-foreground transition-colors hover:bg-secondary/60"
-            >
-              <Download className="w-4 h-4" />
-            </button>
           </div>
         </div>
       

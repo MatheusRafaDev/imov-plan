@@ -329,13 +329,19 @@ export default function Index() {
           max-width: 1200px;
           margin: 0 auto;
           padding: 16px 24px;
+          padding-left: calc(24px + env(safe-area-inset-left, 0px));
+          padding-right: calc(24px + env(safe-area-inset-right, 0px));
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
         }
         @media (max-width: 767px) {
-          .hp-header-inner { padding: 12px 16px !important; }
+          .hp-header-inner {
+            padding: 12px 16px !important;
+            padding-left: calc(16px + env(safe-area-inset-left, 0px)) !important;
+            padding-right: calc(16px + env(safe-area-inset-right, 0px)) !important;
+          }
           .hp-hero-grid { flex-direction: column !important; }
           .hp-hero-h1 { font-size: 36px !important; }
           .hp-section-h2 { font-size: 28px !important; }
@@ -346,7 +352,17 @@ export default function Index() {
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────── */}
-      <header style={{ borderBottom: "1px solid #E8E3DA", background: "#FBFAF7", position: "sticky", top: 0, zIndex: 30 }}>
+      <header
+        className="safe-top"
+        style={{
+          borderBottom: "1px solid #E8E3DA",
+          background: "#FBFAF7",
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+          paddingTop: "env(safe-area-inset-top, 0px)",
+        }}
+      >
         <div className="hp-header-inner">
           <Logo href="/" size="md" />
 

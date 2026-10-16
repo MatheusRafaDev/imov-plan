@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
@@ -43,12 +43,24 @@ export default function TermosPage() {
       `}</style>
 
       {/* ── HEADER ───────────────────────────────────────────────────────── */}
-      <header style={{ borderBottom: "1px solid #E8E3DA", background: "#FBFAF7", position: "sticky", top: 0, zIndex: 30 }}>
+      <header
+        className="safe-top"
+        style={{
+          borderBottom: "1px solid #E8E3DA",
+          background: "#FBFAF7",
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+          paddingTop: "env(safe-area-inset-top, 0px)",
+        }}
+      >
         <div
           style={{
             maxWidth: 1100,
             margin: "0 auto",
             padding: "18px 24px",
+            paddingLeft: "calc(24px + env(safe-area-inset-left, 0px))",
+            paddingRight: "calc(24px + env(safe-area-inset-right, 0px))",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",

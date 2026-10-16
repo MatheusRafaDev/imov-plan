@@ -208,7 +208,7 @@ export default function AuthPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background animate-fade-in">
+      <div className="min-h-screen grid place-items-center bg-background animate-fade-in safe-top safe-bottom safe-x">
         <div className="flex flex-col items-center gap-4 text-center p-6">
           <Logo href="/" size="lg" className="animate-pulse-glow" />
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
@@ -221,7 +221,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in safe-top safe-bottom safe-x">
       <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
         <div className="flex items-center justify-between mb-6 sm:mb-8 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
           <Logo href="/" size="md" />

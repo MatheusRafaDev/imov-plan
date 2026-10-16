@@ -307,11 +307,19 @@
     border-color: hsl(var(--destructive)) !important;
   }
 
-  /* Safe-area insets — para PWA em modo standalone (notch / home indicator) */
-  .safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
-  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  /* Safe-area insets — para iOS Safari e PWA em modo standalone (notch / home indicator) */
+  .safe-top {
+    padding-top: constant(safe-area-inset-top, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: constant(safe-area-inset-bottom, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
   .safe-x {
+    padding-left:  constant(safe-area-inset-left, 0px);
     padding-left:  env(safe-area-inset-left, 0px);
+    padding-right: constant(safe-area-inset-right, 0px);
     padding-right: env(safe-area-inset-right, 0px);
   }
 
