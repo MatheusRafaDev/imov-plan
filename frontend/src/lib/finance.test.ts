@@ -241,4 +241,21 @@ describe('finance.ts unit tests', () => {
     const fimDeSemana = res.dias.find(d => !d.isDiaUtil)!;
     expect(fimDeSemana.rendimentoDoDia).toBe(0);
   });
+
+  test('calcularEvolucaoDiariaDoMes calcula saldo acumulado até o dia 16 com precisão', () => {
+    const res = calcularEvolucaoDiariaDoMes({
+      dataReferencia: '2026-10-01',
+      saldoInicialMes: 43000,
+      aporteRegular: 3320,
+      diaAporteRegular: 5,
+      taxaCdiAnual: 10.5,
+      tipoInvestimento: 'cdb_100',
+    });
+
+    const dia16 = res.dias.find(d => d.dia === 16)!;
+    expect(dia16).toBeDefined();
+    // Saldo no dia 16 já inclui o aporte do dia 5 + rendimento dos dias úteis decorridos
+    expect(dia16.saldoFinal).toBeGreaterThan(43000 + 3320);
+    expect(dia16.saldoFinal).toBeLessThan(res.saldoFinalMes);
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { 
   X, 
@@ -49,6 +49,22 @@ export function DetalheMesDiarioModal({
   const [filtro, setFiltro] = useState<"todos" | "uteis" | "movimentacoes">("todos");
   const [salvandoPadrao, setSalvandoPadrao] = useState(false);
 
+  // Detecta se este modal corresponde ao mês atual do calendário para dar destaque ao dia de hoje
+  const hoje = useMemo(() => new Date(), []);
+  const { isMesAtual, diaHoje } = useMemo(() => {
+    try {
+      const dRef = new Date(dataReferencia);
+      const refAno = dRef.getUTCFullYear();
+      const refMes = dRef.getUTCMonth();
+      const hojeAno = hoje.getFullYear();
+      const hojeMes = hoje.getMonth();
+      const isAtual = refAno === hojeAno && refMes === hojeMes;
+      return { isMesAtual: isAtual, diaHoje: hoje.getDate() };
+    } catch {
+      return { isMesAtual: false, diaHoje: hoje.getDate() };
+    }
+  }, [dataReferencia, hoje]);
+
   // Calcula os dias do mês para limitar o seletor
   const diasNoMes = useMemo(() => {
     try {
@@ -74,15 +90,33 @@ export function DetalheMesDiarioModal({
     });
   }, [dataReferencia, saldoInicialMes, aporteRegular, diaAporte, aportesExtras, taxaCdiAnual, tipoInvestimento]);
 
+  const saldoHoje = useMemo(() => {
+    if (!isMesAtual) return null;
+    const itemHoje = resultado.dias.find(d => d.dia === diaHoje);
+    return itemHoje ? itemHoje.saldoFinal : null;
+  }, [isMesAtual, resultado.dias, diaHoje]);
+
+  // Auto-scroll suave para o dia de hoje quando o modal abrir no mês atual
+  useEffect(() => {
+    if (!isOpen || !isMesAtual) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`linha-dia-${diaHoje}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 280);
+    return () => clearTimeout(timer);
+  }, [isOpen, isMesAtual, diaHoje]);
+
   const diasFiltrados = useMemo(() => {
     if (filtro === "uteis") {
       return resultado.dias.filter(d => d.isDiaUtil);
     }
     if (filtro === "movimentacoes") {
-      return resultado.dias.filter(d => d.totalAportesDoDia > 0 || d.rendimentoDoDia > 0);
+      return resultado.dias.filter(d => d.totalAportesDoDia > 0 || d.rendimentoDoDia > 0 || (isMesAtual && d.dia === diaHoje));
     }
     return resultado.dias;
-  }, [resultado.dias, filtro]);
+  }, [resultado.dias, filtro, isMesAtual, diaHoje]);
 
   if (!isOpen || typeof document === "undefined") return null;
 
@@ -210,6 +244,36 @@ export function DetalheMesDiarioModal({
             </div>
           </div>
 
+          {/* Destaque do Dia Atual */}
+          {isMesAtual && saldoHoje !== null && (
+            <div className="rounded-2xl border-2 border-accent/40 bg-gradient-to-r from-accent/15 via-accent/10 to-transparent p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-accent text-accent-foreground font-display font-extrabold text-base flex items-center justify-center shrink-0 shadow-xs ring-4 ring-accent/20">
+                  {diaHoje}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent bg-accent/20 px-2.5 py-0.5 rounded-full border border-accent/30">
+                      ✨ Hoje · Dia {diaHoje}
+                    </span>
+                    <span className="text-xs text-foreground font-semibold">
+                      Posição Atual em Tempo Real
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Saldo ao término do dia de hoje considerando aportes e juros compostos já acumulados.
+                  </p>
+                </div>
+              </div>
+              <div className="sm:text-right shrink-0 bg-card/80 sm:bg-transparent px-3 py-2 sm:p-0 rounded-xl border border-border/40 sm:border-0">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Saldo Fechamento Hoje</p>
+                <p className="font-display text-lg sm:text-2xl font-extrabold text-accent num">
+                  {brl(saldoHoje)}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* KPIs Resumo do Mês */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
@@ -303,40 +367,61 @@ export function DetalheMesDiarioModal({
                 <tbody className="divide-y divide-border/20">
                   {diasFiltrados.map((item) => {
                     const hasAporte = item.totalAportesDoDia > 0;
+                    const isHoje = isMesAtual && item.dia === diaHoje;
+
                     return (
                       <tr 
                         key={item.dia} 
-                        className={`transition-colors hover:bg-secondary/15 ${
-                          hasAporte ? "bg-accent/5 font-medium" : ""
-                        } ${!item.isDiaUtil ? "opacity-60 bg-secondary/5" : ""}`}
+                        id={`linha-dia-${item.dia}`}
+                        className={`transition-all duration-200 ${
+                          isHoje 
+                            ? "bg-accent/20 font-semibold ring-2 ring-accent ring-inset shadow-xs relative z-10" 
+                            : hasAporte 
+                              ? "bg-accent/5 font-medium hover:bg-secondary/15" 
+                              : !item.isDiaUtil 
+                                ? "opacity-60 bg-secondary/5 hover:bg-secondary/15" 
+                                : "hover:bg-secondary/15"
+                        }`}
                       >
                         {/* Dia */}
                         <td className="px-3.5 py-2.5 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <span className="font-display font-bold text-foreground text-sm w-6 text-right num">
+                            <span className={`font-display font-bold text-sm w-6 text-right num ${isHoje ? "text-accent font-extrabold scale-110" : "text-foreground"}`}>
                               {String(item.dia).padStart(2, "0")}
                             </span>
                             <span className="text-[11px] text-muted-foreground uppercase font-medium">
                               ({item.diaSemana})
                             </span>
+                            {isHoje && (
+                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase bg-accent text-accent-foreground shadow-xs animate-pulse">
+                                Hoje
+                              </span>
+                            )}
                           </div>
                         </td>
 
                         {/* Status / Tag */}
                         <td className="px-3.5 py-2.5 whitespace-nowrap">
-                          {hasAporte ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/25">
-                              <ArrowDownLeft className="h-3 w-3" /> Aporte recebido
-                            </span>
-                          ) : item.isDiaUtil ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                              Dia útil
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 italic">
-                              Fim de semana
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isHoje && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent text-accent-foreground shadow-2xs">
+                                ✨ Dia Atual
+                              </span>
+                            )}
+                            {hasAporte ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/25">
+                                <ArrowDownLeft className="h-3 w-3" /> Aporte recebido
+                              </span>
+                            ) : item.isDiaUtil ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                                Dia útil
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 italic">
+                                Fim de semana
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Saldo Inicial */}
@@ -372,7 +457,7 @@ export function DetalheMesDiarioModal({
                         </td>
 
                         {/* Saldo Final */}
-                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap font-semibold text-foreground num">
+                        <td className={`px-3.5 py-2.5 text-right whitespace-nowrap num ${isHoje ? "text-accent font-extrabold text-sm" : "font-semibold text-foreground"}`}>
                           {brl(item.saldoFinal)}
                         </td>
                       </tr>

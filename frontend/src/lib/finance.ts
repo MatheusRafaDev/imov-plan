@@ -270,6 +270,7 @@ export type EvolucaoDiaItem = {
   totalAportesDoDia: number;
   saldoAposAporte: number;
   rendimentoDoDia: number;
+  rendimentoAcumuladoAteDia: number;
   saldoFinal: number;
   isDiaAporteRegular: boolean;
 };
@@ -374,6 +375,7 @@ export function calcularEvolucaoDiariaDoMes(params: {
       totalAportesDoDia,
       saldoAposAporte,
       rendimentoDoDia,
+      rendimentoAcumuladoAteDia: totalRendimentoMes,
       saldoFinal,
       isDiaAporteRegular,
     });
