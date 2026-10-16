@@ -38,7 +38,30 @@ export default function AuthPage() {
 
   // Initialize Google Identity Services once
   useEffect(() => {
-    if (typeof window === "undefined" || googleInitialized) return;
+    if (typeof window === "undefined") return;
+
+    let resizeObserver: ResizeObserver | null = null;
+
+    const renderGoogleButton = () => {
+      const google = (window as any).google;
+      const buttonDiv = document.getElementById("google-signin-button");
+      if (!google || !google.accounts?.id || !buttonDiv) return;
+
+      const rect = buttonDiv.getBoundingClientRect();
+      const measuredWidth = Math.floor(rect.width || buttonDiv.offsetWidth || 340);
+      const buttonWidth = Math.min(400, Math.max(200, measuredWidth));
+
+      buttonDiv.innerHTML = "";
+      google.accounts.id.renderButton(buttonDiv, {
+        theme: "outline",
+        size: "large",
+        type: "standard",
+        text: "continue_with",
+        shape: "pill",
+        logo_alignment: "left",
+        width: buttonWidth,
+      });
+    };
 
     const initGoogle = () => {
       const google = (window as any).google;
@@ -59,23 +82,24 @@ export default function AuthPage() {
           },
         });
 
-        // Render the official Google button
+        renderGoogleButton();
+
         const buttonDiv = document.getElementById("google-signin-button");
-        if (buttonDiv) {
-          google.accounts.id.renderButton(buttonDiv, {
-            theme: "outline",
-            size: "large",
-            type: "standard",
-            text: "continue_with",
-            shape: "pill",
-            logo_alignment: "left",
-            width: 340,
+        if (buttonDiv && typeof ResizeObserver !== "undefined") {
+          let lastWidth = Math.floor(buttonDiv.getBoundingClientRect().width);
+          resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+              const currentWidth = Math.floor(entry.contentRect.width);
+              if (currentWidth && Math.abs(currentWidth - lastWidth) > 5) {
+                lastWidth = currentWidth;
+                renderGoogleButton();
+              }
+            }
           });
+          resizeObserver.observe(buttonDiv);
         }
 
-        setTimeout(() => {
-          setGoogleInitialized(true);
-        }, 0);
+        setGoogleInitialized(true);
         return true;
       }
       return false;
@@ -87,9 +111,16 @@ export default function AuthPage() {
           clearInterval(intervalId);
         }
       }, 200);
-      return () => clearInterval(intervalId);
+      return () => {
+        clearInterval(intervalId);
+        resizeObserver?.disconnect();
+      };
     }
-  }, [googleInitialized, loginWithGoogle, router]);
+
+    return () => {
+      resizeObserver?.disconnect();
+    };
+  }, [loginWithGoogle, router]);
 
   // Validações locais ao submeter
   const validateForm = () => {
@@ -220,26 +251,26 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background animate-fade-in safe-top safe-bottom safe-x">
-      <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center max-w-md mx-auto w-full">
-        <div className="flex items-center justify-between mb-6 sm:mb-8 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
+    <div className="min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden grid lg:grid-cols-2 bg-background animate-fade-in safe-top safe-bottom safe-x">
+      <div className="p-3 sm:p-5 lg:p-6 flex flex-col justify-center max-w-[400px] mx-auto w-full my-auto">
+        <div className="flex items-center justify-between mb-3 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
           <Logo href="/" size="md" />
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
           >
             <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
             Início
           </Link>
         </div>
 
-        <Card className="p-6 sm:p-8 shadow-soft border-border/60 backdrop-blur-sm bg-card/95 rounded-2xl sm:rounded-3xl animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+        <Card className="p-4 sm:p-5.5 shadow-soft border-border/60 backdrop-blur-sm bg-card/95 rounded-2xl animate-fade-in-up" style={{ animationDelay: "100ms" }}>
           {/* Header */}
-          <div key={isLogin ? "login-header" : "register-header"} className="animate-fade-in mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-display">
+          <div className="mb-3.5 transition-all duration-300">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display transition-all duration-300">
               {isLogin ? "Acesse sua conta" : "Crie sua conta"}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
+            <p className="text-xs text-muted-foreground mt-0.5 transition-all duration-300">
               {isLogin
                 ? "Entre para acompanhar os cômodos, compras e orçamentos."
                 : "Comece a planejar a conquista do seu imóvel próprio."}
@@ -247,11 +278,11 @@ export default function AuthPage() {
           </div>
 
           {/* Segmented Switcher (Tabs) */}
-          <div className="flex bg-muted/70 p-1 rounded-2xl mb-6 border border-border/40">
+          <div className="flex bg-muted/70 p-1 rounded-xl mb-3.5 border border-border/40">
             <button
               type="button"
               onClick={() => handleSwitchTab(true)}
-              className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-medium transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs rounded-lg font-medium transition-all duration-200 cursor-pointer ${
                 isLogin
                   ? "bg-card text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -262,7 +293,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => handleSwitchTab(false)}
-              className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-medium transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs rounded-lg font-medium transition-all duration-200 cursor-pointer ${
                 !isLogin
                   ? "bg-card text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -273,78 +304,87 @@ export default function AuthPage() {
           </div>
 
           {generalError && (
-            <div className="mb-5 p-3 sm:p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs sm:text-sm flex items-start gap-2.5 animate-fade-in">
-              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
+            <div className="mb-3 p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2 animate-fade-in">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-destructive text-xs sm:text-sm">Atenção</h4>
-                <p className="text-destructive/95 mt-0.5 leading-relaxed text-xs sm:text-sm">{generalError}</p>
+                <h4 className="font-semibold text-destructive text-xs">Atenção</h4>
+                <p className="text-destructive/95 leading-relaxed text-xs">{generalError}</p>
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-4 animate-fade-in-up">
-                {/* Nome */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="name" className="text-xs sm:text-sm font-medium">Nome completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
-                    <Input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        if (formErrors.name) setFormErrors(prev => ({ ...prev, name: "" }));
-                        if (generalError) setGeneralError(null);
-                      }}
-                      disabled={loading}
-                      placeholder="Seu nome completo"
-                      className={`pl-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.name ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
-                    />
+          <form onSubmit={handleSubmit} className="space-y-2.5">
+            {/* Smooth collapsible section for Register Extra Fields (Nome & Data de Nascimento) */}
+            <div
+              className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                isLogin ? "grid-rows-[0fr] opacity-0 pointer-events-none" : "grid-rows-[1fr] opacity-100"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 pb-2.5">
+                  {/* Nome */}
+                  <div className="space-y-1">
+                    <Label htmlFor="name" className="text-xs font-medium">Nome completo</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 pointer-events-none" />
+                      <Input
+                        id="name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          if (formErrors.name) setFormErrors(prev => ({ ...prev, name: "" }));
+                          if (generalError) setGeneralError(null);
+                        }}
+                        disabled={loading || isLogin}
+                        tabIndex={isLogin ? -1 : 0}
+                        placeholder="Seu nome"
+                        className={`pl-8.5 h-9 sm:h-9.5 rounded-lg text-xs sm:text-[13px] transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.name ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                      />
+                    </div>
+                    {formErrors.name && (
+                      <p className="text-[11px] text-destructive flex items-center gap-1 mt-0.5">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {formErrors.name}
+                      </p>
+                    )}
                   </div>
-                  {formErrors.name && (
-                    <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                      {formErrors.name}
-                    </p>
-                  )}
-                </div>
 
-                {/* Data de Nascimento */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="dataNascimento" className="text-xs sm:text-sm font-medium">Data de Nascimento</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
-                    <Input
-                      id="dataNascimento"
-                      type="date"
-                      value={dataNascimento}
-                      onChange={(e) => {
-                        setDataNascimento(e.target.value);
-                        if (formErrors.dataNascimento) setFormErrors(prev => ({ ...prev, dataNascimento: "" }));
-                        if (generalError) setGeneralError(null);
-                      }}
-                      disabled={loading}
-                      className={`pl-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.dataNascimento ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
-                    />
+                  {/* Data de Nascimento */}
+                  <div className="space-y-1">
+                    <Label htmlFor="dataNascimento" className="text-xs font-medium">Data de Nascimento</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 pointer-events-none" />
+                      <Input
+                        id="dataNascimento"
+                        type="date"
+                        value={dataNascimento}
+                        onChange={(e) => {
+                          setDataNascimento(e.target.value);
+                          if (formErrors.dataNascimento) setFormErrors(prev => ({ ...prev, dataNascimento: "" }));
+                          if (generalError) setGeneralError(null);
+                        }}
+                        disabled={loading || isLogin}
+                        tabIndex={isLogin ? -1 : 0}
+                        className={`pl-8.5 h-9 sm:h-9.5 rounded-lg text-xs sm:text-[13px] transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.dataNascimento ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                      />
+                    </div>
+                    {formErrors.dataNascimento && (
+                      <p className="text-[11px] text-destructive flex items-center gap-1 mt-0.5">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {formErrors.dataNascimento}
+                      </p>
+                    )}
                   </div>
-                  {formErrors.dataNascimento && (
-                    <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                      {formErrors.dataNascimento}
-                    </p>
-                  )}
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Email */}
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs sm:text-sm font-medium">E-mail</Label>
+            {/* Email (Always visible & stable) */}
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-xs font-medium">E-mail</Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 pointer-events-none" />
                 <Input
                   id="email"
                   type="email"
@@ -356,32 +396,33 @@ export default function AuthPage() {
                   }}
                   disabled={loading}
                   placeholder="voce@exemplo.com"
-                  className={`pl-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                  className={`pl-8.5 h-9 sm:h-9.5 rounded-lg text-xs sm:text-[13px] transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                 />
               </div>
               {formErrors.email && (
-                <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <p className="text-[11px] text-destructive flex items-center gap-1 mt-0.5">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
                   {formErrors.email}
                 </p>
               )}
             </div>
 
-            {/* Senha */}
-            <div className="space-y-1.5">
+            {/* Senha (Always visible & stable) */}
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs sm:text-sm font-medium">Senha</Label>
-                {isLogin && (
+                <Label htmlFor="password" className="text-xs font-medium">Senha</Label>
+                <div className={`transition-opacity duration-200 ${isLogin ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
                   <Link
                     href="/auth/forgot-password"
-                    className="text-xs sm:text-sm font-medium text-accent hover:underline transition-colors"
+                    className="text-xs font-medium text-accent hover:underline transition-colors"
+                    tabIndex={isLogin ? 0 : -1}
                   >
                     Esqueci minha senha
                   </Link>
-                )}
+                </div>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 pointer-events-none" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -393,68 +434,75 @@ export default function AuthPage() {
                   }}
                   disabled={loading}
                   placeholder="Mínimo 6 caracteres"
-                  className={`pl-10 pr-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.password ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                  className={`pl-8.5 pr-8.5 h-9 sm:h-9.5 rounded-lg text-xs sm:text-[13px] transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.password ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
                   tabIndex={-1}
                   aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
               {formErrors.password && (
-                <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <p className="text-[11px] text-destructive flex items-center gap-1 mt-0.5">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
                   {formErrors.password}
                 </p>
               )}
             </div>
 
-            {/* Confirmar Senha */}
-            {!isLogin && (
-              <div className="space-y-1.5 animate-fade-in-up">
-                <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium">Confirmar Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (formErrors.confirmPassword) setFormErrors(prev => ({ ...prev, confirmPassword: "" }));
-                      if (generalError) setGeneralError(null);
-                    }}
-                    disabled={loading}
-                    placeholder="Repita sua senha"
-                    className={`pl-10 pr-10 h-11 sm:h-12 rounded-xl text-sm transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
-                    tabIndex={-1}
-                    aria-label={showConfirmPassword ? "Ocultar senha" : "Exibir senha"}
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+            {/* Smooth collapsible section for Confirmar Senha */}
+            <div
+              className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                isLogin ? "grid-rows-[0fr] opacity-0 pointer-events-none" : "grid-rows-[1fr] opacity-100"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="space-y-1 pt-0.5 pb-0.5">
+                  <Label htmlFor="confirmPassword" className="text-xs font-medium">Confirmar Senha</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 pointer-events-none" />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (formErrors.confirmPassword) setFormErrors(prev => ({ ...prev, confirmPassword: "" }));
+                        if (generalError) setGeneralError(null);
+                      }}
+                      disabled={loading || isLogin}
+                      tabIndex={isLogin ? -1 : 0}
+                      placeholder="Repita sua senha"
+                      className={`pl-8.5 pr-8.5 h-9 sm:h-9.5 rounded-lg text-xs sm:text-[13px] transition-all border-border/80 bg-background/50 focus:bg-background ${formErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/30" : ""}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
+                      tabIndex={-1}
+                      aria-label={showConfirmPassword ? "Ocultar senha" : "Exibir senha"}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  {formErrors.confirmPassword && (
+                    <p className="text-[11px] text-destructive flex items-center gap-1 mt-0.5">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {formErrors.confirmPassword}
+                    </p>
+                  )}
                 </div>
-                {formErrors.confirmPassword && (
-                  <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                    {formErrors.confirmPassword}
-                  </p>
-                )}
               </div>
-            )}
+            </div>
 
             {/* Primary Action Button */}
             <Button
               type="submit"
-              className="w-full mt-2 h-11 sm:h-12 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-sm sm:text-base font-semibold rounded-xl cursor-pointer transition-all"
+              className="w-full mt-1 h-9 sm:h-9.5 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-xs sm:text-sm font-semibold rounded-lg cursor-pointer transition-all duration-200"
               disabled={loading}
             >
               {loading ? (
@@ -469,12 +517,12 @@ export default function AuthPage() {
           </form>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-3 sm:my-3.5">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-border/60" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-3 text-muted-foreground font-medium">OU</span>
+            <div className="relative flex justify-center text-[11px] uppercase">
+              <span className="bg-card px-2.5 text-muted-foreground font-medium">OU</span>
             </div>
           </div>
 
@@ -495,7 +543,7 @@ export default function AuthPage() {
                     toast.info("Serviço Google indisponível no momento.");
                   }
                 }}
-                className="w-full h-11 sm:h-12 flex items-center justify-center gap-2.5 rounded-full border border-border/80 bg-card hover:bg-muted/40 font-medium text-xs sm:text-sm transition-colors text-foreground cursor-pointer shadow-xs"
+                className="w-full h-9 sm:h-10 flex items-center justify-center gap-2 rounded-full border border-border/80 bg-card hover:bg-muted/40 font-medium text-xs transition-colors text-foreground cursor-pointer shadow-xs"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -508,14 +556,14 @@ export default function AuthPage() {
             )}
 
             {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-              <div className="text-[11px] text-center text-muted-foreground/70 mt-2">
-                Login com Google requer configuração do NEXT_PUBLIC_GOOGLE_CLIENT_ID
+              <div className="text-[10px] text-center text-muted-foreground/60 mt-1">
+                Google login requer NEXT_PUBLIC_GOOGLE_CLIENT_ID
               </div>
             )}
           </div>
 
           {/* Bottom Footer Switcher */}
-          <div className="mt-6 text-center text-xs sm:text-sm text-muted-foreground">
+          <div className="mt-3.5 sm:mt-4 text-center text-xs text-muted-foreground">
             {isLogin ? (
               <>
                 Ainda não tem conta no ImovPlan?{" "}
