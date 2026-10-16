@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Wallet, Sparkles, RefreshCw, Check } from "lucide-react";
+import { X, Wallet, Sparkles, RefreshCw, Check, CalendarDays, Info } from "lucide-react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ function AtualizarSaldoGuardadoModalContent({
 }: {
   onClose: () => void;
 }) {
-  const { pessoas, salvarPlano, calcularBackend, progressoAtualPorPessoa, objetivo } = usePlanLogic();
+  const { pessoas, salvarPlano, calcularBackend, progressoAtualPorPessoa, objetivo, setObjetivo } = usePlanLogic();
   const [salvando, setSalvando] = useState(false);
 
   // Mapeamento local dos saldos por pessoa inicializado sincronicamente ao montar o modal
@@ -40,6 +40,14 @@ function AtualizarSaldoGuardadoModalContent({
     });
     return initialMap;
   });
+
+  const dataHojeCurta = useMemo(() => {
+    return new Date().toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }, []);
 
   const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
 
@@ -82,10 +90,20 @@ function AtualizarSaldoGuardadoModalContent({
         };
       });
 
-      const savedId = await salvarPlano({ pessoas: updatedPeople });
+      const totalGuardadoSoma = updatedPeople.reduce((acc, p) => acc + (p.valorAtual || 0), 0);
+      const novoObjetivo = objetivo ? { ...objetivo, valorJaGuardado: totalGuardadoSoma } : null;
+      if (novoObjetivo) {
+        setObjetivo(novoObjetivo);
+      }
+
+      const savedId = await salvarPlano({
+        pessoas: updatedPeople,
+        objetivo: novoObjetivo ?? undefined,
+      });
+
       if (savedId) {
         await calcularBackend(savedId);
-        toast.success("Saldos atualizados com sucesso!");
+        toast.success("Saldos atualizados e sincronizados no Mês a Mês!");
         onClose();
       } else {
         toast.error("Erro ao salvar. Tente novamente.");
@@ -118,14 +136,20 @@ function AtualizarSaldoGuardadoModalContent({
               <Wallet className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-accent uppercase tracking-wider">
-                Progresso atual da meta
-              </p>
-              <h2 className="text-lg sm:text-xl font-display font-extrabold text-foreground tracking-tight">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-bold text-accent uppercase tracking-wider">
+                  Progresso atual da meta
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-accent/15 text-accent border border-accent/25">
+                  <CalendarDays className="h-3 w-3" />
+                  Hoje · {dataHojeCurta}
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-display font-extrabold text-foreground tracking-tight mt-0.5">
                 Atualize o saldo de cada participante
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Defina o valor real já guardado hoje por cada um para sincronizar a projeção.
+                Defina o valor real já guardado hoje por cada um para sincronizar a tabela Mês a Mês.
               </p>
             </div>
           </div>
@@ -164,16 +188,20 @@ function AtualizarSaldoGuardadoModalContent({
                         <h3 className="font-semibold text-sm text-foreground">
                           {pessoa.nome}
                         </h3>
-                        {rendMensal > 0 ? (
-                          <div className="flex items-center gap-1.5 mt-0.5 text-xs text-success font-medium">
-                            <Sparkles className="h-3 w-3 shrink-0" />
-                            <span>+{brl(rendMensal)}/mês estimado</span>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground/60 mt-0.5">
-                            Sem rendimento informado
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-muted-foreground font-medium">
+                            Posição em {dataHojeCurta}
+                          </span>
+                          {rendMensal > 0 && (
+                            <>
+                              <span className="text-muted-foreground/40 text-xs">·</span>
+                              <div className="flex items-center gap-1 text-xs text-success font-medium">
+                                <Sparkles className="h-3 w-3 shrink-0" />
+                                <span>+{brl(rendMensal)}/mês estimado</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -200,9 +228,14 @@ function AtualizarSaldoGuardadoModalContent({
           <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-secondary/25 via-secondary/15 to-card p-4 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Soma total guardada
-                </p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Soma total guardada
+                  </p>
+                  <span className="text-[10px] text-muted-foreground font-semibold bg-secondary px-1.5 py-0.2 rounded border border-border/40">
+                    {dataHojeCurta}
+                  </span>
+                </div>
                 <div className="flex items-baseline gap-2 mt-0.5">
                   <span className="font-display text-2xl sm:text-3xl font-extrabold text-foreground num">
                     {brl(somaTotal)}
@@ -246,35 +279,42 @@ function AtualizarSaldoGuardadoModalContent({
         </div>
 
         {/* Rodapé com Ações */}
-        <div className="px-6 py-4 border-t border-border/50 bg-secondary/10 flex items-center justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={salvando}
-            className="text-xs font-semibold h-9 px-4 rounded-xl cursor-pointer"
-          >
-            Cancelar
-          </Button>
+        <div className="px-6 py-4 border-t border-border/50 bg-secondary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 text-accent shrink-0" />
+            <span>Atualiza e recalcula a tabela Mês a Mês com o saldo inicial.</span>
+          </div>
 
-          <Button
-            type="button"
-            onClick={handleSalvar}
-            disabled={salvando}
-            className="text-xs font-semibold h-9 px-5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-1.5 cursor-pointer shadow-xs"
-          >
-            {salvando ? (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                <span>Salvando...</span>
-              </>
-            ) : (
-              <>
-                <Check className="h-3.5 w-3.5" />
-                <span>Salvar Alterações</span>
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={salvando}
+              className="text-xs font-semibold h-9 px-4 rounded-xl cursor-pointer"
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleSalvar}
+              disabled={salvando}
+              className="text-xs font-semibold h-9 px-5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-1.5 cursor-pointer shadow-xs"
+            >
+              {salvando ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  <span>Sincronizando Mês a Mês...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Salvar e Sincronizar</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>,
