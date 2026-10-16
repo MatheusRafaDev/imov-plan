@@ -22,7 +22,8 @@ import {
   CreditCard,
   ChevronDown,
   Coins,
-  Sparkles
+  Sparkles,
+  CalendarDays
 } from "lucide-react";
 import { useState } from "react";
 import type { Pessoa, GastoDetalhado } from "@/context/PlanContext";
@@ -215,9 +216,14 @@ export default function PessoaCard({
             <span className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4 text-accent" /> Aporte mensal planejado
             </span>
-            <span className="font-display text-base sm:text-lg font-bold num text-foreground">
-              {brl(aporteAtual)}
-            </span>
+            <div className="text-right">
+              <span className="font-display text-base sm:text-lg font-bold num text-foreground">
+                {brl(aporteAtual)}
+              </span>
+              <span className="block text-[11px] text-muted-foreground font-medium">
+                Todo dia {p.diaAporte ?? 5}
+              </span>
+            </div>
           </div>
 
           <div className="pt-0.5 space-y-2">
@@ -504,6 +510,53 @@ export default function PessoaCard({
               onChange={v => atualizarPessoa(p.id, { aporte_mensal: v === "" ? 0 : v })}
               placeholder="R$ 0,00"
             />
+          </div>
+
+          {/* Dia que cai o aporte deste participante */}
+          <div className="pt-2.5 border-t border-border/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5 text-accent" />
+                <span>Dia do Aporte no Mês</span>
+              </Label>
+              <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                Todo dia {p.diaAporte ?? 5}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground mr-1">Frequentes:</span>
+              {[1, 5, 10, 15, 20, 25].map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => atualizarPessoa(p.id, { diaAporte: d })}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    (p.diaAporte ?? 5) === d
+                      ? "bg-accent text-accent-foreground shadow-2xs"
+                      : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                  }`}
+                >
+                  Dia {d}
+                </button>
+              ))}
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-[11px] text-muted-foreground">Outro:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={p.diaAporte ?? 5}
+                  onChange={e => {
+                    const v = Math.min(31, Math.max(1, Number(e.target.value) || 1));
+                    atualizarPessoa(p.id, { diaAporte: v });
+                  }}
+                  className="w-12 h-7 px-1.5 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Define a data em que o aporte de {p.nome ? p.nome.split(" ")[0] : "deste participante"} cai na conta para render CDI.
+            </p>
           </div>
         </div>
 

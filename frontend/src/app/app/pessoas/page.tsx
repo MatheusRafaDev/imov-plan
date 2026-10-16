@@ -23,7 +23,7 @@ const generateObjectId = () => {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
-import { Plus, Trash2, ArrowRight, X, Wallet, TrendingUp, AlertTriangle, ChevronDown, Users, Coins, Sparkles } from "lucide-react";
+import { Plus, Trash2, ArrowRight, X, Wallet, TrendingUp, AlertTriangle, ChevronDown, Users, Coins, Sparkles, CalendarDays } from "lucide-react";
 import { PessoasPageSkeleton } from "@/components/Skeleton";
 
 const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados?: GastoDetalhado[]; gastos_mensais?: number | "" }) => {
@@ -111,6 +111,7 @@ export default function PessoasPage() {
     valorInicial: 0 as number | "",
     tipoInvestimento: "",
     aporte_mensal: 0 as number | "",
+    diaAporte: 5 as number | "",
   });
   const [novoGastoForm, setNovoGastoForm] = useState({ nome: "", valor: 0 as number | "" });
   const [pessoaParaRemover, setPessoaParaRemover] = useState<string | null>(null);
@@ -178,6 +179,7 @@ export default function PessoasPage() {
     valorInicial: 0 as number | "",
     tipoInvestimento: "",
     aporte_mensal: 0 as number | "",
+    diaAporte: 5,
   });
 
   const adicionar = () => {
@@ -200,6 +202,7 @@ export default function PessoasPage() {
       usar_gastos_detalhados: form.usar_gastos_detalhados,
       gastos_detalhados: form.gastos_detalhados,
       aporte_mensal: Number(form.aporte_mensal) || Math.round(sobra),
+      diaAporte: Number(form.diaAporte) || 5,
       valorInicial: formValorInicial,
       valorAtual: formValorInicial,
       dataValorAtual: new Date().toISOString(),
@@ -478,6 +481,50 @@ export default function PessoasPage() {
                       onChange={(v) => setForm({ ...form, aporte_mensal: v })}
                       placeholder="Deixe em branco para usar a sobra"
                     />
+                  </div>
+
+                  {/* Dia do aporte */}
+                  <div className="pt-2.5 border-t border-border/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5 text-accent" />
+                        <span>Dia do Aporte no Mês</span>
+                      </Label>
+                      <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                        Todo dia {form.diaAporte || 5}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground mr-1">Frequentes:</span>
+                      {[1, 5, 10, 15, 20, 25].map(d => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setForm({ ...form, diaAporte: d })}
+                          className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                            (form.diaAporte || 5) === d
+                              ? "bg-accent text-accent-foreground shadow-2xs"
+                              : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                          }`}
+                        >
+                          Dia {d}
+                        </button>
+                      ))}
+                      <div className="flex items-center gap-1.5 ml-auto">
+                        <span className="text-[11px] text-muted-foreground">Outro:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={31}
+                          value={form.diaAporte || 5}
+                          onChange={e => {
+                            const v = Math.min(31, Math.max(1, Number(e.target.value) || 1));
+                            setForm({ ...form, diaAporte: v });
+                          }}
+                          className="w-12 h-7 px-1.5 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

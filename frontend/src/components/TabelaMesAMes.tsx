@@ -92,6 +92,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   const diasDoAportePorMes = usePlanStore(state => state.diasDoAportePorMes);
   const setDiaDoAporte = usePlanStore(state => state.setDiaDoAporte);
   const setDiaDoAporteMes = usePlanStore(state => state.setDiaDoAporteMes);
+  const setPessoas = usePlanStore(state => state.setPessoas);
   const objetivo = usePlanStore(state => state.objetivo);
   const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
   const tipoInvestimento = objetivo?.tipoInvestimento || "cdb_100";
@@ -115,6 +116,14 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       saveDraft({ diasDoAportePorMes: nextMap } as any);
       toast.success(`Aporte do Mês ${mesDetalheDiario} configurado para o dia ${novoDia}.`);
     }
+  };
+
+  const handleSalvarDiaAportePessoa = (pessoaId: string, novoDia: number) => {
+    const novasPessoas = pessoas.map(p => p.id === pessoaId ? { ...p, diaAporte: novoDia } : p);
+    setPessoas(novasPessoas);
+    salvarPlano({ pessoas: novasPessoas });
+    const nomePessoa = pessoas.find(p => p.id === pessoaId)?.nome || "Participante";
+    toast.success(`Aporte de ${nomePessoa.split(" ")[0]} configurado para o dia ${novoDia}.`);
   };
 
   useEffect(() => {
@@ -647,6 +656,12 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
         const saldoInicialMes = prevRow ? prevRow.saldoAcumulado : (Number(sim?.valorJaGuardado) || 0);
         const rowExtras = (aportesExtras || []).filter(e => e?.data && row?.data && e.data.startsWith(row.data.split("T")[0]));
         const diaAporteConfig = diasDoAportePorMes[mesDetalheDiario] ?? diaDoAporte ?? 5;
+        const participantesDoMes = pessoas.map(p => ({
+          id: p.id,
+          nome: p.nome,
+          aporte_mensal: row.aporteFinalPorPessoa[p.id] ?? p.aporte_mensal,
+          diaAporte: p.diaAporte ?? diaAporteConfig,
+        }));
 
         return (
           <DetalheMesDiarioModal
@@ -660,7 +675,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
             taxaCdiAnual={taxaCdiAnual}
             tipoInvestimento={tipoInvestimento}
             diaAporteInicial={diaAporteConfig}
+            pessoas={participantesDoMes}
             onSalvarDiaAporte={handleSalvarDiaAporte}
+            onSalvarDiaAportePessoa={handleSalvarDiaAportePessoa}
           />
         );
       })()}

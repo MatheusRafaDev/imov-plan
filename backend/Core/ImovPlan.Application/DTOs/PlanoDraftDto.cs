@@ -51,6 +51,7 @@ namespace ImovPlan.Application.DTOs
         public bool Usar_gastos_detalhados { get; set; }
         public List<GastoDetalhadoDraftDto> Gastos_detalhados { get; set; } = new();
         public decimal Aporte_mensal { get; set; }
+        public int? DiaAporte { get; set; } = 5;
 
         /// <summary>
         /// Valor inicial da pessoa (saldo guardado). Mapeado para SaldoInicial no backend.

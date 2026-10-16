@@ -290,6 +290,7 @@ namespace ImovPlan.Application.Services
                         participante.UsarGastosDetalhados = pDto.Usar_gastos_detalhados;
                         participante.SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais;
                         participante.AporteMensal = pDto.Aporte_mensal;
+                        participante.DiaAporte = pDto.DiaAporte ?? 5;
                         participante.ValorAtual = pDto.ValorAtual;
                         participante.DataValorAtual = ParseCheckpointDate(pDto.DataValorAtual);
                         
@@ -328,6 +329,7 @@ namespace ImovPlan.Application.Services
                             UsarGastosDetalhados = pDto.Usar_gastos_detalhados,
                             SobraMensal = pDto.Renda_mensal + pDto.Renda_complementar - pDto.Gastos_mensais,
                             AporteMensal = pDto.Aporte_mensal,
+                            DiaAporte = pDto.DiaAporte ?? 5,
                             ValorAtual = pDto.ValorAtual,
                             DataValorAtual = ParseCheckpointDate(pDto.DataValorAtual),
                         };
@@ -525,6 +527,7 @@ namespace ImovPlan.Application.Services
                         Categoria = g2.Categoria,
                     }).ToList(),
                     Aporte_mensal = p.AporteMensal,
+                    DiaAporte = p.DiaAporte ?? 5,
                     ValorInicial = valorInicial,
                     TipoInvestimento = tipoInvParticipante,
                     ValorAtual = p.ValorAtual,

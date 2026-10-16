@@ -224,11 +224,24 @@ export function usePlanLogic() {
 
       const diaAporteConfig = state.diasDoAportePorMes?.[rowMesAtual.mes] ?? state.diaDoAporte ?? 5;
 
+      const aportesParticipantes = state.pessoas.map(p => {
+        const partRow = (rowMesAtual.participantes || []).find((part: any) => part.participanteId === p.id);
+        const valorAporte = partRow ? Number(partRow.aporteMensal || 0) : Number(p.aporte_mensal || 0);
+        const diaPessoa = p.diaAporte ?? diaAporteConfig;
+        return {
+          pessoaId: p.id,
+          pessoaNome: p.nome,
+          valor: valorAporte,
+          diaAporte: diaPessoa,
+        };
+      });
+
       const evolucaoMes = calcularEvolucaoDiariaDoMes({
         dataReferencia: rowMesAtual.dataReferencia,
         saldoInicialMes,
         aporteRegular: Number(rowMesAtual.aporteMensal || 0),
         diaAporteRegular: diaAporteConfig,
+        aportesParticipantes,
         aportesExtras: rowExtras,
         taxaCdiAnual,
         tipoInvestimento,
@@ -239,11 +252,13 @@ export function usePlanLogic() {
       if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
         progressoAtual = diaCorrespondente.saldoFinal;
 
-        // Distribui proporcionalmente o saldo de fechamento do dia atual entre os participantes
+        // Distribui proporcionalmente o saldo de fechamento do dia atual entre os participantes respeitando o dia de cada um
         const totalBase = (rowMesAtual.participantes || []).reduce((acc: number, part: any) => {
           const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
           const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(progressoAtualPorPessoa[part.participanteId] || 0);
-          const aportePart = diaHoje >= diaAporteConfig ? Number(part.aporteMensal || 0) : 0;
+          const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
+          const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
+          const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
           return acc + inicialPart + aportePart;
         }, 0);
 
@@ -252,7 +267,9 @@ export function usePlanLogic() {
         (rowMesAtual.participantes || []).forEach((part: any) => {
           const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
           const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(progressoAtualPorPessoa[part.participanteId] || 0);
-          const aportePart = diaHoje >= diaAporteConfig ? Number(part.aporteMensal || 0) : 0;
+          const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
+          const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
+          const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
           const basePart = inicialPart + aportePart;
 
           const proporcao = totalBase > 0 ? (basePart / totalBase) : (1 / (rowMesAtual.participantes.length || 1));

@@ -41,6 +41,9 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal AporteMensal { get; set; }
 
+        [BsonElement("diaAporte")]
+        public int? DiaAporte { get; set; } = 5;
+
         [BsonElement("patrimonioInicial")]
         public PatrimonioInicial? PatrimonioInicial { get; set; }
 

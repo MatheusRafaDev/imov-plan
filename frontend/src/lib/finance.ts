@@ -258,6 +258,13 @@ export function gerarMarcosEvolucaoDiaria(
   });
 }
 
+export type AporteParticipanteConfig = {
+  pessoaId?: string;
+  pessoaNome?: string;
+  valor: number;
+  diaAporte: number;
+};
+
 export type EvolucaoDiaItem = {
   dia: number;
   dataISO: string;
@@ -265,6 +272,7 @@ export type EvolucaoDiaItem = {
   isDiaUtil: boolean;
   saldoInicial: number;
   aporteRegular: number;
+  detalhesAportesRegulares: Array<{ pessoaId?: string; pessoaNome?: string; valor: number }>;
   aportesExtras: number;
   detalhesExtras: Array<{ origem: string; valor: number; pessoaNome?: string }>;
   totalAportesDoDia: number;
@@ -292,13 +300,15 @@ export type EvolucaoMesResultado = {
 
 /**
  * Calcula a evolução detalhada dia a dia de um mês específico,
- * considerando a data exata em que o aporte regular cai e eventuais aportes extras.
+ * considerando os dias exatos em que cada participante aporta (ou dia padrão geral)
+ * e eventuais aportes extras.
  */
 export function calcularEvolucaoDiariaDoMes(params: {
   dataReferencia: string | Date;
   saldoInicialMes: number;
   aporteRegular: number;
   diaAporteRegular?: number;
+  aportesParticipantes?: AporteParticipanteConfig[];
   aportesExtras?: Array<{ data?: string; valor: number; origem?: string; pessoaNome?: string }>;
   taxaCdiAnual: number;
   tipoInvestimento?: string;
@@ -324,6 +334,7 @@ export function calcularEvolucaoDiariaDoMes(params: {
 
   let saldoAtual = Math.max(0, params.saldoInicialMes || 0);
   let totalRendimentoMes = 0;
+  let totalAporteRegularMes = 0;
   let totalAportesExtrasMes = 0;
   let diasUteisTotais = 0;
 
@@ -337,8 +348,36 @@ export function calcularEvolucaoDiariaDoMes(params: {
     if (isDiaUtil) diasUteisTotais++;
 
     const diaIso = `${ano}-${String(mesNum).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
-    const isDiaAporteRegular = dia === diaAporteConfigurado;
-    const aporteReg = isDiaAporteRegular ? Math.max(0, params.aporteRegular || 0) : 0;
+
+    // Aportes Regulares por participante ou pelo dia padrão configurado
+    let aporteReg = 0;
+    const aportesRegularesDesteDia: Array<{ pessoaId?: string; pessoaNome?: string; valor: number }> = [];
+
+    if (params.aportesParticipantes && params.aportesParticipantes.length > 0) {
+      params.aportesParticipantes.forEach(ap => {
+        const diaPessoa = Math.min(Math.max(1, ap.diaAporte ?? 5), diasNoMes);
+        if (diaPessoa === dia && (ap.valor || 0) > 0) {
+          const val = Math.max(0, ap.valor);
+          aporteReg += val;
+          aportesRegularesDesteDia.push({
+            pessoaId: ap.pessoaId,
+            pessoaNome: ap.pessoaNome || "Participante",
+            valor: val,
+          });
+        }
+      });
+    } else {
+      const isDiaAporteRegular = dia === diaAporteConfigurado;
+      aporteReg = isDiaAporteRegular ? Math.max(0, params.aporteRegular || 0) : 0;
+      if (isDiaAporteRegular && aporteReg > 0) {
+        aportesRegularesDesteDia.push({
+          pessoaNome: "Aporte Mensal",
+          valor: aporteReg,
+        });
+      }
+    }
+
+    totalAporteRegularMes += aporteReg;
 
     const extrasDesteDia = (params.aportesExtras || []).filter(e => {
       if (!e.data) return false;
@@ -366,6 +405,7 @@ export function calcularEvolucaoDiariaDoMes(params: {
       isDiaUtil,
       saldoInicial,
       aporteRegular: aporteReg,
+      detalhesAportesRegulares: aportesRegularesDesteDia,
       aportesExtras: somaExtrasDia,
       detalhesExtras: extrasDesteDia.map(e => ({
         origem: e.origem || "Aporte Extra",
@@ -377,7 +417,7 @@ export function calcularEvolucaoDiariaDoMes(params: {
       rendimentoDoDia,
       rendimentoAcumuladoAteDia: totalRendimentoMes,
       saldoFinal,
-      isDiaAporteRegular,
+      isDiaAporteRegular: aportesRegularesDesteDia.length > 0,
     });
   }
 
@@ -386,9 +426,9 @@ export function calcularEvolucaoDiariaDoMes(params: {
     mes: mesNum,
     nomeMes: `${mesesNomes[mesIndex]}/${ano}`,
     saldoInicialMes: params.saldoInicialMes,
-    totalAporteRegular: params.aporteRegular,
+    totalAporteRegular: totalAporteRegularMes,
     totalAportesExtras: totalAportesExtrasMes,
-    totalAportesMes: params.aporteRegular + totalAportesExtrasMes,
+    totalAportesMes: totalAporteRegularMes + totalAportesExtrasMes,
     totalRendimentoMes,
     saldoFinalMes: saldoAtual,
     diasUteisTotais,

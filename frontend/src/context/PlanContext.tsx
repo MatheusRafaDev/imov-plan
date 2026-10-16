@@ -29,6 +29,7 @@ export type Pessoa = {
   gastos_detalhados?: GastoDetalhado[];
   usar_gastos_detalhados?: boolean;
   aporte_mensal: number;
+  diaAporte?: number;
   valorInicial?: number;
   tipoInvestimento?: string;
   valorAtual?: number | null;

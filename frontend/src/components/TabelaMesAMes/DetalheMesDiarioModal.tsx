@@ -29,7 +29,14 @@ export interface DetalheMesDiarioModalProps {
   taxaCdiAnual?: number;
   tipoInvestimento?: string;
   diaAporteInicial?: number;
+  pessoas?: Array<{
+    id: string;
+    nome: string;
+    aporte_mensal: number;
+    diaAporte?: number;
+  }>;
   onSalvarDiaAporte?: (novoDia: number, aplicarParaTodos: boolean) => void;
+  onSalvarDiaAportePessoa?: (pessoaId: string, novoDia: number) => void;
 }
 
 export function DetalheMesDiarioModal({
@@ -43,11 +50,22 @@ export function DetalheMesDiarioModal({
   taxaCdiAnual = 10.5,
   tipoInvestimento = "cdb_100",
   diaAporteInicial = 5,
+  pessoas = [],
   onSalvarDiaAporte,
+  onSalvarDiaAportePessoa,
 }: DetalheMesDiarioModalProps) {
   const [diaAporte, setDiaAporte] = useState<number>(diaAporteInicial);
   const [filtro, setFiltro] = useState<"todos" | "uteis" | "movimentacoes">("todos");
   const [salvandoPadrao, setSalvandoPadrao] = useState(false);
+
+  // Mapeia o dia do aporte para cada pessoa
+  const [diasPorPessoa, setDiasPorPessoa] = useState<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    (pessoas || []).forEach(p => {
+      map[p.id] = p.diaAporte ?? diaAporteInicial;
+    });
+    return map;
+  });
 
   // Detecta se este modal corresponde ao mês atual do calendário para dar destaque ao dia de hoje
   const hoje = useMemo(() => new Date(), []);
@@ -77,6 +95,17 @@ export function DetalheMesDiarioModal({
     }
   }, [dataReferencia]);
 
+  // Lista de aportes configurados por participante com suas datas individuais
+  const aportesParticipantes = useMemo(() => {
+    if (!pessoas || pessoas.length === 0) return undefined;
+    return pessoas.map(p => ({
+      pessoaId: p.id,
+      pessoaNome: p.nome,
+      valor: Number(p.aporte_mensal || 0),
+      diaAporte: diasPorPessoa[p.id] ?? p.diaAporte ?? diaAporte,
+    }));
+  }, [pessoas, diasPorPessoa, diaAporte]);
+
   // Recalcula a evolução diária em tempo real sempre que o dia do aporte mudar
   const resultado: EvolucaoMesResultado = useMemo(() => {
     return calcularEvolucaoDiariaDoMes({
@@ -84,11 +113,12 @@ export function DetalheMesDiarioModal({
       saldoInicialMes,
       aporteRegular,
       diaAporteRegular: diaAporte,
+      aportesParticipantes,
       aportesExtras,
       taxaCdiAnual,
       tipoInvestimento,
     });
-  }, [dataReferencia, saldoInicialMes, aporteRegular, diaAporte, aportesExtras, taxaCdiAnual, tipoInvestimento]);
+  }, [dataReferencia, saldoInicialMes, aporteRegular, diaAporte, aportesParticipantes, aportesExtras, taxaCdiAnual, tipoInvestimento]);
 
   const saldoHoje = useMemo(() => {
     if (!isMesAtual) return null;
@@ -124,6 +154,12 @@ export function DetalheMesDiarioModal({
     const diaValido = Math.min(Math.max(1, novoDia), diasNoMes);
     setDiaAporte(diaValido);
     onSalvarDiaAporte?.(diaValido, false);
+  };
+
+  const handleMudarDiaPessoa = (pessoaId: string, novoDia: number) => {
+    const diaValido = Math.min(Math.max(1, novoDia), diasNoMes);
+    setDiasPorPessoa(prev => ({ ...prev, [pessoaId]: diaValido }));
+    onSalvarDiaAportePessoa?.(pessoaId, diaValido);
   };
 
   const handleSalvarComoPadrao = () => {
@@ -185,14 +221,16 @@ export function DetalheMesDiarioModal({
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-foreground font-semibold text-sm sm:text-base">
                   <Clock className="h-4 w-4 text-accent" />
-                  <span>Quando cai o aporte neste mês?</span>
+                  <span>Quando caem os aportes neste mês?</span>
                 </div>
                 <p className="text-xs text-muted-foreground max-w-xl">
-                  Defina o dia exato do depósito. O dinheiro rende antes da data com o saldo inicial e passa a render mais a partir do dia em que o aporte entra.
+                  {pessoas && pessoas.length > 1 
+                    ? "Cada pessoa pode aportar em um dia diferente (conforme a data de recebimento do salário). O dinheiro rende antes e passa a render mais a partir do momento em que cada depósito é creditado."
+                    : "Defina o dia exato do depósito. O dinheiro rende antes da data com o saldo inicial e passa a render mais a partir do dia em que o aporte entra."}
                 </p>
               </div>
 
-              {onSalvarDiaAporte && (
+              {onSalvarDiaAporte && (!pessoas || pessoas.length <= 1) && (
                 <Button
                   type="button"
                   size="sm"
@@ -211,37 +249,91 @@ export function DetalheMesDiarioModal({
               )}
             </div>
 
-            {/* Controles de seleção de dia */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs font-medium text-muted-foreground mr-1">Dias frequentes:</span>
-              {[1, 5, 10, 15, 20, 25].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => handleMudarDia(d)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                    diaAporte === d
-                      ? "bg-accent text-accent-foreground shadow-xs"
-                      : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                  }`}
-                >
-                  Dia {d}
-                </button>
-              ))}
+            {/* Controles de seleção de dia por participante ou geral */}
+            {pessoas && pessoas.length > 0 ? (
+              <div className="space-y-2.5 pt-1">
+                {pessoas.map((p) => {
+                  const diaAtualPessoa = diasPorPessoa[p.id] ?? p.diaAporte ?? diaAporte;
+                  return (
+                    <div 
+                      key={p.id} 
+                      className="bg-card border border-border/60 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs sm:text-sm text-foreground truncate">{p.nome}</span>
+                          <span className="text-xs font-bold text-accent num shrink-0">+{brl(Number(p.aporte_mensal || 0))}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Aporte agendado para o <strong className="text-accent font-semibold">dia {diaAtualPessoa}</strong> de cada mês
+                        </p>
+                      </div>
 
-              <div className="flex items-center gap-1.5 ml-auto">
-                <label htmlFor="custom-dia" className="text-xs text-muted-foreground font-medium">Outro dia:</label>
-                <input
-                  id="custom-dia"
-                  type="number"
-                  min={1}
-                  max={diasNoMes}
-                  value={diaAporte}
-                  onChange={(e) => handleMudarDia(Number(e.target.value) || 1)}
-                  className="w-14 h-8 px-2 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
-                />
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                        <span className="text-[11px] text-muted-foreground mr-1">Frequentes:</span>
+                        {[1, 5, 10, 15, 20, 25].map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => handleMudarDiaPessoa(p.id, d)}
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              diaAtualPessoa === d
+                                ? "bg-accent text-accent-foreground shadow-2xs"
+                                : "bg-secondary/40 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                            }`}
+                          >
+                            Dia {d}
+                          </button>
+                        ))}
+
+                        <div className="flex items-center gap-1 ml-auto sm:ml-2">
+                          <span className="text-[10px] text-muted-foreground">Outro:</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={diasNoMes}
+                            value={diaAtualPessoa}
+                            onChange={(e) => handleMudarDiaPessoa(p.id, Number(e.target.value) || 1)}
+                            className="w-12 h-7 px-1 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-xs font-medium text-muted-foreground mr-1">Dias frequentes:</span>
+                {[1, 5, 10, 15, 20, 25].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => handleMudarDia(d)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      diaAporte === d
+                        ? "bg-accent text-accent-foreground shadow-xs"
+                        : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                    }`}
+                  >
+                    Dia {d}
+                  </button>
+                ))}
+
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <label htmlFor="custom-dia" className="text-xs text-muted-foreground font-medium">Outro dia:</label>
+                  <input
+                    id="custom-dia"
+                    type="number"
+                    min={1}
+                    max={diasNoMes}
+                    value={diaAporte}
+                    onChange={(e) => handleMudarDia(Number(e.target.value) || 1)}
+                    className="w-14 h-8 px-2 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Destaque do Dia Atual */}
@@ -408,9 +500,13 @@ export function DetalheMesDiarioModal({
                                 ✨ Dia Atual
                               </span>
                             )}
-                            {hasAporte ? (
+                            {item.detalhesAportesRegulares && item.detalhesAportesRegulares.length > 0 ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/25">
-                                <ArrowDownLeft className="h-3 w-3" /> Aporte recebido
+                                <ArrowDownLeft className="h-3 w-3" /> Aporte {item.detalhesAportesRegulares.map(a => a.pessoaNome ? a.pessoaNome.split(" ")[0] : "Participante").join(" & ")}
+                              </span>
+                            ) : hasAporte ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/25">
+                                <ArrowDownLeft className="h-3 w-3" /> Aporte extra
                               </span>
                             ) : item.isDiaUtil ? (
                               <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -434,9 +530,14 @@ export function DetalheMesDiarioModal({
                           {hasAporte ? (
                             <div>
                               <span className="font-bold text-accent">+{brl(item.totalAportesDoDia)}</span>
+                              {item.detalhesAportesRegulares && item.detalhesAportesRegulares.length > 0 && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[150px] ml-auto">
+                                  {item.detalhesAportesRegulares.map(a => `${a.pessoaNome ? a.pessoaNome.split(" ")[0] : ""}: ${brl(a.valor)}`).join(", ")}
+                                </p>
+                              )}
                               {item.detalhesExtras.length > 0 && (
-                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[140px] ml-auto">
-                                  {item.detalhesExtras.map(e => e.origem).join(", ")}
+                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[150px] ml-auto">
+                                  Extra: {item.detalhesExtras.map(e => e.origem).join(", ")}
                                 </p>
                               )}
                             </div>

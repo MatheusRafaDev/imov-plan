@@ -258,4 +258,40 @@ describe('finance.ts unit tests', () => {
     expect(dia16.saldoFinal).toBeGreaterThan(43000 + 3320);
     expect(dia16.saldoFinal).toBeLessThan(res.saldoFinalMes);
   });
+
+  test('calcularEvolucaoDiariaDoMes com aportes de múltiplos participantes em dias diferentes', () => {
+    const res = calcularEvolucaoDiariaDoMes({
+      dataReferencia: '2026-10-01',
+      saldoInicialMes: 43000,
+      aporteRegular: 3320,
+      taxaCdiAnual: 10.5,
+      tipoInvestimento: 'cdb_100',
+      aportesParticipantes: [
+        { pessoaId: '1', pessoaNome: 'Matheus', valor: 2520, diaAporte: 5 },
+        { pessoaId: '2', pessoaNome: 'Rayane', valor: 800, diaAporte: 15 },
+      ],
+    });
+
+    // Dia 5: recebe apenas o aporte de Matheus (2520)
+    const dia5 = res.dias.find(d => d.dia === 5)!;
+    expect(dia5.isDiaAporteRegular).toBe(true);
+    expect(dia5.aporteRegular).toBe(2520);
+    expect(dia5.detalhesAportesRegulares).toHaveLength(1);
+    expect(dia5.detalhesAportesRegulares[0].pessoaNome).toBe('Matheus');
+
+    // Dia 10: nenhum aporte regular
+    const dia10 = res.dias.find(d => d.dia === 10)!;
+    expect(dia10.isDiaAporteRegular).toBe(false);
+    expect(dia10.aporteRegular).toBe(0);
+
+    // Dia 15: recebe o aporte de Rayane (800)
+    const dia15 = res.dias.find(d => d.dia === 15)!;
+    expect(dia15.isDiaAporteRegular).toBe(true);
+    expect(dia15.aporteRegular).toBe(800);
+    expect(dia15.detalhesAportesRegulares).toHaveLength(1);
+    expect(dia15.detalhesAportesRegulares[0].pessoaNome).toBe('Rayane');
+
+    // Total de aportes regulares do mês bate 3320
+    expect(res.totalAporteRegular).toBe(3320);
+  });
 });
