@@ -150,7 +150,7 @@ export default function ResultadoPage() {
 
       {/* Table */}
       <div className="animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "250ms" }}>
-        {calculating ? <TableSkeleton /> : <TabelaMesAMes />}
+        {calculating ? <TableSkeleton /> : <TabelaMesAMes allowDailyDetail={true} />}
       </div>
     </div>
   );

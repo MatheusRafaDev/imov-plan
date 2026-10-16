@@ -63,7 +63,16 @@ function Td({
 }
 
 
-export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials = true, showCompletedToggle = true }: { showFinancials?: boolean, showCompletedToggle?: boolean, showCenarioSelector?: boolean }) {
+export const TabelaMesAMes = React.memo(function TabelaMesAMes({ 
+  showFinancials = true, 
+  showCompletedToggle = true,
+  allowDailyDetail = false,
+}: { 
+  showFinancials?: boolean; 
+  showCompletedToggle?: boolean; 
+  showCenarioSelector?: boolean;
+  allowDailyDetail?: boolean;
+}) {
   const {
     pessoas,
     aportesExtras,
@@ -441,7 +450,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                             </span>
                           )}
                         </span>
-                        {!isZero && (
+                        {!isZero && allowDailyDetail && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -558,7 +567,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                       {!isZero && (
                         <RowActions 
                           onOpenModal={(tab) => openModal(r.mes, tab)} 
-                          onOpenDetalheDiario={() => setMesDetalheDiario(r.mes)}
+                          onOpenDetalheDiario={allowDailyDetail ? () => setMesDetalheDiario(r.mes) : undefined}
                         />
                       )}
                     </Td>
@@ -621,7 +630,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           initialTab={modalInitialTab}
           focusPessoaId={modalFocusPessoaId}
           showFinancials={showFinancials}
-          onOpenDetalheDiario={() => setMesDetalheDiario(selectedRow.mes)}
+          onOpenDetalheDiario={allowDailyDetail ? () => setMesDetalheDiario(selectedRow.mes) : undefined}
           onSaveAportes={handleSaveAportes}
           onAddExtra={handleAddExtra}
           onEditExtra={handleEditExtra}
@@ -631,7 +640,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
       )}
 
       {/* Modal de Evolução Diária do Mês */}
-      {mesDetalheDiario != null && (() => {
+      {allowDailyDetail && mesDetalheDiario != null && (() => {
         const row = displayRows.find(x => x.mes === mesDetalheDiario);
         if (!row) return null;
         const prevRow = displayRows.find(x => x.mes === mesDetalheDiario - 1);

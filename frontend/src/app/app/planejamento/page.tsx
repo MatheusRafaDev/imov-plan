@@ -723,7 +723,7 @@ export default function PlanejamentoPage() {
 
         {/* Tabela Mês a Mês em Largura Completa */}
         <div className="w-full min-w-0">
-          <TabelaMesAMes showFinancials={false} showCompletedToggle={false} showCenarioSelector={false} />
+          <TabelaMesAMes showFinancials={false} showCompletedToggle={false} showCenarioSelector={false} allowDailyDetail={false} />
         </div>
       </div>
 
