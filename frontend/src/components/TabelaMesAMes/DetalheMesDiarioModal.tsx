@@ -1,0 +1,406 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { 
+  X, 
+  Sparkles, 
+  ArrowDownLeft, 
+  Info, 
+  Check, 
+  CalendarDays,
+  Clock
+} from "lucide-react";
+import { 
+  brl, 
+  calcularEvolucaoDiariaDoMes, 
+  type EvolucaoMesResultado 
+} from "@/lib/finance";
+import { Button } from "@/components/ui/button";
+
+export interface DetalheMesDiarioModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  mes: number;
+  dataReferencia: string;
+  saldoInicialMes: number;
+  aporteRegular: number;
+  aportesExtras?: Array<{ data?: string; valor: number; origem?: string; pessoaNome?: string }>;
+  taxaCdiAnual?: number;
+  tipoInvestimento?: string;
+  diaAporteInicial?: number;
+  onSalvarDiaAporte?: (novoDia: number, aplicarParaTodos: boolean) => void;
+}
+
+export function DetalheMesDiarioModal({
+  isOpen,
+  onClose,
+  mes,
+  dataReferencia,
+  saldoInicialMes,
+  aporteRegular,
+  aportesExtras = [],
+  taxaCdiAnual = 10.5,
+  tipoInvestimento = "cdb_100",
+  diaAporteInicial = 5,
+  onSalvarDiaAporte,
+}: DetalheMesDiarioModalProps) {
+  const [diaAporte, setDiaAporte] = useState<number>(diaAporteInicial);
+  const [filtro, setFiltro] = useState<"todos" | "uteis" | "movimentacoes">("todos");
+  const [salvandoPadrao, setSalvandoPadrao] = useState(false);
+
+  // Calcula os dias do mês para limitar o seletor
+  const diasNoMes = useMemo(() => {
+    try {
+      const dRef = new Date(dataReferencia);
+      const ano = dRef.getUTCFullYear() || new Date().getUTCFullYear();
+      const mesNum = (dRef.getUTCMonth() || 0) + 1;
+      return new Date(Date.UTC(ano, mesNum, 0)).getUTCDate();
+    } catch {
+      return 30;
+    }
+  }, [dataReferencia]);
+
+  // Recalcula a evolução diária em tempo real sempre que o dia do aporte mudar
+  const resultado: EvolucaoMesResultado = useMemo(() => {
+    return calcularEvolucaoDiariaDoMes({
+      dataReferencia,
+      saldoInicialMes,
+      aporteRegular,
+      diaAporteRegular: diaAporte,
+      aportesExtras,
+      taxaCdiAnual,
+      tipoInvestimento,
+    });
+  }, [dataReferencia, saldoInicialMes, aporteRegular, diaAporte, aportesExtras, taxaCdiAnual, tipoInvestimento]);
+
+  const diasFiltrados = useMemo(() => {
+    if (filtro === "uteis") {
+      return resultado.dias.filter(d => d.isDiaUtil);
+    }
+    if (filtro === "movimentacoes") {
+      return resultado.dias.filter(d => d.totalAportesDoDia > 0 || d.rendimentoDoDia > 0);
+    }
+    return resultado.dias;
+  }, [resultado.dias, filtro]);
+
+  if (!isOpen || typeof document === "undefined") return null;
+
+  const handleMudarDia = (novoDia: number) => {
+    const diaValido = Math.min(Math.max(1, novoDia), diasNoMes);
+    setDiaAporte(diaValido);
+    onSalvarDiaAporte?.(diaValido, false);
+  };
+
+  const handleSalvarComoPadrao = () => {
+    setSalvandoPadrao(true);
+    onSalvarDiaAporte?.(diaAporte, true);
+    setTimeout(() => setSalvandoPadrao(false), 1200);
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-background/70 backdrop-blur-sm animate-modal-backdrop">
+      <div 
+        className="fixed inset-0 -z-10" 
+        onClick={onClose}
+        aria-hidden="true" 
+      />
+
+      <div 
+        role="dialog"
+        aria-modal="true"
+        className="relative z-50 w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border/80 bg-card text-card-foreground shadow-2xl overflow-hidden animate-modal-box font-sans"
+      >
+        {/* Cabeçalho */}
+        <div className="px-5 sm:px-6 py-4 border-b border-border/50 bg-secondary/15 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-10 w-10 shrink-0 rounded-2xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shadow-xs">
+              <CalendarDays className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground truncate">
+                  Evolução Diária · Mês {mes}
+                </h3>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+                  {resultado.nomeMes}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
+                <Sparkles className="h-3.5 w-3.5 text-success shrink-0" />
+                <span>{resultado.diasUteisTotais} dias úteis com rendimento CDI a {taxaCdiAnual}% a.a.</span>
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-colors shrink-0 cursor-pointer"
+            title="Fechar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Corpo com scroll */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar">
+          {/* Card de Configuração: Quando cai o aporte */}
+          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4 sm:p-5 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-foreground font-semibold text-sm sm:text-base">
+                  <Clock className="h-4 w-4 text-accent" />
+                  <span>Quando cai o aporte neste mês?</span>
+                </div>
+                <p className="text-xs text-muted-foreground max-w-xl">
+                  Defina o dia exato do depósito. O dinheiro rende antes da data com o saldo inicial e passa a render mais a partir do dia em que o aporte entra.
+                </p>
+              </div>
+
+              {onSalvarDiaAporte && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSalvarComoPadrao}
+                  className="text-xs h-8 px-3 border-accent/30 hover:bg-accent/10 text-foreground cursor-pointer shrink-0"
+                >
+                  {salvandoPadrao ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 mr-1 text-success" /> Padrão salvo!
+                    </>
+                  ) : (
+                    "Usar dia como padrão"
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Controles de seleção de dia */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-xs font-medium text-muted-foreground mr-1">Dias frequentes:</span>
+              {[1, 5, 10, 15, 20, 25].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => handleMudarDia(d)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    diaAporte === d
+                      ? "bg-accent text-accent-foreground shadow-xs"
+                      : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                  }`}
+                >
+                  Dia {d}
+                </button>
+              ))}
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <label htmlFor="custom-dia" className="text-xs text-muted-foreground font-medium">Outro dia:</label>
+                <input
+                  id="custom-dia"
+                  type="number"
+                  min={1}
+                  max={diasNoMes}
+                  value={diaAporte}
+                  onChange={(e) => handleMudarDia(Number(e.target.value) || 1)}
+                  className="w-14 h-8 px-2 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* KPIs Resumo do Mês */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
+              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Saldo Inicial</p>
+              <p className="font-display text-base sm:text-lg font-bold text-foreground num">{brl(resultado.saldoInicialMes)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Início do mês</p>
+            </div>
+
+            <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
+              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Aportes do Mês</p>
+              <p className="font-display text-base sm:text-lg font-bold text-accent num">{brl(resultado.totalAportesMes)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Cai no dia {resultado.diaAporteConfigurado}</p>
+            </div>
+
+            <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
+              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Rendimento do Mês</p>
+              <p className="font-display text-base sm:text-lg font-bold text-success num">+{brl(resultado.totalRendimentoMes)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Juros compostos diários</p>
+            </div>
+
+            <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
+              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Saldo Final</p>
+              <p className="font-display text-base sm:text-lg font-bold text-foreground num">{brl(resultado.saldoFinalMes)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Fechamento do mês</p>
+            </div>
+          </div>
+
+          {/* Filtros da lista */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-1.5 bg-secondary/30 p-1 rounded-xl text-xs font-medium border border-border/40 self-start">
+              <button
+                type="button"
+                onClick={() => setFiltro("todos")}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                  filtro === "todos"
+                    ? "bg-card text-foreground font-semibold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Todos os dias ({resultado.dias.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFiltro("uteis")}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                  filtro === "uteis"
+                    ? "bg-card text-foreground font-semibold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Dias Úteis ({resultado.diasUteisTotais})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFiltro("movimentacoes")}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                  filtro === "movimentacoes"
+                    ? "bg-card text-foreground font-semibold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Com Rendimento / Aporte
+              </button>
+            </div>
+
+            <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-accent inline-block" /> Dia do Aporte
+              </span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-success inline-block" /> Rendimento Útil
+              </span>
+            </div>
+          </div>
+
+          {/* Tabela do Dia a Dia */}
+          <div className="rounded-2xl border border-border/50 overflow-hidden bg-card shadow-soft">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-sans border-collapse">
+                <thead className="bg-secondary/30 text-muted-foreground border-b border-border/50">
+                  <tr>
+                    <th className="px-3.5 py-2.5 text-left font-medium whitespace-nowrap">Dia</th>
+                    <th className="px-3.5 py-2.5 text-left font-medium whitespace-nowrap">Status</th>
+                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Saldo Início</th>
+                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Aporte Entrada</th>
+                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Rendimento do Dia</th>
+                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Saldo Fim do Dia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {diasFiltrados.map((item) => {
+                    const hasAporte = item.totalAportesDoDia > 0;
+                    return (
+                      <tr 
+                        key={item.dia} 
+                        className={`transition-colors hover:bg-secondary/15 ${
+                          hasAporte ? "bg-accent/5 font-medium" : ""
+                        } ${!item.isDiaUtil ? "opacity-60 bg-secondary/5" : ""}`}
+                      >
+                        {/* Dia */}
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="font-display font-bold text-foreground text-sm w-6 text-right num">
+                              {String(item.dia).padStart(2, "0")}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground uppercase font-medium">
+                              ({item.diaSemana})
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Status / Tag */}
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          {hasAporte ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/25">
+                              <ArrowDownLeft className="h-3 w-3" /> Aporte recebido
+                            </span>
+                          ) : item.isDiaUtil ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                              Dia útil
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 italic">
+                              Fim de semana
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Saldo Inicial */}
+                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap text-muted-foreground num">
+                          {brl(item.saldoInicial)}
+                        </td>
+
+                        {/* Aporte */}
+                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap num">
+                          {hasAporte ? (
+                            <div>
+                              <span className="font-bold text-accent">+{brl(item.totalAportesDoDia)}</span>
+                              {item.detalhesExtras.length > 0 && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[140px] ml-auto">
+                                  {item.detalhesExtras.map(e => e.origem).join(", ")}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/40">—</span>
+                          )}
+                        </td>
+
+                        {/* Rendimento do Dia */}
+                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap num">
+                          {item.rendimentoDoDia > 0 ? (
+                            <span className="font-semibold text-success">
+                              +{brl(item.rendimentoDoDia)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/40 text-[11px]">R$ 0,00</span>
+                          )}
+                        </td>
+
+                        {/* Saldo Final */}
+                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap font-semibold text-foreground num">
+                          {brl(item.saldoFinal)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Rodapé */}
+        <div className="px-5 sm:px-6 py-3.5 border-t border-border/50 bg-secondary/10 flex items-center justify-between gap-3 shrink-0">
+          <p className="text-xs text-muted-foreground hidden sm:flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5 text-accent shrink-0" />
+            <span>Rendimento diário calculado a juros compostos com alíquota CDI de dias úteis.</span>
+          </p>
+
+          <Button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto ml-auto bg-gradient-warm text-accent-foreground hover:opacity-90 h-9 px-5 rounded-xl cursor-pointer"
+          >
+            Concluir
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}

@@ -10,7 +10,8 @@ import {
   taxaDiariaEfetivaPorTipoInvestimento,
   contarDiasUteis,
   calcularSaldoCompostoDiario,
-  gerarMarcosEvolucaoDiaria
+  gerarMarcosEvolucaoDiaria,
+  calcularEvolucaoDiariaDoMes
 } from './finance';
 
 describe('finance.ts unit tests', () => {
@@ -202,5 +203,42 @@ describe('finance.ts unit tests', () => {
       expect(marcos[i].rendimentoNaqueleDia).toBeGreaterThan(marcos[i - 1].rendimentoNaqueleDia);
       expect(marcos[i].saldo).toBeGreaterThan(marcos[i - 1].saldo);
     }
+  });
+
+  test('calcularEvolucaoDiariaDoMes com data e dia do aporte', () => {
+    const res = calcularEvolucaoDiariaDoMes({
+      dataReferencia: '2026-10-01',
+      saldoInicialMes: 25000,
+      aporteRegular: 3320,
+      diaAporteRegular: 5,
+      taxaCdiAnual: 10.5,
+      tipoInvestimento: 'cdb_100',
+    });
+
+    expect(res.dias.length).toBe(31);
+    expect(res.ano).toBe(2026);
+    expect(res.mes).toBe(10);
+    expect(res.saldoInicialMes).toBe(25000);
+    expect(res.totalAporteRegular).toBe(3320);
+    expect(res.diaAporteConfigurado).toBe(5);
+
+    // O aporte de 3320 deve entrar exatamente no dia 5
+    const dia5 = res.dias.find(d => d.dia === 5)!;
+    expect(dia5.isDiaAporteRegular).toBe(true);
+    expect(dia5.aporteRegular).toBe(3320);
+    expect(dia5.totalAportesDoDia).toBe(3320);
+
+    // Dias antes do dia 5 não tiveram aporte
+    const dia1 = res.dias.find(d => d.dia === 1)!;
+    expect(dia1.aporteRegular).toBe(0);
+
+    // Rendimento total do mês deve ser positivo e saldo final deve ser superior à soma inicial + aporte
+    expect(res.totalRendimentoMes).toBeGreaterThan(0);
+    expect(res.saldoFinalMes).toBeGreaterThan(25000 + 3320);
+    expect(res.diasUteisTotais).toBeGreaterThanOrEqual(20);
+
+    // Fins de semana têm rendimento 0
+    const fimDeSemana = res.dias.find(d => !d.isDiaUtil)!;
+    expect(fimDeSemana.rendimentoDoDia).toBe(0);
   });
 });

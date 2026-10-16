@@ -16,6 +16,8 @@ interface PlanState {
   aportesRegularesEditados: Record<number, number>;
   aportesRegularesEditadosPorPessoa: Record<string, Record<number, number>>;
   mesesConcluidos: number[];
+  diaDoAporte: number;
+  diasDoAportePorMes: Record<number, number>;
   lastCalculatedPayloadStr: string | null;
   lastSavedDraftPayloadStr: string | null;
 
@@ -30,6 +32,8 @@ interface PlanState {
   setAportesRegularesEditados: (aportes: Record<number, number> | ((prev: Record<number, number>) => Record<number, number>)) => void;
   setAportesRegularesEditadosPorPessoa: (aportes: Record<string, Record<number, number>> | ((prev: Record<string, Record<number, number>>) => Record<string, Record<number, number>>)) => void;
   setMesesConcluidos: (meses: number[] | ((prev: number[]) => number[])) => void;
+  setDiaDoAporte: (dia: number) => void;
+  setDiaDoAporteMes: (mes: number, dia: number) => void;
   setLastCalculatedPayloadStr: (payloadStr: string | null) => void;
   setLastSavedDraftPayloadStr: (payloadStr: string | null) => void;
 
@@ -51,6 +55,8 @@ const initialState = {
   aportesRegularesEditados: {},
   aportesRegularesEditadosPorPessoa: {},
   mesesConcluidos: [],
+  diaDoAporte: 5,
+  diasDoAportePorMes: {} as Record<number, number>,
   lastCalculatedPayloadStr: null as string | null,
   lastSavedDraftPayloadStr: null as string | null,
 };
@@ -84,6 +90,10 @@ export const usePlanStore = create<PlanState>()(
       })),
       setAportesRegularesEditadosPorPessoa: (val) => set((state) => ({ aportesRegularesEditadosPorPessoa: typeof val === 'function' ? val(state.aportesRegularesEditadosPorPessoa) : val })),
       setMesesConcluidos: (val) => set((state) => ({ mesesConcluidos: typeof val === 'function' ? val(state.mesesConcluidos) : val })),
+      setDiaDoAporte: (dia) => set({ diaDoAporte: dia }),
+      setDiaDoAporteMes: (mes, dia) => set((state) => ({
+        diasDoAportePorMes: { ...state.diasDoAportePorMes, [mes]: dia }
+      })),
       setLastCalculatedPayloadStr: (val) => set({ lastCalculatedPayloadStr: val }),
       setLastSavedDraftPayloadStr: (val) => set({ lastSavedDraftPayloadStr: val }),
 

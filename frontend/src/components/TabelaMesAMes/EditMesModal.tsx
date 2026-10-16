@@ -6,7 +6,8 @@ import {
   X, 
   Plus, 
   Trash2, 
-  Check 
+  Check,
+  CalendarDays
 } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
 import { brl } from "@/lib/finance";
@@ -30,6 +31,7 @@ export interface EditMesModalProps {
   initialTab?: ModalTab;
   focusPessoaId?: string | null;
   showFinancials?: boolean;
+  onOpenDetalheDiario?: () => void;
   onSaveAportes: (novosValores: Record<string, number>) => Promise<void> | void;
   onAddExtra: (pessoaId: string | null, origem: string, valor: number) => Promise<void> | void;
   onEditExtra: (index: number, origem: string, valor: number, pessoaId?: string) => Promise<void> | void;
@@ -63,6 +65,7 @@ export function EditMesModal({
   initialTab = "aportes",
   focusPessoaId,
   showFinancials = true,
+  onOpenDetalheDiario,
   onSaveAportes,
   onAddExtra,
   onDeleteExtra,
@@ -181,14 +184,30 @@ export function EditMesModal({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
-            title="Fechar"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {onOpenDetalheDiario && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenDetalheDiario();
+                }}
+                className="px-2 py-1 rounded-lg text-xs font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Ver evolução diária deste mês"
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Dia a dia</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0 cursor-pointer"
+              title="Fechar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Segmented Control / Tabs */}

@@ -2,13 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Edit2, Plus, TrendingUp, MoreHorizontal } from "lucide-react";
+import { Edit2, Plus, TrendingUp, MoreHorizontal, CalendarDays } from "lucide-react";
 import { ModalTab } from "./EditMesModal";
 
 export function RowActions({
   onOpenModal,
+  onOpenDetalheDiario,
 }: {
   onOpenModal: (tab: ModalTab) => void;
+  onOpenDetalheDiario?: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState(false);
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -88,6 +90,17 @@ export function RowActions({
             <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" /> 
             <span>Ajustar Acumulado</span>
           </button>
+
+          {onOpenDetalheDiario && (
+            <button 
+              type="button"
+              onClick={() => { setOpenMenu(false); onOpenDetalheDiario(); }} 
+              className="w-full text-left px-3.5 py-2.5 text-foreground hover:bg-secondary/70 flex items-center gap-2.5 transition-colors border-t border-border/40"
+            >
+              <CalendarDays className="h-3.5 w-3.5 text-accent" /> 
+              <span>Ver Dia a Dia</span>
+            </button>
+          )}
         </div>,
         document.body
       )}

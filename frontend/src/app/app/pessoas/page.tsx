@@ -246,9 +246,9 @@ export default function PessoasPage() {
       }
 
       if (patch.valorInicial !== undefined || patch.valorAtual !== undefined) {
-        const novoValor = patch.valorAtual !== undefined ? patch.valorAtual : (patch.valorInicial ?? 0);
-        updated.valorInicial = patch.valorInicial !== undefined ? patch.valorInicial : novoValor;
-        updated.valorAtual = patch.valorAtual !== undefined ? patch.valorAtual : novoValor;
+        const novoValorNum = Number(patch.valorAtual ?? patch.valorInicial ?? 0);
+        updated.valorInicial = patch.valorInicial !== undefined ? patch.valorInicial : (patch.valorAtual ?? novoValorNum);
+        updated.valorAtual = patch.valorAtual !== undefined ? patch.valorAtual : (patch.valorInicial ?? novoValorNum);
         if (!patch.dataValorAtual && !updated.dataValorAtual) {
           updated.dataValorAtual = new Date().toISOString();
         } else if (patch.dataValorAtual) {

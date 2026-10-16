@@ -6,12 +6,13 @@ import React from "react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanStore } from "@/store/usePlanStore";
 import { brl } from "@/lib/finance";
-import { Check, Loader2, Download, Trash2, AlertTriangle, X } from "lucide-react";
+import { Check, Loader2, Download, Trash2, AlertTriangle, X, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RowActions } from "./TabelaMesAMes/RowActions";
 import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
 import { EditMesModal, type ModalTab } from "./TabelaMesAMes/EditMesModal";
+import { DetalheMesDiarioModal } from "./TabelaMesAMes/DetalheMesDiarioModal";
 
 function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
   const diff = value - planned;
@@ -77,11 +78,35 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
     backendData,
     calculating,
   } = usePlanLogic();
+
+  const diaDoAporte = usePlanStore(state => state.diaDoAporte);
+  const diasDoAportePorMes = usePlanStore(state => state.diasDoAportePorMes);
+  const setDiaDoAporte = usePlanStore(state => state.setDiaDoAporte);
+  const setDiaDoAporteMes = usePlanStore(state => state.setDiaDoAporteMes);
+  const objetivo = usePlanStore(state => state.objetivo);
+  const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
+  const tipoInvestimento = objetivo?.tipoInvestimento || "cdb_100";
+
   const [editingMes, setEditingMes] = useState<number | null>(null);
+  const [mesDetalheDiario, setMesDetalheDiario] = useState<number | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<ModalTab>("aportes");
   const [modalFocusPessoaId, setModalFocusPessoaId] = useState<string | null>(null);
   const [extraParaExcluir, setExtraParaExcluir] = useState<{ index: number; origem: string; valor: number; pessoaNome?: string; data?: string } | null>(null);
   const [excluindoExtra, setExcluindoExtra] = useState(false);
+
+  const handleSalvarDiaAporte = (novoDia: number, aplicarParaTodos: boolean) => {
+    if (mesDetalheDiario == null) return;
+    if (aplicarParaTodos) {
+      setDiaDoAporte(novoDia);
+      saveDraft({ diaDoAporte: novoDia } as any);
+      toast.success(`Dia ${novoDia} definido como padrão para os aportes.`);
+    } else {
+      setDiaDoAporteMes(mesDetalheDiario, novoDia);
+      const nextMap = { ...(diasDoAportePorMes || {}), [mesDetalheDiario]: novoDia };
+      saveDraft({ diasDoAportePorMes: nextMap } as any);
+      toast.success(`Aporte do Mês ${mesDetalheDiario} configurado para o dia ${novoDia}.`);
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -416,6 +441,19 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                             </span>
                           )}
                         </span>
+                        {!isZero && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMesDetalheDiario(r.mes);
+                            }}
+                            className="p-1 rounded-md text-muted-foreground/50 hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                            title={`Ver dia a dia do Mês ${r.mes}`}
+                          >
+                            <CalendarDays className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </span>
                     </Td>
                     <Td suppressHydrationWarning className="text-muted-foreground text-xs font-normal">
@@ -518,8 +556,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
                     
                     <Td right className="group">
                       {!isZero && (
-                        <RowActions
-                          onOpenModal={(tab) => openModal(r.mes, tab)}
+                        <RowActions 
+                          onOpenModal={(tab) => openModal(r.mes, tab)} 
+                          onOpenDetalheDiario={() => setMesDetalheDiario(r.mes)}
                         />
                       )}
                     </Td>
@@ -582,6 +621,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           initialTab={modalInitialTab}
           focusPessoaId={modalFocusPessoaId}
           showFinancials={showFinancials}
+          onOpenDetalheDiario={() => setMesDetalheDiario(selectedRow.mes)}
           onSaveAportes={handleSaveAportes}
           onAddExtra={handleAddExtra}
           onEditExtra={handleEditExtra}
@@ -589,6 +629,32 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({ showFinancials 
           onSaveAcumulado={handleSaveAcumulado}
         />
       )}
+
+      {/* Modal de Evolução Diária do Mês */}
+      {mesDetalheDiario != null && (() => {
+        const row = displayRows.find(x => x.mes === mesDetalheDiario);
+        if (!row) return null;
+        const prevRow = displayRows.find(x => x.mes === mesDetalheDiario - 1);
+        const saldoInicialMes = prevRow ? prevRow.saldoAcumulado : (Number(sim?.valorJaGuardado) || 0);
+        const rowExtras = (aportesExtras || []).filter(e => e?.data && row?.data && e.data.startsWith(row.data.split("T")[0]));
+        const diaAporteConfig = diasDoAportePorMes[mesDetalheDiario] ?? diaDoAporte ?? 5;
+
+        return (
+          <DetalheMesDiarioModal
+            isOpen={true}
+            onClose={() => setMesDetalheDiario(null)}
+            mes={row.mes}
+            dataReferencia={row.data}
+            saldoInicialMes={saldoInicialMes}
+            aporteRegular={row.aporteRegular}
+            aportesExtras={rowExtras}
+            taxaCdiAnual={taxaCdiAnual}
+            tipoInvestimento={tipoInvestimento}
+            diaAporteInicial={diaAporteConfig}
+            onSalvarDiaAporte={handleSalvarDiaAporte}
+          />
+        );
+      })()}
 
       {/* Modal de Confirmação de Exclusão de Aporte Extra */}
       {extraParaExcluir && typeof document !== "undefined" && createPortal(

@@ -258,6 +258,143 @@ export function gerarMarcosEvolucaoDiaria(
   });
 }
 
+export type EvolucaoDiaItem = {
+  dia: number;
+  dataISO: string;
+  diaSemana: string;
+  isDiaUtil: boolean;
+  saldoInicial: number;
+  aporteRegular: number;
+  aportesExtras: number;
+  detalhesExtras: Array<{ origem: string; valor: number; pessoaNome?: string }>;
+  totalAportesDoDia: number;
+  saldoAposAporte: number;
+  rendimentoDoDia: number;
+  saldoFinal: number;
+  isDiaAporteRegular: boolean;
+};
+
+export type EvolucaoMesResultado = {
+  ano: number;
+  mes: number;
+  nomeMes: string;
+  saldoInicialMes: number;
+  totalAporteRegular: number;
+  totalAportesExtras: number;
+  totalAportesMes: number;
+  totalRendimentoMes: number;
+  saldoFinalMes: number;
+  diasUteisTotais: number;
+  diaAporteConfigurado: number;
+  dias: EvolucaoDiaItem[];
+};
+
+/**
+ * Calcula a evolução detalhada dia a dia de um mês específico,
+ * considerando a data exata em que o aporte regular cai e eventuais aportes extras.
+ */
+export function calcularEvolucaoDiariaDoMes(params: {
+  dataReferencia: string | Date;
+  saldoInicialMes: number;
+  aporteRegular: number;
+  diaAporteRegular?: number;
+  aportesExtras?: Array<{ data?: string; valor: number; origem?: string; pessoaNome?: string }>;
+  taxaCdiAnual: number;
+  tipoInvestimento?: string;
+}): EvolucaoMesResultado {
+  const dRef = typeof params.dataReferencia === "string" 
+    ? new Date(params.dataReferencia.includes("T") ? params.dataReferencia : `${params.dataReferencia}T12:00:00Z`)
+    : new Date(params.dataReferencia);
+
+  const ano = dRef.getUTCFullYear() || new Date().getUTCFullYear();
+  const mesIndex = !Number.isNaN(dRef.getUTCMonth()) ? dRef.getUTCMonth() : new Date().getUTCMonth();
+  const mesNum = mesIndex + 1;
+
+  const diasNoMes = new Date(Date.UTC(ano, mesNum, 0)).getUTCDate();
+  const diaAporteConfigurado = Math.min(Math.max(1, params.diaAporteRegular ?? 5), diasNoMes);
+
+  const diasSemanaNomes = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const mesesNomes = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+
+  const taxaDiaria = taxaDiariaEfetivaPorTipoInvestimento(params.taxaCdiAnual, params.tipoInvestimento);
+
+  let saldoAtual = Math.max(0, params.saldoInicialMes || 0);
+  let totalRendimentoMes = 0;
+  let totalAportesExtrasMes = 0;
+  let diasUteisTotais = 0;
+
+  const dias: EvolucaoDiaItem[] = [];
+
+  for (let dia = 1; dia <= diasNoMes; dia++) {
+    const dataDia = new Date(Date.UTC(ano, mesIndex, dia, 12, 0, 0));
+    const diaSemanaIdx = dataDia.getUTCDay();
+    const diaSemana = diasSemanaNomes[diaSemanaIdx];
+    const isDiaUtil = diaSemanaIdx >= 1 && diaSemanaIdx <= 5;
+    if (isDiaUtil) diasUteisTotais++;
+
+    const diaIso = `${ano}-${String(mesNum).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+    const isDiaAporteRegular = dia === diaAporteConfigurado;
+    const aporteReg = isDiaAporteRegular ? Math.max(0, params.aporteRegular || 0) : 0;
+
+    const extrasDesteDia = (params.aportesExtras || []).filter(e => {
+      if (!e.data) return false;
+      const iso = e.data.split("T")[0];
+      return iso === diaIso || iso.endsWith(`-${String(dia).padStart(2, "0")}`);
+    });
+
+    const somaExtrasDia = extrasDesteDia.reduce((s, e) => s + (Number(e.valor) || 0), 0);
+    totalAportesExtrasMes += somaExtrasDia;
+
+    const totalAportesDoDia = aporteReg + somaExtrasDia;
+    const saldoInicial = saldoAtual;
+    const saldoAposAporte = saldoInicial + totalAportesDoDia;
+
+    const rendimentoDoDia = isDiaUtil && saldoAposAporte > 0 ? saldoAposAporte * taxaDiaria : 0;
+    totalRendimentoMes += rendimentoDoDia;
+
+    const saldoFinal = saldoAposAporte + rendimentoDoDia;
+    saldoAtual = saldoFinal;
+
+    dias.push({
+      dia,
+      dataISO: diaIso,
+      diaSemana,
+      isDiaUtil,
+      saldoInicial,
+      aporteRegular: aporteReg,
+      aportesExtras: somaExtrasDia,
+      detalhesExtras: extrasDesteDia.map(e => ({
+        origem: e.origem || "Aporte Extra",
+        valor: Number(e.valor) || 0,
+        pessoaNome: e.pessoaNome,
+      })),
+      totalAportesDoDia,
+      saldoAposAporte,
+      rendimentoDoDia,
+      saldoFinal,
+      isDiaAporteRegular,
+    });
+  }
+
+  return {
+    ano,
+    mes: mesNum,
+    nomeMes: `${mesesNomes[mesIndex]}/${ano}`,
+    saldoInicialMes: params.saldoInicialMes,
+    totalAporteRegular: params.aporteRegular,
+    totalAportesExtras: totalAportesExtrasMes,
+    totalAportesMes: params.aporteRegular + totalAportesExtrasMes,
+    totalRendimentoMes,
+    saldoFinalMes: saldoAtual,
+    diasUteisTotais,
+    diaAporteConfigurado,
+    dias,
+  };
+}
+
 export function rendimentoEstimadoMensal(valor: number, taxaCdiAnual: number, tipo?: string) {
   return valor * taxaMensalEfetivaPorTipoInvestimento(taxaCdiAnual, tipo);
 }
