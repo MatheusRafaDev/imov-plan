@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Wallet, Sparkles, RefreshCw, Check, ArrowRight } from "lucide-react";
+import { X, Wallet, Sparkles, RefreshCw, Check } from "lucide-react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Button } from "@/components/ui/button";
@@ -18,22 +18,28 @@ export function AtualizarSaldoGuardadoModal({
   isOpen,
   onClose,
 }: AtualizarSaldoGuardadoModalProps) {
+  if (!isOpen || typeof document === "undefined") return null;
+
+  return <AtualizarSaldoGuardadoModalContent onClose={onClose} />;
+}
+
+function AtualizarSaldoGuardadoModalContent({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
   const { pessoas, salvarPlano, calcularBackend, progressoAtualPorPessoa, objetivo } = usePlanLogic();
   const [salvando, setSalvando] = useState(false);
 
-  // Mapeamento local dos saldos por pessoa para edição confortável e sem travamentos
-  const [valores, setValores] = useState<Record<string, number | "">>({});
-
-  // Inicializa os valores toda vez que o modal abre
-  useEffect(() => {
-    if (!isOpen) return;
+  // Mapeamento local dos saldos por pessoa inicializado sincronicamente ao montar o modal
+  const [valores, setValores] = useState<Record<string, number | "">>(() => {
     const initialMap: Record<string, number | ""> = {};
     pessoas.forEach((p) => {
       const saldoP = progressoAtualPorPessoa[p.id] ?? Number(p.valorAtual ?? p.valorInicial ?? 0);
       initialMap[p.id] = saldoP;
     });
-    setValores(initialMap);
-  }, [isOpen, pessoas, progressoAtualPorPessoa]);
+    return initialMap;
+  });
 
   const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
 
@@ -54,8 +60,6 @@ export function AtualizarSaldoGuardadoModal({
     const perc = meta > 0 ? Math.min(100, (soma / meta) * 100) : 0;
     return { somaTotal: soma, totalRendimentoMensal: rendimento, progressoPercent: perc };
   }, [pessoas, valores, taxaCdiAnual, meta]);
-
-  if (!isOpen || typeof document === "undefined") return null;
 
   const handleMudarValor = (pessoaId: string, novoValor: number | "") => {
     setValores((prev) => ({

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useSaveDraft, usePlanDraft } from '@/hooks/usePlanDraft';
 import { useCalcularSimulacao, useUltimaSimulacao } from '@/hooks/useSimulacao';
@@ -201,140 +202,144 @@ export function usePlanLogic() {
   };
 
   // Calcula o progresso atual com base no saldo do dia de hoje (evolução diária) ou meses concluídos
-  let progressoAtual = Number(state.objetivo?.valorJaGuardado || 0);
-  const progressoAtualPorPessoa: Record<string, number> = {};
-  const taxaCdiAnual = Number(state.objetivo?.taxaCdiAnual ?? 10.5);
-  const tipoInvestimento = state.objetivo?.tipoInvestimento ?? "cdb_100";
-  
-  state.pessoas.forEach(p => {
-    const valorBase = Number(p.valorAtual ?? p.valorInicial ?? 0);
-    const evolucao = p.dataValorAtual
-      ? calcularEvolucaoDiariaAteHoje(valorBase, p.dataValorAtual, taxaCdiAnual, p.tipoInvestimento).saldoAtualizado
-      : valorBase;
-    progressoAtualPorPessoa[p.id] = evolucao;
-  });
-
-  const somaPessoasGuardado = state.pessoas.reduce(
-    (acc, p) => acc + Number(progressoAtualPorPessoa[p.id] || 0),
-    0
-  );
-  if (somaPessoasGuardado > 0) {
-    progressoAtual = Math.max(progressoAtual, somaPessoasGuardado);
-  }
-
-  // Sincroniza com a evolução diária do mês em andamento para refletir exatamente o saldo do dia atual (ex: dia 16)
-  if (simulacaoData?.detalhesMensais && simulacaoData.detalhesMensais.length > 0) {
-    const hoje = new Date();
-    const hojeAno = hoje.getFullYear();
-    const hojeMes = hoje.getMonth() + 1; // 1-12
-    const diaHoje = hoje.getDate();
-
-    // Localiza o mês ativo pelo calendário atual ou primeiro mês da simulação
-    let rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => {
-      try {
-        const d = new Date(r.dataReferencia);
-        return d.getUTCFullYear() === hojeAno && (d.getUTCMonth() + 1) === hojeMes;
-      } catch {
-        return false;
-      }
+  const { progressoAtual, progressoAtualPorPessoa } = useMemo(() => {
+    let pAtual = Number(state.objetivo?.valorJaGuardado || 0);
+    const pPorPessoa: Record<string, number> = {};
+    const taxaCdiAnual = Number(state.objetivo?.taxaCdiAnual ?? 10.5);
+    const tipoInvestimento = state.objetivo?.tipoInvestimento ?? "cdb_100";
+    
+    state.pessoas.forEach(p => {
+      const valorBase = Number(p.valorAtual ?? p.valorInicial ?? 0);
+      const evolucao = p.dataValorAtual
+        ? calcularEvolucaoDiariaAteHoje(valorBase, p.dataValorAtual, taxaCdiAnual, p.tipoInvestimento).saldoAtualizado
+        : valorBase;
+      pPorPessoa[p.id] = evolucao;
     });
 
-    if (!rowMesAtual) {
-      if (state.mesesConcluidos.length === 0) {
-        rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => r.mes === 1) || simulacaoData.detalhesMensais[0];
-      } else {
-        const proxMes = Math.max(...state.mesesConcluidos) + 1;
-        rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => r.mes === proxMes) || simulacaoData.detalhesMensais[simulacaoData.detalhesMensais.length - 1];
-      }
+    const somaPessoasGuardado = state.pessoas.reduce(
+      (acc, p) => acc + Number(pPorPessoa[p.id] || 0),
+      0
+    );
+    if (somaPessoasGuardado > 0) {
+      pAtual = Math.max(pAtual, somaPessoasGuardado);
     }
 
-    if (rowMesAtual) {
-      const prevRow = simulacaoData.detalhesMensais.find((x: any) => x.mes === rowMesAtual.mes - 1);
-      const saldoInicialMes = prevRow 
-        ? Number(prevRow.totalAcumulado || 0) 
-        : (Number(simulacaoData.valorJaGuardado || state.objetivo?.valorJaGuardado || somaPessoasGuardado) || 0);
+    // Sincroniza com a evolução diária do mês em andamento para refletir exatamente o saldo do dia atual (ex: dia 16)
+    if (simulacaoData?.detalhesMensais && simulacaoData.detalhesMensais.length > 0) {
+      const hoje = new Date();
+      const hojeAno = hoje.getFullYear();
+      const hojeMes = hoje.getMonth() + 1; // 1-12
+      const diaHoje = hoje.getDate();
 
-      const rowExtras = (state.aportesExtras || []).filter(e => {
-        if (!e?.data || !rowMesAtual.dataReferencia) return false;
+      // Localiza o mês ativo pelo calendário atual ou primeiro mês da simulação
+      let rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => {
         try {
-          const dExtra = new Date(e.data);
-          const dRow = new Date(rowMesAtual.dataReferencia);
-          return dExtra.getUTCFullYear() === dRow.getUTCFullYear() && dExtra.getUTCMonth() === dRow.getUTCMonth();
+          const d = new Date(r.dataReferencia);
+          return d.getUTCFullYear() === hojeAno && (d.getUTCMonth() + 1) === hojeMes;
         } catch {
           return false;
         }
       });
 
-      const diaAporteConfig = state.diasDoAportePorMes?.[rowMesAtual.mes] ?? state.diaDoAporte ?? 5;
+      if (!rowMesAtual) {
+        if (state.mesesConcluidos.length === 0) {
+          rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => r.mes === 1) || simulacaoData.detalhesMensais[0];
+        } else {
+          const proxMes = Math.max(...state.mesesConcluidos) + 1;
+          rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => r.mes === proxMes) || simulacaoData.detalhesMensais[simulacaoData.detalhesMensais.length - 1];
+        }
+      }
 
-      const aportesParticipantes = state.pessoas.map(p => {
-        const partRow = (rowMesAtual.participantes || []).find((part: any) => part.participanteId === p.id);
-        const valorAporte = partRow ? Number(partRow.aporteMensal || 0) : Number(p.aporte_mensal || 0);
-        const diaPessoa = p.diaAporte ?? diaAporteConfig;
-        return {
-          pessoaId: p.id,
-          pessoaNome: p.nome,
-          valor: valorAporte,
-          diaAporte: diaPessoa,
-        };
-      });
+      if (rowMesAtual) {
+        const prevRow = simulacaoData.detalhesMensais.find((x: any) => x.mes === rowMesAtual.mes - 1);
+        const saldoInicialMes = prevRow 
+          ? Number(prevRow.totalAcumulado || 0) 
+          : (Number(simulacaoData.valorJaGuardado || state.objetivo?.valorJaGuardado || somaPessoasGuardado) || 0);
 
-      const evolucaoMes = calcularEvolucaoDiariaDoMes({
-        dataReferencia: rowMesAtual.dataReferencia,
-        saldoInicialMes,
-        aporteRegular: Number(rowMesAtual.aporteMensal || 0),
-        diaAporteRegular: diaAporteConfig,
-        aportesParticipantes,
-        aportesExtras: rowExtras,
-        taxaCdiAnual,
-        tipoInvestimento,
-      });
+        const rowExtras = (state.aportesExtras || []).filter(e => {
+          if (!e?.data || !rowMesAtual.dataReferencia) return false;
+          try {
+            const dExtra = new Date(e.data);
+            const dRow = new Date(rowMesAtual.dataReferencia);
+            return dExtra.getUTCFullYear() === dRow.getUTCFullYear() && dExtra.getUTCMonth() === dRow.getUTCMonth();
+          } catch {
+            return false;
+          }
+        });
 
-      const diaCorrespondente = evolucaoMes.dias.find(d => d.dia === diaHoje) || evolucaoMes.dias[evolucaoMes.dias.length - 1];
+        const diaAporteConfig = state.diasDoAportePorMes?.[rowMesAtual.mes] ?? state.diaDoAporte ?? 5;
 
-      if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
-        progressoAtual = diaCorrespondente.saldoFinal;
+        const aportesParticipantes = state.pessoas.map(p => {
+          const partRow = (rowMesAtual.participantes || []).find((part: any) => part.participanteId === p.id);
+          const valorAporte = partRow ? Number(partRow.aporteMensal || 0) : Number(p.aporte_mensal || 0);
+          const diaPessoa = p.diaAporte ?? diaAporteConfig;
+          return {
+            pessoaId: p.id,
+            pessoaNome: p.nome,
+            valor: valorAporte,
+            diaAporte: diaPessoa,
+          };
+        });
 
-        // Distribui proporcionalmente o saldo de fechamento do dia atual entre os participantes respeitando o dia de cada um
-        const totalBase = (rowMesAtual.participantes || []).reduce((acc: number, part: any) => {
-          const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
-          const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(progressoAtualPorPessoa[part.participanteId] || 0);
-          const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
-          const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
-          const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
-          return acc + inicialPart + aportePart;
-        }, 0);
+        const evolucaoMes = calcularEvolucaoDiariaDoMes({
+          dataReferencia: rowMesAtual.dataReferencia,
+          saldoInicialMes,
+          aporteRegular: Number(rowMesAtual.aporteMensal || 0),
+          diaAporteRegular: diaAporteConfig,
+          aportesParticipantes,
+          aportesExtras: rowExtras,
+          taxaCdiAnual,
+          tipoInvestimento,
+        });
 
-        const rendimentoAteHoje = diaCorrespondente.rendimentoAcumuladoAteDia || 0;
+        const diaCorrespondente = evolucaoMes.dias.find(d => d.dia === diaHoje) || evolucaoMes.dias[evolucaoMes.dias.length - 1];
 
-        (rowMesAtual.participantes || []).forEach((part: any) => {
-          const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
-          const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(progressoAtualPorPessoa[part.participanteId] || 0);
-          const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
-          const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
-          const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
-          const basePart = inicialPart + aportePart;
+        if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
+          pAtual = diaCorrespondente.saldoFinal;
 
-          const proporcao = totalBase > 0 ? (basePart / totalBase) : (1 / (rowMesAtual.participantes.length || 1));
-          const rendimentoPart = rendimentoAteHoje * proporcao;
+          // Distribui proporcionalmente o saldo de fechamento do dia atual entre os participantes respeitando o dia de cada um
+          const totalBase = (rowMesAtual.participantes || []).reduce((acc: number, part: any) => {
+            const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
+            const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(pPorPessoa[part.participanteId] || 0);
+            const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
+            const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
+            const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
+            return acc + inicialPart + aportePart;
+          }, 0);
 
-          progressoAtualPorPessoa[part.participanteId] = Number((basePart + rendimentoPart).toFixed(2));
+          const rendimentoAteHoje = diaCorrespondente.rendimentoAcumuladoAteDia || 0;
+
+          (rowMesAtual.participantes || []).forEach((part: any) => {
+            const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
+            const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(pPorPessoa[part.participanteId] || 0);
+            const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
+            const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
+            const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
+            const basePart = inicialPart + aportePart;
+
+            const proporcao = totalBase > 0 ? (basePart / totalBase) : (1 / (rowMesAtual.participantes.length || 1));
+            const rendimentoPart = rendimentoAteHoje * proporcao;
+
+            pPorPessoa[part.participanteId] = Number((basePart + rendimentoPart).toFixed(2));
+          });
+        }
+      }
+    }
+
+    // Se houver meses marcados manualmente como concluídos além do mês atual, prevalece o fechamento do último mês concluído
+    if (state.mesesConcluidos.length > 0 && simulacaoData?.detalhesMensais) {
+      const ultimoMes = Math.max(...state.mesesConcluidos);
+      const row = simulacaoData.detalhesMensais.find((r: any) => r.mes === ultimoMes);
+      if (row && (!pAtual || row.totalAcumulado > pAtual)) {
+        pAtual = row.totalAcumulado;
+        (row.participantes || []).forEach((p: any) => {
+          pPorPessoa[p.participanteId] = p.saldo;
         });
       }
     }
-  }
 
-  // Se houver meses marcados manualmente como concluídos além do mês atual, prevalece o fechamento do último mês concluído
-  if (state.mesesConcluidos.length > 0 && simulacaoData?.detalhesMensais) {
-    const ultimoMes = Math.max(...state.mesesConcluidos);
-    const row = simulacaoData.detalhesMensais.find((r: any) => r.mes === ultimoMes);
-    if (row && (!progressoAtual || row.totalAcumulado > progressoAtual)) {
-      progressoAtual = row.totalAcumulado;
-      (row.participantes || []).forEach((p: any) => {
-        progressoAtualPorPessoa[p.participanteId] = p.saldo;
-      });
-    }
-  }
+    return { progressoAtual: pAtual, progressoAtualPorPessoa: pPorPessoa };
+  }, [state.objetivo, state.pessoas, state.mesesConcluidos, state.aportesExtras, state.diasDoAportePorMes, state.diaDoAporte, simulacaoData]);
 
   return {
     ...state,
