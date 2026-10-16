@@ -82,6 +82,7 @@ export function usePlanDraft(planoId: string | null) {
             usar_gastos_detalhados: p.usar_gastos_detalhados,
             gastos_detalhados: p.gastos_detalhados || [],
             aporte_mensal: p.aporte_mensal,
+            diaAporte: p.diaAporte !== undefined && p.diaAporte !== null ? Number(p.diaAporte) : 5,
             valorInicial: p.valorInicial,
             tipoInvestimento: p.tipoInvestimento,
             valorAtual: p.valorAtual ?? null,
@@ -99,6 +100,9 @@ export function usePlanDraft(planoId: string | null) {
           aportesRegularesEditados: draftData.aportesRegularesEditados || {},
           aportesRegularesEditadosPorPessoa: draftData.aportesRegularesEditadosPorPessoa || {},
           mesesConcluidos: draftData.mesesConcluidos || [],
+          diaDoAporte: draftData.pessoas?.[0]?.diaAporte !== undefined && draftData.pessoas?.[0]?.diaAporte !== null
+            ? Number(draftData.pessoas[0].diaAporte)
+            : 5,
         };
         
         // Hydrate store

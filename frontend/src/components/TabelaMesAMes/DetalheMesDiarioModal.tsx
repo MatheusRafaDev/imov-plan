@@ -17,6 +17,8 @@ import {
   type EvolucaoMesResultado 
 } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
+import { getBrasiliaToday } from "@/utils/dates";
+
 
 export interface DetalheMesDiarioModalProps {
   isOpen: boolean;
@@ -69,25 +71,37 @@ export function DetalheMesDiarioModal({
     return map;
   });
 
-  // Detecta se este modal corresponde ao mês atual do calendário para dar destaque ao dia de hoje
-  const hoje = useMemo(() => new Date(), []);
+  // Detecta se este modal corresponde ao mês atual do calendário oficial de Brasília para destacar o dia de hoje
   const { isMesAtual, diaHoje } = useMemo(() => {
     try {
+      const { ano: hojeAno, mes: hojeMes, dia } = getBrasiliaToday();
+      if (!dataReferencia) return { isMesAtual: false, diaHoje: dia };
+
+      const match = String(dataReferencia).match(/^(\d{4})-(\d{2})/);
+      if (match) {
+        const refAno = parseInt(match[1], 10);
+        const refMes = parseInt(match[2], 10);
+        return { isMesAtual: refAno === hojeAno && refMes === hojeMes, diaHoje: dia };
+      }
+
       const dRef = new Date(dataReferencia);
       const refAno = dRef.getUTCFullYear();
-      const refMes = dRef.getUTCMonth();
-      const hojeAno = hoje.getFullYear();
-      const hojeMes = hoje.getMonth();
-      const isAtual = refAno === hojeAno && refMes === hojeMes;
-      return { isMesAtual: isAtual, diaHoje: hoje.getDate() };
+      const refMes = dRef.getUTCMonth() + 1;
+      return { isMesAtual: refAno === hojeAno && refMes === hojeMes, diaHoje: dia };
     } catch {
-      return { isMesAtual: false, diaHoje: hoje.getDate() };
+      return { isMesAtual: false, diaHoje: getBrasiliaToday().dia };
     }
-  }, [dataReferencia, hoje]);
+  }, [dataReferencia]);
 
   // Calcula os dias do mês para limitar o seletor
   const diasNoMes = useMemo(() => {
     try {
+      const match = String(dataReferencia).match(/^(\d{4})-(\d{2})/);
+      if (match) {
+        const ano = parseInt(match[1], 10);
+        const mesNum = parseInt(match[2], 10);
+        return new Date(Date.UTC(ano, mesNum, 0)).getUTCDate();
+      }
       const dRef = new Date(dataReferencia);
       const ano = dRef.getUTCFullYear() || new Date().getUTCFullYear();
       const mesNum = (dRef.getUTCMonth() || 0) + 1;
@@ -297,7 +311,17 @@ export function DetalheMesDiarioModal({
                             min={1}
                             max={diasNoMes}
                             value={diaAtualPessoa}
-                            onChange={(e) => handleMudarDiaPessoa(p.id, Number(e.target.value) || 1)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "") return;
+                              const num = Math.min(diasNoMes, Math.max(1, Number(val)));
+                              handleMudarDiaPessoa(p.id, num);
+                            }}
+                            onBlur={(e) => {
+                              if (!e.target.value) {
+                                handleMudarDiaPessoa(p.id, 5);
+                              }
+                            }}
                             className="w-12 h-7 px-1 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
                           />
                         </div>
@@ -332,7 +356,17 @@ export function DetalheMesDiarioModal({
                     min={1}
                     max={diasNoMes}
                     value={diaAporte}
-                    onChange={(e) => handleMudarDia(Number(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "") return;
+                      const num = Math.min(diasNoMes, Math.max(1, Number(val)));
+                      handleMudarDia(num);
+                    }}
+                    onBlur={(e) => {
+                      if (!e.target.value) {
+                        handleMudarDia(5);
+                      }
+                    }}
                     className="w-14 h-8 px-2 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
                   />
                 </div>

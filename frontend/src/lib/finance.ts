@@ -316,12 +316,22 @@ export function calcularEvolucaoDiariaDoMes(params: {
   taxaCdiAnual: number;
   tipoInvestimento?: string;
 }): EvolucaoMesResultado {
-  const dRef = typeof params.dataReferencia === "string" 
-    ? new Date(params.dataReferencia.includes("T") ? params.dataReferencia : `${params.dataReferencia}T12:00:00Z`)
-    : new Date(params.dataReferencia);
-
-  const ano = dRef.getUTCFullYear() || new Date().getUTCFullYear();
-  const mesIndex = !Number.isNaN(dRef.getUTCMonth()) ? dRef.getUTCMonth() : new Date().getUTCMonth();
+  let ano = 0;
+  let mesIndex = 0;
+  if (typeof params.dataReferencia === "string") {
+    const match = params.dataReferencia.match(/^(\d{4})-(\d{2})/);
+    if (match) {
+      ano = parseInt(match[1], 10);
+      mesIndex = parseInt(match[2], 10) - 1;
+    }
+  }
+  if (!ano || Number.isNaN(mesIndex) || mesIndex < 0) {
+    const dRef = typeof params.dataReferencia === "string" 
+      ? new Date(params.dataReferencia.includes("T") ? params.dataReferencia : `${params.dataReferencia}T12:00:00Z`)
+      : new Date(params.dataReferencia);
+    ano = dRef.getUTCFullYear() || new Date().getUTCFullYear();
+    mesIndex = !Number.isNaN(dRef.getUTCMonth()) ? dRef.getUTCMonth() : new Date().getUTCMonth();
+  }
   const mesNum = mesIndex + 1;
 
   const diasNoMes = new Date(Date.UTC(ano, mesNum, 0)).getUTCDate();

@@ -51,7 +51,7 @@ const initialState = {
   aportesExtras: [],
   bancoEscolhido: null,
   cenario: "entrada" as CenarioCompra,
-  cenarioSimulacao: "otimista" as CenarioSimulacao,
+  cenarioSimulacao: "realista" as CenarioSimulacao,
   aportesRegularesEditados: {},
   aportesRegularesEditadosPorPessoa: {},
   mesesConcluidos: [],
@@ -103,7 +103,7 @@ export const usePlanStore = create<PlanState>()(
     }),
     {
       name: 'imovplan-storage',
-      partialize: (state) => ({ planoId: state.planoId }), // Salva apenas o planoId
+      partialize: (state) => ({ planoId: state.planoId, cenarioSimulacao: state.cenarioSimulacao }),
     }
   )
 );

@@ -530,7 +530,7 @@ export default function AuthPage() {
             {/* Primary Action Button */}
             <Button
               type="submit"
-              className="w-full mt-1 h-9 sm:h-9.5 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow text-xs sm:text-sm font-semibold rounded-lg cursor-pointer transition-all duration-200"
+              className="w-full mt-1 h-9 sm:h-9.5 bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-sm hover:shadow-md text-xs sm:text-sm font-semibold rounded-lg cursor-pointer transition-all duration-200"
               disabled={loading}
             >
               {loading ? (
@@ -545,12 +545,12 @@ export default function AuthPage() {
           </form>
 
           {/* Divider */}
-          <div className="relative my-3 sm:my-3.5">
+          <div className="relative my-3.5 sm:my-4">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-border/60" />
             </div>
-            <div className="relative flex justify-center text-[11px] uppercase">
-              <span className="bg-card px-2.5 text-muted-foreground font-medium">OU</span>
+            <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+              <span className="bg-card px-3 text-muted-foreground/80 font-medium select-none">OU</span>
             </div>
           </div>
 

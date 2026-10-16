@@ -4,6 +4,8 @@ import { useSaveDraft, usePlanDraft } from '@/hooks/usePlanDraft';
 import { useCalcularSimulacao, useUltimaSimulacao } from '@/hooks/useSimulacao';
 import { useDebouncedCallback } from 'use-debounce';
 import { calcularEvolucaoDiariaAteHoje, calcularEvolucaoDiariaDoMes } from '@/lib/finance';
+import { getBrasiliaToday } from '@/utils/dates';
+
 
 // Fila global para serializar requisições de salvamento e evitar concorrência
 let globalSaveQueue: Promise<any> = Promise.resolve();
@@ -205,9 +207,11 @@ export function usePlanLogic() {
   const { progressoAtual, progressoAtualPorPessoa } = useMemo(() => {
     let pAtual = Number(state.objetivo?.valorJaGuardado || 0);
     const pPorPessoa: Record<string, number> = {};
-    const taxaCdiAnual = Number(state.objetivo?.taxaCdiAnual ?? 10.5);
+    const taxaCdiAnual = Number(simulacaoData?.taxaCdiAnual || state.objetivo?.taxaCdiAnual || 10.5);
     const tipoInvestimento = state.objetivo?.tipoInvestimento ?? "cdb_100";
     
+    const { ano: hojeAno, mes: hojeMes, dia: diaHoje } = getBrasiliaToday();
+
     state.pessoas.forEach(p => {
       const valorBase = Number(p.valorAtual ?? p.valorInicial ?? 0);
       const evolucao = p.dataValorAtual
@@ -224,44 +228,59 @@ export function usePlanLogic() {
       pAtual = Math.max(pAtual, somaPessoasGuardado);
     }
 
-    // Sincroniza com a evolução diária do mês em andamento para refletir exatamente o saldo do dia atual (ex: dia 16)
-    if (simulacaoData?.detalhesMensais && simulacaoData.detalhesMensais.length > 0) {
-      const hoje = new Date();
-      const hojeAno = hoje.getFullYear();
-      const hojeMes = hoje.getMonth() + 1; // 1-12
-      const diaHoje = hoje.getDate();
+    let rowMesAtual: any = null;
 
-      // Localiza o mês ativo pelo calendário atual ou primeiro mês da simulação
-      let rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => {
-        try {
-          const d = new Date(r.dataReferencia);
-          return d.getUTCFullYear() === hojeAno && (d.getUTCMonth() + 1) === hojeMes;
-        } catch {
-          return false;
+    // Sincroniza com a evolução diária do mês em andamento para refletir exatamente o saldo do dia atual (ex: dia 16).
+    // IMPORTANTE: detalhesMensais[0] é sempre o Mês 0 ("Início", marco zero sem aportes regulares).
+    // Os meses em andamento de acumulação e aportes são sempre meses de evolução com mes >= 1.
+    const mesesEvolucao = (simulacaoData?.detalhesMensais || []).filter((r: any) => r.mes > 0);
+
+    if (mesesEvolucao.length > 0) {
+      // 1. Tenta localizar pelo mês do calendário oficial de Brasília (evita divergência de fuso horário)
+      rowMesAtual = mesesEvolucao.find((r: any) => {
+        if (!r.dataReferencia) return false;
+        const match = String(r.dataReferencia).match(/^(\d{4})-(\d{2})/);
+        if (match) {
+          const refAno = parseInt(match[1], 10);
+          const refMes = parseInt(match[2], 10);
+          return refAno === hojeAno && refMes === hojeMes;
         }
+        return false;
       });
 
+      // 2. Se não casar por calendário, usa a lógica de meses concluídos ou primeiro mês
       if (!rowMesAtual) {
         if (state.mesesConcluidos.length === 0) {
-          rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => r.mes === 1) || simulacaoData.detalhesMensais[0];
+          rowMesAtual = mesesEvolucao[0];
         } else {
           const proxMes = Math.max(...state.mesesConcluidos) + 1;
-          rowMesAtual = simulacaoData.detalhesMensais.find((r: any) => r.mes === proxMes) || simulacaoData.detalhesMensais[simulacaoData.detalhesMensais.length - 1];
+          rowMesAtual = mesesEvolucao.find((r: any) => r.mes === proxMes) || mesesEvolucao[mesesEvolucao.length - 1];
         }
       }
 
       if (rowMesAtual) {
-        const prevRow = simulacaoData.detalhesMensais.find((x: any) => x.mes === rowMesAtual.mes - 1);
+        const prevRow = simulacaoData?.detalhesMensais?.find((x: any) => x.mes === rowMesAtual.mes - 1);
         const saldoInicialMes = prevRow 
           ? Number(prevRow.totalAcumulado || 0) 
-          : (Number(simulacaoData.valorJaGuardado || state.objetivo?.valorJaGuardado || somaPessoasGuardado) || 0);
+          : (Number(simulacaoData?.valorJaGuardado || state.objetivo?.valorJaGuardado || somaPessoasGuardado) || 0);
+
+        const saldosIniciaisPorPessoa: Record<string, number> = {};
+        state.pessoas.forEach(p => {
+          const prevPart = prevRow?.participantes?.find((part: any) => (part.participanteId || part.id) === p.id);
+          saldosIniciaisPorPessoa[p.id] = prevPart 
+            ? Number(prevPart.saldo || 0) 
+            : Number(p.valorInicial ?? p.valorAtual ?? 0);
+        });
 
         const rowExtras = (state.aportesExtras || []).filter(e => {
           if (!e?.data || !rowMesAtual.dataReferencia) return false;
           try {
-            const dExtra = new Date(e.data);
-            const dRow = new Date(rowMesAtual.dataReferencia);
-            return dExtra.getUTCFullYear() === dRow.getUTCFullYear() && dExtra.getUTCMonth() === dRow.getUTCMonth();
+            const extraMatch = String(e.data).match(/^(\d{4})-(\d{2})/);
+            const rowMatch = String(rowMesAtual.dataReferencia).match(/^(\d{4})-(\d{2})/);
+            if (extraMatch && rowMatch) {
+              return extraMatch[1] === rowMatch[1] && extraMatch[2] === rowMatch[2];
+            }
+            return e.data.startsWith(rowMesAtual.dataReferencia.split("T")[0]);
           } catch {
             return false;
           }
@@ -270,7 +289,7 @@ export function usePlanLogic() {
         const diaAporteConfig = state.diasDoAportePorMes?.[rowMesAtual.mes] ?? state.diaDoAporte ?? 5;
 
         const aportesParticipantes = state.pessoas.map(p => {
-          const partRow = (rowMesAtual.participantes || []).find((part: any) => part.participanteId === p.id);
+          const partRow = (rowMesAtual.participantes || []).find((part: any) => (part.participanteId || part.id) === p.id);
           const valorAporte = partRow ? Number(partRow.aporteMensal || 0) : Number(p.aporte_mensal || 0);
           const diaPessoa = p.diaAporte ?? diaAporteConfig;
           return {
@@ -284,6 +303,7 @@ export function usePlanLogic() {
         const evolucaoMes = calcularEvolucaoDiariaDoMes({
           dataReferencia: rowMesAtual.dataReferencia,
           saldoInicialMes,
+          saldosIniciaisPorPessoa,
           aporteRegular: Number(rowMesAtual.aporteMensal || 0),
           diaAporteRegular: diaAporteConfig,
           aportesParticipantes,
@@ -292,49 +312,76 @@ export function usePlanLogic() {
           tipoInvestimento,
         });
 
+        // Seleciona o dia correspondente a hoje (ex: dia 16)
         const diaCorrespondente = evolucaoMes.dias.find(d => d.dia === diaHoje) || evolucaoMes.dias[evolucaoMes.dias.length - 1];
 
-        if (somaPessoasGuardado === 0 && diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
+        if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
           pAtual = diaCorrespondente.saldoFinal;
 
-          // Distribui proporcionalmente o saldo de fechamento do dia atual entre os participantes respeitando o dia de cada um
-          const totalBase = (rowMesAtual.participantes || []).reduce((acc: number, part: any) => {
-            const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
-            const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(pPorPessoa[part.participanteId] || 0);
-            const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
-            const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
-            const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
-            return acc + inicialPart + aportePart;
-          }, 0);
+          if (diaCorrespondente.saldoPorPessoa) {
+            state.pessoas.forEach(p => {
+              if (diaCorrespondente.saldoPorPessoa && diaCorrespondente.saldoPorPessoa[p.id] !== undefined) {
+                pPorPessoa[p.id] = Number(diaCorrespondente.saldoPorPessoa[p.id].toFixed(2));
+              }
+            });
+          }
+        }
+      }
+    } else if (state.pessoas.length > 0) {
+      // Caso a simulação do backend ainda não tenha sido carregada, calcula em tempo real o dia atual
+      const diaAporteConfig = state.diaDoAporte ?? 5;
+      const saldosIniciaisPorPessoa: Record<string, number> = {};
+      state.pessoas.forEach(p => {
+        saldosIniciaisPorPessoa[p.id] = Number(p.valorInicial ?? p.valorAtual ?? 0);
+      });
+      const saldoInicialMes = state.pessoas.reduce((acc, p) => acc + saldosIniciaisPorPessoa[p.id], 0);
 
-          const rendimentoAteHoje = diaCorrespondente.rendimentoAcumuladoAteDia || 0;
+      const aportesParticipantes = state.pessoas.map(p => ({
+        pessoaId: p.id,
+        pessoaNome: p.nome,
+        valor: Number(p.aporte_mensal || 0),
+        diaAporte: p.diaAporte ?? diaAporteConfig,
+      }));
 
-          (rowMesAtual.participantes || []).forEach((part: any) => {
-            const prevPart = prevRow?.participantes?.find((p: any) => p.participanteId === part.participanteId);
-            const inicialPart = prevPart ? Number(prevPart.saldo || 0) : Number(pPorPessoa[part.participanteId] || 0);
-            const pessoaState = state.pessoas.find(p => p.id === part.participanteId);
-            const diaPessoa = pessoaState?.diaAporte ?? diaAporteConfig;
-            const aportePart = diaHoje >= diaPessoa ? Number(part.aporteMensal || 0) : 0;
-            const basePart = inicialPart + aportePart;
+      const dataRef = `${hojeAno}-${String(hojeMes).padStart(2, "0")}-01`;
 
-            const proporcao = totalBase > 0 ? (basePart / totalBase) : (1 / (rowMesAtual.participantes.length || 1));
-            const rendimentoPart = rendimentoAteHoje * proporcao;
+      const evolucaoMes = calcularEvolucaoDiariaDoMes({
+        dataReferencia: dataRef,
+        saldoInicialMes,
+        saldosIniciaisPorPessoa,
+        aporteRegular: aportesParticipantes.reduce((sum, a) => sum + a.valor, 0),
+        diaAporteRegular: diaAporteConfig,
+        aportesParticipantes,
+        aportesExtras: state.aportesExtras || [],
+        taxaCdiAnual,
+        tipoInvestimento,
+      });
 
-            pPorPessoa[part.participanteId] = Number((basePart + rendimentoPart).toFixed(2));
+      const diaCorrespondente = evolucaoMes.dias.find(d => d.dia === diaHoje) || evolucaoMes.dias[evolucaoMes.dias.length - 1];
+      if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
+        pAtual = diaCorrespondente.saldoFinal;
+        if (diaCorrespondente.saldoPorPessoa) {
+          state.pessoas.forEach(p => {
+            if (diaCorrespondente.saldoPorPessoa && diaCorrespondente.saldoPorPessoa[p.id] !== undefined) {
+              pPorPessoa[p.id] = Number(diaCorrespondente.saldoPorPessoa[p.id].toFixed(2));
+            }
           });
         }
       }
     }
 
-    // Se houver meses marcados manualmente como concluídos além do mês atual, prevalece o fechamento do último mês concluído
+    // Se houver meses marcados manualmente como concluídos estritamente posteriores ao mês atual em andamento, prevalece o fechamento do último mês concluído
     if (state.mesesConcluidos.length > 0 && simulacaoData?.detalhesMensais) {
       const ultimoMes = Math.max(...state.mesesConcluidos);
-      const row = simulacaoData.detalhesMensais.find((r: any) => r.mes === ultimoMes);
-      if (row && (!pAtual || row.totalAcumulado > pAtual)) {
-        pAtual = row.totalAcumulado;
-        (row.participantes || []).forEach((p: any) => {
-          pPorPessoa[p.participanteId] = p.saldo;
-        });
+      if (!rowMesAtual || ultimoMes >= rowMesAtual.mes) {
+        const row = simulacaoData.detalhesMensais.find((r: any) => r.mes === ultimoMes);
+        if (row && (!pAtual || row.totalAcumulado > pAtual)) {
+          pAtual = row.totalAcumulado;
+          (row.participantes || []).forEach((p: any) => {
+            const pid = p.participanteId || p.id;
+            if (pid) pPorPessoa[pid] = p.saldo;
+          });
+        }
       }
     }
 

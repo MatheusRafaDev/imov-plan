@@ -294,4 +294,37 @@ describe('finance.ts unit tests', () => {
     // Total de aportes regulares do mês bate 3320
     expect(res.totalAporteRegular).toBe(3320);
   });
+
+  test('calcularEvolucaoDiariaDoMes calcula saldoPorPessoa no dia 16 diferente e anterior ao dia 31', () => {
+    const res = calcularEvolucaoDiariaDoMes({
+      dataReferencia: '2026-10-01',
+      saldoInicialMes: 45000,
+      saldosIniciaisPorPessoa: { 'p1': 27000, 'p2': 18000 },
+      aporteRegular: 300,
+      taxaCdiAnual: 10.5,
+      tipoInvestimento: 'cdb_100',
+      aportesParticipantes: [
+        { pessoaId: 'p1', pessoaNome: 'Pessoa 1', valor: 200, diaAporte: 5 },
+        { pessoaId: 'p2', pessoaNome: 'Pessoa 2', valor: 100, diaAporte: 10 },
+      ],
+    });
+
+    const dia16 = res.dias.find(d => d.dia === 16)!;
+    const dia31 = res.dias.find(d => d.dia === 31)!;
+
+    expect(dia16).toBeDefined();
+    expect(dia31).toBeDefined();
+
+    expect(dia16.saldoPorPessoa).toBeDefined();
+    expect(dia31.saldoPorPessoa).toBeDefined();
+
+    // No dia 16, cada participante tem o saldo com os aportes e rendimentos até o dia 16
+    expect(dia16.saldoPorPessoa!['p1']).toBeGreaterThan(27000 + 200);
+    expect(dia16.saldoPorPessoa!['p2']).toBeGreaterThan(18000 + 100);
+
+    // O saldo no dia 16 é menor do que no final do mês (dia 31), pois o mês ainda não terminou
+    expect(dia16.saldoPorPessoa!['p1']).toBeLessThan(dia31.saldoPorPessoa!['p1']);
+    expect(dia16.saldoPorPessoa!['p2']).toBeLessThan(dia31.saldoPorPessoa!['p2']);
+    expect(dia16.saldoFinal).toBeLessThan(dia31.saldoFinal);
+  });
 });

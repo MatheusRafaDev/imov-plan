@@ -539,10 +539,20 @@ export default function PessoasPage() {
                           type="number"
                           min={1}
                           max={31}
-                          value={form.diaAporte || 5}
+                          value={form.diaAporte === "" ? "" : form.diaAporte}
                           onChange={e => {
-                            const v = Math.min(31, Math.max(1, Number(e.target.value) || 1));
+                            const val = e.target.value;
+                            if (val === "") {
+                              setForm({ ...form, diaAporte: "" });
+                              return;
+                            }
+                            const v = Math.min(31, Math.max(1, Number(val)));
                             setForm({ ...form, diaAporte: v });
+                          }}
+                          onBlur={() => {
+                            if (!form.diaAporte) {
+                              setForm({ ...form, diaAporte: 5 });
+                            }
                           }}
                           className="w-12 h-7 px-1.5 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
                         />
