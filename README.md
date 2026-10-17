@@ -1,74 +1,142 @@
 <div align="center">
-  <h1>🏡 Imov.Plan</h1>
-  <p><strong>A aplicação definitiva para o seu planejamento de aquisição imobiliária.</strong></p>
-  
-  ![Next JS](https://img.shields.io/badge/Next-black?style=for-the-badge&logo=next.js&logoColor=white)
-  ![.NET](https://img.shields.io/badge/.NET_9-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
-  ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
-  ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+
+# 🏡 Imov.Plan
+
+### Planejamento Inteligente e Simulação Completa para Aquisição Imobiliária
+
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.2-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19.2-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Groq AI](https://img.shields.io/badge/AI-Groq%20LLM-F05A28?style=for-the-badge&logo=openai&logoColor=white)](https://groq.com/)
+
+<p align="center">
+  <a href="#-sobre-o-projeto">Sobre</a> •
+  <a href="#-principais-funcionalidades">Funcionalidades</a> •
+  <a href="#-arquitetura-e-estrutura">Arquitetura</a> •
+  <a href="#-stack-tecnológica">Stack</a> •
+  <a href="#-licença">Licença</a>
+</p>
+
 </div>
 
-<br />
+---
 
-O **Imov.Plan** é uma plataforma inovadora projetada para auxiliar futuros compradores na simulação, organização e execução de metas para a aquisição da casa própria. A ferramenta permite não apenas o cálculo preciso de financiamentos, mas o verdadeiro planejamento financeiro, combinando simulações reais (tabelas SAC e PRICE) e composições de renda, garantindo que o usuário compreenda exatamente sua capacidade de compra no longo prazo.
+## 📌 Sobre o Projeto
+
+A aquisição da casa própria é uma das decisões financeiras mais relevantes na vida de uma família. No entanto, a maioria dos simuladores bancários tradicionais atua de forma isolada: calculam apenas parcelas teóricas sem considerar o tempo real de preparação, as despesas cartorárias (ITBI, registro), a capacidade de poupança mensal e a dinâmica familiar.
+
+O **Imov.Plan** foi concebido para preencher essa lacuna. Trata-se de uma plataforma financeira completa e moderna que orienta o comprador desde a fase de acumulação de capital (pré-compra) até a contratação e quitação do financiamento imobiliário.
+
+Com projeção precisa de rendimento sobre os aportes (CDI com IR regressivo), planejamento de custos cartorários (ITBI e registro), integração de múltiplos participantes e consultoria financeira potencializada por Inteligência Artificial (Groq), o Imov.Plan transforma uma meta complexa em um plano de ação claro, viável e transparente.
 
 ---
 
-## 📖 Entendendo o Projeto em Detalhes
+## 🚀 Principais Funcionalidades
 
-Comprar um imóvel é o maior passo financeiro na vida de muitas pessoas, e simuladores bancários tradicionais muitas vezes escondem taxas ou não mostram um plano de ação claro para os meses *antes* da compra. 
+### 1. 📊 Planejamento de Entrada e Metas
+- **Cálculo da Meta de Entrada**: definição do valor necessário para viabilizar a compra do imóvel dos sonhos.
+- **Custos Acessórios Embutidos**: cálculo automático de despesas documentais, ITBI e emolumentos de cartório.
+- **Rendimento Real com CDI**: projeção do crescimento patrimonial considerando rentabilidade da reserva financeira e alíquota de imposto de renda regressivo.
 
-O **Imov.Plan** resolve isso quebrando toda a complexidade do planejamento financeiro imobiliário em um fluxo simples, seguro e transparente. Abaixo detalhamos como o ecossistema do produto funciona de ponta a ponta:
+### 2. 👥 Composição Familiar de Renda
+- Suporte a múltiplos participantes (cônjuge, familiares, sócios).
+- Gestão individualizada de receitas líquidas, benefícios (VR/VA) e despesas essenciais.
+- Verificação automática da margem de comprometimento de renda (limite prudencial de 30% da renda bruta familiar).
 
-### 1. O Problema que Resolvemos
-A maioria dos usuários não sabe quanto precisa guardar mensalmente para dar a entrada em um imóvel, nem como juros compostos ou aportes extras (FGTS, 13º salário) podem diminuir o tempo de espera. Nossa aplicação não só diz "se você tem saldo para financiar", mas atua como um **roteiro mensal** mostrando exatamente quanto guardar e onde seu dinheiro vai parar, tudo isso *cross-platform* e salvo na nuvem.
+### 3. 🏗️ Imóvel Pronto vs. Imóvel na Planta
+- **Imóvel Pronto**: foco na poupança acelerada para a entrada mínima, planejamento de reserva de emergência e simulação bancária imediata.
+- **Imóvel na Planta**: cronograma de parcelas durante a construção, parcelas intermediárias/balões, fluxo de chaves e projeção de correção monetária pelo **INCC** (Índice Nacional de Custo da Construção).
 
-### 2. O Fluxo Principal (Core Business)
-A plataforma é baseada no que chamamos de **Jornada de Planejamento**, separada nas seguintes etapas lógicas:
+### 4. ⏳ Linha do Tempo e Aportes Extraordinários
+- Projeção de evolução patrimonial mês a mês com juros compostos da reserva financeira.
+- Mapeamento de injeções extras: FGTS, 13º salário, bonificações, restituição de Imposto de Renda e venda de bens.
+- Recálculo dinâmico do tempo necessário para atingir o valor de entrada ideal.
 
-- **Etapa 1: O Imóvel e a Meta** 
-  O usuário define o valor do imóvel dos sonhos, o prazo máximo que quer atingir a meta, a porcentagem que precisa dar de entrada (e se há custos extras de documentação). O sistema já define aqui um teto financeiro a ser alcançado.
-  
-- **Etapa 2: O Perfil e Composição Familiar** 
-  O usuário detalha sua própria renda (salário líquido, vale refeição, despesas essenciais). **O grande diferencial** é que a plataforma permite adicionar múltiplos "Participantes" na simulação. Por exemplo: O cônjuge ou um familiar. Cada participante possui seus próprios gastos, salários e reserva inicial (dinheiro já guardado), criando uma "Renda Familiar" unificada que fortalece a capacidade de crédito.
+### 5. 🤖 Consultoria Financeira com IA
+- Assistente inteligente integrado com **Groq LLM** para emissão de pareceres personalizados.
+- Diagnóstico de viabilidade do plano, sugestões de otimização de aportes e identificação de riscos de inadimplência.
 
-- **Etapa 3: Planejamento (Aportes Extras)**
-  Nesta fase entra o superpoder da ferramenta. O usuário mapeia eventos anuais — como saque do FGTS, recebimento de 13º, férias, restituição de IR ou venda de um carro. O Imov.Plan espalha esses eventos numa linha do tempo para mostrar de forma exata como essas injeções financeiras anteciparão a meta, recalculando dinamicamente o tempo estimado.
+### 6. 🗺️ Análise de Localização e Arredores
+- Avaliação de infraestrutura no entorno do imóvel (escolas, hospitais, transporte e comércio) para apoiar a decisão de compra.
 
-- **Etapa 4: O Resultado e o Raio-X do Plano**
-  Aqui, o sistema entrega um sumário visual detalhado utilizando nosso motor de cálculo de alta precisão. O usuário ganha acesso a:
-  - Comparativos entre Tabela **SAC** (Amortização Constante) e **PRICE** (Prestações Fixas).
-  - Tabela completa de **Evolução Mês a Mês** mostrando seu capital acumulando e rendendo juros.
-  - Alertas automáticos informando se a meta é irreal com base no tempo e renda configurada.
+### 7. 💾 Persistência em Tempo Real & Autosave
+- Gestão contínua em formato de **Drafts**: o progresso é salvo automaticamente a cada alteração, permitindo alternar de dispositivo sem perda de contexto.
+- Gerenciamento de múltiplos planos comparativos na conta do usuário.
+
+### 8. 🔐 Segurança e Autenticação
+- Autenticação via **JWT** e **Refresh Tokens** persistidos em cookies `HttpOnly` com proteção contra ataques XSS e CSRF.
+- Suporte a login social via **Google OAuth 2.0**.
+- Confirmação de e-mail e recuperação de senha seguras.
+
+---
+
+## 🏛 Arquitetura e Estrutura
+
+O ecossistema é dividido em duas aplicações principais desacopladas:
+
+```
+imov-plan/
+├── backend/                        # API REST em .NET 9 (C#)
+│   ├── Core/
+│   │   ├── ImovPlan.Domain/        # Entidades, Enums e Regras de Negócio Puras
+│   │   └── ImovPlan.Application/   # Casos de Uso, DTOs, Serviços e Validadores
+│   ├── Infrastructure/
+│   │   └── ImovPlan.Infrastructure/# Persistência MongoDB, Clientes Externos (Groq, Resend)
+│   ├── Presentation/
+│   │   └── ImovPlan.API/           # Controllers, Middlewares, Filtros e Swagger
+│   ├── Tests/
+│   │   └── ImovPlan.Application.Tests/ # Testes Unitários de Regras e Cálculos
+│   ├── Dockerfile
+│   └── Dockerfile.vercel
+│
+├── frontend/                       # Aplicação Web em Next.js 16 (App Router)
+│   ├── src/
+│   │   ├── app/                    # Rotas (onboarding, pessoas, planejamento, resultado, etc.)
+│   │   ├── components/             # Componentes de UI modulares e acessíveis
+│   │   ├── contexts/               # Providers e Context API para estado de simulação
+│   │   ├── hooks/                  # Custom hooks para cálculos e consumo de API
+│   │   ├── lib/                    # Configurações de API, Axios e utilitários
+│   │   └── types/                  # Definições de tipagem TypeScript
+│   ├── tests/                      # Testes automatizados com Vitest
+│   ├── Dockerfile
+│   └── package.json
+│
+├── docker-compose.yml              # Orquestração local dos containers
+└── README.md
+```
 
 ---
 
-## ✨ Destaques Técnicos do Produto
+## 🛠 Stack Tecnológica
 
-- 🔄 **Paridade de Cálculos Financeiros (Front & Back):** Motor de cálculo construído duplamente (TypeScript para responsividade instantânea na tela, e C# no backend para segurança e persistência). Garante que não ocorram arredondamentos desleais e que a projeção obedeça normas bancárias reais.
-- 💾 **Gestão Contínua (Drafts e Sessões Automáticas):** Ninguém planeja uma casa em 5 minutos. Por isso, a ferramenta funciona em sessões contínuas ("Drafts"). Conforme o usuário edita gastos ou altera o valor do imóvel, o *estado* viaja de maneira silenciosa para o servidor e é persistido via MongoDB, permitindo continuar no celular a simulação que começou no PC.
-- 🎨 **Experiência de Usuário (UX) Elevada:** Design premium inspirado nos melhores produtos financeiros (Fintechs). Foco absoluto em *glassmorphism*, micro-interações, tipografia agradável e feedback visual transparente.
+### Frontend
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Server & Client Components)
+- **Biblioteca Principal**: [React 19](https://react.dev/)
+- **Estilização**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Gerenciamento de Estado**: [Zustand](https://zustand-demo.pmnd.rs/) & React Context API
+- **Data Fetching / Cache**: [TanStack React Query v5](https://tanstack.com/query/latest)
+- **Visualização de Dados**: [Recharts](https://recharts.org/)
+- **Componentes & Ícones**: [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/), [Sonner](https://sonner.emilkowal.ski/)
+- **Formulários & Validação**: React Hook Form & Zod
 
----
-
-## 🛠 Entendendo as Tecnologias (Stack)
-
-A arquitetura do **Imov.Plan** foi construída visando confiabilidade extrema em cálculos e uma interface ultrarrápida.
-
-### 🌐 Frontend (A Interface)
-- **Next.js (React com App Router):** Base da aplicação, fornecendo rotas seguras e extrema performance via carregamento inteligente e renderização assíncrona.
-- **Tailwind CSS:** Utilizado para a estilização unificada e elegante. É ele que possibilita criar a interface de "fintech premium" de maneira rápida, utilizando padrões estéticos contemporâneos e totalmente responsivos.
-- **Context API & Hooks Persistentes:** O estado complexo (com dezenas de variáveis como taxas, saldos e históricos) é mantido em memória via Providers otimizados (`PlanContext`), limitando o uso de bibliotecas de terceiros excessivas.
-- **Zod + React Hook Form:** Juntos, oferecem uma malha fina de segurança no lado do cliente. Se o usuário esquecer um zero num rendimento ou inserir um CPF incorreto, essas libs interceptam o dado antes mesmo que a rede seja ativada (Type-Safety robusto).
-
-### ⚙️ Backend (O Motor e a Lógica Central)
-- **.NET 9 (C#):** Coração da aplicação. A escolha pela nova geração do ASP.NET Core se justifica pela velocidade absurda da sua runtime em lidar com processamento paralelo e equações matemáticas severas exigidas pelas simulações de financiamento iterativas.
-- **Clean Architecture (Domain-Driven Design):** Todo o projeto segue a separação estrita em camadas (Domain, Application, Infrastructure, Presentation). Assim, a fórmula matemática sagrada do financiamento (Domain) nunca é afetada por uma mudança de banco de dados ou formato de API.
-- **MongoDB:** Banco de dados NoSQL ideal para essa aplicação. Como cada "simulação imobiliária" do usuário (com participantes dinâmicos, aportes irregulares e históricos mutáveis) gera um objeto muito vasto e flexível, documentos JSON nativos escalam com muito mais elegância do que tabelas SQL engessadas.
-- **Autenticação JWT & HttpOnly Cookies:** Acesso protegido por criptografia de ponta a ponta. Os tokens de acesso não ficam visíveis no navegador do usuário, protegendo a aplicação contra vetores de ataque comuns como o XSS.
+### Backend
+- **Runtime / Framework**: [.NET 9](https://dotnet.microsoft.com/) / ASP.NET Core Web API
+- **Arquitetura**: Clean Architecture / Domain-Driven Design (DDD)
+- **Persistência**: [MongoDB](https://www.mongodb.com/) (Driver Oficial C#)
+- **Inteligência Artificial**: [Groq API](https://groq.com/) (Inferência de alto desempenho para LLMs)
+- **Segurança**: ASP.NET Core Authentication com JWT & Google OAuth
+- **Comunicação por E-mail**: Brevo / Resend
+- **Documentação de API**: Swagger / OpenAPI
 
 ---
+
+## 📄 Licença
+
+Este projeto está sob a licença [MIT](LICENSE). Consulte o arquivo de licença para mais detalhes.
 
 <div align="center">
-  <sub>Construído com ❤️ e focado em descomplicar a jornada do comprador de imóveis.</sub>
+  <sub>Desenvolvido com foco em capacitar e descomplicar a jornada de aquisição imobiliária.</sub>
 </div>
