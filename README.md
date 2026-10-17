@@ -10,7 +10,6 @@
 [![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Groq AI](https://img.shields.io/badge/AI-Groq%20LLM-F05A28?style=for-the-badge&logo=openai&logoColor=white)](https://groq.com/)
 
 <p align="center">
   <a href="#-sobre-o-projeto">Sobre</a> •
@@ -30,7 +29,7 @@ A aquisição da casa própria é uma das decisões financeiras mais relevantes 
 
 O **Imov.Plan** foi concebido para preencher essa lacuna. Trata-se de uma plataforma financeira completa e moderna que orienta o comprador desde a fase de acumulação de capital (pré-compra) até a contratação e quitação do financiamento imobiliário.
 
-Com projeção precisa de rendimento sobre os aportes (CDI com IR regressivo), planejamento de custos cartorários (ITBI e registro), integração de múltiplos participantes e consultoria financeira potencializada por Inteligência Artificial (Groq), o Imov.Plan transforma uma meta complexa em um plano de ação claro, viável e transparente.
+Com projeção precisa de rendimento sobre os aportes (CDI com IR regressivo), planejamento de custos cartorários (ITBI e registro) e integração de múltiplos participantes, o Imov.Plan transforma uma meta complexa em um plano de ação claro, viável e transparente.
 
 ---
 
@@ -55,18 +54,14 @@ Com projeção precisa de rendimento sobre os aportes (CDI com IR regressivo), p
 - Mapeamento de injeções extras: FGTS, 13º salário, bonificações, restituição de Imposto de Renda e venda de bens.
 - Recálculo dinâmico do tempo necessário para atingir o valor de entrada ideal.
 
-### 5. 🤖 Consultoria Financeira com IA
-- Assistente inteligente integrado com **Groq LLM** para emissão de pareceres personalizados.
-- Diagnóstico de viabilidade do plano, sugestões de otimização de aportes e identificação de riscos de inadimplência.
-
-### 6. 🗺️ Análise de Localização e Arredores
+### 5. 🗺️ Análise de Localização e Arredores
 - Avaliação de infraestrutura no entorno do imóvel (escolas, hospitais, transporte e comércio) para apoiar a decisão de compra.
 
-### 7. 💾 Persistência em Tempo Real & Autosave
+### 6. 💾 Persistência em Tempo Real & Autosave
 - Gestão contínua em formato de **Drafts**: o progresso é salvo automaticamente a cada alteração, permitindo alternar de dispositivo sem perda de contexto.
 - Gerenciamento de múltiplos planos comparativos na conta do usuário.
 
-### 8. 🔐 Segurança e Autenticação
+### 7. 🔐 Segurança e Autenticação
 - Autenticação via **JWT** e **Refresh Tokens** persistidos em cookies `HttpOnly` com proteção contra ataques XSS e CSRF.
 - Suporte a login social via **Google OAuth 2.0**.
 - Confirmação de e-mail e recuperação de senha seguras.
@@ -84,7 +79,7 @@ imov-plan/
 │   │   ├── ImovPlan.Domain/        # Entidades, Enums e Regras de Negócio Puras
 │   │   └── ImovPlan.Application/   # Casos de Uso, DTOs, Serviços e Validadores
 │   ├── Infrastructure/
-│   │   └── ImovPlan.Infrastructure/# Persistência MongoDB, Clientes Externos (Groq, Resend)
+│   │   └── ImovPlan.Infrastructure/# Persistência MongoDB e Notificações
 │   ├── Presentation/
 │   │   └── ImovPlan.API/           # Controllers, Middlewares, Filtros e Swagger
 │   ├── Tests/
@@ -126,7 +121,6 @@ imov-plan/
 - **Runtime / Framework**: [.NET 9](https://dotnet.microsoft.com/) / ASP.NET Core Web API
 - **Arquitetura**: Clean Architecture / Domain-Driven Design (DDD)
 - **Persistência**: [MongoDB](https://www.mongodb.com/) (Driver Oficial C#)
-- **Inteligência Artificial**: [Groq API](https://groq.com/) (Inferência de alto desempenho para LLMs)
 - **Segurança**: ASP.NET Core Authentication com JWT & Google OAuth
 - **Comunicação por E-mail**: Brevo / Resend
 - **Documentação de API**: Swagger / OpenAPI
