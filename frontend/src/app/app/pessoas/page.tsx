@@ -533,30 +533,8 @@ export default function PessoasPage() {
                           Dia {d}
                         </button>
                       ))}
-                      <div className="flex items-center gap-1.5 ml-auto">
-                        <span className="text-[11px] text-muted-foreground">Outro:</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={31}
-                          value={form.diaAporte === "" ? "" : form.diaAporte}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === "") {
-                              setForm({ ...form, diaAporte: "" });
-                              return;
-                            }
-                            const v = Math.min(31, Math.max(1, Number(val)));
-                            setForm({ ...form, diaAporte: v });
-                          }}
-                          onBlur={() => {
-                            if (!form.diaAporte) {
-                              setForm({ ...form, diaAporte: 5 });
-                            }
-                          }}
-                          className="w-12 h-7 px-1.5 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
-                        />
-                      </div>
+
+
                     </div>
                   </div>
                 </div>
