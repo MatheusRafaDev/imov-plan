@@ -18,27 +18,14 @@ import { ImovelPageSkeleton } from "@/components/Skeleton";
 
 // ITBI utility is now imported from @/utils/itbi
 
-const todayISO = () => {
-  if (typeof window !== "undefined") {
-    const d = new Date();
-    // Use local date parts to avoid UTC timezone shift
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
-  return "2026-01-01";
-};
+import { getBrasiliaToday, toLocalDateIso } from "@/utils/dates";
 
-// Extract YYYY-MM-DD from a Date using LOCAL time (avoids UTC timezone shift)
+const todayISO = () => getBrasiliaToday().dataStr;
+
+// Extract YYYY-MM-DD from a Date using Brasilia time
 const dateToLocalISO = (date: Date | string | undefined | null): string => {
   if (!date) return todayISO();
-  const d = date instanceof Date ? date : new Date(date);
-  if (isNaN(d.getTime())) return todayISO();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return toLocalDateIso(date) ?? todayISO();
 };
 
 const addMonthsISO = (iso: string, months: number) => {
@@ -98,35 +85,32 @@ export default function ObjetivoPage() {
     cidade: "São Paulo",
   });
 
-  const [prevObjetivo, setPrevObjetivo] = useState<any>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  if (objetivo !== prevObjetivo) {
-    setPrevObjetivo(objetivo);
-    if (objetivo && objetivo.valorImovel !== undefined) {
-      const nextForm = {
-        ...form,
-        nome: (objetivo as any).nomePlano || "Imóvel",
-        valor_imovel: objetivo.valorImovel || 0,
-        percentual_entrada: objetivo.percentualEntrada || 20,
-        data_inicio: objetivo.dataInicio ? dateToLocalISO(objetivo.dataInicio) : form.data_inicio,
-        valor_ja_guardado: objetivo.valorJaGuardado || 0,
-        percentual_custos_extras: objetivo.percentualCustosExtras || 0,
-        estado: (objetivo as any).estado || "SP",
-        cidade: (objetivo as any).cidade || "São Paulo",
-        data_fim: objetivo.prazoMaxMeses
-          ? addMonthsISO(
-              objetivo.dataInicio ? dateToLocalISO(objetivo.dataInicio) : todayISO(),
-              objetivo.prazoMaxMeses
-            )
-          : form.data_fim,
-      };
+  useEffect(() => {
+    if (!objetivo || objetivo.valorImovel === undefined) return;
+    
+    const inicioStr = objetivo.dataInicio ? dateToLocalISO(objetivo.dataInicio) : todayISO();
+    const fimStr = objetivo.prazoMaxMeses
+      ? addMonthsISO(inicioStr, objetivo.prazoMaxMeses)
+      : addMonthsISO(inicioStr, 36);
 
-      setForm(() => normalizeDataFim(nextForm.data_inicio, nextForm.data_fim) === nextForm.data_fim ? nextForm : {
-        ...nextForm,
-        data_fim: normalizeDataFim(nextForm.data_inicio, nextForm.data_fim),
-      });
-    }
-  }
+    const nextForm = {
+      nome: (objetivo as any).nomePlano || "Imóvel",
+      valor_imovel: objetivo.valorImovel || 0,
+      percentual_entrada: objetivo.percentualEntrada ?? 20,
+      data_inicio: inicioStr,
+      valor_ja_guardado: objetivo.valorJaGuardado || 0,
+      percentual_custos_extras: objetivo.percentualCustosExtras || 0,
+      titular: (objetivo as any).titular || "",
+      estado: (objetivo as any).estado || "SP",
+      cidade: (objetivo as any).cidade || "São Paulo",
+      data_fim: normalizeDataFim(inicioStr, fimStr),
+    };
+
+    setForm(nextForm);
+    setHasInitialized(true);
+  }, [(objetivo as any)?.id, objetivo?.valorImovel]);
 
   const dataFimValida = form.data_inicio !== "" && form.data_fim !== "" && mesesEntre(form.data_inicio, form.data_fim) >= MIN_PRAZO_MESES;
   const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "" && dataFimValida;
@@ -231,22 +215,28 @@ export default function ObjetivoPage() {
 
       <div className="grid lg:grid-cols-5 gap-4 lg:gap-6">
         <div className="lg:col-span-3 space-y-4 order-2 lg:order-1 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-          <Card className="p-4 sm:p-5 space-y-4 shadow-soft border-border/60">
+          <Card className="p-5 sm:p-6 space-y-6 shadow-soft border-border/60">
+            {/* Seção 1: Dados do Imóvel & Localização */}
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome" className="text-muted-foreground">Apelido do plano</Label>
-                <Input
-                  id="nome"
-                  value={form.nome}
-                  placeholder="Imóvel"
-                  onChange={(e) => updateForm({ nome: e.target.value })}
-                  className="text-base py-5"
-                />
+              <div className="flex items-center gap-2 pb-2 border-b border-border/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <Building2 className="h-4 w-4 text-accent" />
+                <span>1. Dados do Imóvel & Localização</span>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="nome" className="text-muted-foreground text-xs">Apelido ou identificação do plano</Label>
+                  <Input
+                    id="nome"
+                    value={form.nome}
+                    placeholder="Ex: Apartamento Jardins"
+                    onChange={(e) => updateForm({ nome: e.target.value })}
+                    className="text-base py-5"
+                  />
+                </div>
+
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Valor do imóvel</Label>
+                  <Label className="text-muted-foreground text-xs">Valor do imóvel</Label>
                   <MoneyInput
                     variant="money"
                     min={50000}
@@ -255,10 +245,11 @@ export default function ObjetivoPage() {
                     onChange={(v) => updateForm({ valor_imovel: v }, true)}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label className="text-muted-foreground">% de Entrada</Label>
-                    <span className="font-medium text-accent">
+                    <Label className="text-muted-foreground text-xs">% de Entrada pretendida</Label>
+                    <span className="font-semibold text-accent text-sm">
                       {form.percentual_entrada !== "" ? `${form.percentual_entrada}%` : "-"}
                     </span>
                   </div>
@@ -271,191 +262,143 @@ export default function ObjetivoPage() {
                     onChange={(e) => updateForm({ percentual_entrada: Number(e.target.value) }, true)}
                     className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-accent"
                   />
-                  <p className="text-xs text-right text-muted-foreground">Equivale a {brl(entrada)}</p>
+                  <p className="text-xs text-right text-muted-foreground">Equivale a <strong className="text-foreground font-semibold">{brl(entrada)}</strong></p>
                 </div>
 
+                <div className="space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">Estado (UF)</Label>
+                  <select
+                    value={form.estado}
+                    onChange={(e) => {
+                      const novoEstado = e.target.value;
+                      const primeirasCidades = cidadesPorEstado[novoEstado];
+                      const novaCidade = primeirasCidades?.[0]?.nome || "";
+                      updateForm({ estado: novoEstado, cidade: novaCidade }, true);
+                    }}
+                    className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer transition-colors hover:border-accent/40"
+                  >
+                    {estados.map((e) => (
+                      <option key={e.uf} value={e.uf}>{e.uf} — {e.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">Cidade</Label>
+                  <select
+                    value={form.cidade}
+                    onChange={(e) => updateForm({ cidade: e.target.value }, true)}
+                    className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer transition-colors hover:border-accent/40"
+                  >
+                    {cidadesDoEstado.map((c) => (
+                      <option key={c.nome} value={c.nome}>{c.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {itbiInfo.descricaoRegra && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 bg-secondary/30 p-2.5 rounded-lg border border-border/40">
+                  <MapPin className="h-3.5 w-3.5 text-accent shrink-0" />
+                  <span>{itbiInfo.descricaoRegra}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Seção 2: Prazos e Saldo Inicial */}
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <div className="flex items-center gap-2 pb-2 border-b border-border/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <Calendar className="h-4 w-4 text-accent" />
+                <span>2. Prazos & Saldo Inicial</span>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Data de início</Label>
+                  <Label className="text-muted-foreground text-xs">Início do plano</Label>
                   <MonthYearInput
                     value={form.data_inicio}
                     onChange={(v) => updateForm({ data_inicio: v }, true)}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Data limite (comprar até)</Label>
+                  <Label className="text-muted-foreground text-xs">Data limite (comprar até)</Label>
                   <MonthYearInput
                     value={form.data_fim}
                     onChange={(v) => updateForm({ data_fim: v }, true)}
                   />
-                  {!dataFimValida && form.data_inicio && form.data_fim ? (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-2">
-                      <span className="text-amber-500">⚠</span>
-                      A data limite precisa ser pelo menos {MIN_PRAZO_MESES} meses após a data de início.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground mt-2 min-h-[1.25rem]">
-                      O limite define até quando a tabela mês a mês deve ser exibida.
+                  {!dataFimValida && form.data_inicio && form.data_fim && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
+                      <span className="text-amber-500">⚠</span> Mínimo {MIN_PRAZO_MESES} meses.
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-xs">Já guardado (saldo inicial)</Label>
+                  <MoneyInput
+                    variant="money"
+                    min={0}
+                    max={form.valor_imovel === "" ? undefined : form.valor_imovel}
+                    value={form.valor_ja_guardado}
+                    onChange={(v) => updateForm({ valor_ja_guardado: v }, true)}
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border/40">
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Settings2 className="h-4 w-4" />
-                Configurações Financeiras Avançadas
-                {showAdvanced ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
-              </button>
+            {/* Seção 3: Custos Extras (ITBI e Cartório) */}
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Settings2 className="h-4 w-4 text-accent" />
+                  <span>3. Custos de Aquisição (ITBI e Cartório)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateForm({ percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-md transition-all active:scale-95 cursor-pointer"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Sugerir {itbiInfo.percentualTotal.toFixed(1)}% para {form.cidade}
+                </button>
+              </div>
 
-              {showAdvanced && (
-                <div className="mt-6 animate-fade-in-up space-y-6">
-                  {/* ─── Localização do Imóvel ─── */}
-                  <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 space-y-4">
-                    <p className="flex items-center gap-2 text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      Localização do Imóvel
-                    </p>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-muted-foreground text-xs">Estado (UF)</Label>
-                        <select
-                          value={form.estado}
-                          onChange={(e) => {
-                            const novoEstado = e.target.value;
-                            const primeirasCidades = cidadesPorEstado[novoEstado];
-                            const novaCidade = primeirasCidades?.[0]?.nome || "";
-                            updateForm({ estado: novoEstado, cidade: novaCidade }, true);
-                          }}
-                          className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer transition-colors hover:border-accent/40"
-                        >
-                          {estados.map((e) => (
-                            <option key={e.uf} value={e.uf}>{e.uf} — {e.nome}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-muted-foreground text-xs">Cidade</Label>
-                        <select
-                          value={form.cidade}
-                          onChange={(e) => updateForm({ cidade: e.target.value }, true)}
-                          className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer transition-colors hover:border-accent/40"
-                        >
-                          {cidadesDoEstado.map((c) => (
-                            <option key={c.nome} value={c.nome}>{c.nome}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    {itbiInfo.descricaoRegra && (
-                      <p className="text-[11px] text-muted-foreground">
-                        📍 {itbiInfo.descricaoRegra}
-                      </p>
-                    )}
+              <div className="grid sm:grid-cols-2 gap-4 items-center">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-muted-foreground text-xs">% Custos Extras (máx. 4%)</Label>
+                    <span className="font-semibold text-accent text-sm">
+                      {form.percentual_custos_extras !== "" ? `${form.percentual_custos_extras}%` : "0%"}
+                    </span>
                   </div>
+                  <MoneyInput
+                    variant="percent"
+                    min={0}
+                    max={4}
+                    value={form.percentual_custos_extras}
+                    onChange={(v) => updateForm({ percentual_custos_extras: Math.min(4, Number(v)) }, true)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Equivale a <strong className="text-foreground font-semibold">{brl(custos)}</strong> além da entrada.
+                  </p>
+                </div>
 
-                  {/* ─── Valores Financeiros Avançados ─── */}
-                  <div className="grid sm:grid-cols-2 gap-6 p-5 rounded-xl bg-secondary/30 border border-border/50">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground">Já guardado</Label>
-                      <MoneyInput
-                        variant="money"
-                        min={0}
-                        max={form.valor_imovel === "" ? undefined : form.valor_imovel}
-                        value={form.valor_ja_guardado}
-                        onChange={(v) => updateForm({ valor_ja_guardado: v }, true)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground">Custos Extras (ITBI/Cartório)</Label>
-
-                      <MoneyInput
-                        variant="percent"
-                        min={0}
-                        max={4}
-                        value={form.percentual_custos_extras}
-                        onChange={(v) => updateForm({ percentual_custos_extras: Math.min(4, Number(v)) }, true)}
-                      />
-
-                      <div className="flex items-center justify-between pt-0.5">
-                        <button
-                          type="button"
-                          onClick={() => setShowITBIInfo((o) => !o)}
-                          className="flex items-center gap-1 text-xs text-muted-foreground/70 hover:text-accent transition-colors"
-                        >
-                          <Info className="h-3.5 w-3.5" />
-                          {showITBIInfo ? "Ocultar detalhes" : "Ver detalhes ITBI"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateForm({ percentual_custos_extras: parseFloat(itbiInfo.percentualTotal.toFixed(2)) }, true)}
-                          className="flex items-center gap-1 text-[11px] font-semibold text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent/20 px-2.5 py-1 rounded-md transition-all active:scale-95"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Sugerir {itbiInfo.percentualTotal.toFixed(1)}%
-                        </button>
-                      </div>
-
-                      {itbiInfo.isento && Number(form.valor_imovel) > 0 && (
-                        <div className="flex items-start gap-2 bg-success/10 border border-success/20 rounded-lg p-2.5 text-[11px] text-success font-medium">
-                          <span className="text-xs mt-0.5">✓</span>
-                          <span>
-                            <strong>ITBI Isento:</strong> O percentual sugerido cobre apenas os custos de cartório. Você pode ajustar até 4% se desejar.
-                          </span>
-                        </div>
-                      )}
-
-                      {showITBIInfo && (() => {
-                        const valorImovel = Number(form.valor_imovel) || 0;
-                        const { itbi, cartorio, total, percentualTotal, isento, descricaoRegra } = calcularCustosITBI(valorImovel, form.estado, form.cidade);
-
-                        return (
-                          <div className="mt-2 p-3 rounded-lg bg-secondary/50 border border-border/60 text-[11px] space-y-2 animate-fade-in-up">
-                            <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">
-                              Estimativa ITBI + Cartório — {form.cidade}/{form.estado}
-                            </p>
-
-                            {valorImovel <= 0 && (
-                              <p className="text-muted-foreground">Preencha o valor do imóvel para ver a estimativa.</p>
-                            )}
-
-                            {valorImovel > 0 && (
-                              <>
-                                {isento && (
-                                  <div className="flex items-center gap-1.5 text-success font-medium">
-                                    <span className="text-base">✓</span> Elegível para isenção de ITBI
-                                  </div>
-                                )}
-
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground pt-1">
-                                  <span>ITBI estimado:</span>
-                                  <span className="text-right font-medium text-foreground">
-                                    {isento ? "R$ 0,00 (isento)" : brl(itbi)}
-                                  </span>
-                                  <span>Cartório + Registro:</span>
-                                  <span className="text-right font-medium text-foreground">{brl(cartorio)}</span>
-                                  <span className="font-semibold text-foreground pt-1 border-t border-border/40">Total estimado:</span>
-                                  <span className="text-right font-medium text-accent pt-1 border-t border-border/40">
-                                    {brl(total)} ({percentualTotal.toFixed(2)}%)
-                                  </span>
-                                </div>
-
-                                <p className="text-muted-foreground/70 text-[10px] pt-1 border-t border-border/40">
-                                  {descricaoRegra} Total limitado a máx. 4% pelo sistema.
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
+                <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/50 text-xs space-y-1.5">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>ITBI estimado:</span>
+                    <span className="font-medium text-foreground">{itbiInfo.isento ? "Isento (R$ 0,00)" : brl(itbiInfo.itbi)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Cartório & Registro:</span>
+                    <span className="font-medium text-foreground">{brl(itbiInfo.cartorio)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold pt-1 border-t border-border/40 text-foreground">
+                    <span>Estimativa Total:</span>
+                    <span className="text-accent">{brl(itbiInfo.total)} ({itbiInfo.percentualTotal.toFixed(2)}%)</span>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </Card>
         </div>
@@ -483,6 +426,13 @@ export default function ObjetivoPage() {
                   <p className="font-display text-xl sm:text-2xl">{brl(custos)}</p>
                 </div>
               </div>
+
+              {valorImovel > entrada && (
+                <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-primary-foreground/75">
+                  <span>Saldo a financiar na entrega das chaves:</span>
+                  <span className="font-semibold text-white num">{brl(valorImovel - entrada)}</span>
+                </div>
+              )}
             </div>
           </Card>
 

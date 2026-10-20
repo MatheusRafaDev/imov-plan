@@ -23,6 +23,7 @@ export interface SimulacaoSummary {
   totalNecessario: number;
   valorJaGuardado: number;
   totalInvestido: number;
+  totalRetirado?: number;
   totalAcumulado: number;
   lucroLiquido: number;
   atingiuMeta: boolean;

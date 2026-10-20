@@ -314,58 +314,101 @@ export default function PlanosPage() {
                   </div>
                 </div>
 
-                {/* Conteúdo Comparativo */}
-                <div className="p-5 space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Valor do Imóvel</p>
-                      <p className="font-display text-lg">{plano.valorImovel > 0 ? brl(plano.valorImovel) : "-"}</p>
+                {/* Conteúdo com Hierarquia Visual Priorizada */}
+                <div className="p-5 space-y-4">
+                  {/* Saldo Atual & Progresso Hero */}
+                  {sim ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">Saldo atual</span>
+                        <span className="text-muted-foreground text-[11px] font-medium">Meta: {brl(sim.totalNecessario || (plano.valorImovel * (plano.percentualEntrada / 100)))}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-display text-2xl sm:text-3xl font-semibold text-foreground num leading-none">
+                          {brl(sim.valorJaGuardado)}
+                        </span>
+                        <span className="text-xs font-semibold text-accent uppercase tracking-wider">
+                          {(sim.totalNecessario > 0 ? Math.min(100, (sim.valorJaGuardado / sim.totalNecessario) * 100) : 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="relative h-2 w-full bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
+                          style={{ 
+                            width: `${sim.totalNecessario > 0 ? Math.min(100, (sim.valorJaGuardado / sim.totalNecessario) * 100) : 0}%` 
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Entrada</p>
-                      <p className="font-display text-lg">{plano.percentualEntrada > 0 ? `${plano.percentualEntrada}%` : "-"}</p>
+                  ) : carregandoSimulacoes ? (
+                    <div className="h-20 bg-secondary/30 rounded-xl animate-pulse flex items-center justify-center text-muted-foreground/50 text-xs">
+                      Calculando indicadores...
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-secondary/15 rounded-xl border border-border/40 text-xs text-muted-foreground text-center">
+                      Abra o plano para calcular saldo e projeções.
+                    </div>
+                  )}
+
+                  {/* Grid de Indicadores Principais */}
+                  <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total aportado</p>
+                      <p className="font-display text-sm font-semibold text-foreground num mt-0.5">
+                        {sim ? brl(sim.totalInvestido) : "-"}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rendimentos</p>
+                      <p className="font-display text-sm font-semibold text-emerald-500 num mt-0.5">
+                        {sim ? `+${brl(sim.lucroLiquido)}` : "-"}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total retirado</p>
+                      <p className="font-display text-sm font-semibold text-rose-500 num mt-0.5">
+                        {sim ? `-${brl(sim.totalRetirado ?? 0)}` : "R$ 0,00"}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prazo da meta</p>
+                      <p className="font-display text-sm font-semibold text-foreground num mt-0.5 flex items-center gap-1">
+                        <Clock className="h-3 w-3 text-muted-foreground inline" />
+                        <span>{sim ? `${sim.mesesParaAtingir} meses` : (plano.prazoMaxMeses ? `${plano.prazoMaxMeses} meses` : "-")}</span>
+                      </p>
                     </div>
                   </div>
 
-                  {/* Highlights Inteligentes */}
-                  {(carregandoSimulacoes && !sim) ? (
-                    <div className="h-32 bg-secondary/30 rounded-xl animate-pulse flex items-center justify-center text-muted-foreground/50 text-xs">Calculando projeção...</div>
-                  ) : sim ? (
-                    <div className="bg-secondary/30 rounded-xl p-4 space-y-3 border border-border/40">
-                      <div className="flex justify-between items-center pb-2 border-b border-border/40">
-                        <span className="text-sm text-muted-foreground flex items-center gap-1.5"><Clock className="h-4 w-4" /> Tempo para a chave</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{sim.mesesParaAtingir} meses</span>
-                          {temMaisDeUmPlano && isMaisRapido && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-medium">Mais Rápido</span>}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between items-center pb-2 border-b border-border/40">
-                        <span className="text-sm text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-4 w-4" /> Rendimento do CDI</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-success">+{brl(sim.lucroLiquido)}</span>
-                          {temMaisDeUmPlano && isMaiorLucro && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-medium">Maior Lucro</span>}
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground flex items-center gap-1.5"><Zap className="h-4 w-4" /> Aporte Mensal</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{brl(sim.aporteMensalTotal)}</span>
-                          {temMaisDeUmPlano && isMenorAporte && <span className="bg-success/15 text-success text-[10px] px-1.5 py-0.5 rounded uppercase font-medium">Mais Suave</span>}
-                        </div>
-                      </div>
+                  {/* Informações Secundárias e Comparação */}
+                  <div className="pt-3 border-t border-border/40 space-y-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between">
+                      <span>Valor do imóvel:</span>
+                      <span className="font-medium text-foreground num">{plano.valorImovel > 0 ? brl(plano.valorImovel) : "-"}</span>
                     </div>
-                  ) : (
-                     <div className="h-32 bg-secondary/10 rounded-xl flex items-center justify-center text-muted-foreground text-xs border border-border/40 border-dashed">
-                       Abra o plano para calcular os resultados.
-                     </div>
-                  )}
+                    <div className="flex items-center justify-between">
+                      <span>Entrada pretendida:</span>
+                      <span className="font-medium text-foreground num">{plano.percentualEntrada > 0 ? `${plano.percentualEntrada}%` : "-"}</span>
+                    </div>
+                    {sim && (
+                      <div className="flex items-center justify-between">
+                        <span>Aporte mensal:</span>
+                        <span className="font-medium text-foreground num">{brl(sim.aporteMensalTotal)}/mês</span>
+                      </div>
+                    )}
+
+                    {temMaisDeUmPlano && sim && (isMaisRapido || isMaiorLucro || isMenorAporte) && (
+                      <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
+                        {isMaisRapido && <span className="bg-success/15 text-success text-[10px] px-2 py-0.5 rounded-full font-medium">⚡ Mais Rápido</span>}
+                        {isMaiorLucro && <span className="bg-accent/15 text-accent text-[10px] px-2 py-0.5 rounded-full font-medium">✨ Maior Rendimento</span>}
+                        {isMenorAporte && <span className="bg-secondary text-foreground text-[10px] px-2 py-0.5 rounded-full font-medium">🌱 Mais Suave</span>}
+                      </div>
+                    )}
+                  </div>
 
                   {!isAtivo && (
                     <Button 
                       variant="ghost" 
-                      className="w-full text-accent hover:text-accent hover:bg-accent/10 mt-2"
+                      className="w-full text-accent hover:text-accent hover:bg-accent/10 mt-1"
                       onClick={() => handleTrocar(plano.id)}
                     >
                       Selecionar como ativo <ArrowRight className="ml-2 h-4 w-4" />

@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
-import { brl, rendimentoEstimadoMensal, type Aporte } from "@/lib/finance";
+import { brl, rendimentoEstimadoMensal, aporteNecessarioParaPrazo, type Aporte } from "@/lib/finance";
+import { getBrasiliaToday } from "@/utils/dates";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -13,12 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { usePlanStore } from "@/store/usePlanStore";
-import { ArrowRight, Plus, Trash2, X, AlertCircle, Pencil, Wallet, TrendingUp, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Plus, Trash2, X, AlertCircle, Pencil, Wallet, TrendingUp, TrendingDown, Loader2, Sparkles, RotateCcw } from "lucide-react";
 import { TabelaMesAMes } from "@/components/TabelaMesAMes";
 import { PlanejamentoPageSkeleton } from "@/components/Skeleton";
 import { AtualizarSaldoGuardadoModal } from "@/components/AtualizarSaldoGuardadoModal";
 
 const ORIGENS = ["FGTS", "13º Salário", "Bônus", "Hora Extra", "Férias", "Freelance", "Restituição IR", "PLR", "Venda de bem", "Herança", "Presente", "Outro"];
+const MOTIVOS_RETIRADA = ["Emergência", "Reforma", "Outro Investimento", "Despesa Imprevista", "Outro"];
 
 const formatarDataAporte = (dataIso?: string) => {
   if (!dataIso) return "Data não informada";
@@ -64,10 +66,13 @@ export default function PlanejamentoPage() {
   const [excluindoAporte, setExcluindoAporte] = useState(false);
   
   const [novoAporte, setNovoAporte] = useState({
-    data: new Date().toISOString().slice(0, 10),
+    tipo: "aporte" as "aporte" | "retirada",
+    data: getBrasiliaToday().dataStr,
     valor: "" as number | "",
     origem: "13º Salário",
     origemCustom: "",
+    motivo: "Emergência",
+    motivoCustom: "",
     pessoa_id: "",
   });
 
@@ -79,18 +84,32 @@ export default function PlanejamentoPage() {
     : 0;
 
   const prazoMeses = objetivo?.prazoMaxMeses ?? 36;
-  // Usa os dados do backend se disponíveis, senão não exibe estimativa
   const mesesEstimados = backendData?.mesesParaAtingir ?? null;
   const atingiuMeta = backendData?.atingiuMeta ?? false;
   const foraDoPrazo = mesesEstimados !== null && prazoMeses > 0 && mesesEstimados > prazoMeses;
 
-  // Calcula aporte necessário para atingir a meta no prazo (sem considerar juros para simplificar)
-  const faltaParaMeta = meta - totalGuardado;
-  const aporteNecessario = faltaParaMeta > 0 && prazoMeses > 0 ? faltaParaMeta / prazoMeses : 0;
+  const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
+
+  // Cálculo detalhado da viabilidade
+  const faltaParaMeta = Math.max(0, meta - totalGuardado);
+  const aporteNecessarioLinear = faltaParaMeta > 0 && prazoMeses > 0 ? faltaParaMeta / prazoMeses : 0;
+  const aporteNecessarioComJuros = (meta > 0 && prazoMeses > 0 && faltaParaMeta > 0)
+    ? aporteNecessarioParaPrazo({
+        valorImovel: Number(objetivo?.valorImovel) || 0,
+        percentualEntrada: Number(objetivo?.percentualEntrada) || 0,
+        percentualCustosExtras: Number(objetivo?.percentualCustosExtras) || 0,
+        valorJaGuardado: totalGuardado,
+        taxaCdiAnual: taxaCdiAnual,
+        percentualCdi: Number(objetivo?.percentualCdi) || 100,
+        tipoInvestimento: objetivo?.tipoInvestimento || "cdb_100",
+        prazoMeses: prazoMeses,
+        aportesExtras: aportesExtras,
+        dataInicio: objetivo?.dataInicio ? new Date(objetivo.dataInicio) : new Date(),
+      })
+    : 0;
 
   const progressoPercent = Math.min(100, meta > 0 ? (totalGuardado / meta) * 100 : 0);
 
-  const taxaCdiAnual = Number(objetivo?.taxaCdiAnual ?? 10.5);
   const totalRendimentoMensal = pessoas.reduce((acc, p) => {
     const saldoP = progressoAtualPorPessoa[p.id] ?? Number(p.valorAtual ?? p.valorInicial ?? 0);
     return acc + rendimentoEstimadoMensal(saldoP, taxaCdiAnual, p.tipoInvestimento);
@@ -105,13 +124,16 @@ export default function PlanejamentoPage() {
   const gastosTotaisGeral = pessoas.reduce((s, p) => s + calcularGastosPessoa(p), 0);
   const sobraTotal = rendaTotalGeral - gastosTotaisGeral;
 
-  const abrirModalNovoAporte = () => {
+  const abrirModalNovoAporte = (tipo: "aporte" | "retirada" = "aporte") => {
     setEditingAporteIndex(null);
     setNovoAporte({
-      data: new Date().toISOString().slice(0, 10),
+      tipo,
+      data: getBrasiliaToday().dataStr,
       valor: "",
       origem: "13º Salário",
       origemCustom: "",
+      motivo: "Emergência",
+      motivoCustom: "",
       pessoa_id: "",
     });
     setIsAportesExtrasModalOpen(true);
@@ -120,22 +142,31 @@ export default function PlanejamentoPage() {
   const adicionarAporte = async () => {
     const val = Number(novoAporte.valor);
     if (!val || val <= 0) {
-      toast.error("Informe um valor maior que zero para o aporte.");
+      toast.error("Informe um valor maior que zero.");
       return;
     }
+
+    if (novoAporte.tipo === "retirada" && val > totalGuardado) {
+      toast.error(`O valor da retirada (${brl(val)}) não pode ser superior ao saldo acumulado disponível (${brl(totalGuardado)}).`);
+      return;
+    }
+
     const pessoa = pessoas.find(p => p.id === novoAporte.pessoa_id);
-    const origemFinal = novoAporte.origem === "Outro" && novoAporte.origemCustom.trim()
-      ? novoAporte.origemCustom.trim()
-      : novoAporte.origem;
+    const origemFinal = novoAporte.tipo === "retirada"
+      ? (novoAporte.motivo === "Outro" && novoAporte.motivoCustom.trim() ? novoAporte.motivoCustom.trim() : novoAporte.motivo)
+      : (novoAporte.origem === "Outro" && novoAporte.origemCustom.trim() ? novoAporte.origemCustom.trim() : novoAporte.origem);
 
     const aporte: Aporte = {
-      data: novoAporte.data || new Date().toISOString().slice(0, 10),
+      tipo: novoAporte.tipo,
+      data: novoAporte.data || getBrasiliaToday().dataStr,
       valor: val,
       origem: origemFinal,
+      motivo: novoAporte.tipo === "retirada" ? origemFinal : undefined,
       pessoaId: pessoa?.id,
       pessoaNome: pessoa ? pessoa.nome : undefined,
     };
 
+    const prevAportes = [...aportesExtras];
     setSalvandoAporte(true);
     try {
       let updated: Aporte[];
@@ -154,26 +185,66 @@ export default function PlanejamentoPage() {
         await calcularBackend(idToUse, { aportesExtras: updated });
       }
 
-      toast.success(editingAporteIndex !== null ? "Aporte extra atualizado com sucesso!" : "Aporte extra adicionado com sucesso!");
+      toast.success(editingAporteIndex !== null 
+        ? (aporte.tipo === "retirada" ? "Retirada atualizada com sucesso!" : "Aporte extra atualizado com sucesso!") 
+        : (aporte.tipo === "retirada" ? "Retirada registrada com sucesso!" : "Aporte extra adicionado com sucesso!"));
       setIsAportesExtrasModalOpen(false);
       setEditingAporteIndex(null);
     } catch (err) {
-      console.error("Erro ao salvar aporte extra:", err);
-      toast.error("Erro ao salvar aporte extra. Tente novamente.");
+      console.error("Erro ao salvar movimentação:", err);
+      setAportesExtras(prevAportes);
+      usePlanStore.getState().hydrate({ aportesExtras: prevAportes });
+      toast.error("Erro ao persistir movimentação no servidor. O estado foi restaurado.");
     } finally {
       setSalvandoAporte(false);
+    }
+  };
+
+  const reverterMovimentacao = async (index: number) => {
+    const item = aportesExtras[index];
+    if (!item) return;
+    const prevAportes = [...aportesExtras];
+    const updated = [...aportesExtras];
+    const hojeStr = getBrasiliaToday().dataStr;
+    const estavaRevertido = !!item.revertido;
+    
+    updated[index] = {
+      ...item,
+      revertido: !estavaRevertido,
+      revertidoEm: !estavaRevertido ? hojeStr : undefined,
+    };
+
+    setAportesExtras(updated);
+    usePlanStore.getState().hydrate({ aportesExtras: updated });
+    try {
+      const savedId = await salvarPlano({ aportesExtras: updated });
+      const idToUse = savedId || usePlanStore.getState().planoId;
+      if (idToUse) {
+        await calcularBackend(idToUse, { aportesExtras: updated });
+      }
+      toast.success(!estavaRevertido ? "Operação revertida com sucesso!" : "Reversão desfeita com sucesso!");
+    } catch (err) {
+      console.error("Erro ao reverter operação:", err);
+      setAportesExtras(prevAportes);
+      usePlanStore.getState().hydrate({ aportesExtras: prevAportes });
+      toast.error("Erro ao persistir reversão no servidor. O estado anterior foi restaurado.");
     }
   };
 
   const editarAporte = (index: number) => {
     const aporte = aportesExtras[index];
     if (!aporte) return;
+    const isRetirada = aporte.tipo === "retirada";
     const isStandardOrigem = ORIGENS.includes(aporte.origem);
+    const isStandardMotivo = MOTIVOS_RETIRADA.includes(aporte.motivo || aporte.origem);
     setNovoAporte({
+      tipo: isRetirada ? "retirada" : "aporte",
       data: aporte.data,
       valor: Number(aporte.valor),
       origem: isStandardOrigem ? aporte.origem : "Outro",
       origemCustom: isStandardOrigem ? "" : aporte.origem,
+      motivo: isStandardMotivo ? (aporte.motivo || aporte.origem) : "Outro",
+      motivoCustom: isStandardMotivo ? "" : (aporte.motivo || aporte.origem),
       pessoa_id: aporte.pessoaId ?? "",
     });
     setEditingAporteIndex(index);
@@ -189,6 +260,7 @@ export default function PlanejamentoPage() {
   const confirmarRemoverAporte = async () => {
     if (!extraParaExcluir) return;
     const indexToDelete = extraParaExcluir.index;
+    const itemTipo = extraParaExcluir.aporte.tipo === "retirada" ? "Retirada" : "Aporte extra";
     setExcluindoAporte(true);
     try {
       const updated = aportesExtras.filter((_, i) => i !== indexToDelete);
@@ -199,11 +271,11 @@ export default function PlanejamentoPage() {
       if (idToUse) {
         await calcularBackend(idToUse, { aportesExtras: updated });
       }
-      toast.success("Aporte extra excluído e planejamento recalculado!");
+      toast.success(`${itemTipo} excluído e planejamento recalculado!`);
       setExtraParaExcluir(null);
     } catch (err) {
-      console.error("Erro ao excluir aporte:", err);
-      toast.error("Erro ao excluir aporte extra.");
+      console.error("Erro ao excluir movimentação:", err);
+      toast.error(`Erro ao excluir ${itemTipo.toLowerCase()}.`);
     } finally {
       setExcluindoAporte(false);
     }
@@ -224,9 +296,14 @@ export default function PlanejamentoPage() {
       {foraDoPrazo && (
         <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 sm:p-5 flex gap-2 sm:gap-3 text-destructive">
           <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
-          <div className="text-xs sm:text-sm">
-            <p className="font-semibold mb-1">Atenção ao seu prazo</p>
-            <p>Mantendo o ritmo atual, a meta será atingida em {mesesEstimados} meses, acima do prazo escolhido ({prazoMeses} meses). Considere aumentar os aportes mensais ou adicionar aportes extras.</p>
+          <div className="text-xs sm:text-sm space-y-1">
+            <p className="font-semibold">Atenção: Aporte atual insuficiente para o prazo desejado</p>
+            <p>
+              Com o aporte atual de <strong>{brl(aporteTotal)}/mês</strong>, a meta de <strong>{brl(meta)}</strong> será alcançada em <strong>{mesesEstimados} meses</strong>, superando o prazo estipulado de <strong>{prazoMeses} meses</strong>.
+            </p>
+            <p className="text-xs opacity-90 pt-1">
+              Para atingir a meta em {prazoMeses} meses considerando a projeção de rendimento CDI, o aporte estimado é de <strong>{brl(aporteNecessarioComJuros)}/mês</strong> (ou <strong>{brl(aporteNecessarioLinear)}/mês</strong> em acúmulo linear direto sem rendimentos).
+            </p>
           </div>
         </div>
       )}
@@ -244,14 +321,25 @@ export default function PlanejamentoPage() {
             <div className="mt-4 pt-4 border-t border-border/40 w-full">
               {!atingiuMeta || foraDoPrazo ? (
                 <>
-                  <p className="text-xs uppercase tracking-wider text-destructive font-medium mb-2">{!atingiuMeta ? "Meta não atingível" : foraDoPrazo ? `Não atinge o prazo (${prazoMeses}m)` : ""}</p>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground font-medium">Atual:</span>
-                    <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
+                  <p className="text-xs uppercase tracking-wider text-destructive font-medium mb-2">{!atingiuMeta ? "Meta não atingível no limite" : foraDoPrazo ? `Prazo excedido (${prazoMeses} meses estipulados)` : ""}</p>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium">Aporte atual:</span>
+                      <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium">Aporte c/ juros (CDI):</span>
+                      <span className="font-semibold text-destructive">{brl(aporteNecessarioComJuros)}/mês</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] text-muted-foreground/80">
+                      <span>Estimativa linear sem juros:</span>
+                      <span>{brl(aporteNecessarioLinear)}/mês</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center text-xs mt-1.5">
-                    <span className="text-muted-foreground font-medium">Necessário:</span>
-                    <span className="font-medium text-destructive">{brl(aporteNecessario)}/mês</span>
+                  <div className="mt-3 p-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-[11px] text-destructive/90 space-y-1">
+                    <p className="font-semibold">Alternativas viáveis:</p>
+                    <p>• <strong>Aumentar aporte:</strong> Aportar {brl(aporteNecessarioComJuros)}/mês para manter o prazo de {prazoMeses} meses.</p>
+                    <p>• <strong>Ampliar prazo:</strong> Estender o objetivo para {mesesEstimados ?? 60} meses mantendo {brl(aporteTotal)}/mês.</p>
                   </div>
                 </>
               ) : (
@@ -261,6 +349,9 @@ export default function PlanejamentoPage() {
                     <span className="text-muted-foreground font-medium">Aporte programado:</span>
                     <span className="font-semibold text-foreground">{brl(aporteTotal)}/mês</span>
                   </div>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    Projeção calculada com base na rentabilidade líquida do plano.
+                  </p>
                 </>
               )}
             </div>
@@ -352,7 +443,7 @@ export default function PlanejamentoPage() {
         </Card>
       </div>
 
-      {/* Modal Aportes Extras */}
+      {/* Modal Aportes Extras e Retiradas */}
       {isAportesExtrasModalOpen && typeof document !== "undefined" && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -363,19 +454,29 @@ export default function PlanejamentoPage() {
             className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
           >
             {/* Linha decorativa de topo */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-accent" />
+            <div className={`absolute top-0 left-0 right-0 h-1 ${novoAporte.tipo === "retirada" ? "bg-rose-500" : "bg-accent"}`} />
 
             {/* Header */}
             <div className="flex items-start justify-between gap-3 pb-4 border-b border-border/40">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
-                  <Wallet className="h-5 w-5" />
+                <div className={`h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 ${
+                  novoAporte.tipo === "retirada"
+                    ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                    : "bg-accent/10 border-accent/20 text-accent"
+                }`}>
+                  {novoAporte.tipo === "retirada" ? <TrendingDown className="h-5 w-5" /> : <Wallet className="h-5 w-5" />}
                 </div>
                 <div>
                   <h2 className="font-display text-lg font-semibold text-foreground leading-tight">
-                    {editingAporteIndex !== null ? "Editar Aporte Extra" : "Adicionar Aporte Extra"}
+                    {editingAporteIndex !== null 
+                      ? (novoAporte.tipo === "retirada" ? "Editar Retirada" : "Editar Aporte Extra") 
+                      : (novoAporte.tipo === "retirada" ? "Registrar Retirada" : "Adicionar Aporte Extra")}
                   </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Recurso pontual para acelerar sua conquista.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {novoAporte.tipo === "retirada" 
+                      ? "Saque pontual de recursos com atualização do saldo." 
+                      : "Recurso pontual para acelerar sua conquista."}
+                  </p>
                 </div>
               </div>
               <button 
@@ -389,10 +490,47 @@ export default function PlanejamentoPage() {
               </button>
             </div>
 
+            {/* Alternador de Tipo de Movimentação */}
+            <div className="grid grid-cols-2 p-1 bg-secondary/50 rounded-xl mt-4 border border-border/50">
+              <button
+                type="button"
+                onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "aporte" }))}
+                className={`py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  novoAporte.tipo === "aporte" 
+                    ? "bg-background text-foreground shadow-xs" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Plus className="h-3.5 w-3.5 text-accent" />
+                <span>Aporte Extra</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "retirada" }))}
+                className={`py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  novoAporte.tipo === "retirada" 
+                    ? "bg-background text-rose-500 shadow-xs" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
+                <span>Retirada / Resgate</span>
+              </button>
+            </div>
+
+            {novoAporte.tipo === "retirada" && (
+              <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs flex justify-between items-center text-foreground">
+                <span className="text-muted-foreground">Saldo acumulado disponível:</span>
+                <span className="font-semibold num">{brl(totalGuardado)}</span>
+              </div>
+            )}
+
             {/* Form Content */}
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Valor do aporte</Label>
+                <Label className="text-xs font-medium text-foreground">
+                  {novoAporte.tipo === "retirada" ? "Valor da retirada" : "Valor do aporte"}
+                </Label>
                 <MoneyInput
                   variant="money"
                   min={0}
@@ -404,7 +542,7 @@ export default function PlanejamentoPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Data do recebimento / aporte</Label>
+                <Label className="text-xs font-medium text-foreground">Data da movimentação</Label>
                 <input
                   type="date"
                   value={novoAporte.data}
@@ -413,29 +551,54 @@ export default function PlanejamentoPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Origem do recurso</Label>
-                <select
-                  value={novoAporte.origem}
-                  onChange={(e) => setNovoAporte(prev => ({ ...prev, origem: e.target.value }))}
-                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
-                >
-                  {ORIGENS.map((o) => (
-                    <option key={o} value={o}>{o}</option>
-                  ))}
-                </select>
-                {novoAporte.origem === "Outro" && (
-                  <Input
-                    placeholder="Especifique a origem (ex: Restituição IR)"
-                    value={novoAporte.origemCustom}
-                    onChange={(e) => setNovoAporte(prev => ({ ...prev, origemCustom: e.target.value }))}
-                    className="h-10 mt-2 rounded-xl text-sm"
-                  />
-                )}
-              </div>
+              {novoAporte.tipo === "retirada" ? (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">Motivo da retirada</Label>
+                  <select
+                    value={novoAporte.motivo}
+                    onChange={(e) => setNovoAporte(prev => ({ ...prev, motivo: e.target.value }))}
+                    className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
+                  >
+                    {MOTIVOS_RETIRADA.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  {novoAporte.motivo === "Outro" && (
+                    <Input
+                      placeholder="Especifique o motivo da retirada"
+                      value={novoAporte.motivoCustom}
+                      onChange={(e) => setNovoAporte(prev => ({ ...prev, motivoCustom: e.target.value }))}
+                      className="h-10 mt-2 rounded-xl text-sm"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">Origem do recurso</Label>
+                  <select
+                    value={novoAporte.origem}
+                    onChange={(e) => setNovoAporte(prev => ({ ...prev, origem: e.target.value }))}
+                    className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
+                  >
+                    {ORIGENS.map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                  {novoAporte.origem === "Outro" && (
+                    <Input
+                      placeholder="Especifique a origem (ex: Restituição IR)"
+                      value={novoAporte.origemCustom}
+                      onChange={(e) => setNovoAporte(prev => ({ ...prev, origemCustom: e.target.value }))}
+                      className="h-10 mt-2 rounded-xl text-sm"
+                    />
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Quem contribuiu?</Label>
+                <Label className="text-xs font-medium text-foreground">
+                  {novoAporte.tipo === "retirada" ? "Titular da retirada" : "Quem contribuiu?"}
+                </Label>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="button"
@@ -481,7 +644,11 @@ export default function PlanejamentoPage() {
                 type="button"
                 onClick={adicionarAporte}
                 disabled={salvandoAporte || !novoAporte.valor || Number(novoAporte.valor) <= 0}
-                className="flex-1 h-11 rounded-xl bg-gradient-warm text-accent-foreground font-semibold hover:opacity-95 shadow-glow disabled:opacity-50 flex items-center justify-center gap-2"
+                className={`flex-1 h-11 rounded-xl font-semibold shadow-glow disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  novoAporte.tipo === "retirada"
+                    ? "bg-rose-600 hover:bg-rose-700 text-white"
+                    : "bg-gradient-warm text-accent-foreground hover:opacity-95"
+                }`}
               >
                 {salvandoAporte ? (
                   <>
@@ -490,8 +657,8 @@ export default function PlanejamentoPage() {
                   </>
                 ) : (
                   <>
-                    <Plus className="h-4 w-4" />
-                    <span>{editingAporteIndex !== null ? "Salvar alterações" : "Adicionar aporte"}</span>
+                    {novoAporte.tipo === "retirada" ? <TrendingDown className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    <span>{editingAporteIndex !== null ? "Salvar alterações" : (novoAporte.tipo === "retirada" ? "Confirmar retirada" : "Adicionar aporte")}</span>
                   </>
                 )}
               </Button>
@@ -501,7 +668,7 @@ export default function PlanejamentoPage() {
         document.body
       )}
 
-      {/* Modal de Confirmação de Exclusão de Aporte Extra */}
+      {/* Modal de Confirmação de Exclusão */}
       {extraParaExcluir && typeof document !== "undefined" && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -527,10 +694,10 @@ export default function PlanejamentoPage() {
               </div>
               <div className="flex-1 min-w-0 pr-6">
                 <h3 className="font-display text-xl font-semibold text-foreground tracking-tight">
-                  Excluir aporte extra?
+                  {extraParaExcluir.aporte.tipo === "retirada" ? "Excluir retirada?" : "Excluir aporte extra?"}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                  Tem certeza que deseja excluir o aporte de <strong className="text-foreground font-semibold">{brl(Number(extraParaExcluir.aporte.valor))}</strong> ({extraParaExcluir.aporte.origem})?
+                  Tem certeza que deseja excluir {extraParaExcluir.aporte.tipo === "retirada" ? "a retirada" : "o aporte"} de <strong className="text-foreground font-semibold">{brl(Number(extraParaExcluir.aporte.valor))}</strong> ({extraParaExcluir.aporte.motivo || extraParaExcluir.aporte.origem})?
                 </p>
               </div>
             </div>
@@ -576,7 +743,7 @@ export default function PlanejamentoPage() {
       )}
 
       <div className="space-y-6 pt-6 border-t border-border/30 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        {/* Card Aportes Extras */}
+        {/* Card Movimentações Financeiras (Aportes Extras & Retiradas) */}
         <Card className="p-0 overflow-hidden shadow-soft border-border/60 hover:border-accent/40 transition-all bg-white dark:bg-card rounded-2xl group">
           {/* Header do Card */}
           <div className="p-4 sm:p-5 flex items-start sm:items-center justify-between gap-3 border-b border-border/40 bg-secondary/20">
@@ -587,105 +754,175 @@ export default function PlanejamentoPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="font-display text-base sm:text-lg font-semibold text-foreground leading-tight">
-                    Aportes extras
+                    Movimentações financeiras
                   </h2>
                   {aportesExtras.length > 0 && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent">
-                      {aportesExtras.length} {aportesExtras.length === 1 ? "aporte" : "aportes"}
+                      {aportesExtras.length} {aportesExtras.length === 1 ? "registro" : "registros"}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Recursos pontuais cadastrados para acelerar sua conquista.
+                  Aportes pontuais e retiradas com histórico rastreável e reversão segura.
                 </p>
               </div>
             </div>
-            <Button 
-              size="sm" 
-              onClick={abrirModalNovoAporte} 
-              className="h-9 px-3 rounded-xl text-xs font-medium bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow shrink-0 flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Adicionar aporte</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => abrirModalNovoAporte("retirada")} 
+                className="h-9 px-3 rounded-xl text-xs font-medium border-rose-500/30 text-rose-500 hover:bg-rose-500/10 shrink-0 flex items-center gap-1.5 cursor-pointer"
+              >
+                <TrendingDown className="h-3.5 w-3.5" />
+                <span>Retirada</span>
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => abrirModalNovoAporte("aporte")} 
+                className="h-9 px-3 rounded-xl text-xs font-medium bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow shrink-0 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Aporte</span>
+              </Button>
+            </div>
           </div>
 
           {aportesExtras.length === 0 ? (
             <div 
-              onClick={abrirModalNovoAporte}
+              onClick={() => abrirModalNovoAporte("aporte")}
               className="p-6 text-center cursor-pointer hover:bg-secondary/10 transition-colors flex flex-col items-center justify-center group/empty"
             >
               <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent shadow-inner transition-transform group-hover/empty:scale-105 duration-300">
                 <Wallet className="h-5 w-5" />
               </div>
-              <h3 className="text-sm font-semibold text-foreground mb-0.5">Nenhum aporte extra cadastrado</h3>
-              <p className="text-xs text-muted-foreground max-w-[320px] leading-relaxed">
-                Adicione 13º salário, bônus ou venda de bens para acelerar a entrega das chaves.
+              <h3 className="text-sm font-semibold text-foreground mb-0.5">Nenhuma movimentação cadastrada</h3>
+              <p className="text-xs text-muted-foreground max-w-[340px] leading-relaxed">
+                Adicione 13º salário, bônus, resgates ou saques pontuais para acompanhar o impacto na sua meta.
               </p>
               <span className="text-xs text-accent font-medium mt-2 inline-flex items-center gap-1 hover:underline">
-                + Lançar primeiro aporte
+                + Lançar primeiro aporte ou retirada
               </span>
             </div>
           ) : (
             <div className="p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {aportesExtras.map((a, index) => (
-                  <div 
-                    key={index} 
-                    className="p-3 rounded-xl border border-border/50 bg-secondary/15 hover:bg-secondary/35 transition-all flex items-center justify-between gap-2.5 group/item"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
-                        <TrendingUp className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-display text-sm font-semibold text-foreground num leading-none">
-                            +{brl(Number(a.valor))}
-                          </span>
-                          <span className="text-[9px] font-medium uppercase tracking-wider text-accent bg-accent/10 px-1.5 py-0.5 rounded-full shrink-0">
-                            {a.origem}
-                          </span>
+                {aportesExtras.map((a, index) => {
+                  const isRetirada = a.tipo === "retirada";
+                  const isRevertido = !!a.revertido;
+                  return (
+                    <div 
+                      key={index} 
+                      className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-2.5 group/item ${
+                        isRevertido
+                          ? "opacity-50 bg-secondary/10 border-border/30 line-through"
+                          : isRetirada
+                            ? "border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10"
+                            : "border-border/50 bg-secondary/15 hover:bg-secondary/35"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center shrink-0 ${
+                          isRetirada
+                            ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                            : "bg-accent/10 border-accent/20 text-accent"
+                        }`}>
+                          {isRetirada ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
-                          <span>{formatarDataAporte(a.data)}</span>
-                          <span className="text-border">•</span>
-                          <span className="font-medium text-foreground/80">{a.pessoaNome ?? "Conjunto"}</span>
-                        </p>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`font-display text-sm font-semibold num leading-none ${
+                              isRetirada ? "text-rose-500" : "text-foreground"
+                            }`}>
+                              {isRetirada ? "-" : "+"}{brl(Number(a.valor))}
+                            </span>
+                            <span className={`text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ${
+                              isRetirada 
+                                ? "text-rose-500 bg-rose-500/10" 
+                                : "text-accent bg-accent/10"
+                            }`}>
+                              {a.motivo || a.origem}
+                            </span>
+                            {isRevertido && (
+                              <span className="text-[9px] font-medium uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full shrink-0 not-italic">
+                                Revertido
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
+                            <span>{formatarDataAporte(a.data)}</span>
+                            <span className="text-border">•</span>
+                            <span className="font-medium text-foreground/80">{a.pessoaNome ?? "Conjunto"}</span>
+                            {a.revertidoEm && (
+                              <span className="text-[10px] text-muted-foreground">(revertido em {formatarDataAporte(a.revertidoEm)})</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-0.5 shrink-0 not-italic">
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          onClick={() => reverterMovimentacao(index)} 
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
+                          title={isRevertido ? "Desfazer reversão" : "Reverter movimentação (manter histórico)"}
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          onClick={() => editarAporte(index)} 
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
+                          title="Editar"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          onClick={() => removerAporte(index)} 
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => editarAporte(index)} 
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
-                        title="Editar"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => removerAporte(index)} 
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Resumo Total no rodapé */}
-              <div className="pt-2 border-t border-border/40 flex items-center justify-between px-1 text-xs">
-                <span className="text-muted-foreground font-medium">Total em aportes extras</span>
-                <span className="font-display text-sm font-semibold text-accent num">
-                  +{brl(aportesExtras.reduce((acc, a) => acc + Number(a.valor || 0), 0))}
-                </span>
-              </div>
+              {(() => {
+                const totalAportesValidos = aportesExtras
+                  .filter(a => !a.revertido && a.tipo !== "retirada")
+                  .reduce((acc, a) => acc + Number(a.valor || 0), 0);
+                const totalRetiradasValidas = aportesExtras
+                  .filter(a => !a.revertido && a.tipo === "retirada")
+                  .reduce((acc, a) => acc + Number(a.valor || 0), 0);
+                const saldoMovimentacoes = totalAportesValidos - totalRetiradasValidas;
+
+                return (
+                  <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <span>Aportes extras: <strong className="text-accent font-semibold num">+{brl(totalAportesValidos)}</strong></span>
+                      {totalRetiradasValidas > 0 && (
+                        <span>Retiradas: <strong className="text-rose-500 font-semibold num">-{brl(totalRetiradasValidas)}</strong></span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">Impacto líquido:</span>
+                      <span className={`font-display text-sm font-semibold num ${
+                        saldoMovimentacoes >= 0 ? "text-accent" : "text-rose-500"
+                      }`}>
+                        {saldoMovimentacoes >= 0 ? "+" : ""}{brl(saldoMovimentacoes)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </Card>

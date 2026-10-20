@@ -14,6 +14,7 @@ export function extractSimulacaoSummary(
     totalNecessario: result.totalNecessario,
     valorJaGuardado: result.valorJaGuardado,
     totalInvestido: result.totalInvestido,
+    totalRetirado: result.totalRetirado,
     totalAcumulado: result.totalAcumulado,
     lucroLiquido: result.lucroLiquido,
     atingiuMeta: result.atingiuMeta,

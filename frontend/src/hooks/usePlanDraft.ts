@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
 import { usePlanStore } from '@/store/usePlanStore';
-import { parseBackendDate, toLocalDateIso } from '@/utils/dates';
+import { parseBackendDate, toLocalDateIso, getBrasiliaToday } from '@/utils/dates';
 
 function obterIdUsuario(): string | null {
   const cookieUsuario = Cookies.get("user");
@@ -93,9 +93,9 @@ export function usePlanDraft(planoId: string | null) {
             ...a,
             data: a.data
               ? typeof a.data === "string"
-                ? a.data
-                : toLocalDateIso(a.data) ?? new Date().toISOString().slice(0, 10)
-              : new Date().toISOString().slice(0, 10),
+                ? (a.data.includes("T") ? toLocalDateIso(a.data) ?? a.data.slice(0, 10) : a.data)
+                : toLocalDateIso(a.data) ?? getBrasiliaToday().dataStr
+              : getBrasiliaToday().dataStr,
           })),
           aportesRegularesEditados: draftData.aportesRegularesEditados || {},
           aportesRegularesEditadosPorPessoa: draftData.aportesRegularesEditadosPorPessoa || {},

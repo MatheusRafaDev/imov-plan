@@ -8,6 +8,7 @@ namespace ImovPlan.Domain.Entities
         public DateTime DataPrevistaAlvo { get; set; }
         public int MesesParaAtingir { get; set; }
         public decimal TotalInvestido { get; set; }
+        public decimal TotalRetirado { get; set; }
         public decimal TotalAcumulado { get; set; }
         public decimal LucroLiquido { get; set; }
         public List<DetalheMensal> DetalhesMensais { get; set; } = new();
@@ -19,6 +20,7 @@ namespace ImovPlan.Domain.Entities
         public DateTime DataReferencia { get; set; }
         public decimal AporteMensal { get; set; }
         public decimal AportesExtras { get; set; }
+        public decimal Retiradas { get; set; }
         public decimal RendimentoBruto { get; set; }
         public decimal Imposto { get; set; }
         public decimal RendimentoLiquido { get; set; }

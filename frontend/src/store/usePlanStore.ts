@@ -66,7 +66,13 @@ export const usePlanStore = create<PlanState>()(
     (set) => ({
       ...initialState,
 
-      setPlanoId: (planoId) => set({ planoId }),
+      setPlanoId: (planoId) => set((state) => {
+        if (state.planoId === planoId) return state;
+        return {
+          ...initialState,
+          planoId,
+        };
+      }),
       setObjetivo: (update) => set((state) => ({
         objetivo: typeof update === 'function' ? update(state.objetivo) : update
       })),

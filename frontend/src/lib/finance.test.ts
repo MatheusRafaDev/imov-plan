@@ -77,9 +77,9 @@ describe('finance.ts unit tests', () => {
     expect(res.meta).toBe(75000);
     expect(res.atingiuMeta).toBe(true);
     expect(res.mesAtingiuMeta).toBe(50); // 50 * 1500 = 75000
-    // Como a simulação estende 6 meses a partir da meta, o prazo simulado foi 56.
-    expect(res.totalInvestido).toBe(549000); 
-    expect(res.saldoFinal).toBe(549000);
+    // Como a simulação estende 6 meses a partir da meta (50), o prazo simulado foi 56.
+    expect(res.totalInvestido).toBe(84000); 
+    expect(res.saldoFinal).toBe(84000);
   });
 
   test('totalMesMaisRendimentoLiquido soma contribuição e rendimento líquido', () => {
@@ -129,8 +129,9 @@ describe('finance.ts unit tests', () => {
         ]
     });
 
-    // Mês 0 (Jul 2026 e Junho 2026, offset <= 0): caem no start e se somam ao saldo inicial
-    expect(res.rows[0]?.saldoAcumulado).toBe(1000 + 100 + 200); // 1300
+    // Mês 0 (Jul 2026, offset === 0): aporte de 200 é computado no Mês 0; Junho 2026 é anterior ao início do plano e descartado.
+    expect(res.rows[0]?.aportesExtras).toBe(200);
+    expect(res.rows[0]?.saldoAcumulado).toBe(1000 + 200); // 1200
     // Mês 1 (Ago 2026): recebe 300
     expect(res.rows[1]?.aportesExtras).toBe(300);
     // Mês 2 (Set 2026): recebe 400
@@ -326,5 +327,97 @@ describe('finance.ts unit tests', () => {
     expect(dia16.saldoPorPessoa!['p1']).toBeLessThan(dia31.saldoPorPessoa!['p1']);
     expect(dia16.saldoPorPessoa!['p2']).toBeLessThan(dia31.saldoPorPessoa!['p2']);
     expect(dia16.saldoFinal).toBeLessThan(dia31.saldoFinal);
+  });
+
+  test('calcularEvolucaoDiariaDoMes nao contabiliza aportes de outros meses ou anos com mesmo dia', () => {
+    // Teste crítico: aportes no dia 15 em Jan/2025, Fev/2025 e Jan/2026
+    const aportesExtras = [
+      { data: '2025-01-15', valor: 1000, origem: 'Jan 2025' },
+      { data: '2025-02-15', valor: 2500, origem: 'Fev 2025' },
+      { data: '2026-01-15', valor: 9000, origem: 'Jan 2026' },
+    ];
+
+    // Simulação do mês de Fevereiro/2025
+    const resFev2025 = calcularEvolucaoDiariaDoMes({
+      dataReferencia: '2025-02-01',
+      saldoInicialMes: 10000,
+      aporteRegular: 0,
+      taxaCdiAnual: 10.5,
+      aportesExtras,
+    });
+
+    const dia15Fev = resFev2025.dias.find(d => d.dia === 15)!;
+    expect(dia15Fev.aportesExtras).toBe(2500);
+    expect(dia15Fev.detalhesExtras).toHaveLength(1);
+    expect(dia15Fev.detalhesExtras[0].origem).toBe('Fev 2025');
+    expect(resFev2025.totalAportesExtras).toBe(2500);
+
+    // Simulação do mês de Janeiro/2025: só deve ter 1000, sem 2500 nem 9000
+    const resJan2025 = calcularEvolucaoDiariaDoMes({
+      dataReferencia: '2025-01-01',
+      saldoInicialMes: 10000,
+      aporteRegular: 0,
+      taxaCdiAnual: 10.5,
+      aportesExtras,
+    });
+
+    const dia15Jan = resJan2025.dias.find(d => d.dia === 15)!;
+    expect(dia15Jan.aportesExtras).toBe(1000);
+    expect(resJan2025.totalAportesExtras).toBe(1000);
+  });
+
+  test('simular com retiradas reduz saldo, desconta do totalInvestido e registra totalRetirado', () => {
+    const res = simular({
+      valorImovel: 300000,
+      percentualEntrada: 20,
+      percentualCustosExtras: 5,
+      valorJaGuardado: 50000,
+      aporteMensalTotal: 1000,
+      taxaCdiAnual: 0, // 0 juros para testar fluxo de caixa puro
+      percentualCdi: 100,
+      prazoMaxMeses: 10,
+      mesesExtrasAposMeta: 0,
+      dataInicio: new Date('2025-01-01T12:00:00'),
+      aportesExtras: [
+        { data: '2025-03-10', valor: 5000, origem: 'Resgate emergência', tipo: 'retirada' },
+        { data: '2025-05-15', valor: 2000, origem: 'Aporte extra', tipo: 'aporte' },
+      ],
+    });
+
+    // Mês 0 (Jan/2025): 50000
+    expect(res.rows[0].saldoAcumulado).toBe(50000);
+    // Mês 1 (Fev/2025): 50000 + 1000 = 51000
+    expect(res.rows[1].saldoAcumulado).toBe(51000);
+    // Mês 2 (Mar/2025): 51000 + 1000 - 5000 = 47000
+    expect(res.rows[2].retiradas).toBe(5000);
+    expect(res.rows[2].saldoAcumulado).toBe(47000);
+    // Mês 3 (Abr/2025): 47000 + 1000 = 48000
+    expect(res.rows[3].saldoAcumulado).toBe(48000);
+    // Mês 4 (Mai/2025): 48000 + 1000 + 2000 = 51000
+    expect(res.rows[4].aportesExtras).toBe(2000);
+    expect(res.rows[4].saldoAcumulado).toBe(51000);
+    expect(res.totalRetirado).toBe(5000);
+  });
+
+  test('simular com investimento LCI/LCA tem isenção de imposto de renda (imposto = 0)', () => {
+    const res = simular({
+      valorImovel: 300000,
+      percentualEntrada: 20,
+      percentualCustosExtras: 5,
+      valorJaGuardado: 50000,
+      aporteMensalTotal: 2000,
+      taxaCdiAnual: 12.0,
+      percentualCdi: 100,
+      prazoMaxMeses: 12,
+      tipoInvestimento: 'lci_lca',
+      dataInicio: new Date('2025-01-01T12:00:00'),
+      aportesExtras: [],
+    });
+
+    // Em todos os meses com rendimento, o imposto deve ser exatamente 0
+    for (let i = 1; i < res.rows.length; i++) {
+      expect(res.rows[i].imposto).toBe(0);
+      expect(res.rows[i].rendimentoLiquido).toBe(res.rows[i].rendimentoBruto);
+    }
   });
 });

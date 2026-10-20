@@ -27,6 +27,18 @@ namespace ImovPlan.Domain.Entities
         [BsonElement("origem")]
         public string Origem { get; set; } = string.Empty; // FGTS, Bônus, Freelance, etc.
 
+        [BsonElement("tipo")]
+        public string Tipo { get; set; } = "Aporte"; // "Aporte" ou "Retirada"
+
+        [BsonElement("motivo")]
+        public string? Motivo { get; set; }
+
+        [BsonElement("revertido")]
+        public bool Revertido { get; set; } = false;
+
+        [BsonElement("revertidoEm")]
+        public DateTime? RevertidoEm { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

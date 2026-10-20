@@ -29,6 +29,10 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal AportesExtras { get; set; }
 
+        [BsonElement("retiradas")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal Retiradas { get; set; }
+
         [BsonElement("rendimentoBruto")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal RendimentoBruto { get; set; }

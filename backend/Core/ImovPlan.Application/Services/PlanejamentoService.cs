@@ -215,6 +215,10 @@ namespace ImovPlan.Application.Services
                     Data = !string.IsNullOrEmpty(a.Data) && DateTime.TryParse(a.Data, out var d) ? d : DateTime.UtcNow,
                     Valor = a.Valor,
                     Origem = a.Origem,
+                    Tipo = string.IsNullOrWhiteSpace(a.Tipo) ? "Aporte" : a.Tipo,
+                    Motivo = a.Motivo,
+                    Revertido = a.Revertido,
+                    RevertidoEm = !string.IsNullOrEmpty(a.RevertidoEm) && DateTime.TryParse(a.RevertidoEm, out var revDt) ? revDt : null,
                 }).ToList();
                 await _aporteExtraRepo.AddRangeAsync(novasExtras);
             }

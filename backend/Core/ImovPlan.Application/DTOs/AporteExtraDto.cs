@@ -10,5 +10,9 @@ namespace ImovPlan.Application.DTOs
         public string Origem { get; set; } = string.Empty;
         public string PessoaId { get; set; } = string.Empty;
         public string PessoaNome { get; set; } = string.Empty;
+        public string Tipo { get; set; } = "Aporte"; // "Aporte" ou "Retirada"
+        public string? Motivo { get; set; }
+        public bool Revertido { get; set; } = false;
+        public DateTime? RevertidoEm { get; set; }
     }
 }

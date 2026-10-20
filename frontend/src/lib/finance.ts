@@ -8,6 +8,10 @@ export type Aporte = {
   pessoaNome?: string;
   pessoaId?: string;
   checked?: boolean;
+  tipo?: "aporte" | "retirada";
+  motivo?: string;
+  revertido?: boolean;
+  revertidoEm?: string;
 };
 
 export type CenarioSimulacao = "pessimista" | "realista" | "otimista";
@@ -61,20 +65,24 @@ export type SimRow = {
   data: string; // ISO mês de referência
   aporteRegular: number;
   aportesExtras: number;
+  retiradas: number;
   rendimentoBruto: number;
   imposto: number;
   rendimentoLiquido: number;
   saldoAcumulado: number; // após rendimento e impostos do mês
-  totalInvestido: number; // soma de tudo que entrou (sem rendimento)
+  totalInvestido: number; // soma de tudo que entrou líquido (sem rendimento)
 };
 
-// Calcula o índice do mês da simulação (1, 2, 3...) em que uma data de aporte cai,
-// relativo ao mês de início. Retorna null se a data for anterior ou igual ao mês de início
-// (aportes no mês 0 são descartados da simulação atualmente).
+// Calcula o índice do mês da simulação (0, 1, 2...) em que uma data de aporte cai,
+// relativo ao mês de início.
+// Retorna 0 para a competência inicial (mês da dataInicio).
+// Retorna null se a data for estritamente anterior ao mês inicial do plano.
 export function mesDaSimulacaoParaData(dataISO: string, inicio: Date): number | null {
-  const d = new Date(dataISO + 'T12:00:00');
+  if (!dataISO) return null;
+  const d = new Date(dataISO.includes("T") ? dataISO : `${dataISO}T12:00:00`);
+  if (isNaN(d.getTime())) return null;
   const offset = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
-  return offset >= 1 ? offset : null;
+  return offset >= 0 ? offset : null;
 }
 
 export type SimResult = {
@@ -88,6 +96,7 @@ export type SimResult = {
   dataAtingiuMeta?: string;
   saldoFinal: number;
   totalInvestido: number;
+  totalRetirado: number;
   lucroLiquido: number;
   cenario: CenarioSimulacao;
   /** Populado apenas quando a meta não é atingida dentro de prazoMaxMeses */
@@ -411,29 +420,46 @@ export function calcularEvolucaoDiariaDoMes(params: {
     totalAporteRegularMes += aporteReg;
 
     const extrasDesteDia = (params.aportesExtras || []).filter(e => {
-      if (!e.data) return false;
+      if (!e.data || (e as any).revertido) return false;
       const iso = e.data.split("T")[0];
-      return iso === diaIso || iso.endsWith(`-${String(dia).padStart(2, "0")}`);
+      return iso === diaIso;
     });
 
-    const somaExtrasDia = extrasDesteDia.reduce((s, e) => s + (Number(e.valor) || 0), 0);
+    const aportesExtrasValidos = extrasDesteDia.filter(e => (e as any).tipo !== "retirada");
+    const retiradasValidas = extrasDesteDia.filter(e => (e as any).tipo === "retirada");
+
+    const somaExtrasDia = aportesExtrasValidos.reduce((s, e) => s + (Number(e.valor) || 0), 0);
+    const somaRetiradasDia = retiradasValidas.reduce((s, e) => s + (Number(e.valor) || 0), 0);
     totalAportesExtrasMes += somaExtrasDia;
 
     // Adiciona extras individuais aos aportes da pessoa
-    extrasDesteDia.forEach(e => {
+    aportesExtrasValidos.forEach(e => {
       if (e.pessoaId && aportesDoDiaPorPessoa[e.pessoaId] !== undefined) {
         aportesDoDiaPorPessoa[e.pessoaId] += (Number(e.valor) || 0);
       }
     });
 
-    const totalAportesDoDia = aporteReg + somaExtrasDia;
+    retiradasValidas.forEach(e => {
+      if (e.pessoaId && aportesDoDiaPorPessoa[e.pessoaId] !== undefined) {
+        aportesDoDiaPorPessoa[e.pessoaId] -= (Number(e.valor) || 0);
+      }
+    });
+
+    const totalAportesDoDia = aporteReg + somaExtrasDia - somaRetiradasDia;
     const saldoInicial = saldoAtual;
-    const saldoAposAporte = saldoInicial + totalAportesDoDia;
 
-    const rendimentoDoDia = isDiaUtil && saldoAposAporte > 0 ? saldoAposAporte * taxaDiaria : 0;
-    totalRendimentoMes += rendimentoDoDia;
+    // Convenção de mercado: o rendimento do dia D incide sobre o saldo de abertura (saldoInicial).
+    // Aportes e retiradas do dia D passam a compor a base de rendimento no dia seguinte (D+1).
+    const isLciLca = params.tipoInvestimento === "lci_lca";
+    const rendimentoBrutoDoDia = isDiaUtil && saldoInicial > 0 ? saldoInicial * taxaDiaria : 0;
+    const irAliquota = isLciLca ? 0 : aliquotaIR(mesIndex * 30 + dia);
+    const impostoDoDia = rendimentoBrutoDoDia * irAliquota;
+    const rendimentoLiquidoDoDia = rendimentoBrutoDoDia - impostoDoDia;
+    const rendimentoDoDia = rendimentoLiquidoDoDia;
+    totalRendimentoMes += rendimentoLiquidoDoDia;
 
-    const saldoFinal = saldoAposAporte + rendimentoDoDia;
+    const saldoAposAporte = Math.max(0, saldoInicial + totalAportesDoDia);
+    const saldoFinal = saldoAposAporte + rendimentoLiquidoDoDia;
     saldoAtual = saldoFinal;
 
     // Atualiza saldo individual diário de cada pessoa
@@ -574,30 +600,33 @@ export function simular(input: SimInput): SimResult {
     inicio = new Date();
   }
 
-  const extrasPorMes = new Map<number, number>();
-  let extrasMes0 = 0;
+  const extrasPorMes = new Map<number, Aporte[]>();
   for (const a of input.aportesExtras) {
+    if (a.revertido) continue;
     const mesOffset = mesDaSimulacaoParaData(a.data, inicio);
     if (mesOffset !== null) {
-      const existing = extrasPorMes.get(mesOffset) ?? 0;
-      extrasPorMes.set(mesOffset, existing + a.valor);
-    } else {
-      extrasMes0 += a.valor;
+      const list = extrasPorMes.get(mesOffset) ?? [];
+      list.push(a);
+      extrasPorMes.set(mesOffset, list);
     }
   }
+
+  const extrasMes0List = extrasPorMes.get(0) ?? [];
+  const extrasMes0Aportes = extrasMes0List.filter(a => a.tipo !== "retirada").reduce((s, a) => s + a.valor, 0);
+  const extrasMes0Retiradas = extrasMes0List.filter(a => a.tipo === "retirada").reduce((s, a) => s + a.valor, 0);
+  const netMes0 = extrasMes0Aportes - extrasMes0Retiradas;
 
   const checkpoints = input.checkpoints ?? [];
   const saldoTeoricoSubstituido = checkpoints.reduce((sum, checkpoint) => sum + checkpoint.valorInicial, 0);
   const saldoSemCheckpoints = input.valorJaGuardado - saldoTeoricoSubstituido;
   const checkpointsAtivos = checkpoints.filter((checkpoint) => monthKey(checkpoint.dataValorAtual) <= monthKey(inicio));
-  let saldo = saldoSemCheckpoints + checkpointsAtivos.reduce((sum, checkpoint) => sum + checkpoint.valorAtual, 0) + extrasMes0;
+  let saldo = Math.max(0, saldoSemCheckpoints + checkpointsAtivos.reduce((sum, checkpoint) => sum + checkpoint.valorAtual, 0) + netMes0);
   let totalInvestido = saldo;
+  let totalRetirado = extrasMes0Retiradas;
   const rows: SimRow[] = [];
   let atingiuMeta = false;
   let mesAtingiu: number | undefined;
   let dataAtingiu: string | undefined;
-
-
 
   // Registro inicial (Mês 0) – exibe o saldo ao início do plano
   const startOfMonth = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
@@ -606,7 +635,8 @@ export function simular(input: SimInput): SimResult {
     mes: 0,
     data: safeStartIso,
     aporteRegular: 0,
-    aportesExtras: 0,
+    aportesExtras: extrasMes0Aportes,
+    retiradas: extrasMes0Retiradas,
     rendimentoBruto: 0,
     imposto: 0,
     rendimentoLiquido: 0,
@@ -620,6 +650,8 @@ export function simular(input: SimInput): SimResult {
     dataAtingiu = safeStartIso;
   }
 
+  const isLciLca = input.tipoInvestimento === "lci_lca";
+
   for (let mes = 1; mes <= prazoMax; mes++) {
     const dataRef = new Date(inicio.getFullYear(), inicio.getMonth() + mes, 1);
     const dataRefIso = monthKey(dataRef);
@@ -632,22 +664,41 @@ export function simular(input: SimInput): SimResult {
 
     const defaultAporte = input.aporteMensalTotal;
     const aporteRegular = input.aportesRegularesEditados?.[mes] ?? defaultAporte;
-    const aportesExtras = extrasPorMes.get(mes) ?? 0;
-    saldo += aporteRegular + aportesExtras;
-    totalInvestido += aporteRegular + aportesExtras;
+    const movsMes = extrasPorMes.get(mes) ?? [];
+    const aportesExtrasValidos = movsMes.filter(a => a.tipo !== "retirada");
+    const retiradasValidas = movsMes.filter(a => a.tipo === "retirada");
+    const aportesExtras = aportesExtrasValidos.reduce((s, a) => s + a.valor, 0);
+    const retiradas = retiradasValidas.reduce((s, a) => s + a.valor, 0);
 
-    const rendimentoBruto = saldo * taxaMes;
+    // Pro-rata de rendimentos:
+    // O saldo de abertura rende pelos 30 dias do mês.
+    // O aporte regular rende a partir do dia 5 padrão (fator 25/30).
+    // Aportes extras rendem a partir de sua data de crédito ((30 - dia)/30).
+    // Retiradas são deduzidas da base de rendimento.
+    const diaReg = 5;
+    const fatorReg = Math.max(0, (30 - diaReg) / 30);
+    const rendimentoAportesExtras = aportesExtrasValidos.reduce((s, e) => {
+      const d = e.data ? Math.min(Math.max(1, parseInt(e.data.slice(8, 10), 10) || 15), 30) : 15;
+      return s + e.valor * ((30 - d) / 30);
+    }, 0);
+
+    const baseRendimento = Math.max(0, saldo + (aporteRegular * fatorReg) + rendimentoAportesExtras - retiradas);
+    const rendimentoBruto = baseRendimento * taxaMes;
     const dias = mes * 30;
-    const ir = aliquotaIR(dias);
+    const ir = isLciLca ? 0 : aliquotaIR(dias);
     const imposto = rendimentoBruto * ir;
     const rendimentoLiquido = rendimentoBruto - imposto;
-    saldo += rendimentoLiquido;
+
+    saldo = Math.max(0, saldo + aporteRegular + aportesExtras - retiradas + rendimentoLiquido);
+    totalInvestido += (aporteRegular + aportesExtras - retiradas);
+    totalRetirado += retiradas;
 
     rows.push({
       mes,
       data: dataRef.toISOString(),
       aporteRegular,
       aportesExtras,
+      retiradas,
       rendimentoBruto,
       imposto,
       rendimentoLiquido,
@@ -660,9 +711,7 @@ export function simular(input: SimInput): SimResult {
       atingiuMeta = true;
       mesAtingiu = mes;
       dataAtingiu = dataRef.toISOString();
-      if (padding === 0) {
-        prazoMax = mes;
-      }
+      prazoMax = Math.min(prazoMax, mes + padding);
     }
   }
 
@@ -709,6 +758,7 @@ export function simular(input: SimInput): SimResult {
     dataAtingiuMeta: dataAtingiu,
     saldoFinal: rows[rows.length - 1]?.saldoAcumulado ?? input.valorJaGuardado,
     totalInvestido: rows[rows.length - 1]?.totalInvestido ?? input.valorJaGuardado,
+    totalRetirado,
     lucroLiquido: (rows[rows.length - 1]?.saldoAcumulado ?? input.valorJaGuardado) - (rows[rows.length - 1]?.totalInvestido ?? input.valorJaGuardado),
     cenario,
     sugestoes,

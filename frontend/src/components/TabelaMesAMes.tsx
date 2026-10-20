@@ -6,6 +6,7 @@ import React from "react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanStore } from "@/store/usePlanStore";
 import { brl } from "@/lib/finance";
+import { getBrasiliaToday } from "@/utils/dates";
 import { Check, Loader2, Download, Trash2, AlertTriangle, X, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -161,8 +162,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       "Mes",
       "Data",
       ...pessoas.map(p => p.nome),
-      "Extras",
-      "Aporte Mes",
+      "Aportes Extras",
+      "Retiradas",
+      "Aporte Liquido Mes",
       ...(showFinancials ? [
         "Rendimento Liquido", 
         ...pessoas.map(p => `Acum. ${p.nome.split(" ")[0]}`),
@@ -173,6 +175,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
     const rows = displayRows.map(r => {
       const isZero = r.mes === 0;
       const dataFormatada = new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " ");
+      const aporteLiquidoMes = r.aporteRegular + r.aportesExtras - (r.retiradas || 0);
       const rowData = [
         isZero ? "Início" : `Mês ${r.mes}`,
         dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1),
@@ -181,7 +184,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
           return real.toFixed(2);
         }),
         r.aportesExtras.toFixed(2),
-        (r.aporteRegular + r.aportesExtras).toFixed(2),
+        (r.retiradas || 0).toFixed(2),
+        aporteLiquidoMes.toFixed(2),
         ...(showFinancials ? [
           r.rendimentoLiquido.toFixed(2),
           ...pessoas.map(p => (r.saldoPorPessoa[p.id] || 0).toFixed(2)),
@@ -196,7 +200,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `imov-plan-simulacao-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `imov-plan-simulacao-${getBrasiliaToday().dataStr}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -210,10 +214,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       data: new Date(r.dataReferencia).toISOString(),
       aporteRegular: r.aporteMensal,
       aportesExtras: r.aportesExtras,
+      retiradas: r.retiradas ?? 0,
       rendimentoLiquido: r.rendimentoLiquido,
       saldoAcumulado: r.totalAcumulado,
       atingiu: sim.mesesParaAtingir === r.mes && sim.atingiuMeta,
-      isExtra: Math.abs(r.aportesExtras) > 0.001,
+      isExtra: Math.abs(r.aportesExtras) > 0.001 || Math.abs(r.retiradas ?? 0) > 0.001,
       aporteFinalPorPessoa: Object.fromEntries(
         (r.participantes || []).map(p => [p.participanteId, p.aporteMensal])
       ),
@@ -224,10 +229,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   })();
 
   const totals = (() => {
-    if (!displayRows.length) return { rendLiquido: 0, aporteRegular: 0, extras: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
+    if (!displayRows.length) return { rendLiquido: 0, aporteRegular: 0, extras: 0, retiradas: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
     const rl = displayRows.reduce((a, b) => a + b.rendimentoLiquido, 0);
     const ap = displayRows.reduce((a, b) => a + b.aporteRegular, 0);
     const ex = displayRows.reduce((a, b) => a + b.aportesExtras, 0);
+    const ret = displayRows.reduce((a, b) => a + (b.retiradas || 0), 0);
     
     const aportePorPessoa: Record<string, number> = {};
     pessoas.forEach(p => aportePorPessoa[p.id] = 0);
@@ -241,7 +247,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       rendLiquido: rl,
       aporteRegular: ap,
       extras: ex,
-      totalMes: ap + ex,
+      retiradas: ret,
+      totalMes: ap + ex - ret,
       saldoFinal: displayRows[displayRows.length - 1].saldoAcumulado,
       aportePorPessoa
     };
@@ -252,7 +259,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   const selectedRowExtras = selectedRow && aportesExtras
     ? (aportesExtras || [])
         .map((e, idx) => ({ ...e, index: idx }))
-        .filter(e => e?.data && selectedRow?.data && e.data.startsWith(selectedRow.data.split("T")[0]))
+        .filter(e => e?.data && selectedRow?.data && e.data.slice(0, 7) === selectedRow.data.slice(0, 7))
     : [];
 
   const handleSaveAportes = async (novosValores: Record<string, number>) => {
@@ -317,6 +324,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   const confirmarExclusaoExtra = async () => {
     if (!extraParaExcluir) return;
     const indexToDelete = extraParaExcluir.index;
+    const prev = [...aportesExtras];
     setExcluindoExtra(true);
     try {
       const next = aportesExtras.filter((_, i) => i !== indexToDelete);
@@ -332,7 +340,10 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       setExtraParaExcluir(null);
     } catch (err) {
       console.error("Erro ao excluir aporte extra:", err);
-      toast.error("Não foi possível excluir o aporte extra.");
+      setAportesExtras(() => prev);
+      usePlanStore.getState().hydrate({ aportesExtras: prev });
+      saveDraft({ aportesExtras: prev });
+      toast.error("Não foi possível excluir o aporte extra no servidor. Alteração revertida.");
     } finally {
       setExcluindoExtra(false);
     }
@@ -470,9 +481,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                 const isMesConcluido = r.mes != null ? mesesConcluidosSet.has(r.mes) : false;
                 const isZero = r.mes === 0;
                 const rowExtras = (aportesExtras || [])
-                  .filter(e => e?.data && r?.data && e.data.startsWith(r.data.split("T")[0]))
+                  .filter(e => e?.data && r?.data && e.data.slice(0, 7) === r.data.slice(0, 7))
                   .map((e, idx) => ({ ...e, index: idx }));
-                const totalAporteMes = (r.aporteRegular || 0) + (r.aportesExtras || 0);
+                const totalAporteMes = (r.aporteRegular || 0) + (r.aportesExtras || 0) - (r.retiradas || 0);
 
                 return (
                   <tr

@@ -72,6 +72,10 @@ namespace ImovPlan.Domain.Entities
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal TotalInvestido { get; set; }
 
+        [BsonElement("totalRetirado")]
+        [BsonRepresentation(BsonType.Decimal128)]
+        public decimal TotalRetirado { get; set; }
+
         [BsonElement("totalAcumulado")]
         [BsonRepresentation(BsonType.Decimal128)]
         public decimal TotalAcumulado { get; set; }

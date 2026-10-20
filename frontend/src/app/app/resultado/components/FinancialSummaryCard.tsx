@@ -38,6 +38,15 @@ export function FinancialSummaryCard({ summary }: FinancialSummaryCardProps) {
           </span>
         </div>
 
+        {summary.totalRetirado != null && summary.totalRetirado > 0 ? (
+          <div className="flex flex-wrap justify-between items-center gap-2 py-4 border-b border-border/40">
+            <span className="text-muted-foreground">Total Retirado</span>
+            <span className="font-medium text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-md text-sm">
+              -<Currency value={summary.totalRetirado} />
+            </span>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap justify-between items-center gap-2 pt-5">
           <span className="text-muted-foreground font-medium">Saldo Final Acumulado</span>
           <span className="text-xl md:text-2xl font-display font-medium text-primary">

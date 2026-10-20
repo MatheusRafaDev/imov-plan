@@ -15,6 +15,7 @@ export interface BackendSimulacaoResult {
   mesesParaAtingir: number;
   dataPrevistaAlvo: string;
   totalInvestido: number;
+  totalRetirado?: number;
   totalAcumulado: number;
   lucroLiquido: number;
   atingiuMeta: boolean;
@@ -37,6 +38,7 @@ export interface BackendDetalheMensal {
   dataReferencia: string;
   aporteMensal: number;
   aportesExtras: number;
+  retiradas?: number;
   rendimentoBruto: number;
   imposto: number;
   rendimentoLiquido: number;
