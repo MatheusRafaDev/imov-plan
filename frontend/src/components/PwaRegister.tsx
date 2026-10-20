@@ -40,12 +40,25 @@ export function PwaRegister() {
       }
     };
 
+    let refreshing = false;
+    const onControllerChange = () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+
     // Aguarda o load para não competir com recursos críticos da página
     if (document.readyState === "complete") {
       registerSW();
     } else {
       window.addEventListener("load", registerSW, { once: true });
     }
+
+    return () => {
+      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+    };
   }, []);
 
   return null;

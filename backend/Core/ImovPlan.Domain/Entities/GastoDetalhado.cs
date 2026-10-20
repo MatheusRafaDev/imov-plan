@@ -16,7 +16,6 @@ namespace ImovPlan.Domain.Entities
         public string PlanejamentoId { get; set; } = string.Empty;
 
         [BsonElement("participanteId")]
-        [BsonRepresentation(BsonType.ObjectId)]
         public string ParticipanteId { get; set; } = string.Empty;
 
         [BsonElement("nome")]

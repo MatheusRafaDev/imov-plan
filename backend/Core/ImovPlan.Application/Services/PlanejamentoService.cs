@@ -10,6 +10,8 @@ using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Enums;
 using ImovPlan.Domain.Interfaces;
 
+using Microsoft.Extensions.Logging;
+
 namespace ImovPlan.Application.Services
 {
     public class PlanejamentoService : IPlanoService
@@ -21,6 +23,7 @@ namespace ImovPlan.Application.Services
         private readonly IGastoDetalhadoRepository _gastoDetalhadoRepo;
         private readonly IParametrosFinanceirosRepository _parametrosRepo;
         private readonly IHistoricoSimulacaoRepository _historicoSimulacaoRepo;
+        private readonly ILogger<PlanejamentoService>? _logger;
 
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
@@ -31,7 +34,8 @@ namespace ImovPlan.Application.Services
             IHistoricoAporteRepository historicoAporteRepo,
             IGastoDetalhadoRepository gastoDetalhadoRepo,
             IParametrosFinanceirosRepository parametrosRepo,
-            IHistoricoSimulacaoRepository historicoSimulacaoRepo)
+            IHistoricoSimulacaoRepository historicoSimulacaoRepo,
+            ILogger<PlanejamentoService>? logger = null)
         {
             _planejamentoRepo = planejamentoRepo;
             _participanteRepo = participanteRepo;
@@ -40,16 +44,25 @@ namespace ImovPlan.Application.Services
             _gastoDetalhadoRepo = gastoDetalhadoRepo;
             _parametrosRepo = parametrosRepo;
             _historicoSimulacaoRepo = historicoSimulacaoRepo;
+            _logger = logger;
         }
 
 
 
         public async Task<PlanoDraftDto?> GetDraftByUsuarioIdAsync(string usuarioId)
         {
-            var planejamento = await _planejamentoRepo.GetByUsuarioIdAsync(usuarioId);
-            if (planejamento == null) return null;
+            try
+            {
+                var planejamento = await _planejamentoRepo.GetByUsuarioIdAsync(usuarioId);
+                if (planejamento == null) return null;
 
-            return await BuildDraftDtoAsync(planejamento);
+                return await BuildDraftDtoAsync(planejamento);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Erro ao obter draft para o usuário {UsuarioId}", usuarioId);
+                throw;
+            }
         }
 
         public async Task<List<PlanoResumoDto>> GetTodosResumosByUsuarioIdAsync(string usuarioId)
@@ -397,14 +410,22 @@ namespace ImovPlan.Application.Services
 
         public async Task<PlanoDraftDto?> GetDraftAsync(string id, string usuarioIdAutenticado)
         {
-            var planejamento = await _planejamentoRepo.GetByIdAsync(id);
-            if (planejamento == null)
-                return null;
+            try
+            {
+                var planejamento = await _planejamentoRepo.GetByIdAsync(id);
+                if (planejamento == null)
+                    return null;
 
-            if (string.IsNullOrEmpty(usuarioIdAutenticado) || planejamento.UsuarioId != usuarioIdAutenticado)
-                return null;
-                
-            return await BuildDraftDtoAsync(planejamento);
+                if (string.IsNullOrEmpty(usuarioIdAutenticado) || planejamento.UsuarioId != usuarioIdAutenticado)
+                    return null;
+                    
+                return await BuildDraftDtoAsync(planejamento);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Erro ao obter draft {PlanoId} para o usuário {UsuarioId}", id, usuarioIdAutenticado);
+                throw;
+            }
         }
 
         public async Task<bool> ConcluirPlanoAsync(string id, string usuarioId)
@@ -472,26 +493,52 @@ namespace ImovPlan.Application.Services
         {
             var id = planejamento.Id;
 
-            var participantesDoPlano = (await _participanteRepo.GetByPlanejamentoIdAsync(id)).ToList();
+            List<Participante> participantesDoPlano;
+            try
+            {
+                participantesDoPlano = (await _participanteRepo.GetByPlanejamentoIdAsync(id))?.ToList() ?? new List<Participante>();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Falha ao carregar participantes do plano {PlanoId}. Usando lista vazia.", id);
+                participantesDoPlano = new List<Participante>();
+            }
 
             // Fetch AportesExtras
-            var aportesExtras = await _aporteExtraRepo.GetByPlanejamentoIdAsync(id);
+            IEnumerable<AporteExtra> aportesExtras;
+            try
+            {
+                aportesExtras = (await _aporteExtraRepo.GetByPlanejamentoIdAsync(id)) ?? Enumerable.Empty<AporteExtra>();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Falha ao carregar aportes extras do plano {PlanoId}. Usando lista vazia.", id);
+                aportesExtras = Enumerable.Empty<AporteExtra>();
+            }
 
             // Fetch AportesRegularesEditados → reconstruct Dictionary<int, decimal>
-            var aporteEdits = await _historicoAporteRepo.GetByPlanejamentoIdAsync(id);
-            var aportesRegularesEditados = aporteEdits
-                .Where(a => string.IsNullOrEmpty(a.ParticipanteId))
-                .GroupBy(a => a.Mes)
-                .ToDictionary(g => g.Key, g => g.Last().ValorEditado);
+            Dictionary<int, decimal> aportesRegularesEditados = new();
+            Dictionary<string, Dictionary<int, decimal>> aportesRegularesEditadosPorPessoa = new();
+            try
+            {
+                var aporteEdits = (await _historicoAporteRepo.GetByPlanejamentoIdAsync(id)) ?? Enumerable.Empty<HistoricoAporte>();
+                aportesRegularesEditados = aporteEdits
+                    .Where(a => string.IsNullOrEmpty(a.ParticipanteId))
+                    .GroupBy(a => a.Mes)
+                    .ToDictionary(g => g.Key, g => g.Last().ValorEditado);
 
-            // Fetch per-person aporte edits → reconstruct Dictionary<string, Dictionary<int, decimal>>
-            var aportesRegularesEditadosPorPessoa = aporteEdits
-                .Where(a => !string.IsNullOrEmpty(a.ParticipanteId))
-                .GroupBy(a => a.ParticipanteId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.GroupBy(a => a.Mes).ToDictionary(g2 => g2.Key, g2 => g2.Last().ValorEditado)
-                );
+                aportesRegularesEditadosPorPessoa = aporteEdits
+                    .Where(a => !string.IsNullOrEmpty(a.ParticipanteId))
+                    .GroupBy(a => a.ParticipanteId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.GroupBy(a => a.Mes).ToDictionary(g2 => g2.Key, g2 => g2.Last().ValorEditado)
+                    );
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Falha ao carregar histórico de aportes do plano {PlanoId}.", id);
+            }
 
             // Calculate ValorJaGuardado dynamically from Participante.PatrimonioInicial
             var saldoIndividualTotal = participantesDoPlano.Sum(p => p.PatrimonioInicial?.Valor ?? 0);
@@ -500,10 +547,19 @@ namespace ImovPlan.Application.Services
                 : planejamento.ValorJaGuardado ?? 0m;
 
             // Fetch ALL gastos for this planejamento in a single query, then group in-memory
-            var todosGastos = (await _gastoDetalhadoRepo.GetByPlanejamentoIdAsync(id))
-                .Where(g => !string.IsNullOrEmpty(g.ParticipanteId))
-                .GroupBy(g => g.ParticipanteId!)
-                .ToDictionary(g => g.Key, g => g.ToList());
+            Dictionary<string, List<GastoDetalhado>> todosGastos = new();
+            try
+            {
+                var gastosList = (await _gastoDetalhadoRepo.GetByPlanejamentoIdAsync(id)) ?? Enumerable.Empty<GastoDetalhado>();
+                todosGastos = gastosList
+                    .Where(g => !string.IsNullOrEmpty(g.ParticipanteId))
+                    .GroupBy(g => g.ParticipanteId!)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Falha ao carregar gastos detalhados do plano {PlanoId}.", id);
+            }
 
             // Build participante DTOs with their nested data
             var participanteDtos = new List<PessoaDraftDto>();
@@ -544,6 +600,7 @@ namespace ImovPlan.Application.Services
             {
                 Id = planejamento.Id,
                 SessionId = planejamento.SessionId,
+                UsuarioId = planejamento.UsuarioId,
                 Objetivo = new ObjetivoDraftDto
                 {
                     ValorImovel = planejamento.ValorImovel ?? 0m,

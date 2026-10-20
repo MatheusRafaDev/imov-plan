@@ -57,7 +57,6 @@ namespace ImovPlan.Domain.Entities
         public decimal? BancoEscolhidoTaxa { get; set; }
 
         [BsonElement("participantesIds")]
-        [BsonRepresentation(BsonType.ObjectId)]
         public List<string> ParticipantesIds { get; set; } = new();
 
         [BsonElement("mesesConcluidos")]
