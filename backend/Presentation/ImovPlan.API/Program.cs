@@ -271,13 +271,14 @@ app.Use(async (context, next) =>
     catch (Exception ex)
     {
         var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Erro interno não tratado ao processar {Method} {Path}", context.Request.Method, context.Request.Path);
+        var traceId = context.TraceIdentifier;
+        logger.LogError(ex, "Erro interno não tratado ao processar {Method} {Path}. TraceId: {TraceId}", context.Request.Method, context.Request.Path, traceId);
 
         if (!context.Response.HasStarted)
         {
             context.Response.StatusCode = 500;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { message = "Erro interno no servidor ao processar a requisição." });
+            await context.Response.WriteAsJsonAsync(new { message = "Erro interno no servidor ao processar a requisição.", traceId });
         }
     }
 });

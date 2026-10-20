@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { 
   X, 
-  Sparkles, 
   ArrowDownLeft, 
   Info, 
   Check, 

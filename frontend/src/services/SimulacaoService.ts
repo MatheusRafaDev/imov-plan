@@ -68,11 +68,10 @@ export class SimulacaoService {
     } catch (error: any) {
       const status = error?.response?.status;
       // 404/204: sem simulação salva para o plano ainda
-      // 503/502/504: serviço temporariamente indisponível
-      if (status === 404 || status === 204 || status === 503 || status === 502 || status === 504) {
+      if (status === 404 || status === 204) {
         return null;
       }
-      return null;
+      throw error;
     }
   }
 

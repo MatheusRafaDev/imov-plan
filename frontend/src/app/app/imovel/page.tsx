@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usePlanLogic } from "@/hooks/usePlanLogic";;
+import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/MoneyInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { brl, mesesEntre } from "@/lib/finance";
+import { brl, mesesEntre, type SimInput } from "@/lib/finance";
 import { MonthYearInput } from "@/components/MonthYearInput";
-import { Building2, MapPin, Wallet, ArrowRight, Settings2, ChevronDown, ChevronUp, Sparkles, Info, Percent, Calendar } from "lucide-react";
+import { Building2, MapPin, Wallet, ArrowRight, Settings2, Sparkles, Percent, Calendar } from "lucide-react";
 import { calcularCustosITBI } from "@/utils/itbi";
 import { estados, cidadesPorEstado } from "@/utils/ibge-estados-cidades";
 import { ImovelPageSkeleton } from "@/components/Skeleton";
@@ -41,6 +41,53 @@ const addMonthsISO = (iso: string, months: number) => {
 
 const MIN_PRAZO_MESES = 3;
 
+type ImovelForm = {
+  nome: string;
+  valor_imovel: number | "";
+  percentual_entrada: number | "";
+  data_inicio: string;
+  data_fim: string;
+  valor_ja_guardado: number | "";
+  percentual_custos_extras: number | "";
+  estado: string;
+  cidade: string;
+};
+
+const formInicial = (): ImovelForm => ({
+  nome: "Imóvel",
+  valor_imovel: 0,
+  percentual_entrada: 20,
+  data_inicio: todayISO(),
+  data_fim: "",
+  valor_ja_guardado: 0,
+  percentual_custos_extras: 0,
+  estado: "SP",
+  cidade: "São Paulo",
+});
+
+const formDoObjetivo = (objetivo: Partial<SimInput> | null): ImovelForm => {
+  const vazio = formInicial();
+  if (!objetivo || objetivo.valorImovel === undefined) return vazio;
+
+  const inicio = objetivo.dataInicio ? dateToLocalISO(objetivo.dataInicio) : todayISO();
+  const fim = objetivo.prazoMaxMeses
+    ? addMonthsISO(inicio, objetivo.prazoMaxMeses)
+    : addMonthsISO(inicio, 36);
+
+  return {
+    ...vazio,
+    nome: objetivo.nomePlano || "Imóvel",
+    valor_imovel: objetivo.valorImovel || 0,
+    percentual_entrada: objetivo.percentualEntrada ?? 20,
+    data_inicio: inicio,
+    data_fim: normalizeDataFim(inicio, fim),
+    valor_ja_guardado: objetivo.valorJaGuardado || 0,
+    percentual_custos_extras: objetivo.percentualCustosExtras || 0,
+    estado: objetivo.estado || "SP",
+    cidade: objetivo.cidade || "São Paulo",
+  };
+};
+
 const normalizeDataFim = (inicio: string, fim: string) => {
   if (!inicio) return fim;
   if (!fim) return addMonthsISO(inicio, MIN_PRAZO_MESES);
@@ -57,8 +104,6 @@ export default function ObjetivoPage() {
   const { objetivo, setObjetivo, salvarPlano, isDraftLoading } = usePlanLogic();
   const router = useRouter();
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showITBIInfo, setShowITBIInfo] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
   // Usa o isDraftLoading do React Query + Zustand para saber quando o backend terminou
@@ -72,45 +117,9 @@ export default function ObjetivoPage() {
     }
   }, []);
 
-  const [form, setForm] = useState({
-    nome: "Imóvel",
-    valor_imovel: 0 as number | "",
-    percentual_entrada: 20 as number | "",
-    data_inicio: todayISO(),
-    data_fim: "",
-    valor_ja_guardado: 0 as number | "",
-    percentual_custos_extras: 0 as number | "",
-    titular: "" as string | "",
-    estado: "SP",
-    cidade: "São Paulo",
-  });
-
-  const [hasInitialized, setHasInitialized] = useState(false);
-
-  useEffect(() => {
-    if (!objetivo || objetivo.valorImovel === undefined) return;
-    
-    const inicioStr = objetivo.dataInicio ? dateToLocalISO(objetivo.dataInicio) : todayISO();
-    const fimStr = objetivo.prazoMaxMeses
-      ? addMonthsISO(inicioStr, objetivo.prazoMaxMeses)
-      : addMonthsISO(inicioStr, 36);
-
-    const nextForm = {
-      nome: (objetivo as any).nomePlano || "Imóvel",
-      valor_imovel: objetivo.valorImovel || 0,
-      percentual_entrada: objetivo.percentualEntrada ?? 20,
-      data_inicio: inicioStr,
-      valor_ja_guardado: objetivo.valorJaGuardado || 0,
-      percentual_custos_extras: objetivo.percentualCustosExtras || 0,
-      titular: (objetivo as any).titular || "",
-      estado: (objetivo as any).estado || "SP",
-      cidade: (objetivo as any).cidade || "São Paulo",
-      data_fim: normalizeDataFim(inicioStr, fimStr),
-    };
-
-    setForm(nextForm);
-    setHasInitialized(true);
-  }, [(objetivo as any)?.id, objetivo?.valorImovel]);
+  const objetivoKey = JSON.stringify(objetivo ?? null);
+  const [formOverride, setFormOverride] = useState<{ key: string; value: ImovelForm } | null>(null);
+  const form = formOverride?.key === objetivoKey ? formOverride.value : formDoObjetivo(objetivo);
 
   const dataFimValida = form.data_inicio !== "" && form.data_fim !== "" && mesesEntre(form.data_inicio, form.data_fim) >= MIN_PRAZO_MESES;
   const isFormValid = Number(form.valor_imovel) > 0 && form.data_inicio !== "" && form.data_fim !== "" && dataFimValida;
@@ -132,7 +141,7 @@ export default function ObjetivoPage() {
   const itbiInfo = calcularCustosITBI(Number(form.valor_imovel) || 0, form.estado, form.cidade);
   const cidadesDoEstado = cidadesPorEstado[form.estado] || [];
 
-  const objetivoFromForm = (nextForm: typeof form) => ({
+  const objetivoFromForm = (nextForm: ImovelForm) => ({
     ...(objetivo ?? {}),
     nomePlano: nextForm.nome.trim() === "" ? "Imóvel" : nextForm.nome.trim(),
     valorImovel: Number(nextForm.valor_imovel) || 0,
@@ -152,7 +161,7 @@ export default function ObjetivoPage() {
       data_fim: patch.data_inicio || patch.data_fim ? normalizeDataFim(patchedForm.data_inicio, patchedForm.data_fim) : patchedForm.data_fim,
     };
 
-    setForm(normalizedForm);
+    setFormOverride({ key: objetivoKey, value: normalizedForm });
 
     if (syncObjective && objetivo) {
       setObjetivo(objetivoFromForm(normalizedForm));
@@ -162,20 +171,9 @@ export default function ObjetivoPage() {
   const salvar = async () => {
     if (!isFormValid || salvando) return;
     setSalvando(true);
-    
+
     try {
-      const nomePlanoFinal = form.nome.trim() === "" ? "Imóvel" : form.nome.trim();
-      const novoObjetivo = {
-        nomePlano: nomePlanoFinal,
-        valorImovel: Number(form.valor_imovel),
-        percentualEntrada: Number(form.percentual_entrada),
-        percentualCustosExtras: Number(form.percentual_custos_extras),
-        valorJaGuardado: Number(form.valor_ja_guardado) || 0,
-        dataInicio: form.data_inicio ? new Date(`${form.data_inicio}T12:00:00`) : undefined,
-        prazoMaxMeses: prazoMeses,
-        estado: form.estado,
-        cidade: form.cidade,
-      };
+      const novoObjetivo = objetivoFromForm(form);
 
       // Atualiza o estado do contexto
       setObjetivo(novoObjetivo);
@@ -184,7 +182,6 @@ export default function ObjetivoPage() {
       const sucesso = await salvarPlano(novoObjetivo);
 
       if (sucesso != null) {
-        setForm((prev) => ({ ...prev, nome: nomePlanoFinal }));
         toast.success("Plano salvo com sucesso!");
         router.push("/app/pessoas");
       } else {

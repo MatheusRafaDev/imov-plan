@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
 import { toast } from "sonner";
-import { Building2, Plus, Trash2, CheckCircle2, Loader2, ArrowRight, TrendingUp, Clock, Zap, Edit2, Check, X, AlertTriangle } from "lucide-react";
+import { Building2, Plus, Trash2, CheckCircle2, Loader2, ArrowRight, Clock, Edit2, Check, X, AlertTriangle } from "lucide-react";
 import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
 import { usePlanStore } from "@/store/usePlanStore";
 

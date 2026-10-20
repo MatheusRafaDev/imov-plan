@@ -115,11 +115,6 @@ export default function PessoaCard({
     atualizarPessoa(p.id, { gastos_mensais: value, aporte_mensal: Math.max(0, novaSobra) });
   };
 
-  const getTipoInvestimentoLabel = (tipo?: string) => {
-    const found = TIPOS_INVESTIMENTO.find(t => t.value === tipo);
-    return found ? found.label.split(" (")[0] : "CDB 100% CDI";
-  };
-
   // ───────────────────────────────────────────────────────────────────────────
   // MODO DE VISUALIZAÇÃO (RESUMO)
   // ───────────────────────────────────────────────────────────────────────────
