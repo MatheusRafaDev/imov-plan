@@ -5,11 +5,11 @@
 //   - Resto: stale-while-revalidate
 //   - /api/*: nunca intercepta (passa direto para a rede)
 
-const CACHE_NAME = "imovplan-v5";
-const STATIC_CACHE = "imovplan-static-v5";
+const CACHE_NAME = "imovplan-v6";
+const STATIC_CACHE = "imovplan-static-v6";
 const OFFLINE_URL = "/offline.html";
 
-const PRECACHE_URLS = [OFFLINE_URL, "/icon.svg", "/favicon.svg", "/manifest.json"];
+const PRECACHE_URLS = [OFFLINE_URL, "/icon.svg", "/favicon.ico", "/favicon.svg", "/manifest.json"];
 
 // ── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener("install", (event) => {
@@ -42,11 +42,19 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignorar extensões de browser, chrome-extension, etc.
+  // Ignorar protocolos não suportados (ex: chrome-extension:)
   if (!["http:", "https:"].includes(url.protocol)) return;
 
-  // Nunca interceptar chamadas de API ou imagens externas do Unsplash (evita problema de CSP)
-  if (url.pathname.startsWith("/api/") || url.hostname.includes("unsplash.com")) return;
+  // Interceptar apenas requisições GET
+  if (request.method !== "GET") return;
+
+  // Interceptar apenas requisições da mesma origem (same-origin).
+  // Recursos externos (Google Fonts, Unsplash, APIs externas) devem ser carregados
+  // nativamente pelo navegador sem passar pela camada de fetch do Service Worker (evita violações de CSP).
+  if (url.origin !== self.location.origin) return;
+
+  // Nunca interceptar chamadas de API
+  if (url.pathname.startsWith("/api/")) return;
 
   // Ignorar requisições de dados do Next.js (RSC, _next/data) para evitar carregar pedaços (chunks) antigos
   if (request.headers.get("RSC") === "1" || url.pathname.startsWith("/_next/data/")) return;
@@ -63,7 +71,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Todo o resto → stale-while-revalidate
+  // Demais recursos locais (same-origin) → stale-while-revalidate
   event.respondWith(staleWhileRevalidate(request, CACHE_NAME));
 });
 
@@ -92,7 +100,7 @@ async function staleWhileRevalidate(request, cacheName) {
       return response;
     })
     .catch(() => {
-      return new Response("Network Error", { status: 503, headers: { "Content-Type": "text/plain" } });
+      return cached || new Response("Network Error", { status: 503, headers: { "Content-Type": "text/plain" } });
     });
 
   return cached || fetchPromise;

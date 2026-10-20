@@ -184,6 +184,17 @@ if (!string.IsNullOrEmpty(builder.Configuration["MONGO_CONNECTION_STRING"]))
 if (!string.IsNullOrEmpty(builder.Configuration["MONGO_DATABASE_NAME"]))
     mongoSettings.DatabaseName = builder.Configuration["MONGO_DATABASE_NAME"]!;
 
+// Configure MongoDB Conventions (ignore extra elements across all collections to prevent deserialization crashes)
+var conventionPack = new MongoDB.Bson.Serialization.Conventions.ConventionPack
+{
+    new MongoDB.Bson.Serialization.Conventions.IgnoreExtraElementsConvention(true)
+};
+MongoDB.Bson.Serialization.Conventions.ConventionRegistry.Register(
+    "ImovPlanConventions",
+    conventionPack,
+    t => true
+);
+
 builder.Services.AddSingleton(mongoSettings);
 
 var mongoClient = new MongoClient(mongoSettings.ConnectionString);
@@ -249,6 +260,27 @@ builder.Services.AddHostedService<ImovPlan.API.Services.LembretePlanejamentoServ
 builder.Services.AddHostedService<ImovPlan.API.Services.MongoDbIndexInitializer>();
 
 var app = builder.Build();
+
+// Global Exception Logging Middleware
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Erro interno não tratado ao processar {Method} {Path}", context.Request.Method, context.Request.Path);
+
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { message = "Erro interno no servidor ao processar a requisição." });
+        }
+    }
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

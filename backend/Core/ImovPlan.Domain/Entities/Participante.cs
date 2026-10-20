@@ -5,6 +5,7 @@ using ImovPlan.Domain.Enums;
 
 namespace ImovPlan.Domain.Entities
 {
+    [BsonIgnoreExtraElements]
     public class Participante
     {
         [BsonId]
@@ -58,6 +59,7 @@ namespace ImovPlan.Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
+    [BsonIgnoreExtraElements]
     public class PatrimonioInicial
     {
         [BsonElement("valor")]

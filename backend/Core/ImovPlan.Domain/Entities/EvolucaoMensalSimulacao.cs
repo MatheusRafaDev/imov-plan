@@ -5,6 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace ImovPlan.Domain.Entities
 {
+    [BsonIgnoreExtraElements]
     public class EvolucaoMensalSimulacao
     {
         [BsonId]

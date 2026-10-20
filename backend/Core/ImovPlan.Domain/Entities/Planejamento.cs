@@ -5,6 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace ImovPlan.Domain.Entities
 {
+    [BsonIgnoreExtraElements]
     public class Planejamento
     {
         [BsonId]
@@ -88,6 +89,7 @@ namespace ImovPlan.Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
+    [BsonIgnoreExtraElements]
     public class CustosCompra
     {
         [BsonElement("valorEntrada")]

@@ -5,6 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace ImovPlan.Domain.Entities
 {
+    [BsonIgnoreExtraElements]
     public class ParametrosFinanceiros
     {
         [BsonId]
@@ -145,6 +146,7 @@ namespace ImovPlan.Domain.Entities
         };
     }
 
+    [BsonIgnoreExtraElements]
     public class InvestimentoParametro
     {
         [BsonElement("tipo")]
@@ -158,6 +160,7 @@ namespace ImovPlan.Domain.Entities
         public decimal PercentualCdi { get; set; }
     }
 
+    [BsonIgnoreExtraElements]
     public class AliquotaIrParametro
     {
         [BsonElement("ateDias")]
@@ -168,6 +171,7 @@ namespace ImovPlan.Domain.Entities
         public decimal Aliquota { get; set; }
     }
 
+    [BsonIgnoreExtraElements]
     public class FaixaCartorioParametro
     {
         [BsonElement("ateValor")]
@@ -183,6 +187,7 @@ namespace ImovPlan.Domain.Entities
         public decimal Percentual { get; set; }
     }
 
+    [BsonIgnoreExtraElements]
     public class BancoFinanciamentoParametro
     {
         [BsonElement("nome")]

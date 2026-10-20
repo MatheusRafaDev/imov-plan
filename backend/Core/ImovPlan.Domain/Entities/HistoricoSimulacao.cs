@@ -9,6 +9,7 @@ namespace ImovPlan.Domain.Entities
     /// Registro imutável de uma simulação executada, persistido ao final de cada cálculo.
     /// Armazena inputs e outputs para histórico e recuperação.
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class HistoricoSimulacao
     {
         [BsonId]
@@ -103,6 +104,7 @@ namespace ImovPlan.Domain.Entities
     /// <summary>
     /// Snapshot dos dados de um participante no momento da simulação.
     /// </summary>
+    [BsonIgnoreExtraElements]
     public class ParticipanteSnapshot
     {
         [BsonElement("participanteId")]

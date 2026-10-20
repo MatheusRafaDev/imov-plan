@@ -113,16 +113,18 @@ namespace ImovPlan.API.Controllers
                 MesesParaAtingir = h.MesesParaAtingir,
                 DataPrevistaAlvo = h.DataPrevistaAlvo,
                 TotalInvestido = h.TotalInvestido,
+                TotalRetirado = h.TotalRetirado,
                 TotalAcumulado = h.TotalAcumulado,
                 LucroLiquido = h.LucroLiquido,
                 AtingiuMeta = h.AtingiuMeta,
                 Falta = h.Falta,
-                DetalhesMensais = evolucao.Select(e => new DetalheMensalDto
+                DetalhesMensais = evolucao?.Select(e => new DetalheMensalDto
                 {
                     Mes = e.Mes,
                     DataReferencia = e.DataReferencia,
                     AporteMensal = e.AporteMensal,
                     AportesExtras = e.AportesExtras,
+                    Retiradas = e.Retiradas,
                     RendimentoBruto = e.RendimentoBruto,
                     Imposto = e.Imposto,
                     RendimentoLiquido = e.RendimentoLiquido,
@@ -130,21 +132,21 @@ namespace ImovPlan.API.Controllers
                     Participantes = e.Participantes?.Select(p => new EvolucaoMensalParticipanteDto
                     {
                         ParticipanteId = p.ParticipanteId,
-                        Nome = p.Nome,
+                        Nome = p.Nome ?? string.Empty,
                         AporteMensal = p.AporteMensal,
                         AportesExtras = p.AportesExtras,
                         RendimentoLiquido = p.RendimentoLiquido,
                         Saldo = p.Saldo
                     }).ToList() ?? new List<EvolucaoMensalParticipanteDto>()
-                }).ToList(),
-                ParticipantesSnapshot = h.ParticipantesSnapshot.Select(p => new ParticipanteSnapshotDto
+                }).ToList() ?? new List<DetalheMensalDto>(),
+                ParticipantesSnapshot = h.ParticipantesSnapshot?.Select(p => new ParticipanteSnapshotDto
                 {
                     ParticipanteId = p.ParticipanteId,
-                    Nome = p.Nome,
+                    Nome = p.Nome ?? string.Empty,
                     AporteMensal = p.AporteMensal,
                     ValorInicial = p.ValorInicial,
                     SobraMensal = p.SobraMensal,
-                }).ToList(),
+                }).ToList() ?? new List<ParticipanteSnapshotDto>(),
             };
         }
     }

@@ -501,7 +501,8 @@ namespace ImovPlan.Application.Services
 
             // Fetch ALL gastos for this planejamento in a single query, then group in-memory
             var todosGastos = (await _gastoDetalhadoRepo.GetByPlanejamentoIdAsync(id))
-                .GroupBy(g => g.ParticipanteId)
+                .Where(g => !string.IsNullOrEmpty(g.ParticipanteId))
+                .GroupBy(g => g.ParticipanteId!)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
             // Build participante DTOs with their nested data
@@ -513,12 +514,12 @@ namespace ImovPlan.Application.Services
                     ? MapFonteToTipoInvestimento(p.PatrimonioInicial.Fonte, p.PatrimonioInicial.TipoInvestimento) 
                     : null;
 
-                var gastos = todosGastos.TryGetValue(p.Id, out var g) ? g : new List<GastoDetalhado>();
+                var gastos = (!string.IsNullOrEmpty(p.Id) && todosGastos.TryGetValue(p.Id, out var g)) ? g : new List<GastoDetalhado>();
 
                 participanteDtos.Add(new PessoaDraftDto
                 {
                     Id = p.Id,
-                    Nome = p.Nome,
+                    Nome = p.Nome ?? string.Empty,
                     Renda_mensal = p.RendaMensal,
                     Renda_complementar = p.RendaComplementar,
                     Gastos_mensais = p.GastosMensais,
@@ -526,9 +527,9 @@ namespace ImovPlan.Application.Services
                     Gastos_detalhados = gastos.Select(g2 => new GastoDetalhadoDraftDto
                     {
                         Id = g2.Id,
-                        Nome = g2.Nome,
+                        Nome = g2.Nome ?? string.Empty,
                         Valor = g2.Valor,
-                        Categoria = g2.Categoria,
+                        Categoria = g2.Categoria ?? string.Empty,
                     }).ToList(),
                     Aporte_mensal = p.AporteMensal,
                     DiaAporte = p.DiaAporte ?? 5,
@@ -553,7 +554,7 @@ namespace ImovPlan.Application.Services
                     PercentualCdi = planejamento.PercentualCdi ?? 0m,
                     PrazoMaxMeses = planejamento.PrazoMaxMeses ?? 0,
                     DataInicio = planejamento.DataInicio?.ToString("yyyy-MM-dd"),
-                    NomePlano = planejamento.NomePlano,
+                    NomePlano = string.IsNullOrWhiteSpace(planejamento.NomePlano) ? "Imóvel" : planejamento.NomePlano,
                     TipoInvestimento = planejamento.TipoInvestimento,
                     Estado = planejamento.Estado,
                     Cidade = planejamento.Cidade,
@@ -571,11 +572,15 @@ namespace ImovPlan.Application.Services
                 {
                     Data = a.Data.ToString("yyyy-MM-dd"),
                     Valor = a.Valor,
-                    Origem = a.Origem,
+                    Origem = a.Origem ?? string.Empty,
                     PessoaId = a.ParticipanteId,
                     PessoaNome = !string.IsNullOrEmpty(a.ParticipanteId)
-                        ? participantesDoPlano.FirstOrDefault(p => p.Id == a.ParticipanteId)?.Nome?.Split(' ')[0]
+                        ? participantesDoPlano.FirstOrDefault(p => p.Id == a.ParticipanteId)?.Nome?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()
                         : null,
+                    Tipo = string.IsNullOrWhiteSpace(a.Tipo) ? "Aporte" : a.Tipo,
+                    Motivo = a.Motivo,
+                    Revertido = a.Revertido,
+                    RevertidoEm = a.RevertidoEm?.ToString("yyyy-MM-dd"),
                 }).ToList(),
                 AportesRegularesEditados = aportesRegularesEditados,
                 AportesRegularesEditadosPorPessoa = aportesRegularesEditadosPorPessoa,
