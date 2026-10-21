@@ -125,8 +125,8 @@ export default function AuthPage() {
                 lastWidth = currentWidth;
                 renderGoogleButton();
               }
-            });
-          }
+            }
+          });
           resizeObserver.observe(buttonDiv);
         }
 
@@ -278,7 +278,9 @@ export default function AuthPage() {
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="lazyOnload"
-        onReady={() => window.dispatchEvent(new Event("imovplan:google-identity-ready"))}
+        onReady={() => {
+          window.dispatchEvent(new Event("imovplan:google-identity-ready"));
+        }}
       />
     )}
     <div className="min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden grid lg:grid-cols-2 bg-background animate-fade-in safe-top safe-bottom safe-x">

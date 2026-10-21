@@ -266,10 +266,12 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
     document.body.removeChild(link);
   };
 
+  // This transformation mutates local accumulator objects; preserve the runtime memo even though React Compiler cannot rewrite it.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const displayRows = useMemo(() => {
-    if (!sim || !sim.detalhesMensais) return [];
+    if (!backendData?.detalhesMensais) return [];
     
-    return sim.detalhesMensais.map(r => {
+    return backendData.detalhesMensais.map(r => {
       const parts = r.participantes || [];
       const aporteFinalPorPessoa: Record<string, number> = {};
       const saldoPorPessoa: Record<string, number> = {};
@@ -313,13 +315,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
         retiradas: r.retiradas ?? 0,
         rendimentoLiquido: r.rendimentoLiquido,
         saldoAcumulado: r.totalAcumulado,
-        atingiu: sim.mesesParaAtingir === r.mes && sim.atingiuMeta,
+        atingiu: backendData.mesesParaAtingir === r.mes && backendData.atingiuMeta,
         isExtra: Math.abs(r.aportesExtras) > 0.001 || Math.abs(r.retiradas ?? 0) > 0.001,
         aporteFinalPorPessoa,
         saldoPorPessoa
       };
     });
-  }, [sim, pessoas]);
+  }, [backendData, pessoas]);
 
   const totals = useMemo(() => {
     if (!displayRows.length) return { rendLiquido: 0, aporteRegular: 0, extras: 0, retiradas: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
