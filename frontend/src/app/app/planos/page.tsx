@@ -425,13 +425,13 @@ export default function PlanosPage() {
                     </div>
                     <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rendimentos</p>
-                      <p className="font-display text-sm font-semibold text-emerald-500 num mt-0.5">
+                      <p className="font-display text-sm font-semibold text-success num mt-0.5">
                         {sim ? `+${brl(sim.lucroLiquido)}` : "-"}
                       </p>
                     </div>
                     <div className="p-2.5 rounded-xl bg-secondary/30 border border-border/40">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total retirado</p>
-                      <p className="font-display text-sm font-semibold text-rose-500 num mt-0.5">
+                      <p className="font-display text-sm font-semibold text-destructive num mt-0.5">
                         {sim ? `-${brl(sim.totalRetirado ?? 0)}` : "R$ 0,00"}
                       </p>
                     </div>

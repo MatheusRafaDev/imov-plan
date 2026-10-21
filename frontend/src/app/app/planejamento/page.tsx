@@ -490,15 +490,15 @@ export default function PlanejamentoPage() {
             className="relative w-full max-w-lg max-h-[90dvh] flex flex-col rounded-2xl border border-border/70 bg-card shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden font-sans"
           >
             {/* Linha decorativa de topo */}
-            <div className={`absolute top-0 left-0 right-0 h-1 z-10 ${novoAporte.tipo === "retirada" ? "bg-rose-500" : "bg-accent"}`} />
+            <div className={`absolute top-0 left-0 right-0 h-1 z-10 ${novoAporte.tipo === "retirada" ? "bg-destructive" : "bg-success"}`} />
 
             {/* Header fixo */}
             <div className="flex items-start justify-between gap-3 p-5 sm:p-6 pb-4 border-b border-border/40 shrink-0 bg-secondary/20">
               <div className="flex items-center gap-3">
                 <div className={`h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 ${
                   novoAporte.tipo === "retirada"
-                    ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                    : "bg-accent/10 border-accent/20 text-accent"
+                    ? "bg-destructive/10 border-destructive/20 text-destructive"
+                    : "bg-success/10 border-success/20 text-success"
                 }`}>
                   {novoAporte.tipo === "retirada" ? <TrendingDown className="h-5 w-5" /> : <Wallet className="h-5 w-5" />}
                 </div>
@@ -535,29 +535,29 @@ export default function PlanejamentoPage() {
                   onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "aporte" }))}
                   className={`py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     novoAporte.tipo === "aporte" 
-                      ? "bg-card text-foreground shadow-xs" 
+                      ? "bg-card text-success shadow-xs font-bold" 
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Plus className="h-3.5 w-3.5 text-accent" />
-                  <span>Aporte Extra</span>
+                  <Plus className="h-3.5 w-3.5 text-success" />
+                  <span>Aporte Extra (Entrada)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "retirada" }))}
                   className={`py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     novoAporte.tipo === "retirada" 
-                      ? "bg-card text-rose-500 shadow-xs" 
+                      ? "bg-card text-destructive shadow-xs font-bold" 
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
-                  <span>Retirada / Resgate</span>
+                  <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                  <span>Retirada (Saída)</span>
                 </button>
               </div>
 
               {novoAporte.tipo === "retirada" && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs flex justify-between items-center text-foreground">
+                <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs flex justify-between items-center text-foreground">
                   <span className="text-muted-foreground">Saldo acumulado disponível:</span>
                   <span className="font-semibold num">{brl(totalGuardado)}</span>
                 </div>
@@ -685,10 +685,10 @@ export default function PlanejamentoPage() {
                 type="button"
                 onClick={adicionarAporte}
                 disabled={salvandoAporte || !novoAporte.valor || Number(novoAporte.valor) <= 0}
-                className={`flex-1 h-11 rounded-xl font-semibold shadow-glow disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${
+                className={`flex-1 h-11 rounded-xl font-semibold shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${
                   novoAporte.tipo === "retirada"
-                    ? "bg-rose-600 hover:bg-rose-700 text-white"
-                    : "bg-gradient-warm text-accent-foreground hover:opacity-95"
+                    ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    : "bg-success hover:bg-success/90 text-success-foreground"
                 }`}
               >
                 {salvandoAporte ? (
@@ -787,18 +787,18 @@ export default function PlanejamentoPage() {
         {/* Card Movimentações Financeiras (Aportes Extras & Retiradas) */}
         <Card className="p-0 overflow-hidden shadow-soft border-border/60 hover:border-accent/40 transition-all bg-white dark:bg-card rounded-2xl group">
           {/* Header do Card */}
-          <div className="p-4 sm:p-5 flex items-start sm:items-center justify-between gap-3 border-b border-border/40 bg-secondary/20">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
+          <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/40 bg-secondary/20">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                 <Wallet className="h-4 w-4" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="font-display text-base sm:text-lg font-semibold text-foreground leading-tight">
                     Movimentações financeiras
                   </h2>
                   {aportesExtras.length > 0 && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent shrink-0">
                       {aportesExtras.length} {aportesExtras.length === 1 ? "registro" : "registros"}
                     </span>
                   )}
@@ -808,12 +808,12 @@ export default function PlanejamentoPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
               <Button 
                 size="sm" 
                 variant="outline"
                 onClick={() => abrirModalNovoAporte("retirada")} 
-                className="h-9 px-3 rounded-xl text-xs font-medium border-rose-500/30 text-rose-500 hover:bg-rose-500/10 shrink-0 flex items-center gap-1.5 cursor-pointer"
+                className="flex-1 sm:flex-initial h-9 px-3 rounded-xl text-xs font-medium border-destructive/30 text-destructive hover:bg-destructive/10 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <TrendingDown className="h-3.5 w-3.5" />
                 <span>Retirada</span>
@@ -821,7 +821,7 @@ export default function PlanejamentoPage() {
               <Button 
                 size="sm" 
                 onClick={() => abrirModalNovoAporte("aporte")} 
-                className="h-9 px-3 rounded-xl text-xs font-medium bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow shrink-0 flex items-center gap-1.5 cursor-pointer"
+                className="flex-1 sm:flex-initial h-9 px-3 rounded-xl text-xs font-medium bg-gradient-warm text-accent-foreground hover:opacity-95 shadow-glow flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>Aporte</span>
@@ -858,34 +858,34 @@ export default function PlanejamentoPage() {
                         isRevertido
                           ? "opacity-50 bg-secondary/10 border-border/30 line-through"
                           : isRetirada
-                            ? "border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10"
-                            : "border-border/50 bg-secondary/15 hover:bg-secondary/35"
+                            ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
+                            : "border-success/20 bg-success/5 hover:bg-success/10"
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className={`h-8 w-8 rounded-lg border flex items-center justify-center shrink-0 ${
                           isRetirada
-                            ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                            : "bg-accent/10 border-accent/20 text-accent"
+                            ? "bg-destructive/10 border-destructive/20 text-destructive"
+                            : "bg-success/10 border-success/20 text-success"
                         }`}>
                           {isRetirada ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className={`font-display text-sm font-semibold num leading-none ${
-                              isRetirada ? "text-rose-500" : "text-foreground"
+                              isRetirada ? "text-destructive" : "text-success"
                             }`}>
                               {isRetirada ? "-" : "+"}{brl(Number(a.valor))}
                             </span>
-                            <span className={`text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ${
+                            <span className={`text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 border ${
                               isRetirada 
-                                ? "text-rose-500 bg-rose-500/10" 
-                                : "text-accent bg-accent/10"
+                                ? "text-destructive bg-destructive/10 border-destructive/20" 
+                                : "text-success bg-success/10 border-success/20"
                             }`}>
                               {a.motivo || a.origem}
                             </span>
                             {isRevertido && (
-                              <span className="text-[9px] font-medium uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full shrink-0 not-italic">
+                              <span className="text-[9px] font-medium uppercase tracking-wider text-warning bg-warning/10 border border-warning/20 px-1.5 py-0.5 rounded-full shrink-0 not-italic">
                                 Revertido
                               </span>
                             )}
@@ -946,17 +946,17 @@ export default function PlanejamentoPage() {
                 const saldoMovimentacoes = totalAportesValidos - totalRetiradasValidas;
 
                 return (
-                  <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
-                    <div className="flex items-center gap-4 text-muted-foreground">
-                      <span>Aportes extras: <strong className="text-accent font-semibold num">+{brl(totalAportesValidos)}</strong></span>
+                  <div className="pt-3 border-t border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 px-1 text-xs">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-muted-foreground text-xs">
+                      <span>Aportes extras: <strong className="text-success font-semibold num">+{brl(totalAportesValidos)}</strong></span>
                       {totalRetiradasValidas > 0 && (
-                        <span>Retiradas: <strong className="text-rose-500 font-semibold num">-{brl(totalRetiradasValidas)}</strong></span>
+                        <span>Retiradas: <strong className="text-destructive font-semibold num">-{brl(totalRetiradasValidas)}</strong></span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-border/20">
                       <span className="text-muted-foreground font-medium">Impacto líquido:</span>
                       <span className={`font-display text-sm font-semibold num ${
-                        saldoMovimentacoes >= 0 ? "text-accent" : "text-rose-500"
+                        saldoMovimentacoes >= 0 ? "text-success" : "text-destructive"
                       }`}>
                         {saldoMovimentacoes >= 0 ? "+" : ""}{brl(saldoMovimentacoes)}
                       </span>

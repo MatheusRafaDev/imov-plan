@@ -208,9 +208,15 @@ function LancarAporteContent() {
                 min={0}
                 value={val}
                 onChange={(v) => setValores((prev) => ({ ...prev, [p.id]: v === "" ? 0 : v }))}
-                className={`h-12 w-full text-right text-lg rounded-xl ${diff !== 0 ? "border-accent text-accent bg-accent/5" : "bg-background"}`}
+                className={`h-12 w-full text-right text-lg rounded-xl transition-colors ${
+                  diff !== 0 
+                    ? diff > 0 
+                      ? "border-success/50 text-success bg-success/5 focus:ring-success" 
+                      : "border-destructive/50 text-destructive bg-destructive/5 focus:ring-destructive" 
+                    : "bg-background"
+                }`}
               />
-              <p className={`text-xs mt-1.5 text-right ${diff !== 0 ? (diff > 0 ? "text-success font-medium" : "text-destructive font-medium") : "text-muted-foreground"}`}>
+              <p className={`text-xs mt-1.5 text-right ${diff !== 0 ? (diff > 0 ? "text-success font-semibold" : "text-destructive font-semibold") : "text-muted-foreground"}`}>
                 planejado: {brl(planejado)}
                 {diff !== 0 && ` (${diff > 0 ? "+" : ""}${brl(diff)})`}
               </p>

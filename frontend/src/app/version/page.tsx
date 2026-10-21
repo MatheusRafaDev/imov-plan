@@ -22,13 +22,13 @@ export default function VersionPage() {
         <h1 className="text-3xl font-bold text-brand-500">Deploy Version</h1>
         
         {isLoading && <p className="animate-pulse text-neutral-400">Loading deploy information...</p>}
-        {error && <p className="text-red-400 bg-red-950/50 p-4 rounded-lg border border-red-900">Erro ao buscar a versão. O backend pode estar fora do ar ou atualizando.</p>}
+        {error && <p className="text-destructive bg-destructive/10 p-4 rounded-lg border border-destructive/20">Erro ao buscar a versão. O backend pode estar fora do ar ou atualizando.</p>}
         
         {data && (
           <>
             <div className="bg-neutral-800/50 p-4 rounded-lg border border-neutral-700/50">
               <h2 className="text-xl font-semibold mb-2 text-neutral-200">Commit Hash (Backend)</h2>
-              <p className="bg-neutral-950 p-3 rounded font-bold text-green-400 border border-neutral-800">
+              <p className="bg-neutral-950 p-3 rounded font-bold text-success border border-neutral-800">
                 {data.commit}
               </p>
             </div>

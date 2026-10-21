@@ -92,7 +92,9 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
         }}
         className={`inline-flex items-center justify-end gap-0.5 sm:gap-1 px-1 sm:px-1.5 py-0.5 rounded transition-colors border border-transparent cursor-pointer ${
           Math.abs(total) > 0.001 
-            ? "hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" 
+            ? total > 0
+              ? "hover:bg-success/10 hover:border-success/20 text-success font-semibold" 
+              : "hover:bg-destructive/10 hover:border-destructive/20 text-destructive font-semibold"
             : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/40"
         }`}
         title={Math.abs(total) > 0.001 ? "Clique para ver lista · Duplo clique para gerenciar/adicionar" : "Duplo clique para adicionar aporte extra"}
@@ -109,7 +111,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
         ) : (
           <span className="opacity-40 select-none text-[11px] sm:text-xs">—</span>
         )}
-        {Math.abs(total) > 0.001 && (open ? <ChevronUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" /> : <ChevronDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />)}
+        {Math.abs(total) > 0.001 && (open ? <ChevronUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 md:hidden" /> : <ChevronDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 md:hidden" />)}
       </span>
 
       {open && canOpen && typeof document !== "undefined" && createPortal(
@@ -161,7 +163,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
                           <span className="text-xs text-muted-foreground">{item.pessoaNome || "Conjunto"}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={`num font-semibold ${isRetirada ? "text-rose-500" : (item.valor >= 0 ? "text-accent" : "text-muted-foreground")}`}>
+                          <span className={`num font-semibold ${isRetirada ? "text-destructive" : (item.valor >= 0 ? "text-success" : "text-destructive")}`}>
                             {isRetirada ? "-" : (item.valor >= 0 ? "+" : "-")}{brl(Math.abs(item.valor))}
                           </span>
                           <button type="button" onClick={() => startEdit(item)} className="opacity-0 group-hover/extra:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all cursor-pointer" title="Editar">
@@ -186,7 +188,7 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
               })}
               <div className="flex justify-between text-[11px] font-semibold pt-1 border-t border-border/50">
                 <span className="text-muted-foreground">Total extras</span>
-                <span className={`num font-semibold ${total >= 0 ? "text-accent" : "text-muted-foreground"}`}>
+                <span className={`num font-semibold ${total >= 0 ? "text-success" : "text-destructive"}`}>
                   {total >= 0 ? `+${brl(total)}` : `-${brl(Math.abs(total))}`}
                 </span>
               </div>

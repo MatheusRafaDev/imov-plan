@@ -103,7 +103,7 @@ export function SummaryCards({ summary, progressoAtual }: SummaryCardsProps) {
           {summary.totalRetirado != null && summary.totalRetirado > 0 && (
             <div className="flex justify-between items-center py-2 border-b border-border/40">
               <span className="text-muted-foreground text-sm">Total Retirado</span>
-              <span className="font-medium text-rose-500">
+              <span className="font-medium text-destructive">
                 -<Currency value={summary.totalRetirado} />
               </span>
             </div>

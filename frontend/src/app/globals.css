@@ -21,31 +21,31 @@
     --muted: 35 25% 92%;
     --muted-foreground: 220 12% 42%;
 
-    --accent: 21 90% 48%; /* #E8590C — Laranja vibrante oficial da marca */
+    --accent: 22 78% 48%; /* #df5b17 — Laranja terracota acolhedor, elegante e opaco */
     --accent-foreground: 38 40% 98%;
 
-    --success: 145 50% 28%;
+    --success: 154 38% 34%; /* #367756 — Verde sálvia pastel opaco para Entradas/Aportes/Rendimentos */
     --success-foreground: 38 40% 98%;
 
-    --warning: 38 85% 50%;
-    --warning-foreground: 220 25% 12%;
+    --warning: 38 72% 46%; /* #c78323 — Âmbar/mel pastel suave para avisos e pendências */
+    --warning-foreground: 38 40% 98%;
 
-    --destructive: 0 72% 48%;
+    --destructive: 356 46% 48%; /* #b3454b — Vermelho terracota/dusty rose opaco suave para Saídas/Retiradas/Despesas */
     --destructive-foreground: 38 40% 98%;
 
     --border: 32 20% 84%;
     --input: 32 20% 84%;
-    --ring: 21 90% 48%;
+    --ring: 22 78% 48%;
 
     --radius: 0.875rem;
 
-    --gradient-warm: linear-gradient(135deg, hsl(21 90% 48%) 0%, hsl(26 95% 52%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(22 78% 48%) 0%, hsl(26 85% 52%) 100%);
     --gradient-ink: linear-gradient(160deg, hsl(220 35% 14%) 0%, hsl(220 30% 22%) 100%);
     --gradient-cream: linear-gradient(180deg, hsl(38 50% 97%) 0%, hsl(35 35% 92%) 100%);
 
     --shadow-soft: 0 1px 2px hsl(220 25% 12% / 0.04), 0 8px 24px -8px hsl(220 25% 12% / 0.08);
     --shadow-elevated: 0 2px 4px hsl(220 25% 12% / 0.06), 0 24px 48px -16px hsl(220 25% 12% / 0.16);
-    --shadow-glow: 0 0 0 1px hsl(21 90% 48% / 0.25), 0 12px 32px -8px hsl(21 90% 48% / 0.38);
+    --shadow-glow: 0 0 0 1px hsl(22 78% 48% / 0.25), 0 12px 32px -8px hsl(22 78% 48% / 0.38);
 
     --sidebar-background: 38 40% 96%;
     --sidebar-foreground: 220 25% 12%;
@@ -54,7 +54,7 @@
     --sidebar-accent: 32 35% 90%;
     --sidebar-accent-foreground: 220 25% 12%;
     --sidebar-border: 32 20% 84%;
-    --sidebar-ring: 19 100% 40%;
+    --sidebar-ring: 22 78% 48%;
   }
 
   .dark {
@@ -70,17 +70,17 @@
     --secondary-foreground: 38 30% 94%;
     --muted: 220 22% 16%;
     --muted-foreground: 38 12% 65%;
-    --accent: 24 100% 67%; /* #FF9A55 highlight on dark */
+    --accent: 24 82% 64%; /* #ea8d56 highlight terracota/apricot pastel no dark */
     --accent-foreground: 220 30% 8%;
-    --success: 145 45% 42%;
+    --success: 152 46% 62%; /* #72cba0 verde sálvia pastel suave no dark */
     --success-foreground: 220 30% 8%;
-    --warning: 38 85% 55%;
+    --warning: 40 76% 62%; /* #e5b458 âmbar pastel suave no dark */
     --warning-foreground: 220 30% 8%;
-    --destructive: 0 65% 50%;
-    --destructive-foreground: 38 30% 94%;
+    --destructive: 356 55% 68%; /* #dc7f85 vermelho dusty rose pastel opaco no dark */
+    --destructive-foreground: 220 30% 8%;
     --border: 220 20% 20%;
     --input: 220 20% 20%;
-    --ring: 24 100% 67%;
+    --ring: 24 82% 64%;
   }
 
   *, *::before, *::after {
@@ -141,6 +141,15 @@
 
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
+
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-inflow: hsl(var(--success));
+  --color-inflow-foreground: hsl(var(--success-foreground));
+
+  --color-outflow: hsl(var(--destructive));
+  --color-outflow-foreground: hsl(var(--destructive-foreground));
 
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
@@ -303,6 +312,28 @@
   }
   .border-error {
     border-color: hsl(var(--destructive)) !important;
+  }
+
+  /* Badges e pílulas semânticas pastel/opacas padronizadas */
+  .badge-inflow, .badge-success {
+    background-color: hsl(var(--success) / 0.12);
+    color: hsl(var(--success));
+    border: 1px solid hsl(var(--success) / 0.25);
+  }
+  .badge-outflow, .badge-destructive {
+    background-color: hsl(var(--destructive) / 0.12);
+    color: hsl(var(--destructive));
+    border: 1px solid hsl(var(--destructive) / 0.25);
+  }
+  .badge-warning {
+    background-color: hsl(var(--warning) / 0.12);
+    color: hsl(var(--warning));
+    border: 1px solid hsl(var(--warning) / 0.25);
+  }
+  .badge-accent {
+    background-color: hsl(var(--accent) / 0.12);
+    color: hsl(var(--accent));
+    border: 1px solid hsl(var(--accent) / 0.25);
   }
 
   /* Safe-area insets — para iOS Safari e PWA em modo standalone (notch / home indicator) */

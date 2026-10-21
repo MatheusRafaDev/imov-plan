@@ -90,7 +90,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
               <span
                 style={{
                   width: 8, height: 8, borderRadius: "50%",
-                  background: "#86efac",
+                  background: "hsl(var(--success))",
                   display: "inline-block",
                 }}
               />
@@ -179,7 +179,7 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
         <h3 className="font-display text-lg font-medium">Projeção de Crescimento</h3>
         <div className="flex items-center flex-wrap gap-4 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#86efac" }} />
+            <span className="w-2.5 h-2.5 rounded-full inline-block bg-success" />
             Total Aportado
           </span>
           <span className="flex items-center gap-1.5">
@@ -205,8 +205,8 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
                 <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.01} />
               </linearGradient>
               <linearGradient id="colorInvestido" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#86efac" stopOpacity={0.22} />
-                <stop offset="100%" stopColor="#86efac" stopOpacity={0.01} />
+                <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0.01} />
               </linearGradient>
             </defs>
 
@@ -282,12 +282,12 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
               type="monotone"
               dataKey="investido"
               name="Total Aportado"
-              stroke="#86efac"
+              stroke="hsl(var(--success))"
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorInvestido)"
               dot={false}
-              activeDot={{ r: 4, fill: "#86efac", strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: "hsl(var(--success))", strokeWidth: 0 }}
               isAnimationActive={false}
             />
             <Area

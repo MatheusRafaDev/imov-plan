@@ -469,13 +469,13 @@ export function EditMesModal({
                             isRevertido
                               ? "opacity-50 bg-secondary/10 border-border/30 line-through"
                               : isRetirada
-                                ? "border-rose-500/30 bg-rose-500/10"
-                                : "border-border/60 bg-secondary/20"
+                                ? "border-destructive/30 bg-destructive/10"
+                                : "border-success/30 bg-success/5"
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                              isRetirada ? "bg-rose-500/20 text-rose-500" : "bg-accent/15 text-accent"
+                              isRetirada ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"
                             }`}>
                               {isRetirada ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
                             </div>
@@ -485,7 +485,7 @@ export function EditMesModal({
                                   {extra.motivo || extra.origem}
                                 </span>
                                 {isRevertido && (
-                                  <span className="text-[10px] uppercase px-1.5 py-0.5 bg-amber-500/20 text-amber-500 font-semibold rounded not-italic">
+                                  <span className="text-[10px] uppercase px-1.5 py-0.5 bg-warning/20 text-warning font-semibold rounded not-italic">
                                     Revertido
                                   </span>
                                 )}
@@ -499,7 +499,7 @@ export function EditMesModal({
 
                           <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 not-italic border-t sm:border-t-0 pt-2 sm:pt-0 border-border/30">
                             <span className={`font-bold num text-sm ${
-                              isRetirada ? "text-rose-500" : "text-accent"
+                              isRetirada ? "text-destructive" : "text-success"
                             }`}>
                               {isRetirada ? "-" : "+"}{brl(Number(extra.valor))}
                             </span>
@@ -574,7 +574,7 @@ export function EditMesModal({
                     onClick={() => setNovoExtraTipo("aporte")}
                     className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       novoExtraTipo === "aporte"
-                        ? "bg-accent text-accent-foreground shadow-xs font-bold"
+                        ? "bg-success text-success-foreground shadow-xs font-bold"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -586,7 +586,7 @@ export function EditMesModal({
                     onClick={() => setNovoExtraTipo("retirada")}
                     className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       novoExtraTipo === "retirada"
-                        ? "bg-rose-500 text-white shadow-xs font-bold"
+                        ? "bg-destructive text-destructive-foreground shadow-xs font-bold"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -718,8 +718,8 @@ export function EditMesModal({
                   onClick={handleAdicionarExtra}
                   className={`w-full h-11 rounded-xl font-semibold text-xs sm:text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer ${
                     novoExtraTipo === "retirada"
-                      ? "bg-rose-500 text-white hover:bg-rose-600"
-                      : "bg-accent text-accent-foreground hover:bg-accent/90"
+                      ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      : "bg-success text-success-foreground hover:bg-success/90"
                   }`}
                 >
                   {novoExtraTipo === "retirada" ? <TrendingDown className="w-4 h-4" /> : <Plus className="w-4 h-4" />}

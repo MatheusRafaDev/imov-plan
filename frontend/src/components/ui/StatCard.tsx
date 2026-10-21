@@ -7,7 +7,7 @@ interface StatCardProps {
   label: string;
   value: number | string;
   icon?: React.ReactNode;
-  variant?: "default" | "primary" | "success" | "muted" | "accent" | "warning";
+  variant?: "default" | "primary" | "success" | "muted" | "accent" | "warning" | "destructive";
   prefix?: string;
   className?: string;
   children?: React.ReactNode;
@@ -17,28 +17,31 @@ interface StatCardProps {
 const variantStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   default: "bg-card border-border/40",
   primary: "bg-primary/5 border-border/40",
-  success: "bg-success/5 border-border/40",
+  success: "bg-success/5 border-success/20",
+  destructive: "bg-destructive/5 border-destructive/20",
   muted: "bg-secondary/30 border-border/40",
   accent: "bg-accent/5 border-accent/20",
-  warning: "bg-amber-500/5 border-amber-500/20",
+  warning: "bg-warning/5 border-warning/20",
 };
 
 const labelStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   default: "text-muted-foreground",
   primary: "text-primary",
   success: "text-success",
+  destructive: "text-destructive",
   muted: "text-muted-foreground",
   accent: "text-accent",
-  warning: "text-amber-600 dark:text-amber-400",
+  warning: "text-warning",
 };
 
 const valueStyles: Record<NonNullable<StatCardProps["variant"]>, string> = {
   default: "text-foreground",
   primary: "text-primary",
   success: "text-success",
+  destructive: "text-destructive",
   muted: "text-foreground",
   accent: "text-accent",
-  warning: "text-amber-700 dark:text-amber-300",
+  warning: "text-warning",
 };
 
 /**
