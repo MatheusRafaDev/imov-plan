@@ -40,6 +40,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<HistoricoSimulacao?> GetUltimoByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !MongoDB.Bson.ObjectId.TryParse(planejamentoId, out _))
+                return null;
+
             if (_historicosColl != null)
             {
                 var filter = Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
@@ -57,6 +60,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<HistoricoSimulacao>> GetAllByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !MongoDB.Bson.ObjectId.TryParse(planejamentoId, out _))
+                return Enumerable.Empty<HistoricoSimulacao>();
+
             if (_historicosColl != null)
             {
                 var filter = Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
@@ -87,7 +93,8 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<EvolucaoMensalSimulacao>> GetEvolucaoBySimulacaoIdAsync(string simulacaoId)
         {
-            if (_evolucoesColl == null) return new List<EvolucaoMensalSimulacao>();
+            if (string.IsNullOrEmpty(simulacaoId) || !MongoDB.Bson.ObjectId.TryParse(simulacaoId, out _) || _evolucoesColl == null)
+                return new List<EvolucaoMensalSimulacao>();
 
             var filter = Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, simulacaoId);
             return await _evolucoesColl.Find(filter).SortBy(e => e.Mes).ToListAsync();
@@ -95,6 +102,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
+            if (string.IsNullOrEmpty(id) || !MongoDB.Bson.ObjectId.TryParse(id, out _))
+                return;
+
             if (_evolucoesColl != null && _historicosColl != null)
             {
                 var filterEvolucoes = Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, id);
@@ -118,6 +128,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAllByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !MongoDB.Bson.ObjectId.TryParse(planejamentoId, out _))
+                return;
+
             if (_historicosColl != null && _evolucoesColl != null)
             {
                 var filterHistoricos = Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);

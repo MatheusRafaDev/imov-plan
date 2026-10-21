@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Infrastructure.Data;
@@ -19,6 +20,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<AporteExtra>> GetByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !ObjectId.TryParse(planejamentoId, out _))
+                return Enumerable.Empty<AporteExtra>();
+
             return await _context.AportesExtras
                 .Where(a => a.PlanejamentoId == planejamentoId)
                 .ToListAsync();
@@ -26,6 +30,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<AporteExtra>> GetByParticipanteIdAsync(string participanteId)
         {
+            if (string.IsNullOrEmpty(participanteId))
+                return Enumerable.Empty<AporteExtra>();
+
             return await _context.AportesExtras
                 .Where(a => a.ParticipanteId != null && a.ParticipanteId == participanteId)
                 .ToListAsync();
@@ -48,16 +55,16 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !ObjectId.TryParse(planejamentoId, out _))
+                return;
+
             var aportes = await _context.AportesExtras
                 .Where(a => a.PlanejamentoId == planejamentoId)
                 .ToListAsync();
                 
             if (aportes.Any())
             {
-                foreach (var a in aportes)
-                {
-                    _context.AportesExtras.Remove(a);
-                }
+                _context.AportesExtras.RemoveRange(aportes);
                 await _context.SaveChangesAsync();
             }
         }

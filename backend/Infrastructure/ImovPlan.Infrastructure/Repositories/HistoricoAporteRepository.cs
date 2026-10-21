@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Infrastructure.Data;
@@ -18,6 +20,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<HistoricoAporte>> GetByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !ObjectId.TryParse(planejamentoId, out _))
+                return Enumerable.Empty<HistoricoAporte>();
+
             return await _context.HistoricosAportes
                 .Where(a => a.PlanejamentoId == planejamentoId)
                 .ToListAsync();
@@ -25,6 +30,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<HistoricoAporte>> GetByPlanejamentoEParticipanteAsync(string planejamentoId, string participanteId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !ObjectId.TryParse(planejamentoId, out _))
+                return Enumerable.Empty<HistoricoAporte>();
+
             return await _context.HistoricosAportes
                 .Where(a => a.PlanejamentoId == planejamentoId && a.ParticipanteId == participanteId)
                 .ToListAsync();
@@ -63,6 +71,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !ObjectId.TryParse(planejamentoId, out _))
+                return;
+
             var toDelete = await _context.HistoricosAportes
                 .Where(a => a.PlanejamentoId == planejamentoId)
                 .ToListAsync();

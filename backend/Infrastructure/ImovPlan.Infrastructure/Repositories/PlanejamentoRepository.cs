@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Infrastructure.Data;
@@ -17,16 +20,25 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<Planejamento?> GetByIdAsync(string id)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return null;
+
             return await _context.Planejamentos.FirstOrDefaultAsync(o => o.Id == id);
         }
 
         public async Task<Planejamento?> GetBySessionIdAsync(string sessionId)
         {
+            if (string.IsNullOrEmpty(sessionId))
+                return null;
+
             return await _context.Planejamentos.FirstOrDefaultAsync(o => o.SessionId == sessionId && o.Status == "Draft");
         }
 
         public async Task<Planejamento?> GetByUsuarioIdAsync(string usuarioId)
         {
+            if (string.IsNullOrEmpty(usuarioId) || !ObjectId.TryParse(usuarioId, out _))
+                return null;
+
             return await _context.Planejamentos
                 .Where(p => p.UsuarioId == usuarioId)
                 .OrderByDescending(p => p.CreatedAt)
@@ -35,6 +47,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<List<Planejamento>> GetAllByUsuarioIdAsync(string usuarioId)
         {
+            if (string.IsNullOrEmpty(usuarioId) || !ObjectId.TryParse(usuarioId, out _))
+                return new List<Planejamento>();
+
             return await _context.Planejamentos
                 .Where(p => p.UsuarioId == usuarioId)
                 .OrderByDescending(p => p.CreatedAt)
@@ -50,6 +65,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task UpdateAsync(string id, Planejamento planejamento)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return;
+
             var existing = await _context.Planejamentos.FirstOrDefaultAsync(o => o.Id == id);
             if (existing != null)
             {
@@ -71,6 +89,8 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.Status = planejamento.Status;
                 existing.UsuarioId = planejamento.UsuarioId;
                 existing.CustosCompra = planejamento.CustosCompra;
+                existing.Estado = planejamento.Estado;
+                existing.Cidade = planejamento.Cidade;
 
                 _context.Planejamentos.Update(existing);
                 await _context.SaveChangesAsync();
@@ -79,6 +99,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return;
+
             var existing = await _context.Planejamentos.FirstOrDefaultAsync(o => o.Id == id);
             if (existing != null)
             {

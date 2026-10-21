@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
 using ImovPlan.Infrastructure.Data;
@@ -18,16 +19,25 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<Usuario?> GetByIdAsync(string id)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return null;
+
             return await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id);
         }
 
         public async Task<Usuario?> GetByEmailAsync(string email)
         {
+            if (string.IsNullOrEmpty(email))
+                return null;
+
             return await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<Usuario?> GetByResetTokenHashAsync(string tokenHash)
         {
+            if (string.IsNullOrEmpty(tokenHash))
+                return null;
+
             return await _context.Usuarios.FirstOrDefaultAsync(u => u.ResetPasswordToken == tokenHash);
         }
 
@@ -40,6 +50,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task UpdateAsync(string id, Usuario usuario)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return;
+
             var existing = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id);
             if (existing != null)
             {
@@ -61,6 +74,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return;
+
             var existing = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id);
             if (existing != null)
             {
@@ -70,4 +86,3 @@ namespace ImovPlan.Infrastructure.Repositories
         }
     }
 }
-

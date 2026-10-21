@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
@@ -19,7 +20,7 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<Participante?> GetByIdAsync(string id)
         {
-            if (!ObjectId.TryParse(id, out _))
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
                 return null;
 
             return await _context.Participantes.FirstOrDefaultAsync(p => p.Id == id);
@@ -27,6 +28,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<Participante>> GetByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (string.IsNullOrEmpty(planejamentoId) || !ObjectId.TryParse(planejamentoId, out _))
+                return Enumerable.Empty<Participante>();
+
             return await _context.Participantes
                 .Where(p => p.PlanejamentoId == planejamentoId)
                 .ToListAsync();
@@ -41,6 +45,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task UpdateAsync(string id, Participante participante)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return;
+
             var existing = await _context.Participantes.FirstOrDefaultAsync(p => p.Id == id);
             if (existing != null)
             {
@@ -62,6 +69,9 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task DeleteAsync(string id)
         {
+            if (string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _))
+                return;
+
             var existing = await _context.Participantes.FirstOrDefaultAsync(p => p.Id == id);
             if (existing != null)
             {
