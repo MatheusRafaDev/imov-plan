@@ -11,14 +11,12 @@ import { toast } from "sonner";
 import { Building2, Plus, Trash2, CheckCircle2, Loader2, ArrowRight, Clock, Edit2, Check, X, AlertTriangle } from "lucide-react";
 import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
 import { usePlanStore } from "@/store/usePlanStore";
-import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { extractSaldoAtual } from "@/utils/simulacaoSelectors";
 
 export default function PlanosPage() {
   const planoId = usePlanStore((state) => state.planoId);
   const setPlanoId = usePlanStore((state) => state.setPlanoId);
   const resetPlan = usePlanStore((state) => state.reset);
-  const { progressoAtual } = usePlanLogic();
   const { data: planos = [], isLoading: carregandoPlanos } = usePlanos();
   const { mutateAsync: criarNovoPlano } = useCriarPlano();
   const { mutateAsync: excluirPlano } = useExcluirPlano();

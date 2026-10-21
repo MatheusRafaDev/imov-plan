@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Sora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "sonner";
@@ -6,6 +7,13 @@ import NextTopLoader from "nextjs-toploader";
 import Script from "next/script";
 import { PwaRegister } from "@/components/PwaRegister";
 import { QueryProvider } from "@/providers/QueryProvider";
+
+const sora = Sora({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-sora",
+});
 
 import { getBaseUrl, siteConfig, generateStructuredData } from "@/lib/seo";
 
@@ -99,7 +107,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body className="min-h-screen" suppressHydrationWarning>
+      <body className={`min-h-screen ${sora.className} ${sora.variable}`} suppressHydrationWarning>
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="lazyOnload"
