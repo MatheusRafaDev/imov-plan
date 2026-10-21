@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 import { usePlanos, useCriarPlano, useExcluirPlano, useRenomearPlano } from "@/hooks/usePlanos";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,10 +16,12 @@ import { usePlanStore } from "@/store/usePlanStore";
 import { extractSaldoAtual } from "@/utils/simulacaoSelectors";
 
 export default function PlanosPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const planoId = usePlanStore((state) => state.planoId);
   const setPlanoId = usePlanStore((state) => state.setPlanoId);
   const resetPlan = usePlanStore((state) => state.reset);
-  const { data: planos = [], isLoading: carregandoPlanos } = usePlanos();
+  const { data: planos = [], isLoading: carregandoPlanos } = usePlanos(user?.id);
   const { mutateAsync: criarNovoPlano } = useCriarPlano();
   const { mutateAsync: excluirPlano } = useExcluirPlano();
   const { mutateAsync: renomearPlanoArgs } = useRenomearPlano();
@@ -47,34 +51,58 @@ export default function PlanosPage() {
   const [carregandoSimulacoes, setCarregandoSimulacoes] = useState(false);
 
   useEffect(() => {
-    if (planos.length > 0) {
-      let active = true;
-      const fetchSimulacoes = async () => {
-        setCarregandoSimulacoes(true);
-        const simMap: Record<string, BackendSimulacaoResult> = {};
-        await Promise.all(
-          planos.map(async (plano) => {
-            try {
-              const result = await SimulacaoService.getUltimaSimulacao(plano.id);
-              if (result) {
-                simMap[plano.id] = result;
-              }
-            } catch (err) {
-              console.error(`Erro ao carregar simulação do plano ${plano.id}`, err);
-            }
-          })
-        );
-        if (active) {
-          setSimulacoes(simMap);
-          setCarregandoSimulacoes(false);
-        }
-      };
-      fetchSimulacoes();
-      return () => {
-        active = false;
-      };
+    if (planos.length === 0) return;
+
+    let active = true;
+
+    // 1. Carregamento instantâneo do cache do React Query (se já visitado ou do plano ativo)
+    const cachedMap: Record<string, BackendSimulacaoResult> = {};
+    planos.forEach((plano) => {
+      const cached = queryClient.getQueryData<BackendSimulacaoResult>(['simulacao', plano.id]);
+      if (cached) {
+        cachedMap[plano.id] = cached;
+      }
+    });
+
+    if (Object.keys(cachedMap).length > 0) {
+      setSimulacoes((prev) => ({ ...cachedMap, ...prev }));
     }
-  }, [planos]);
+
+    // Se todos os planos já estavam em cache, não precisa exibir skeleton
+    const faltamBuscar = planos.filter((p) => !cachedMap[p.id]);
+    if (faltamBuscar.length === 0) {
+      setCarregandoSimulacoes(false);
+      return;
+    }
+
+    setCarregandoSimulacoes(true);
+
+    // 2. Busca com streaming progressivo por plano (cada card atualiza assim que responder)
+    const fetchPromises = planos.map(async (plano) => {
+      try {
+        const result = await queryClient.fetchQuery({
+          queryKey: ['simulacao', plano.id],
+          queryFn: () => SimulacaoService.getUltimaSimulacao(plano.id),
+          staleTime: 5 * 60 * 1000,
+        });
+        if (active && result) {
+          setSimulacoes((prev) => ({ ...prev, [plano.id]: result }));
+        }
+      } catch (err) {
+        console.error(`Erro ao carregar simulação do plano ${plano.id}`, err);
+      }
+    });
+
+    Promise.allSettled(fetchPromises).then(() => {
+      if (active) {
+        setCarregandoSimulacoes(false);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [planos, queryClient]);
 
   const handleTrocar = async (id: string) => {
     if (id === planoId) {
@@ -209,9 +237,39 @@ export default function PlanosPage() {
       </div>
 
       {carregandoPlanos && planos.length === 0 ? (
-        <div className="grid place-items-center py-24 text-muted-foreground gap-3">
-          <Loader2 className="h-8 w-8 animate-spin-smooth text-accent" />
-          <p className="text-sm">Carregando seus planos...</p>
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="rounded-2xl bg-card border border-border/60 shadow-soft overflow-hidden"
+            >
+              <div className="p-5 border-b border-border/40 bg-secondary/15 flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <div className="h-6 w-32 bg-secondary/70 rounded-md animate-shimmer" />
+                  <div className="h-3.5 w-24 bg-secondary/40 rounded animate-shimmer" />
+                </div>
+                <div className="h-8 w-20 bg-secondary/60 rounded-lg animate-shimmer" />
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <div className="h-3 w-20 bg-secondary/40 rounded animate-shimmer" />
+                    <div className="h-3 w-28 bg-secondary/40 rounded animate-shimmer" />
+                  </div>
+                  <div className="h-7 w-36 bg-secondary/70 rounded-md animate-shimmer" />
+                  <div className="h-2 w-full bg-secondary/40 rounded-full animate-shimmer" />
+                </div>
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="p-2.5 rounded-xl bg-secondary/20 border border-border/40 space-y-1.5">
+                      <div className="h-2.5 w-16 bg-secondary/50 rounded animate-shimmer" />
+                      <div className="h-4 w-20 bg-secondary/70 rounded animate-shimmer" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : planos.length === 0 ? (
         <Card className="p-8 sm:p-12 text-center space-y-4 shadow-soft border-border/60 max-w-2xl mx-auto my-8">

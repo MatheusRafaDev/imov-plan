@@ -15,7 +15,6 @@ import {
   Plus, 
   Check, 
   X,
-  Wallet, 
   Briefcase, 
   TrendingDown, 
   TrendingUp, 
@@ -178,9 +177,9 @@ export default function PessoaCard({
           </div>
           <div className="bg-secondary/25 rounded-xl p-3 border border-border/40">
             <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <TrendingDown className="h-3.5 w-3.5 text-destructive/80" /> Despesas
+              <TrendingDown className="h-3.5 w-3.5 text-destructive/70" /> Despesas
             </p>
-            <p className="font-display text-base sm:text-lg font-bold num text-destructive">{brl(gastosTotais)}</p>
+            <p className="font-display text-base sm:text-lg font-bold num text-destructive/70">{brl(gastosTotais)}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
               {p.usar_gastos_detalhados && (p.gastos_detalhados || []).length > 0
                 ? `${(p.gastos_detalhados || []).length} item(ns) detalhado(s)`
@@ -191,15 +190,6 @@ export default function PessoaCard({
 
         {/* Destaque Financeiro */}
         <div className="bg-secondary/20 rounded-xl p-3.5 sm:p-4 space-y-3 border border-border/40">
-          <div className="flex justify-between items-center pb-2.5 border-b border-border/40">
-            <span className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-1.5">
-              <Wallet className="h-4 w-4 text-muted-foreground" /> Sobra livre estimada
-            </span>
-            <span className={`font-display text-base sm:text-lg font-bold num ${sobra >= 0 ? "text-success" : "text-destructive"}`}>
-              {brl(sobra)}
-            </span>
-          </div>
-
           <div className="flex justify-between items-center pb-2.5 border-b border-border/40">
             <span className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4 text-accent" /> Aporte mensal planejado
@@ -329,7 +319,7 @@ export default function PessoaCard({
         <div className="bg-secondary/20 rounded-xl p-3.5 sm:p-4 border border-border/40 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <CreditCard className="h-3.5 w-3.5 text-destructive" />
+              <CreditCard className="h-3.5 w-3.5 text-destructive/70" />
               <span>Despesas Mensais</span>
             </p>
             {/* Toggle elegante para Detalhar ou Valor Direto */}
@@ -444,7 +434,7 @@ export default function PessoaCard({
               {gastosTotais > 0 && (
                 <div className="flex justify-between items-center pt-2 px-1 text-xs">
                   <span className="text-muted-foreground font-medium">Soma dos gastos detalhados:</span>
-                  <span className="font-bold text-destructive num">{brl(gastosTotais)}</span>
+                  <span className="font-bold text-destructive/70 num">{brl(gastosTotais)}</span>
                 </div>
               )}
             </div>
@@ -453,23 +443,6 @@ export default function PessoaCard({
 
         {/* ── SEÇÃO 3: FLUXO MENSAL & APORTE PLANEJADO ─────────────────────── */}
         <div className="bg-secondary/20 rounded-xl p-3.5 sm:p-4 border border-border/40 space-y-3">
-          <div className="flex items-center justify-between pb-2.5 border-b border-border/40 gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Wallet className="h-3.5 w-3.5 text-accent" />
-                <span>Sobra Líquida Estimada</span>
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Receita ({brl(rendaTotal)}) − Despesas ({brl(gastosTotais)})
-              </p>
-            </div>
-            <div className="text-right">
-              <span className={`font-display text-lg sm:text-xl font-bold num ${sobra >= 0 ? "text-success" : "text-destructive"}`}>
-                {brl(sobra)}
-              </span>
-            </div>
-          </div>
-
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">

@@ -50,12 +50,12 @@ export function RowActions({
       <button
         type="button"
         onClick={() => setOpenMenu(o => !o)}
-        className={`w-8 h-8 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ${
+        className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors ${
           openMenu ? "opacity-100 bg-secondary text-foreground" : "opacity-40 hover:opacity-100 focus:opacity-100"
         }`}
         title="Opções do mês"
       >
-        <MoreHorizontal className="h-4 w-4" />
+        <MoreHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </button>
 
       {openMenu && typeof document !== "undefined" && createPortal(

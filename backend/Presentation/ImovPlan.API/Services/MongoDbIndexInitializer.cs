@@ -46,24 +46,29 @@ namespace ImovPlan.API.Services
                     new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("planejamentoId")),
                     cancellationToken: cancellationToken);
 
-                // 3. HistoricoSimulacoes (planejamentoId)
+                // 3. HistoricoSimulacoes (planejamentoId + geradoEm DESC)
                 var histSimulacoesCollection = database.GetCollection<BsonDocument>("historicoSimulacoes");
-                await histSimulacoesCollection.Indexes.CreateOneAsync(
+                await histSimulacoesCollection.Indexes.CreateManyAsync(new[]
+                {
                     new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("planejamentoId")),
-                    cancellationToken: cancellationToken);
+                    new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("planejamentoId").Descending("geradoEm"))
+                }, cancellationToken: cancellationToken);
 
-                // 4. EvolucaoMensalSimulacoes (simulacaoId)
+                // 4. EvolucaoMensalSimulacoes (simulacaoId + mes ASC)
                 var evolucaoCollection = database.GetCollection<BsonDocument>("evolucaoMensalSimulacoes");
-                await evolucaoCollection.Indexes.CreateOneAsync(
+                await evolucaoCollection.Indexes.CreateManyAsync(new[]
+                {
                     new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("simulacaoId")),
-                    cancellationToken: cancellationToken);
+                    new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("simulacaoId").Ascending("mes"))
+                }, cancellationToken: cancellationToken);
 
-                // 5. Planejamentos (usuarioId)
+                // 5. Planejamentos (usuarioId + createdAt DESC)
                 var planejamentosCollection = database.GetCollection<BsonDocument>("planejamentos");
                 await planejamentosCollection.Indexes.CreateManyAsync(new[]
                 {
                     new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("usuarioId")),
-                    new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("sessionId"))
+                    new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("sessionId")),
+                    new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("usuarioId").Descending("createdAt"))
                 }, cancellationToken: cancellationToken);
 
                 // 6. HistoricoAportes (planejamentoId + participanteId + mes)

@@ -12,7 +12,8 @@ import {
   calcularSaldoCompostoDiario,
   gerarMarcosEvolucaoDiaria,
   calcularEvolucaoDiariaDoMes,
-  mesesEntre
+  mesesEntre,
+  formatBrlCompact
 } from './finance';
 
 describe('finance.ts unit tests', () => {
@@ -442,4 +443,14 @@ describe('finance.ts unit tests', () => {
       expect(res.rows[i].rendimentoLiquido).toBe(res.rows[i].rendimentoBruto);
     }
   });
+
+  test('formatBrlCompact formata valores monetários de forma compacta', () => {
+    expect(formatBrlCompact(0)).toBe('R$ 0');
+    expect(formatBrlCompact(2500)).toBe('R$ 2.500');
+    expect(formatBrlCompact(2500.5)).toBe('R$ 2.500,50');
+    expect(formatBrlCompact(150000)).toBe('R$ 150.000');
+    expect(formatBrlCompact(1500000)).toBe('R$ 1,5M');
+    expect(formatBrlCompact(-5000)).toBe('-R$ 5.000');
+  });
 });
+

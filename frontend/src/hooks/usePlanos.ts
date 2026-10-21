@@ -13,8 +13,8 @@ function obterIdUsuario(): string | null {
   }
 }
 
-export function usePlanos() {
-  const usuarioId = obterIdUsuario();
+export function usePlanos(usuarioIdOverride?: string | null) {
+  const usuarioId = usuarioIdOverride || obterIdUsuario();
   return useQuery({
     queryKey: ['planos', usuarioId],
     queryFn: async () => {

@@ -25,7 +25,7 @@ const generateObjectId = () => {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/finance";
-import { Plus, Trash2, ArrowRight, X, Wallet, TrendingUp, AlertTriangle, ChevronDown, Users, Coins, Sparkles, CalendarDays } from "lucide-react";
+import { Plus, Trash2, ArrowRight, X, TrendingUp, AlertTriangle, ChevronDown, Users, Coins, Sparkles, CalendarDays } from "lucide-react";
 import { PessoasPageSkeleton } from "@/components/Skeleton";
 
 const calcularGastos = (p: { usar_gastos_detalhados?: boolean; gastos_detalhados?: GastoDetalhado[]; gastos_mensais?: number | "" }) => {
@@ -458,31 +458,14 @@ export default function PessoasPage() {
                       </div>
                       <div className="flex justify-between items-center pt-2 px-1 text-xs">
                         <span className="text-muted-foreground font-medium">Total das despesas</span>
-                        <span className="font-bold text-destructive num">{brl(gastosTotaisForm)}</span>
+                        <span className="font-bold text-destructive/70 num">{brl(gastosTotaisForm)}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Fluxo Mensal: Sobra e Aporte Planejado */}
+                {/* Fluxo Mensal: Aporte Planejado */}
                 <div className="bg-secondary/20 rounded-xl p-3.5 sm:p-4 border border-border/40 space-y-3">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-border/40 gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <Wallet className="h-3.5 w-3.5 text-accent" />
-                        <span>Sobra Líquida Estimada</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Renda − Despesas
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`font-display text-lg sm:text-xl font-bold num ${sobraForm >= 0 ? "text-success" : "text-destructive"}`}>
-                        {brl(sobraForm)}
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">

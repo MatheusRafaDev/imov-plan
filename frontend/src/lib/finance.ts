@@ -808,3 +808,17 @@ export function aporteNecessarioParaPrazo(input: Omit<SimInput, "aporteMensalTot
 
 export const brl = (n: number | undefined | null) =>
   (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+
+export const formatBrlCompact = (n: number | undefined | null) => {
+  const val = n ?? 0;
+  const abs = Math.abs(val);
+  const sign = val < 0 ? "-" : "";
+  if (abs >= 1_000_000) {
+    const m = (abs / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+    return `${sign}R$ ${m}M`;
+  }
+  if (abs % 1 === 0) {
+    return `${sign}R$ ${abs.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+  }
+  return `${sign}R$ ${abs.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};

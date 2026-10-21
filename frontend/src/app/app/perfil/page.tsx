@@ -28,7 +28,7 @@ import {
 export default function PerfilPage() {
   const { user, updateUser, deleteAccount, forgotPassword, logout } = useAuth();
   const [saving, setSaving] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingProfile, setLoadingProfile] = useState(!user);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -36,29 +36,48 @@ export default function PerfilPage() {
   const [sendingResetEmail, setSendingResetEmail] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [dataNascimento, setDataNascimento] = useState("");
+  // Renderização instantânea: inicializa diretamente com os dados já presentes no usuário
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [dataNascimento, setDataNascimento] = useState(user?.dataNascimento || "");
 
   useEffect(() => {
     if (!user) return;
 
+    // Sincroniza imediatamente caso o state tenha iniciado antes da hidratação do cookie
+    if (!name && user.name) setName(user.name);
+    if (!email && user.email) setEmail(user.email);
+    if (!dataNascimento && user.dataNascimento) setDataNascimento(user.dataNascimento);
+
+    let active = true;
+
     async function loadProfile() {
       try {
         const profile = await UsuarioService.getProfile(user!.id);
-        setName(profile.name || "");
-        setEmail(profile.email || "");
-        setDataNascimento(profile.dataNascimento || "");
+        if (active) {
+          if (profile.name) setName(profile.name);
+          if (profile.email) setEmail(profile.email);
+          if (profile.dataNascimento) setDataNascimento(profile.dataNascimento);
+          updateUser(profile);
+        }
       } catch {
-        setName(user!.name || "");
-        setEmail(user!.email || "");
-        setDataNascimento(user!.dataNascimento || "");
+        if (active && user) {
+          setName(user.name || "");
+          setEmail(user.email || "");
+          setDataNascimento(user.dataNascimento || "");
+        }
       } finally {
-        setLoadingProfile(false);
+        if (active) {
+          setLoadingProfile(false);
+        }
       }
     }
 
     loadProfile();
+
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   const getInitials = (n: string) => {
@@ -111,18 +130,26 @@ export default function PerfilPage() {
     }
   };
 
-  if (!user) return null;
-
-  if (loadingProfile) {
+  if (!user && loadingProfile) {
     return (
-      <div className="grid place-items-center py-24">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin-smooth" />
-          <span>Carregando perfil...</span>
+      <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up pb-12">
+        <div className="flex items-center gap-4">
+          <div className="h-20 w-20 rounded-2xl bg-secondary/60 animate-shimmer" />
+          <div className="space-y-2">
+            <div className="h-4 w-24 bg-secondary/60 rounded animate-shimmer" />
+            <div className="h-7 w-48 bg-secondary/80 rounded animate-shimmer" />
+            <div className="h-4 w-36 bg-secondary/50 rounded animate-shimmer" />
+          </div>
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="h-64 rounded-2xl bg-secondary/40 animate-shimmer border border-border/40" />
+          <div className="h-64 rounded-2xl bg-secondary/40 animate-shimmer border border-border/40" />
         </div>
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up pb-12">

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Edit2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { MoneyInput } from "@/components/MoneyInput";
-import { brl } from "@/lib/finance";
+import { brl, formatBrlCompact } from "@/lib/finance";
 
 export type ContextExtra = { 
   origem: string; 
@@ -90,15 +90,26 @@ export function ExtrasCell({ contextItems, total, onEditExtra, onDeleteExtra, on
             onDoubleClick();
           }
         }}
-        className={`inline-flex items-center justify-end gap-1 px-1.5 py-0.5 rounded transition-colors border border-transparent cursor-pointer ${
+        className={`inline-flex items-center justify-end gap-0.5 sm:gap-1 px-1 sm:px-1.5 py-0.5 rounded transition-colors border border-transparent cursor-pointer ${
           Math.abs(total) > 0.001 
             ? "hover:bg-accent/10 hover:border-accent/20 text-accent font-semibold" 
             : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/40"
         }`}
         title={Math.abs(total) > 0.001 ? "Clique para ver lista · Duplo clique para gerenciar/adicionar" : "Duplo clique para adicionar aporte extra"}
       >
-        {Math.abs(total) > 0.001 ? (total > 0 ? `+${brl(total)}` : `-${brl(Math.abs(total))}`) : "—"}
-        {Math.abs(total) > 0.001 && (open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)}
+        {Math.abs(total) > 0.001 ? (
+          <>
+            <span className="hidden sm:inline">
+              {total > 0 ? `+${brl(total)}` : `-${brl(Math.abs(total))}`}
+            </span>
+            <span className="sm:hidden font-semibold text-[11px]">
+              {total > 0 ? `+${formatBrlCompact(total)}` : `-${formatBrlCompact(Math.abs(total))}`}
+            </span>
+          </>
+        ) : (
+          <span className="opacity-40 select-none text-[11px] sm:text-xs">—</span>
+        )}
+        {Math.abs(total) > 0.001 && (open ? <ChevronUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" /> : <ChevronDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />)}
       </span>
 
       {open && canOpen && typeof document !== "undefined" && createPortal(

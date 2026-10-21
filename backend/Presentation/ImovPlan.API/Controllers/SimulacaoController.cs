@@ -49,6 +49,12 @@ namespace ImovPlan.API.Controllers
                 if (string.IsNullOrEmpty(usuarioId))
                     return Unauthorized(new { message = "Não autorizado." });
 
+                var cacheKey = $"ultima_simulacao_{planoId}";
+                if (_cache.TryGetValue(cacheKey, out SimulacaoResultDto? cachedDto) && cachedDto != null)
+                {
+                    return Ok(cachedDto);
+                }
+
                 var planejamento = await _planejamentoRepository.GetByIdAsync(planoId);
                 if (planejamento == null || planejamento.UsuarioId != usuarioId)
                     return NotFound(new { message = "Planejamento não encontrado" });
@@ -60,6 +66,7 @@ namespace ImovPlan.API.Controllers
                 var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
 
                 var result = MapToDto(ultimoRegistro, evolucao);
+                _cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -106,13 +113,6 @@ namespace ImovPlan.API.Controllers
                 totalNecessario = entrada + extras;
             }
             
-            // Build cache key based on inputs that affect simulation
-            var requestHash = System.Text.Json.JsonSerializer.Serialize(request);
-            var cacheKey = $"simulacao_{planoId}_{planejamento.ValorImovel}_{totalNecessario}_{planejamento.ValorJaGuardado}_{planejamento.TaxaCdiAnual}_{planejamento.DataInicio?.Ticks}_{planejamento.PrazoMaxMeses}_{requestHash.GetHashCode()}";
-
-            // O cache foi removido daqui pois o registro no banco é recriado a cada cálculo,
-            // e devolver o cache resultava em retornar IDs de simulações que já foram deletadas.
-
             var resultado = await _simulacaoService.ExecutarSimulacaoAsync(
                 request,
                 planejamento,
@@ -126,6 +126,9 @@ namespace ImovPlan.API.Controllers
 
             var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
             var result = MapToDto(ultimoRegistro, evolucao);
+
+            // Atualiza o cache da última simulação
+            _cache.Set($"ultima_simulacao_{planoId}", result, TimeSpan.FromMinutes(5));
 
             return Ok(result);
         }
