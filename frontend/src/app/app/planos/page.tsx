@@ -320,9 +320,7 @@ export default function PlanosPage() {
                   {/* Saldo Atual & Progresso Hero */}
                   {sim ? (() => {
                     const meta = sim.totalNecessario || (plano.valorImovel * (plano.percentualEntrada / 100));
-                    const saldoAtual = (isAtivo && progressoAtual > 0)
-                      ? progressoAtual
-                      : (extractSaldoAtual(sim) || sim.valorJaGuardado);
+                    const saldoAtual = extractSaldoAtual(sim) || sim.valorJaGuardado;
                     const percentualProgresso = meta > 0 ? Math.min(100, (saldoAtual / meta) * 100) : 0;
 
                     return (
