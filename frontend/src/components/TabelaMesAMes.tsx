@@ -639,14 +639,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       
         {/* Scroll container com min-w-0 e max-w-full para disparar o overflow-x corretamente */}
         <div className="relative w-full min-w-0 max-w-full">
-          {/* Sombras suaves indicando mais conteúdo à esquerda ou à direita */}
-          {canScrollLeft && (
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-card/90 to-transparent z-10 rounded-l-2xl border-l border-border/30" />
-          )}
-          {canScrollRight && (
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card/90 to-transparent z-10 rounded-r-2xl border-r border-border/30" />
-          )}
-
           <div 
             ref={tableContainerRef}
             onScroll={checkScroll}
