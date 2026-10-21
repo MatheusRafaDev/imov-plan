@@ -35,6 +35,7 @@ export type SimInput = {
   percentualCdi: number; // ex 100 (% do CDI que o investimento rende)
   aportesExtras: Aporte[]; // datados
   prazoMaxMeses?: number; // limite p/ busca, default 600
+  respeitarPrazoMaximo?: boolean; // mantém o prazo informado na tabela mesmo após atingir a meta
   mesesExtrasAposMeta?: number; // default 6, usado só para exibição
   dataInicio?: Date;
   tipoInvestimento?: string; // ex "poupanca", "cdb_100", "tesouro_selic"
@@ -711,7 +712,9 @@ export function simular(input: SimInput): SimResult {
       atingiuMeta = true;
       mesAtingiu = mes;
       dataAtingiu = dataRef.toISOString();
-      prazoMax = Math.min(prazoMax, mes + padding);
+      prazoMax = input.respeitarPrazoMaximo
+        ? Math.max(input.prazoMaxMeses ?? 0, mes + padding)
+        : Math.min(prazoMax, mes + padding);
     }
   }
 

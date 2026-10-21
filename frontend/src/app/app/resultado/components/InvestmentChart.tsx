@@ -143,20 +143,24 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export const InvestmentChart = React.memo(function InvestmentChart({ data, summary }: InvestmentChartProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const [isReady, setIsReady] = React.useState(false);
+  const [initialDimensions, setInitialDimensions] = React.useState<{ width: number; height: number } | null>(null);
 
   React.useEffect(() => {
+    if (!data?.length || !summary) return;
+
     let animId: number;
     const checkDim = () => {
-      if (containerRef.current && containerRef.current.clientWidth > 0) {
-        setIsReady(true);
+      const width = containerRef.current?.clientWidth ?? 0;
+      const height = containerRef.current?.clientHeight ?? 0;
+      if (width > 0 && height > 0) {
+        setInitialDimensions({ width, height });
       } else {
         animId = requestAnimationFrame(checkDim);
       }
     };
     animId = requestAnimationFrame(checkDim);
     return () => cancelAnimationFrame(animId);
-  }, []);
+  }, [data, summary]);
 
   if (!data || data.length === 0 || !summary) return null;
 
@@ -186,8 +190,14 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
       </div>
 
       <div ref={containerRef} className="h-[240px] min-h-[240px] sm:h-[280px] sm:min-h-[280px] md:h-[320px] md:min-h-[320px] w-full min-w-0">
-        {isReady && (
-          <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={240}>
+        {initialDimensions && (
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minWidth={100}
+            minHeight={240}
+            initialDimension={initialDimensions}
+          >
             <AreaChart data={data} margin={{ top: 16, right: 8, left: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">

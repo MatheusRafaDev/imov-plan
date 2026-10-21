@@ -36,6 +36,7 @@ export function ScenarioComparison() {
         data: a.data || new Date().toISOString()
     })),
     prazoMaxMeses: Number(objetivo.prazoMaxMeses) || 600,
+    respeitarPrazoMaximo: Number(objetivo.prazoMaxMeses) > 0,
     dataInicio: parseBackendDate(objetivo.dataInicio as string | Date | null | undefined) ?? new Date(),
     checkpoints: pessoas
       .filter((p) => p.valorAtual != null && p.dataValorAtual)

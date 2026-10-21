@@ -364,7 +364,10 @@ namespace ImovPlan.Application.Services
                 {
                     mesAtingiu = meses;
                     dataAtingiu = dataReferencia;
-                    limiteMeses = Math.Min(limiteMeses, meses + 6);
+                    var horizonteAposMeta = meses + 6;
+                    limiteMeses = temPrazoUsuario
+                        ? Math.Max(limiteMesesOriginal, horizonteAposMeta)
+                        : Math.Min(limiteMeses, horizonteAposMeta);
                 }
             }
 

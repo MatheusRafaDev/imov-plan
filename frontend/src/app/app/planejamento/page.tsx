@@ -394,7 +394,7 @@ export default function PlanejamentoPage() {
           )}
         </Card>
 
-        <Card className="p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
+        <Card className="min-w-0 p-5 sm:p-6 border-border/40 rounded-2xl flex flex-col justify-center transition-all duration-300 hover:shadow-lg hover:border-border/60">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Progresso atual da meta</p>
             <Button 
@@ -408,9 +408,9 @@ export default function PlanejamentoPage() {
             </Button>
           </div>
           <div className="space-y-4">
-            <div className="flex justify-between items-end">
-              <span className="font-display text-3xl sm:text-4xl num leading-none tracking-tight text-foreground">{brl(totalGuardado)}</span>
-              <span className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium whitespace-nowrap">de {brl(meta)}</span>
+            <div className="flex min-w-0 flex-col items-start gap-1">
+              <span className="max-w-full break-words font-display text-2xl sm:text-3xl num leading-tight tracking-tight text-foreground">{brl(totalGuardado)}</span>
+              <span className="max-w-full break-words text-[11px] sm:text-xs text-muted-foreground font-medium">de {brl(meta)}</span>
             </div>
             <div className="relative h-2.5 sm:h-3 w-full bg-secondary rounded-full overflow-hidden">
               <div
@@ -418,7 +418,7 @@ export default function PlanejamentoPage() {
                 style={{ width: `${progressoPercent}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground pt-0.5">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] font-medium text-muted-foreground pt-0.5">
               {totalRendimentoMensal > 0 ? (
                 <span className="flex items-center gap-1.5 text-success font-semibold text-xs">
                   <Sparkles className="h-3.5 w-3.5 shrink-0" />

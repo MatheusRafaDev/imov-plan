@@ -60,6 +60,26 @@ namespace ImovPlan.Application.Tests
         }
 
         [Fact]
+        public async Task ExecutarSimulacao_PrazoDeSetembroAJulho_MetaAtingidaAntes_DeveIncluirJulhoComoUltimoMes()
+        {
+            var planejamento = new Planejamento
+            {
+                Id = "plan1",
+                PrazoMaxMeses = 10,
+                ParticipantesIds = new List<string> { "p1" },
+                DataInicio = new DateTime(2026, 9, 1)
+            };
+            _participanteRepoMock.Setup(r => r.GetByIdAsync("p1")).ReturnsAsync(new Participante { Id = "p1", Nome = "Test" });
+
+            var resultado = await _service.ExecutarSimulacaoAsync(CreateRequest(50000m), planejamento, 150000m);
+            var ultimoMes = resultado.DetalhesMensais[^1].DataReferencia;
+
+            Assert.Equal(3, resultado.MesesParaAtingir);
+            Assert.Equal(11, resultado.DetalhesMensais.Count);
+            Assert.Equal(new DateTime(2027, 7, 1), ultimoMes);
+        }
+
+        [Fact]
         public async Task ExecutarSimulacao_PrazoMaxMesesDefinidoEMaiorQueZero_DeveRespeitarOLimite()
         {
             // Arrange
@@ -105,7 +125,7 @@ namespace ImovPlan.Application.Tests
         }
 
         [Fact]
-        public async Task ExecutarSimulacao_AtingeMetaAntesDoLimite_DeveSimularMais6Meses()
+        public async Task ExecutarSimulacao_AtingeMetaAntesDoPrazo_DeveManterPrazoDefinido()
         {
             // Arrange
             var planejamento = new Planejamento
@@ -129,8 +149,8 @@ namespace ImovPlan.Application.Tests
             // MesesParaAtingir deve ser o mês exato (4 meses)
             Assert.Equal(4, resultado.MesesParaAtingir);
 
-            // O total de detalhes (meses simulados) deve ser MesesParaAtingir + 6 = 10 (mais mês 0 = 11)
-            Assert.Equal(11, resultado.DetalhesMensais.Count);
+            // Mesmo atingindo a meta no mês 4, o prazo definido de 120 meses deve ser mantido.
+            Assert.Equal(121, resultado.DetalhesMensais.Count);
             
             // Verifica o AtingiuMeta passado pro repositório, mas como aqui temos o DTO podemos testar saldo >= totalNecessario
             Assert.True(resultado.TotalAcumulado >= totalNecessario);

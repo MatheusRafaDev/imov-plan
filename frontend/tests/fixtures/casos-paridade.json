@@ -17,8 +17,8 @@
       "meta": 75000,
       "atingiuMeta": true,
       "mesAtingiuMeta": 37,
-      "saldoFinal": 88849.66515274743,
-      "totalInvestido": 74500
+      "saldoFinal": 2627324.4358347463,
+      "totalInvestido": 550000
     }
   },
   {
@@ -45,8 +45,8 @@
       "meta": 125000,
       "atingiuMeta": true,
       "mesAtingiuMeta": 6,
-      "saldoFinal": 200335.82339615858,
-      "totalInvestido": 190000
+      "saldoFinal": 853404.3934384579,
+      "totalInvestido": 670000
     }
   },
   {
@@ -60,7 +60,7 @@
       "taxaCdiAnual": 8.5,
       "percentualCdi": 100,
       "aportesExtras": [],
-      "prazoMaxMeses": 600,
+      "prazoMaxMeses": null,
       "dataInicio": "2025-01-01"
     },
     "output": {

@@ -142,7 +142,7 @@ namespace ImovPlan.Application.Tests
             public decimal TaxaCdiAnual { get; set; }
             public decimal PercentualCdi { get; set; }
             public List<AporteParidade> AportesExtras { get; set; } = new List<AporteParidade>();
-            public int PrazoMaxMeses { get; set; }
+            public int? PrazoMaxMeses { get; set; }
             public string DataInicio { get; set; } = string.Empty;
         }
 

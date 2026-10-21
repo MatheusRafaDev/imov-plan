@@ -11,10 +11,33 @@ import {
   contarDiasUteis,
   calcularSaldoCompostoDiario,
   gerarMarcosEvolucaoDiaria,
-  calcularEvolucaoDiariaDoMes
+  calcularEvolucaoDiariaDoMes,
+  mesesEntre
 } from './finance';
 
 describe('finance.ts unit tests', () => {
+  test('prazo de setembro a julho mantém julho quando a meta é atingida antes', () => {
+    const prazo = mesesEntre('2026-09-01', '2027-07-01');
+    const resultado = simular({
+      valorImovel: 150000,
+      percentualEntrada: 100,
+      percentualCustosExtras: 0,
+      valorJaGuardado: 0,
+      aporteMensalTotal: 50000,
+      taxaCdiAnual: 0,
+      percentualCdi: 100,
+      aportesExtras: [],
+      prazoMaxMeses: prazo,
+      respeitarPrazoMaximo: true,
+      dataInicio: new Date('2026-09-01T12:00:00'),
+    });
+
+    expect(prazo).toBe(10);
+    expect(resultado.mesAtingiuMeta).toBe(3);
+    expect(resultado.rows).toHaveLength(11);
+    expect(resultado.rows.at(-1)?.data.slice(0, 7)).toBe('2027-07');
+  });
+
   test('calcularMeta', () => {
     expect(calcularMeta({ valorImovel: 300000, percentualEntrada: 20, percentualCustosExtras: 5 })).toBe(75000);
     expect(calcularMeta({ valorImovel: 500000, percentualEntrada: 10, percentualCustosExtras: 0 })).toBe(50000);
@@ -77,7 +100,7 @@ describe('finance.ts unit tests', () => {
     expect(res.meta).toBe(75000);
     expect(res.atingiuMeta).toBe(true);
     expect(res.mesAtingiuMeta).toBe(50); // 50 * 1500 = 75000
-    // Como a simulação estende 6 meses a partir da meta (50), o prazo simulado foi 56.
+    // Sem a opção de manter o prazo, a simulação mostra seis meses após a meta.
     expect(res.totalInvestido).toBe(84000); 
     expect(res.saldoFinal).toBe(84000);
   });
@@ -101,9 +124,8 @@ describe('finance.ts unit tests', () => {
         dataInicio: new Date()
     });
     
-    // A meta é batida no mês 50. Como padding é 0, o prazo maximo final vira min(360, 50+0) = 50.
-    // O loop for vai até <= prazoMax. Com prazoMax = 50, ele terá as linhas de 0 até 50 (51 linhas).
-    expect(res.rows.length).toBe(51); 
+    // A meta é atingida no mês 50; com padding zero, a simulação para nesse mês.
+    expect(res.rows.length).toBe(51);
     expect(res.rows[res.rows.length - 1]?.mes).toBe(50);
   });
 

@@ -8,7 +8,7 @@ import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanStore } from "@/store/usePlanStore";
 import { brl } from "@/lib/finance";
 import { getBrasiliaToday } from "@/utils/dates";
-import { Check, Loader2, Download, Trash2, AlertTriangle, X, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Loader2, Download, Trash2, AlertTriangle, X, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RowActions } from "./TabelaMesAMes/RowActions";
@@ -33,20 +33,67 @@ const DetalheMesDiarioModal = dynamic(
   { ssr: false, loading: () => <ModalLoadingFallback /> }
 );
 
-function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
-  const diff = value - planned;
+type BreakdownType = "aporte" | "acumulado";
+type ExpandedBreakdown = { mes: number; tipo: BreakdownType } | { mes: "total"; tipo: BreakdownType };
+
+function BreakdownToggle({
+  value,
+  label,
+  expanded,
+  onClick,
+  className = "",
+}: {
+  value: number;
+  label: string;
+  expanded: boolean;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  className?: string;
+}) {
   return (
-    <span 
-      title={isEdited ? `Planejado: ${brl(planned)} → Real: ${brl(value)} · Duplo clique para editar` : "Duplo clique para editar"}
-      className={`inline-block px-2 py-0.5 rounded text-right transition-colors cursor-pointer ${isEdited ? "border border-accent/30 text-accent bg-accent/5 font-medium" : "border border-transparent text-foreground hover:bg-secondary/40 font-normal"}`}
+    <button
+      type="button"
+      aria-expanded={expanded}
+      aria-label={`${expanded ? "Ocultar" : "Ver"} ${label} por pessoa`}
+      title={`${expanded ? "Ocultar" : "Ver"} valor separado por pessoa`}
+      onClick={onClick}
+      className={`inline-flex items-center justify-end gap-1 rounded-md px-1.5 py-1 text-right font-medium text-foreground hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${className}`}
     >
-      {brl(value)}
-      {isEdited && (
-        <span className={`ml-1 text-[9px] font-semibold ${diff > 0 ? "text-success" : "text-destructive"}`}>
-          {diff > 0 ? "▲" : "▼"}
-        </span>
-      )}
-    </span>
+      <span>{brl(value)}</span>
+      {expanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 opacity-70" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />}
+    </button>
+  );
+}
+
+function BreakdownDetails({
+  items,
+  title,
+  onItemDoubleClick,
+}: {
+  items: { id: string; nome: string; valor: number; editado?: boolean }[];
+  title: string;
+  onItemDoubleClick?: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-3 shadow-soft">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map(item => (
+          <div
+            key={item.id}
+            onDoubleClick={onItemDoubleClick ? () => onItemDoubleClick(item.id) : undefined}
+            title={onItemDoubleClick ? `Duplo clique para editar o valor de ${item.nome}` : undefined}
+            className={`flex items-center justify-between gap-3 rounded-lg bg-secondary/30 px-3 py-2 text-xs ${onItemDoubleClick ? "cursor-pointer hover:bg-secondary/60" : ""}`}
+          >
+            <span className="min-w-0 truncate text-muted-foreground">
+              {item.nome}
+              {item.editado && <span className="ml-1.5 rounded bg-accent/10 px-1 py-0.5 text-[9px] font-semibold text-accent">ajustado</span>}
+            </span>
+            <span className="shrink-0 font-semibold text-foreground num">{brl(item.valor)}</span>
+          </div>
+        ))}
+      </div>
+      {onItemDoubleClick && <p className="mt-2 text-[10px] text-muted-foreground">Dê um duplo clique em um valor para editar.</p>}
+    </div>
   );
 }
 
@@ -119,6 +166,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
 
   const [editingMes, setEditingMes] = useState<number | null>(null);
   const [mesDetalheDiario, setMesDetalheDiario] = useState<number | null>(null);
+  const [expandedBreakdown, setExpandedBreakdown] = useState<ExpandedBreakdown | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<ModalTab>("aportes");
   const [modalFocusPessoaId, setModalFocusPessoaId] = useState<string | null>(null);
   const [extraParaExcluir, setExtraParaExcluir] = useState<{ index: number; origem: string; valor: number; pessoaNome?: string; data?: string; tipo?: "aporte" | "retirada" } | null>(null);
@@ -148,12 +196,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   };
 
   const minTableWidth = useMemo(() => {
-    const pCount = Math.max(1, pessoas.length);
-    if (showFinancials) {
-      return Math.max(880, 560 + pCount * 220);
-    }
-    return Math.max(560, 420 + pCount * 120);
-  }, [pessoas.length, showFinancials]);
+    return showFinancials ? 820 : 640;
+  }, [showFinancials]);
 
   useEffect(() => {
     checkScroll();
@@ -210,6 +254,13 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
     setMesesConcluidos(prev => {
       if (prev.includes(mes)) return prev.filter(m => m !== mes);
       return [...prev, mes];
+    });
+  };
+
+  const toggleBreakdown = (mes: ExpandedBreakdown["mes"], tipo: BreakdownType) => {
+    setExpandedBreakdown(current => {
+      if (current?.mes === mes && current.tipo === tipo) return null;
+      return mes === "total" ? { mes: "total", tipo } : { mes, tipo };
     });
   };
 
@@ -348,6 +399,26 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       aportePorPessoa
     };
   }, [displayRows, pessoas]);
+
+  const lastDisplayRow = displayRows[displayRows.length - 1];
+  const totalAportePessoaItems = pessoas.map(p => ({
+    id: p.id,
+    nome: p.nome,
+    valor: totals.aportePorPessoa[p.id] || 0,
+  }));
+  const totalAcumuladoPessoaItems = pessoas.map(p => ({
+    id: p.id,
+    nome: p.nome,
+    valor: lastDisplayRow?.saldoPorPessoa[p.id] || 0,
+  }));
+  const totalAporteBreakdownItems = [
+    ...totalAportePessoaItems,
+    ...(Math.abs(totals.extras - totals.retiradas) > 0.001
+      ? [{ id: "extras-periodo", nome: "Extras e retiradas", valor: totals.extras - totals.retiradas }]
+      : []),
+  ];
+  const totalAporteExpanded = expandedBreakdown?.mes === "total" && expandedBreakdown.tipo === "aporte";
+  const totalAcumuladoExpanded = expandedBreakdown?.mes === "total" && expandedBreakdown.tipo === "acumulado";
 
   const selectedRow = editingMes !== null ? displayRows.find(r => r.mes === editingMes) || null : null;
 
@@ -676,17 +747,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
               <tr>
                 <Th className="w-px">Mês</Th>
                 <Th>Data</Th>
-                {pessoas.map(p => (
-                  <Th key={p.id} right>{p.nome.split(" ")[0]}</Th>
-                ))}
                 <Th right>Extras</Th>
                 <Th right>Aporte Mês</Th>
                 {showFinancials && (
                   <>
                     <Th right>Rend. Líq.</Th>
-                    {pessoas.map(p => (
-                      <Th key={`acc-${p.id}`} right>Acum. {p.nome.split(" ")[0]}</Th>
-                    ))}
                     <Th right>Acumulado</Th>
                   </>
                 )}
@@ -701,10 +766,30 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                   .map((e, idx) => ({ ...e, index: idx }))
                   .filter(e => e?.data && r?.data && e.data.slice(0, 7) === r.data.slice(0, 7));
                 const totalAporteMes = (r.aporteRegular || 0) + (r.aportesExtras || 0) - (r.retiradas || 0);
+                const aportePessoaItems = pessoas.map(p => ({
+                  id: p.id,
+                  nome: p.nome,
+                  valor: r.aporteFinalPorPessoa[p.id] || 0,
+                  editado: !isZero && (r.aporteFinalPorPessoa[p.id] || 0) !== (Number(p.aporte_mensal) || 0),
+                }));
+                const extrasLiquidos = (r.aportesExtras || 0) - (r.retiradas || 0);
+                const aporteBreakdownItems = [
+                  ...aportePessoaItems,
+                  ...(Math.abs(extrasLiquidos) > 0.001
+                    ? [{ id: `extras-${r.mes}`, nome: "Extras e retiradas", valor: extrasLiquidos }]
+                    : []),
+                ];
+                const acumuladoPessoaItems = pessoas.map(p => ({
+                  id: p.id,
+                  nome: p.nome,
+                  valor: r.saldoPorPessoa[p.id] || 0,
+                }));
+                const aporteExpanded = !isZero && expandedBreakdown?.mes === r.mes && expandedBreakdown.tipo === "aporte";
+                const acumuladoExpanded = expandedBreakdown?.mes === r.mes && expandedBreakdown.tipo === "acumulado";
 
                 return (
+                  <React.Fragment key={r.mes}>
                   <tr
-                    key={r.mes}
                     onDoubleClick={(event) => {
                       const target = event.target as HTMLElement;
                       if (target.closest("button, input, select, textarea, a, [role='button']")) return;
@@ -762,30 +847,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                       })()}
                     </Td>
                     
-                    {pessoas.map(p => {
-                      const planejado = Number(p.aporte_mensal) || 0;
-                      const real = isZero ? (r.saldoPorPessoa[p.id] ?? Number(p.valorInicial) ?? 0) : r.aporteFinalPorPessoa[p.id] || 0;
-                      const wasEdited = isZero ? false : real !== planejado;
-                      return (
-                        <Td 
-                          key={p.id} 
-                          right
-                          onDoubleClick={(e) => {
-                            if (isZero) return;
-                            e.stopPropagation();
-                            openModal(r.mes, "aportes", p.id);
-                          }}
-                          className={isZero ? "" : "cursor-pointer"}
-                        >
-                          {isZero ? (
-                            <span className="text-muted-foreground">{brl(real)}</span>
-                          ) : (
-                            <DisplayAporte value={real} planned={planejado} isEdited={wasEdited} />
-                          )}
-                        </Td>
-                      );
-                    })}
-
                     <Td 
                       right 
                       className="relative cursor-pointer"
@@ -804,7 +865,17 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                     </Td>
 
                     <Td right className="font-medium text-foreground">
-                      {brl(totalAporteMes)}
+                      {isZero ? brl(totalAporteMes) : (
+                        <BreakdownToggle
+                          value={totalAporteMes}
+                          label="aporte do mês"
+                          expanded={aporteExpanded}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleBreakdown(r.mes, "aporte");
+                          }}
+                        />
+                      )}
                     </Td>
 
                     {showFinancials && (
@@ -812,21 +883,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                         <Td right className="text-success font-medium">
                           {r.rendimentoLiquido > 0 ? `+${brl(r.rendimentoLiquido)}` : brl(r.rendimentoLiquido)}
                         </Td>
-
-                        {pessoas.map(p => (
-                          <Td 
-                            key={`s-${p.id}`} 
-                            right 
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              openModal(r.mes, "acumulado", p.id);
-                            }}
-                            className="font-normal text-sm text-muted-foreground cursor-pointer"
-                            title={isZero ? `Duplo clique para alterar saldo inicial guardado de ${p.nome}` : `Duplo clique para calibrar saldo acumulado de ${p.nome}`}
-                          >
-                            {brl(r.saldoPorPessoa[p.id] || 0)}
-                          </Td>
-                        ))}
 
                         <Td 
                           right 
@@ -837,7 +893,15 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                           className="font-medium text-sm text-foreground cursor-pointer"
                           title={isZero ? "Duplo clique para alterar saldo inicial guardado" : "Duplo clique para calibrar saldo acumulado"}
                         >
-                          {brl(r.saldoAcumulado)}
+                          <BreakdownToggle
+                            value={r.saldoAcumulado}
+                            label="acumulado"
+                            expanded={acumuladoExpanded}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleBreakdown(r.mes, "acumulado");
+                            }}
+                          />
                         </Td>
                       </>
                     )}
@@ -849,6 +913,29 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                       />
                     </Td>
                   </tr>
+                  {aporteExpanded && (
+                    <tr>
+                      <td colSpan={5 + (showFinancials ? 2 : 0)} className="border-t-0 px-3 pb-3 pt-1">
+                        <BreakdownDetails
+                          items={aporteBreakdownItems}
+                          title="Aportes do mês por pessoa"
+                          onItemDoubleClick={(pessoaId) => openModal(r.mes, "aportes", pessoaId)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  {acumuladoExpanded && showFinancials && (
+                    <tr>
+                      <td colSpan={7} className="border-t-0 px-3 pb-3 pt-1">
+                        <BreakdownDetails
+                          items={acumuladoPessoaItems}
+                          title="Saldo acumulado por pessoa"
+                          onItemDoubleClick={(pessoaId) => openModal(r.mes, "acumulado", pessoaId)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -856,24 +943,36 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
               <tr className="font-medium relative">
                 <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-left border-none font-semibold">Total Geral</td>
                 <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm border-none">{""}</td>
-                {pessoas.map(p => (
-                  <td key={p.id} className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none">{brl(totals.aportePorPessoa[p.id])}</td>
-                ))}
                 <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none">{brl(totals.extras - totals.retiradas)}</td>
-                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none font-semibold">{brl(totals.totalMes)}</td>
+                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none font-semibold">
+                  <BreakdownToggle
+                    value={totals.totalMes}
+                    label="aporte total do período"
+                    expanded={totalAporteExpanded}
+                    className="text-primary-foreground hover:bg-primary-foreground/10"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleBreakdown("total", "aporte");
+                    }}
+                  />
+                </td>
                 {showFinancials && (
                   <>
                     <td className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none text-success">
                       {totals.rendLiquido > 0 ? `+${brl(totals.rendLiquido)}` : brl(totals.rendLiquido)}
                     </td>
-                    {pessoas.map(p => (
-                      <td key={`foot-acc-${p.id}`} className="px-3 py-4 num text-sm whitespace-nowrap text-right border-none font-medium">
-                        {brl(displayRows[displayRows.length - 1].saldoPorPessoa[p.id] || 0)}
-                      </td>
-                    ))}
                     <td className="px-3 py-3 num whitespace-nowrap text-right border-none">
                       <span className="inline-flex flex-col items-end gap-1">
-                        <span className="font-semibold text-lg sm:text-xl text-primary-foreground tracking-tight">{brl(totals.saldoFinal)}</span>
+                        <BreakdownToggle
+                          value={totals.saldoFinal}
+                          label="saldo acumulado final"
+                          expanded={totalAcumuladoExpanded}
+                          className="text-primary-foreground hover:bg-primary-foreground/10 font-semibold text-lg sm:text-xl tracking-tight"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleBreakdown("total", "acumulado");
+                          }}
+                        />
                         <span className="text-[10px] text-primary-foreground/80 font-medium px-2 py-0.5 rounded-sm bg-primary-foreground/10" title="Total Aportes + Rendimento no período">
                           +{brl(totals.totalMes + totals.rendLiquido)} período
                         </span>
@@ -883,6 +982,26 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                 )}
                 <td className="px-3 py-4 border-none"></td>
               </tr>
+              {totalAporteExpanded && (
+                <tr>
+                  <td colSpan={5 + (showFinancials ? 2 : 0)} className="border-t-0 bg-card px-3 pb-3 pt-1 text-foreground">
+                    <BreakdownDetails items={totalAporteBreakdownItems} title="Aportes do período por pessoa" />
+                  </td>
+                </tr>
+              )}
+              {totalAcumuladoExpanded && showFinancials && (
+                <tr>
+                  <td colSpan={7} className="border-t-0 bg-card px-3 pb-3 pt-1 text-foreground">
+                    <BreakdownDetails
+                      items={totalAcumuladoPessoaItems}
+                      title="Saldo final acumulado por pessoa"
+                      onItemDoubleClick={(pessoaId) => {
+                        if (lastDisplayRow) openModal(lastDisplayRow.mes, "acumulado", pessoaId);
+                      }}
+                    />
+                  </td>
+                </tr>
+              )}
             </tfoot>
           </table>
         </div>
