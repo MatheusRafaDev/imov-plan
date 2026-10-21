@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import Cookies from "js-cookie";
 import { usePlanStore } from "@/store/usePlanStore";
@@ -31,6 +32,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,9 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignora erros
     }
 
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
-    }
+    router.replace("/");
   };
 
   const deleteAccount = async () => {
@@ -233,9 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await api.delete(`/usuario/${user.id}`);
       }
       clearAllData();
-      if (typeof window !== "undefined") {
-        window.location.href = "/auth";
-      }
+      router.replace("/auth");
       return { success: true };
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Erro ao deletar conta";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { usePlanLogic } from "@/hooks/usePlanLogic";;
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { Calculator, Landmark, ArrowRight } from "lucide-react";
 
 export default function FinanciamentoPage() {
+  const router = useRouter();
   const { objetivo, bancoEscolhido } = usePlanLogic();
 
   const [form, setForm] = useState<{valorFinanciado: number | ""; taxaAnual: number | ""; prazoMeses: number | ""}>({
@@ -147,7 +149,7 @@ export default function FinanciamentoPage() {
                 <Button
                   size="lg"
                   className="bg-gradient-warm text-accent-foreground hover:opacity-90 shadow-glow"
-                  onClick={() => window.location.href = "/app/planejamento"}
+                  onClick={() => router.push("/app/planejamento")}
                 >
                   Plano de Ação <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>

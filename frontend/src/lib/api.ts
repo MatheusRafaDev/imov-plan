@@ -33,7 +33,7 @@ api.interceptors.response.use(
         !url.includes('/usuario/')
       ) {
         Cookies.remove('user', { path: '/' });
-        window.location.href = '/auth';
+        window.location.replace('/auth');
       }
     }
     return Promise.reject(error);

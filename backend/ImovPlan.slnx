@@ -9,4 +9,7 @@
   <Folder Name="/Presentation/">
     <Project Path="Presentation/ImovPlan.API/ImovPlan.API.csproj" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/ImovPlan.Application.Tests/ImovPlan.Application.Tests.csproj" />
+  </Folder>
 </Solution>

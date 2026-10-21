@@ -81,7 +81,7 @@ async function networkFirstNavigate(request) {
   try {
     const response = await fetch(request);
     return response;
-  } catch (err) {
+  } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
     const offlineHtml = await caches.match(OFFLINE_URL);
