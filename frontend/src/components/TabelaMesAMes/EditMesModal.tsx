@@ -167,7 +167,7 @@ export function EditMesModal({
       if (data) {
         const d = new Date(data);
         const day = d.getUTCDate();
-        if (!isNaN(day) && day >= 1 && day <= 31) return day;
+        if (day === 1 || day === 5 || day === 20) return day;
       }
     } catch {}
     return 5;
@@ -198,7 +198,8 @@ export function EditMesModal({
     if (extra.data) {
       const parts = extra.data.split("-");
       const day = parseInt(parts[2] || parts[0], 10);
-      if (!isNaN(day) && day >= 1 && day <= 31) setNovoExtraDia(day);
+      if (day === 1 || day === 5 || day === 20) setNovoExtraDia(day);
+      else setNovoExtraDia(5);
     }
   };
 
@@ -650,29 +651,36 @@ export function EditMesModal({
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-1 space-y-1">
-                    <label className="text-[10px] text-muted-foreground">Dia do Mês</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={31}
-                      value={novoExtraDia}
-                      onChange={(e) => setNovoExtraDia(Math.max(1, Math.min(31, parseInt(e.target.value, 10) || 1)))}
-                      className="w-full h-8 px-2 rounded-lg border border-border bg-background text-xs text-foreground text-center focus:outline-none focus:ring-1 focus:ring-primary/30"
-                    />
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Dia do Mês</label>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 5, 20].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setNovoExtraDia(d)}
+                        className={`flex-1 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          novoExtraDia === d
+                            ? "bg-accent text-accent-foreground shadow-2xs"
+                            : "bg-secondary/40 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                        }`}
+                      >
+                        Dia {d}
+                      </button>
+                    ))}
                   </div>
-                  <div className="col-span-2 space-y-1">
-                    <label className="text-[10px] text-muted-foreground">Valor</label>
-                    <MoneyInput
-                      variant="money"
-                      min={0}
-                      value={novoExtraValor}
-                      onChange={(v) => setNovoExtraValor(v)}
-                      className="h-8 text-xs bg-background border-border"
-                      placeholder="R$ 0,00"
-                    />
-                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Valor</label>
+                  <MoneyInput
+                    variant="money"
+                    min={0}
+                    value={novoExtraValor}
+                    onChange={(v) => setNovoExtraValor(v)}
+                    className="h-9 text-xs bg-background border-border"
+                    placeholder="R$ 0,00"
+                  />
                 </div>
 
                 <button

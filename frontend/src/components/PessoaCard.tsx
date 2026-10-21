@@ -74,9 +74,6 @@ export default function PessoaCard({
   const [saldoEditado, setSaldoEditado] = useState<number | "" | null>(null);
   const displaySaldo = saldoEditado !== null ? saldoEditado : saldoAcumulado;
 
-  const [diaAporteInput, setDiaAporteInput] = useState<string | null>(null);
-  const displayDiaAporte = diaAporteInput !== null ? diaAporteInput : String(p.diaAporte ?? 5);
-
   const role = index === 0 ? "Titular" : "Participante";
   const percent = totalGuardadoObjetivo > 0 ? Math.min(100, Math.max(0, (saldoAcumulado / totalGuardadoObjetivo) * 100)) : 0;
 
@@ -509,17 +506,15 @@ export default function PessoaCard({
                 Todo dia {p.diaAporte ?? 5}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted-foreground mr-1">Frequentes:</span>
-              {[1, 5, 10, 15, 20, 25].map(d => (
+            <div className="flex flex-wrap items-center gap-2">
+              {[1, 5, 20].map(d => (
                 <button
                   key={d}
                   type="button"
                   onClick={() => {
-                    setDiaAporteInput(null);
                     atualizarPessoa(p.id, { diaAporte: d });
                   }}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                     (p.diaAporte ?? 5) === d
                       ? "bg-accent text-accent-foreground shadow-2xs"
                       : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
@@ -528,33 +523,6 @@ export default function PessoaCard({
                   Dia {d}
                 </button>
               ))}
-              <div className="flex items-center gap-1.5 ml-auto">
-                <span className="text-[11px] text-muted-foreground">Outro:</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={31}
-                  value={displayDiaAporte}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setDiaAporteInput(val);
-                    if (val !== "") {
-                      const num = Number(val);
-                      if (!isNaN(num) && num >= 1 && num <= 31) {
-                        atualizarPessoa(p.id, { diaAporte: num });
-                      }
-                    }
-                  }}
-                  onBlur={() => {
-                    if (diaAporteInput !== null) {
-                      const num = Math.min(31, Math.max(1, Number(diaAporteInput) || (p.diaAporte ?? 5)));
-                      setDiaAporteInput(null);
-                      atualizarPessoa(p.id, { diaAporte: num });
-                    }
-                  }}
-                  className="w-12 h-7 px-1.5 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
-                />
-              </div>
             </div>
             <p className="text-[11px] text-muted-foreground">
               Define a data em que o aporte de {p.nome ? p.nome.split(" ")[0] : "deste participante"} cai na conta para render CDI.
@@ -626,7 +594,6 @@ export default function PessoaCard({
           variant="outline"
           onClick={() => {
             setSaldoEditado(null);
-            setDiaAporteInput(null);
             setIsEditing(false);
           }} 
           className="flex-1 h-10 text-sm font-semibold border-border/80 hover:bg-secondary/60 text-muted-foreground hover:text-foreground rounded-xl transition-all cursor-pointer"
@@ -643,12 +610,7 @@ export default function PessoaCard({
                 dataValorAtual: new Date().toISOString()
               });
             }
-            if (diaAporteInput !== null && diaAporteInput !== "") {
-              const num = Math.min(31, Math.max(1, Number(diaAporteInput) || (p.diaAporte ?? 5)));
-              atualizarPessoa(p.id, { diaAporte: num });
-            }
             setSaldoEditado(null);
-            setDiaAporteInput(null);
             setIsEditing(false);
           }} 
           className="flex-1 h-10 text-sm font-semibold bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"

@@ -287,13 +287,12 @@ export function DetalheMesDiarioModal({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                        <span className="text-[11px] text-muted-foreground mr-1">Frequentes:</span>
-                        {[1, 5, 10, 15, 20, 25].map((d) => (
+                        {[1, 5, 20].map((d) => (
                           <button
                             key={d}
                             type="button"
                             onClick={() => handleMudarDiaPessoa(p.id, d)}
-                            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                               diaAtualPessoa === d
                                 ? "bg-accent text-accent-foreground shadow-2xs"
                                 : "bg-secondary/40 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80"
@@ -302,28 +301,6 @@ export function DetalheMesDiarioModal({
                             Dia {d}
                           </button>
                         ))}
-
-                        <div className="flex items-center gap-1 ml-auto sm:ml-2">
-                          <span className="text-[10px] text-muted-foreground">Outro:</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={diasNoMes}
-                            value={diaAtualPessoa}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "") return;
-                              const num = Math.min(diasNoMes, Math.max(1, Number(val)));
-                              handleMudarDiaPessoa(p.id, num);
-                            }}
-                            onBlur={(e) => {
-                              if (!e.target.value) {
-                                handleMudarDiaPessoa(p.id, 5);
-                              }
-                            }}
-                            className="w-12 h-7 px-1 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
-                          />
-                        </div>
                       </div>
                     </div>
                   );
@@ -331,8 +308,7 @@ export function DetalheMesDiarioModal({
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-xs font-medium text-muted-foreground mr-1">Dias frequentes:</span>
-                {[1, 5, 10, 15, 20, 25].map((d) => (
+                {[1, 5, 20].map((d) => (
                   <button
                     key={d}
                     type="button"
@@ -346,29 +322,6 @@ export function DetalheMesDiarioModal({
                     Dia {d}
                   </button>
                 ))}
-
-                <div className="flex items-center gap-1.5 ml-auto">
-                  <label htmlFor="custom-dia" className="text-xs text-muted-foreground font-medium">Outro dia:</label>
-                  <input
-                    id="custom-dia"
-                    type="number"
-                    min={1}
-                    max={diasNoMes}
-                    value={diaAporte}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "") return;
-                      const num = Math.min(diasNoMes, Math.max(1, Number(val)));
-                      handleMudarDia(num);
-                    }}
-                    onBlur={(e) => {
-                      if (!e.target.value) {
-                        handleMudarDia(5);
-                      }
-                    }}
-                    className="w-14 h-8 px-2 text-xs font-semibold text-center rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
-                  />
-                </div>
               </div>
             )}
           </div>
