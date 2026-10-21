@@ -70,6 +70,15 @@ namespace ImovPlan.Infrastructure.Data
             modelBuilder.Entity<Participante>()
                 .HasIndex(p => p.PlanejamentoId);
 
+            modelBuilder.Entity<AporteExtra>(entity =>
+            {
+                entity.Property(a => a.Revertido).IsRequired(false);
+                entity.Property(a => a.Tipo).IsRequired(false);
+                entity.Property(a => a.Motivo).IsRequired(false);
+                entity.Property(a => a.RevertidoEm).IsRequired(false);
+                entity.Property(a => a.CreatedAt).IsRequired(false);
+            });
+
             modelBuilder.Entity<AporteExtra>()
                 .HasIndex(a => a.PlanejamentoId);
 

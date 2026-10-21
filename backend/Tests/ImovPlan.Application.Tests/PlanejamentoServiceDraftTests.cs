@@ -121,5 +121,76 @@ namespace ImovPlan.Application.Tests
             var result2 = await service.UpdateDraftAsync(planId, draftDto, userId);
             Assert.True(result2);
         }
+
+        [Fact]
+        public async Task GetDraftAsync_And_UpdateDraftAsync_WithLegacyAporteExtraNullFields_SucceedsAndMapsDefaults()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var cache = new MemoryCache(new MemoryCacheOptions());
+
+            var planRepo = new PlanejamentoRepository(context);
+            var partRepo = new ParticipanteRepository(context);
+            var extraRepo = new AporteExtraRepository(context);
+            var histRepo = new HistoricoAporteRepository(context);
+            var gastoRepo = new GastoDetalhadoRepository(context);
+            var paramRepo = new ParametrosFinanceirosRepository(context, cache);
+            var simRepo = new Mock<IHistoricoSimulacaoRepository>().Object;
+
+            var planId = ObjectId.GenerateNewId().ToString();
+            var userId = ObjectId.GenerateNewId().ToString();
+
+            var plan = new Planejamento
+            {
+                Id = planId,
+                UsuarioId = userId,
+                NomePlano = "Plano Legado",
+                ParticipantesIds = new List<string>()
+            };
+            context.Planejamentos.Add(plan);
+
+            // Legacy aporte extra without revertido, tipo, or createdAt (null)
+            var legacyAporte = new AporteExtra
+            {
+                Id = ObjectId.GenerateNewId().ToString(),
+                PlanejamentoId = planId,
+                Valor = 1500,
+                Data = DateTime.UtcNow,
+                Origem = "Bônus",
+                Tipo = null,
+                Revertido = null,
+                CreatedAt = null
+            };
+            context.AportesExtras.Add(legacyAporte);
+            await context.SaveChangesAsync();
+
+            var service = new PlanejamentoService(
+                planRepo,
+                partRepo,
+                extraRepo,
+                histRepo,
+                gastoRepo,
+                paramRepo,
+                simRepo,
+                NullLogger<PlanejamentoService>.Instance
+            );
+
+            // Fetch draft and assert safe fallback mapping
+            var draft = await service.GetDraftAsync(planId, userId);
+            Assert.NotNull(draft);
+            Assert.NotNull(draft.AportesExtras);
+            Assert.Single(draft.AportesExtras);
+            Assert.False(draft.AportesExtras[0].Revertido);
+            Assert.Equal("Aporte", draft.AportesExtras[0].Tipo);
+
+            // Update draft (deletes existing and adds new)
+            Assert.NotNull(draft.Objetivo);
+            draft.Objetivo.NomePlano = "Plano Atualizado";
+            var updated = await service.UpdateDraftAsync(planId, draft, userId);
+            Assert.True(updated);
+        }
     }
 }

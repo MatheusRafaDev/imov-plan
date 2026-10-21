@@ -680,7 +680,7 @@ namespace ImovPlan.Application.Services
                         : null,
                     Tipo = string.IsNullOrWhiteSpace(a.Tipo) ? "Aporte" : a.Tipo,
                     Motivo = a.Motivo,
-                    Revertido = a.Revertido,
+                    Revertido = a.Revertido == true,
                     RevertidoEm = a.RevertidoEm?.ToString("yyyy-MM-dd"),
                 }).ToList(),
                 AportesRegularesEditados = aportesRegularesEditados,
