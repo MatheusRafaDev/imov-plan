@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
 using ImovPlan.Domain.Entities;
 using ImovPlan.Domain.Interfaces;
+using ImovPlan.Infrastructure.Configurations;
 using ImovPlan.Infrastructure.Data;
 
 namespace ImovPlan.Infrastructure.Repositories
@@ -13,14 +14,40 @@ namespace ImovPlan.Infrastructure.Repositories
     public class HistoricoSimulacaoRepository : IHistoricoSimulacaoRepository
     {
         private readonly AppDbContext _context;
+        private readonly IMongoCollection<HistoricoSimulacao>? _historicosColl;
+        private readonly IMongoCollection<EvolucaoMensalSimulacao>? _evolucoesColl;
 
-        public HistoricoSimulacaoRepository(AppDbContext context)
+        public HistoricoSimulacaoRepository(
+            AppDbContext context,
+            IMongoClient? mongoClient = null,
+            MongoDbSettings? mongoSettings = null,
+            IConfiguration? configuration = null)
         {
             _context = context;
+
+            if (mongoClient != null)
+            {
+                var dbName = configuration?["MONGO_DATABASE_NAME"]
+                    ?? mongoSettings?.DatabaseName
+                    ?? configuration?["MongoDbSettings:DatabaseName"]
+                    ?? "ImovPlanDb";
+
+                var db = mongoClient.GetDatabase(dbName);
+                _historicosColl = db.GetCollection<HistoricoSimulacao>("historicoSimulacoes");
+                _evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
+            }
         }
 
         public async Task<HistoricoSimulacao?> GetUltimoByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (_historicosColl != null)
+            {
+                var filter = Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
+                return await _historicosColl.Find(filter)
+                    .SortByDescending(s => s.GeradoEm)
+                    .FirstOrDefaultAsync();
+            }
+
             return await _context.HistoricosSimulacao
                 .AsNoTracking()
                 .Where(s => s.PlanejamentoId == planejamentoId)
@@ -30,6 +57,14 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<HistoricoSimulacao>> GetAllByPlanejamentoIdAsync(string planejamentoId)
         {
+            if (_historicosColl != null)
+            {
+                var filter = Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
+                return await _historicosColl.Find(filter)
+                    .SortByDescending(s => s.GeradoEm)
+                    .ToListAsync();
+            }
+
             return await _context.HistoricosSimulacao
                 .AsNoTracking()
                 .Where(s => s.PlanejamentoId == planejamentoId)
@@ -39,6 +74,12 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<HistoricoSimulacao> AddAsync(HistoricoSimulacao registro)
         {
+            if (_historicosColl != null)
+            {
+                await _historicosColl.InsertOneAsync(registro);
+                return registro;
+            }
+
             _context.HistoricosSimulacao.Add(registro);
             await _context.SaveChangesAsync();
             return registro;
@@ -46,83 +87,58 @@ namespace ImovPlan.Infrastructure.Repositories
 
         public async Task<IEnumerable<EvolucaoMensalSimulacao>> GetEvolucaoBySimulacaoIdAsync(string simulacaoId)
         {
-            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
-            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
-            if (string.IsNullOrEmpty(dbName)) return new List<EvolucaoMensalSimulacao>();
+            if (_evolucoesColl == null) return new List<EvolucaoMensalSimulacao>();
 
-            var db = mongoClient.GetDatabase(dbName);
-            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
-
-            var filter = MongoDB.Driver.Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, simulacaoId);
-            return await evolucoesColl.Find(filter).SortBy(e => e.Mes).ToListAsync();
+            var filter = Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, simulacaoId);
+            return await _evolucoesColl.Find(filter).SortBy(e => e.Mes).ToListAsync();
         }
 
         public async Task DeleteAsync(string id)
         {
-            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
-            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
-            if (string.IsNullOrEmpty(dbName)) return;
+            if (_evolucoesColl != null && _historicosColl != null)
+            {
+                var filterEvolucoes = Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, id);
+                await _evolucoesColl.DeleteManyAsync(filterEvolucoes);
 
-            var db = mongoClient.GetDatabase(dbName);
-            var historicosColl = db.GetCollection<HistoricoSimulacao>("historicoSimulacoes");
-            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
+                var filterHistorico = Builders<HistoricoSimulacao>.Filter.Eq(s => s.Id, id);
+                await _historicosColl.DeleteOneAsync(filterHistorico);
+            }
+            else
+            {
+                var existing = await _context.HistoricosSimulacao.FirstOrDefaultAsync(s => s.Id == id);
+                if (existing != null)
+                {
+                    _context.HistoricosSimulacao.Remove(existing);
+                    await _context.SaveChangesAsync();
+                }
+            }
 
-            // Delete evolutions
-            var filterEvolucoes = MongoDB.Driver.Builders<EvolucaoMensalSimulacao>.Filter.Eq(e => e.SimulacaoId, id);
-            await evolucoesColl.DeleteManyAsync(filterEvolucoes);
-
-            // Delete simulation
-            var filterHistorico = MongoDB.Driver.Builders<HistoricoSimulacao>.Filter.Eq(s => s.Id, id);
-            await historicosColl.DeleteOneAsync(filterHistorico);
-
-            // Clear tracker
             _context.ChangeTracker.Clear();
         }
 
         public async Task DeleteAllByPlanejamentoIdAsync(string planejamentoId)
         {
-            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
-            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
-            if (string.IsNullOrEmpty(dbName)) return;
+            if (_historicosColl != null && _evolucoesColl != null)
+            {
+                var filterHistoricos = Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
+                var projection = Builders<HistoricoSimulacao>.Projection.Expression(s => s.Id);
+                var simIds = await _historicosColl.Find(filterHistoricos).Project(projection).ToListAsync();
 
-            var db = mongoClient.GetDatabase(dbName);
-            var historicosColl = db.GetCollection<HistoricoSimulacao>("historicoSimulacoes");
-            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
+                if (!simIds.Any()) return;
 
-            // Find all simulation IDs for this plan
-            var filterHistoricos = MongoDB.Driver.Builders<HistoricoSimulacao>.Filter.Eq(s => s.PlanejamentoId, planejamentoId);
-            var projection = MongoDB.Driver.Builders<HistoricoSimulacao>.Projection.Expression(s => s.Id);
-            var simIds = await historicosColl.Find(filterHistoricos).Project(projection).ToListAsync();
+                var filterEvolucoes = Builders<EvolucaoMensalSimulacao>.Filter.In(e => e.SimulacaoId, simIds);
+                await _evolucoesColl.DeleteManyAsync(filterEvolucoes);
+                await _historicosColl.DeleteManyAsync(filterHistoricos);
+            }
 
-            if (!simIds.Any()) return;
-
-            // Delete all evolutions for these simulation IDs in one go
-            var filterEvolucoes = MongoDB.Driver.Builders<EvolucaoMensalSimulacao>.Filter.In(e => e.SimulacaoId, simIds);
-            await evolucoesColl.DeleteManyAsync(filterEvolucoes);
-
-            // Delete the simulations
-            await historicosColl.DeleteManyAsync(filterHistoricos);
-
-            // Clear tracker so EF doesn't get confused
             _context.ChangeTracker.Clear();
         }
 
         public async Task AddEvolucaoAsync(IEnumerable<EvolucaoMensalSimulacao> evolucao)
         {
-            if (!evolucao.Any()) return;
+            if (!evolucao.Any() || _evolucoesColl == null) return;
 
-            var mongoClient = _context.GetService<MongoDB.Driver.IMongoClient>();
-            var config = _context.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var dbName = config["MONGO_DATABASE_NAME"] ?? config["MongoDbSettings:DatabaseName"];
-            if (string.IsNullOrEmpty(dbName)) return;
-
-            var db = mongoClient.GetDatabase(dbName);
-            var evolucoesColl = db.GetCollection<EvolucaoMensalSimulacao>("evolucaoMensalSimulacoes");
-
-            await evolucoesColl.InsertManyAsync(evolucao);
+            await _evolucoesColl.InsertManyAsync(evolucao);
             _context.ChangeTracker.Clear();
         }
     }

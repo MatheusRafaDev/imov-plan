@@ -10,10 +10,7 @@ export function useUltimaSimulacao(planoId: string | null) {
     },
     enabled: !!planoId,
     retry: 1,
-    throwOnError: (error: any) => {
-      const status = error?.response?.status;
-      return status !== 404 && status !== 403 && status !== 401;
-    },
+    throwOnError: false,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 }
