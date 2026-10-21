@@ -58,7 +58,6 @@ export function DetalheMesDiarioModal({
   onSalvarDiaAportePessoa,
 }: DetalheMesDiarioModalProps) {
   const [diaAporte, setDiaAporte] = useState<number>(diaAporteInicial);
-  const [filtro, setFiltro] = useState<"todos" | "uteis" | "movimentacoes">("todos");
   const [salvandoPadrao, setSalvandoPadrao] = useState(false);
 
   // Mapeia o dia do aporte para cada pessoa
@@ -155,15 +154,7 @@ export function DetalheMesDiarioModal({
     return () => clearTimeout(timer);
   }, [isOpen, isMesAtual, diaHoje]);
 
-  const diasFiltrados = useMemo(() => {
-    if (filtro === "uteis") {
-      return resultado.dias.filter(d => d.isDiaUtil);
-    }
-    if (filtro === "movimentacoes") {
-      return resultado.dias.filter(d => d.totalAportesDoDia > 0 || d.rendimentoDoDia > 0 || (isMesAtual && d.dia === diaHoje));
-    }
-    return resultado.dias;
-  }, [resultado.dias, filtro, isMesAtual, diaHoje]);
+  const diasFiltrados = resultado.dias;
 
   if (!isOpen || typeof document === "undefined") return null;
 
@@ -392,43 +383,11 @@ export function DetalheMesDiarioModal({
             </div>
           </div>
 
-          {/* Filtros da lista */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-1.5 bg-secondary/30 p-1 rounded-xl text-xs font-medium border border-border/40 self-start">
-              <button
-                type="button"
-                onClick={() => setFiltro("todos")}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  filtro === "todos"
-                    ? "bg-card text-foreground font-semibold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Todos os dias ({resultado.dias.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFiltro("uteis")}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  filtro === "uteis"
-                    ? "bg-card text-foreground font-semibold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Dias Úteis ({resultado.diasUteisTotais})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFiltro("movimentacoes")}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  filtro === "movimentacoes"
-                    ? "bg-card text-foreground font-semibold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Com Rendimento / Aporte
-              </button>
-            </div>
+          {/* Legenda e contagem de dias */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
+            <span className="text-xs font-semibold text-foreground/80">
+              Todos os dias ({resultado.dias.length})
+            </span>
 
             <div className="text-[11px] text-muted-foreground flex items-center gap-2">
               <span className="inline-flex items-center gap-1">
