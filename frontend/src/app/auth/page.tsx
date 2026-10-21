@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2, Eye, EyeOff, AlertCircle, Mail, Lock, User, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import Script from "next/script";
 
 export default function AuthPage() {
   const searchParams = useSearchParams();
@@ -50,7 +51,7 @@ export default function AuthPage() {
 
   // Initialize Google Identity Services once
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || loading || user || !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) return;
 
     let resizeObserver: ResizeObserver | null = null;
 
@@ -93,7 +94,7 @@ export default function AuthPage() {
     const initGoogle = () => {
       const google = (window as any).google;
       const buttonDiv = document.getElementById("google-signin-button");
-      if (google && google.accounts?.id && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      if (google && google.accounts?.id && buttonDiv) {
         if (!(window as any).__googleIdInitialized) {
           google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -113,46 +114,35 @@ export default function AuthPage() {
           (window as any).__googleIdInitialized = true;
         }
 
-        if (buttonDiv) {
-          renderGoogleButton();
+        renderGoogleButton();
 
-          if (typeof ResizeObserver !== "undefined" && !resizeObserver) {
-            let lastWidth = Math.floor(buttonDiv.getBoundingClientRect().width);
-            resizeObserver = new ResizeObserver((entries) => {
-              for (const entry of entries) {
-                const currentWidth = Math.floor(entry.contentRect.width);
-                if (currentWidth && Math.abs(currentWidth - lastWidth) > 8) {
-                  lastWidth = currentWidth;
-                  renderGoogleButton();
-                }
+        if (typeof ResizeObserver !== "undefined" && !resizeObserver) {
+          let lastWidth = Math.floor(buttonDiv.getBoundingClientRect().width);
+          resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+              const currentWidth = Math.floor(entry.contentRect.width);
+              if (currentWidth && Math.abs(currentWidth - lastWidth) > 8) {
+                lastWidth = currentWidth;
+                renderGoogleButton();
               }
             });
-            resizeObserver.observe(buttonDiv);
           }
-
-          setGoogleInitialized(true);
-          return true;
+          resizeObserver.observe(buttonDiv);
         }
+
+        setGoogleInitialized(true);
       }
-      return false;
     };
 
-    if (!initGoogle()) {
-      const intervalId = setInterval(() => {
-        if (initGoogle()) {
-          clearInterval(intervalId);
-        }
-      }, 200);
-      return () => {
-        clearInterval(intervalId);
-        resizeObserver?.disconnect();
-      };
-    }
+    const handleGoogleReady = () => initGoogle();
+    window.addEventListener("imovplan:google-identity-ready", handleGoogleReady);
+    initGoogle();
 
     return () => {
+      window.removeEventListener("imovplan:google-identity-ready", handleGoogleReady);
       resizeObserver?.disconnect();
     };
-  }, []);
+  }, [loading, user]);
 
   // Validações locais ao submeter
   const validateForm = () => {
@@ -283,6 +273,14 @@ export default function AuthPage() {
   }
 
   return (
+    <>
+    {!user && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="lazyOnload"
+        onReady={() => window.dispatchEvent(new Event("imovplan:google-identity-ready"))}
+      />
+    )}
     <div className="min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden grid lg:grid-cols-2 bg-background animate-fade-in safe-top safe-bottom safe-x">
       <div className="p-3 sm:p-5 lg:p-6 flex flex-col justify-center max-w-[400px] mx-auto w-full my-auto">
         <div className="flex items-center justify-between mb-3 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
@@ -640,5 +638,6 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

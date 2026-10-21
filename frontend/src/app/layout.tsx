@@ -4,7 +4,6 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import NextTopLoader from "nextjs-toploader";
-import Script from "next/script";
 import { PwaRegister } from "@/components/PwaRegister";
 import { QueryProvider } from "@/providers/QueryProvider";
 
@@ -108,10 +107,6 @@ export default function RootLayout({
         />
       </head>
       <body className={`min-h-screen ${sora.className} ${sora.variable}`} suppressHydrationWarning>
-        <Script
-          src="https://accounts.google.com/gsi/client"
-          strategy="lazyOnload"
-        />
         <QueryProvider>
           <AuthProvider>
             <NextTopLoader color="#E8590C" height={3} showSpinner={false} shadow="0 0 10px #E8590C,0 0 5px #E8590C" />
