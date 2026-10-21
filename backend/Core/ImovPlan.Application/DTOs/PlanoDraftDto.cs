@@ -11,15 +11,15 @@ namespace ImovPlan.Application.DTOs
         public ObjetivoDraftDto? Objetivo { get; set; }
         public List<PessoaDraftDto> Pessoas { get; set; } = new();
         public BancoDraftDto? BancoEscolhido { get; set; }
-        public List<AporteExtraDraftDto> AportesExtras { get; set; } = new();
+        public List<AporteExtraDraftDto>? AportesExtras { get; set; }
 
         // Monthly tracking data
-        public Dictionary<int, decimal> AportesRegularesEditados { get; set; } = new();
+        public Dictionary<int, decimal>? AportesRegularesEditados { get; set; }
         /// <summary>
         /// Per-person aporte edits. Key = pessoaId, Value = Dictionary&lt;mes, valorEditado&gt;.
         /// </summary>
-        public Dictionary<string, Dictionary<int, decimal>> AportesRegularesEditadosPorPessoa { get; set; } = new();
-        public List<int> MesesConcluidos { get; set; } = new();
+        public Dictionary<string, Dictionary<int, decimal>>? AportesRegularesEditadosPorPessoa { get; set; }
+        public List<int>? MesesConcluidos { get; set; }
     }
 
     /// <summary>

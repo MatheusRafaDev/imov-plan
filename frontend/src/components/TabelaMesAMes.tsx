@@ -103,7 +103,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   const [mesDetalheDiario, setMesDetalheDiario] = useState<number | null>(null);
   const [modalInitialTab, setModalInitialTab] = useState<ModalTab>("aportes");
   const [modalFocusPessoaId, setModalFocusPessoaId] = useState<string | null>(null);
-  const [extraParaExcluir, setExtraParaExcluir] = useState<{ index: number; origem: string; valor: number; pessoaNome?: string; data?: string } | null>(null);
+  const [extraParaExcluir, setExtraParaExcluir] = useState<{ index: number; origem: string; valor: number; pessoaNome?: string; data?: string; tipo?: "aporte" | "retirada" } | null>(null);
   const [excluindoExtra, setExcluindoExtra] = useState(false);
 
   const handleSalvarDiaAporte = (novoDia: number, aplicarParaTodos: boolean) => {
@@ -277,36 +277,99 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
     if (savedId) await calcularBackend(savedId);
   };
 
-  const handleAddExtra = async (pessoaId: string | null, origem: string, valor: number) => {
+  const handleAddExtra = async (payload: {
+    pessoaId: string | null;
+    origem: string;
+    valor: number;
+    tipo: "aporte" | "retirada";
+    motivo?: string;
+    data?: string;
+  }) => {
     if (!selectedRow) return;
-    const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : null;
+    const p = payload.pessoaId ? pessoas.find(x => x.id === payload.pessoaId) : null;
+    const dataExtra = payload.data || selectedRow.data.split("T")[0];
     const newExtra = {
-      pessoaId: pessoaId || undefined,
-      pessoaNome: p ? p.nome.split(" ")[0] : undefined,
-      origem,
-      valor,
-      data: selectedRow.data.split("T")[0]
+      tipo: payload.tipo,
+      pessoaId: payload.pessoaId || undefined,
+      pessoaNome: p ? p.nome : undefined,
+      origem: payload.origem,
+      motivo: payload.motivo || (payload.tipo === "retirada" ? payload.origem : undefined),
+      valor: payload.valor,
+      data: dataExtra,
     };
     const updatedExtras = [...aportesExtras, newExtra];
     setAportesExtras(() => updatedExtras);
+    usePlanStore.getState().hydrate({ aportesExtras: updatedExtras });
     const savedId = await salvarPlano({ aportesExtras: updatedExtras });
-    if (savedId) await calcularBackend(savedId);
+    const idToUse = savedId || usePlanStore.getState().planoId;
+    if (idToUse) {
+      await calcularBackend(idToUse, { aportesExtras: updatedExtras });
+    }
+    toast.success(payload.tipo === "retirada" ? "Retirada registrada no mês!" : "Aporte extra adicionado no mês!");
   };
 
-  const handleEditExtra = async (index: number, origem: string, valor: number, pessoaId?: string) => {
+  const handleRevertExtra = async (index: number) => {
+    const item = aportesExtras[index];
+    if (!item) return;
+    const prev = [...aportesExtras];
+    const updated = [...aportesExtras];
+    const estavaRevertido = !!item.revertido;
+    const hojeStr = getBrasiliaToday().dataStr;
+    
+    updated[index] = {
+      ...item,
+      revertido: !estavaRevertido,
+      revertidoEm: !estavaRevertido ? hojeStr : undefined,
+    };
+
+    setAportesExtras(() => updated);
+    usePlanStore.getState().hydrate({ aportesExtras: updated });
+    try {
+      const savedId = await salvarPlano({ aportesExtras: updated });
+      const idToUse = savedId || usePlanStore.getState().planoId;
+      if (idToUse) {
+        await calcularBackend(idToUse, { aportesExtras: updated });
+      }
+      toast.success(!estavaRevertido ? "Movimentação revertida com sucesso!" : "Reversão desfeita com sucesso!");
+    } catch (err) {
+      console.error("Erro ao reverter movimentação:", err);
+      setAportesExtras(() => prev);
+      usePlanStore.getState().hydrate({ aportesExtras: prev });
+      toast.error("Erro ao salvar reversão no servidor.");
+    }
+  };
+
+  const handleEditExtra = async (
+    index: number, 
+    origem: string, 
+    valor: number, 
+    pessoaId?: string,
+    tipo?: "aporte" | "retirada",
+    data?: string
+  ) => {
     const next = [...aportesExtras];
-    const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : (next[index]?.pessoaId ? pessoas.find(x => x.id === next[index].pessoaId) : null);
+    const target = next[index];
+    if (!target) return;
+    const p = pessoaId ? pessoas.find(x => x.id === pessoaId) : (target.pessoaId ? pessoas.find(x => x.id === target.pessoaId) : null);
+    const itemTipo = tipo || target.tipo || "aporte";
     next[index] = {
-      ...next[index],
+      ...target,
+      tipo: itemTipo,
       origem,
+      motivo: itemTipo === "retirada" ? origem : undefined,
       valor,
-      pessoaId: pessoaId !== undefined ? (pessoaId || undefined) : next[index]?.pessoaId,
-      pessoaNome: p ? p.nome.split(" ")[0] : (pessoaId === "" ? undefined : next[index]?.pessoaNome)
+      data: data || target.data,
+      pessoaId: pessoaId !== undefined ? (pessoaId || undefined) : target.pessoaId,
+      pessoaNome: p ? p.nome : (pessoaId === "" ? undefined : target.pessoaNome)
     };
     setAportesExtras(() => next);
-    saveDraft({ aportesExtras: next });
+    usePlanStore.getState().hydrate({ aportesExtras: next });
     const savedId = await salvarPlano({ aportesExtras: next });
-    if (savedId) await calcularBackend(savedId);
+    const idToUse = savedId || usePlanStore.getState().planoId;
+    if (idToUse) {
+      await calcularBackend(idToUse, { aportesExtras: next });
+    }
+    toast.success(itemTipo === "retirada" ? "Retirada atualizada com sucesso!" : "Aporte extra atualizado com sucesso!");
   };
 
   const handleDeleteExtra = (index: number) => {
@@ -314,36 +377,36 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
     if (!extra) return;
     setExtraParaExcluir({
       index,
-      origem: extra.origem || "Aporte Extra",
+      origem: extra.motivo || extra.origem || "Movimentação",
       valor: extra.valor || 0,
       pessoaNome: extra.pessoaNome,
-      data: extra.data
+      data: extra.data,
+      tipo: (extra.tipo ? String(extra.tipo).toLowerCase() : "aporte") === "retirada" ? "retirada" : "aporte",
     });
   };
 
   const confirmarExclusaoExtra = async () => {
     if (!extraParaExcluir) return;
     const indexToDelete = extraParaExcluir.index;
+    const itemTipo = extraParaExcluir.tipo === "retirada" ? "Retirada" : "Aporte extra";
     const prev = [...aportesExtras];
     setExcluindoExtra(true);
     try {
       const next = aportesExtras.filter((_, i) => i !== indexToDelete);
       setAportesExtras(() => next);
       usePlanStore.getState().hydrate({ aportesExtras: next });
-      saveDraft({ aportesExtras: next });
       const savedId = await salvarPlano({ aportesExtras: next });
       const idToUse = savedId || usePlanStore.getState().planoId;
       if (idToUse) {
         await calcularBackend(idToUse, { aportesExtras: next });
       }
-      toast.success("Aporte extra excluído e planejamento recalculado!");
+      toast.success(`${itemTipo} excluído e planejamento recalculado!`);
       setExtraParaExcluir(null);
     } catch (err) {
-      console.error("Erro ao excluir aporte extra:", err);
+      console.error("Erro ao excluir movimentação:", err);
       setAportesExtras(() => prev);
       usePlanStore.getState().hydrate({ aportesExtras: prev });
-      saveDraft({ aportesExtras: prev });
-      toast.error("Não foi possível excluir o aporte extra no servidor. Alteração revertida.");
+      toast.error(`Não foi possível excluir ${itemTipo.toLowerCase()} no servidor. Alteração revertida.`);
     } finally {
       setExcluindoExtra(false);
     }
@@ -481,8 +544,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                 const isMesConcluido = r.mes != null ? mesesConcluidosSet.has(r.mes) : false;
                 const isZero = r.mes === 0;
                 const rowExtras = (aportesExtras || [])
-                  .filter(e => e?.data && r?.data && e.data.slice(0, 7) === r.data.slice(0, 7))
-                  .map((e, idx) => ({ ...e, index: idx }));
+                  .map((e, idx) => ({ ...e, index: idx }))
+                  .filter(e => e?.data && r?.data && e.data.slice(0, 7) === r.data.slice(0, 7));
                 const totalAporteMes = (r.aporteRegular || 0) + (r.aportesExtras || 0) - (r.retiradas || 0);
 
                 return (
@@ -490,8 +553,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                     key={r.mes}
                     onDoubleClick={(event) => {
                       const target = event.target as HTMLElement;
-                      if (isZero || target.closest("button, input, select, textarea, a, [role='button']")) return;
-                      openModal(r.mes, "aportes");
+                      if (target.closest("button, input, select, textarea, a, [role='button']")) return;
+                      openModal(r.mes, isZero ? "acumulado" : "aportes");
                     }}
                     className={`
                       transition-colors hover:bg-secondary/10 bg-card ${isZero ? "" : "cursor-pointer"}
@@ -528,8 +591,8 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                               e.stopPropagation();
                               setMesDetalheDiario(r.mes);
                             }}
-                            className="p-1 rounded-md text-muted-foreground/50 hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
-                            title={`Ver dia a dia do Mês ${r.mes}`}
+                            className="p-1 rounded-md text-accent/80 hover:text-accent hover:bg-accent/15 transition-colors cursor-pointer"
+                            title={`Zoom no registro: Ver evolução diária do Mês ${r.mes}`}
                           >
                             <CalendarDays className="h-3.5 w-3.5" />
                           </button>
@@ -571,26 +634,19 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
 
                     <Td 
                       right 
-                      className={`relative ${isZero ? "" : "cursor-pointer"}`}
+                      className="relative cursor-pointer"
                       onDoubleClick={(e) => {
-                        if (isZero) return;
                         e.stopPropagation();
                         openModal(r.mes, "extras");
                       }}
                     >
-                      {(() => {
-                        if (isZero) return <span className="text-muted-foreground">{brl(0)}</span>;
-                        
-                        return (
-                          <ExtrasCell
-                            total={r.aportesExtras}
-                            contextItems={rowExtras}
-                            onDoubleClick={() => openModal(r.mes, "extras")}
-                            onEditExtra={(index, origem, valor) => handleEditExtra(index, origem, valor)}
-                            onDeleteExtra={(index) => handleDeleteExtra(index)}
-                          />
-                        );
-                      })()}
+                      <ExtrasCell
+                        total={(r.aportesExtras || 0) - (r.retiradas || 0)}
+                        contextItems={rowExtras}
+                        onDoubleClick={() => openModal(r.mes, "extras")}
+                        onEditExtra={(index, origem, valor) => handleEditExtra(index, origem, valor)}
+                        onDeleteExtra={(index) => handleDeleteExtra(index)}
+                      />
                     </Td>
 
                     <Td right className="font-medium text-foreground">
@@ -634,7 +690,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                     
                     <Td right className="group">
                       <RowActions 
-                        onOpenModal={(tab) => openModal(r.mes, isZero ? "acumulado" : tab)} 
+                        onOpenModal={(tab) => openModal(r.mes, isZero && tab === "aportes" ? "acumulado" : tab)} 
                         onOpenDetalheDiario={!isZero && allowDailyDetail ? () => setMesDetalheDiario(r.mes) : undefined}
                       />
                     </Td>
@@ -649,7 +705,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                 {pessoas.map(p => (
                   <td key={p.id} className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none">{brl(totals.aportePorPessoa[p.id])}</td>
                 ))}
-                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none">{brl(totals.extras)}</td>
+                <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none">{brl(totals.extras - totals.retiradas)}</td>
                 <td className="px-2.5 sm:px-3 py-3 sm:py-4 num text-xs sm:text-sm whitespace-nowrap text-right border-none font-semibold">{brl(totals.totalMes)}</td>
                 {showFinancials && (
                   <>
@@ -702,6 +758,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
           onAddExtra={handleAddExtra}
           onEditExtra={handleEditExtra}
           onDeleteExtra={handleDeleteExtra}
+          onRevertExtra={handleRevertExtra}
           onSaveAcumulado={handleSaveAcumulado}
         />
       )}
@@ -713,7 +770,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
         const prevRow = displayRows.find(x => x.mes === mesDetalheDiario - 1);
         const saldoInicialMes = prevRow ? prevRow.saldoAcumulado : (Number(sim?.valorJaGuardado) || 0);
         const saldosIniciaisMes = prevRow?.saldoPorPessoa ?? Object.fromEntries(pessoas.map(p => [p.id, Number(p.valorInicial || 0)]));
-        const rowExtras = (aportesExtras || []).filter(e => e?.data && row?.data && e.data.startsWith(row.data.split("T")[0]));
+        const rowExtras = (aportesExtras || []).filter(e => e?.data && row?.data && e.data.slice(0, 7) === row.data.slice(0, 7));
         const diaAporteConfig = diasDoAportePorMes[mesDetalheDiario] ?? diaDoAporte ?? 5;
         const participantesDoMes = pessoas.map(p => ({
           id: p.id,
@@ -773,10 +830,10 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
               </div>
               <div className="flex-1 min-w-0 pr-6">
                 <h3 className="font-display text-xl font-semibold text-foreground tracking-tight">
-                  Excluir aporte extra?
+                  {extraParaExcluir.tipo === "retirada" ? "Excluir retirada?" : "Excluir aporte extra?"}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                  Tem certeza que deseja excluir o aporte de <strong className="text-foreground font-semibold">{brl(extraParaExcluir.valor)}</strong> ({extraParaExcluir.origem}{extraParaExcluir.pessoaNome ? ` · ${extraParaExcluir.pessoaNome}` : ""})?
+                  Tem certeza que deseja excluir {extraParaExcluir.tipo === "retirada" ? "a retirada" : "o aporte"} de <strong className="text-foreground font-semibold">{brl(extraParaExcluir.valor)}</strong> ({extraParaExcluir.origem}{extraParaExcluir.pessoaNome ? ` · ${extraParaExcluir.pessoaNome}` : ""})?
                 </p>
               </div>
             </div>

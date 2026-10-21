@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
 import { navPorCenario } from "@/components/AppShell";
@@ -58,6 +58,42 @@ export default function PlanejamentoPage() {
       toast.error("Erro ao salvar os dados. Tente novamente.");
     }
   };
+
+  // Se o store está sem aportes extras mas a última simulação calculada possui registros de aportes extras / retiradas,
+  // restaura esses registros para que apareçam imediatamente na listagem de movimentações financeiras.
+  useEffect(() => {
+    if (!isDraftLoading && aportesExtras.length === 0 && backendData?.detalhesMensais) {
+      const recovered: Aporte[] = [];
+      backendData.detalhesMensais.forEach((r) => {
+        if (r.aportesExtras && Math.abs(r.aportesExtras) > 0.001) {
+          const dateStr = r.dataReferencia ? r.dataReferencia.split("T")[0] : getBrasiliaToday().dataStr;
+          recovered.push({
+            tipo: "aporte",
+            data: dateStr,
+            valor: Number(r.aportesExtras),
+            origem: "Aporte Extra",
+            pessoaNome: "Conjunto",
+          });
+        }
+        if (r.retiradas && Math.abs(r.retiradas) > 0.001) {
+          const dateStr = r.dataReferencia ? r.dataReferencia.split("T")[0] : getBrasiliaToday().dataStr;
+          recovered.push({
+            tipo: "retirada",
+            data: dateStr,
+            valor: Number(r.retiradas),
+            origem: "Retirada",
+            motivo: "Retirada",
+            pessoaNome: "Conjunto",
+          });
+        }
+      });
+      if (recovered.length > 0) {
+        setAportesExtras(recovered);
+        usePlanStore.getState().hydrate({ aportesExtras: recovered });
+        salvarPlano({ aportesExtras: recovered });
+      }
+    }
+  }, [isDraftLoading, aportesExtras.length, backendData, setAportesExtras, salvarPlano]);
   
   const [isAportesExtrasModalOpen, setIsAportesExtrasModalOpen] = useState(false);
   const [editingAporteIndex, setEditingAporteIndex] = useState<number | null>(null);
@@ -808,7 +844,7 @@ export default function PlanejamentoPage() {
             <div className="p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {aportesExtras.map((a, index) => {
-                  const isRetirada = a.tipo === "retirada";
+                  const isRetirada = String(a.tipo || "").toLowerCase() === "retirada";
                   const isRevertido = !!a.revertido;
                   return (
                     <div 
@@ -897,10 +933,10 @@ export default function PlanejamentoPage() {
               {/* Resumo Total no rodapé */}
               {(() => {
                 const totalAportesValidos = aportesExtras
-                  .filter(a => !a.revertido && a.tipo !== "retirada")
+                  .filter(a => !a.revertido && String(a.tipo || "").toLowerCase() !== "retirada")
                   .reduce((acc, a) => acc + Number(a.valor || 0), 0);
                 const totalRetiradasValidas = aportesExtras
-                  .filter(a => !a.revertido && a.tipo === "retirada")
+                  .filter(a => !a.revertido && String(a.tipo || "").toLowerCase() === "retirada")
                   .reduce((acc, a) => acc + Number(a.valor || 0), 0);
                 const saldoMovimentacoes = totalAportesValidos - totalRetiradasValidas;
 
@@ -929,7 +965,7 @@ export default function PlanejamentoPage() {
 
         {/* Tabela Mês a Mês em Largura Completa */}
         <div className="w-full min-w-0">
-          <TabelaMesAMes showFinancials={false} showCompletedToggle={false} showCenarioSelector={false} allowDailyDetail={false} />
+          <TabelaMesAMes showFinancials={false} showCompletedToggle={false} showCenarioSelector={false} allowDailyDetail={true} />
         </div>
       </div>
 

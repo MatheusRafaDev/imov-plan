@@ -79,7 +79,7 @@ export function RowActions({
             className="w-full text-left px-3.5 py-2.5 text-foreground hover:bg-secondary/70 flex items-center gap-2.5 transition-colors"
           >
             <Plus className="h-3.5 w-3.5 text-accent" /> 
-            <span>Aportes Extras</span>
+            <span>Movimentações (Extras)</span>
           </button>
 
           <button 
@@ -98,7 +98,7 @@ export function RowActions({
               className="w-full text-left px-3.5 py-2.5 text-foreground hover:bg-secondary/70 flex items-center gap-2.5 transition-colors border-t border-border/40"
             >
               <CalendarDays className="h-3.5 w-3.5 text-accent" /> 
-              <span>Ver Dia a Dia</span>
+              <span className="font-medium text-foreground">Ver Dia a Dia (Zoom)</span>
             </button>
           )}
         </div>,

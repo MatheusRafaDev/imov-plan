@@ -123,8 +123,8 @@ namespace ImovPlan.Application.Services
                 .Where(a => a.Data.Year == dataReferencia.Year && a.Data.Month == dataReferencia.Month && a.Revertido != true)
                 .ToList();
 
-            var extrasMes0Aportes = extrasMes0List.Where(a => a.Tipo != "retirada").Sum(a => a.Valor);
-            var extrasMes0Retiradas = extrasMes0List.Where(a => a.Tipo == "retirada").Sum(a => a.Valor);
+            var extrasMes0Aportes = extrasMes0List.Where(a => !string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase)).Sum(a => a.Valor);
+            var extrasMes0Retiradas = extrasMes0List.Where(a => string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase)).Sum(a => a.Valor);
             var netMes0 = extrasMes0Aportes - extrasMes0Retiradas;
 
             saldoConjunto += netMes0;
@@ -136,10 +136,10 @@ namespace ImovPlan.Application.Services
             foreach (var p in participantesDb.Keys)
             {
                 var extrasPessoaMes0 = extrasMes0List
-                    .Where(a => a.PessoaId == p && a.Tipo != "retirada")
+                    .Where(a => a.PessoaId == p && !string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase))
                     .Sum(a => a.Valor);
                 var retiradasPessoaMes0 = extrasMes0List
-                    .Where(a => a.PessoaId == p && a.Tipo == "retirada")
+                    .Where(a => a.PessoaId == p && string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase))
                     .Sum(a => a.Valor);
                 saldosIndividuais[p] += (extrasPessoaMes0 - retiradasPessoaMes0);
 
@@ -182,8 +182,8 @@ namespace ImovPlan.Application.Services
                     .Where(a => a.Data.Year == dataReferencia.Year && a.Data.Month == dataReferencia.Month && a.Revertido != true)
                     .ToList();
 
-                var aportesExtrasMes = movimentacoesMes.Where(a => a.Tipo != "retirada").ToList();
-                var retiradasMes = movimentacoesMes.Where(a => a.Tipo == "retirada").ToList();
+                var aportesExtrasMes = movimentacoesMes.Where(a => !string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase)).ToList();
+                var retiradasMes = movimentacoesMes.Where(a => string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase)).ToList();
 
                 foreach (var extra in aportesExtrasMes)
                 {

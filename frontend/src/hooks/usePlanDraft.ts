@@ -91,6 +91,14 @@ export function usePlanDraft(planoId: string | null) {
           bancoEscolhido: draftData.bancoEscolhido || null,
           aportesExtras: (draftData.aportesExtras || []).map((a: any) => ({
             ...a,
+            tipo: (a.tipo ? String(a.tipo).toLowerCase() : "aporte") === "retirada" ? "retirada" : "aporte",
+            motivo: a.motivo || undefined,
+            revertido: Boolean(a.revertido),
+            revertidoEm: a.revertidoEm || undefined,
+            pessoaId: a.pessoaId || a.participanteId || undefined,
+            pessoaNome: a.pessoaNome || undefined,
+            valor: Number(a.valor) || 0,
+            origem: a.origem || "",
             data: a.data
               ? typeof a.data === "string"
                 ? (a.data.includes("T") ? toLocalDateIso(a.data) ?? a.data.slice(0, 10) : a.data)

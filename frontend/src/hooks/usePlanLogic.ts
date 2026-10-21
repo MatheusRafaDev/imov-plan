@@ -30,7 +30,9 @@ export function usePlanLogic() {
         objetivo: patch?.objetivo !== undefined ? patch.objetivo : currentState.objetivo,
         pessoas: patch?.pessoas !== undefined ? patch.pessoas : currentState.pessoas,
         bancoEscolhido: patch?.bancoEscolhido !== undefined ? patch.bancoEscolhido : currentState.bancoEscolhido,
-        aportesExtras: patch?.aportesExtras !== undefined ? patch.aportesExtras : currentState.aportesExtras,
+        aportesExtras: patch?.aportesExtras !== undefined
+          ? patch.aportesExtras
+          : (currentState.aportesExtras.length > 0 ? currentState.aportesExtras : (isDraftLoading ? undefined : [])),
         aportesRegularesEditados: patch?.aportesRegularesEditados !== undefined ? patch.aportesRegularesEditados : currentState.aportesRegularesEditados,
         aportesRegularesEditadosPorPessoa: patch?.aportesRegularesEditadosPorPessoa !== undefined ? patch.aportesRegularesEditadosPorPessoa : currentState.aportesRegularesEditadosPorPessoa,
         mesesConcluidos: patch?.mesesConcluidos !== undefined ? patch.mesesConcluidos : currentState.mesesConcluidos,
@@ -83,13 +85,17 @@ export function usePlanLogic() {
           nome: payload.bancoEscolhido.nome || "",
           taxa: Number(payload.bancoEscolhido.taxa) || 0,
         } : null,
-        aportesExtras: (payload.aportesExtras || []).map((a: any) => ({
+        aportesExtras: payload.aportesExtras !== undefined ? (payload.aportesExtras || []).map((a: any) => ({
           data: a.data || new Date().toISOString(),
           valor: Number(a.valor) || 0,
           origem: a.origem || "",
           pessoaNome: a.pessoaNome || undefined,
           pessoaId: a.pessoaId || undefined,
-        })),
+          tipo: (a.tipo ? String(a.tipo).toLowerCase() : "aporte") === "retirada" ? "retirada" : "aporte",
+          motivo: a.motivo || undefined,
+          revertido: Boolean(a.revertido),
+          revertidoEm: a.revertidoEm || undefined,
+        })) : undefined,
         aportesRegularesEditados: Object.fromEntries(
           Object.entries(payload.aportesRegularesEditados || {})
             .filter(([k, v]) => !isNaN(Number(k)) && !isNaN(Number(v)))
@@ -118,7 +124,8 @@ export function usePlanLogic() {
       return new Promise<string | null>((resolve) => {
         globalSaveQueue = globalSaveQueue.then(async () => {
           try {
-            const savedId = await saveDraftMutation({ planoId, payload: formattedPayload });
+            const currentPlanoId = usePlanStore.getState().planoId || planoId;
+            const savedId = await saveDraftMutation({ planoId: currentPlanoId, payload: formattedPayload });
             usePlanStore.getState().setLastSavedDraftPayloadStr(formattedPayloadStr);
             resolve(savedId);
           } catch (error: any) {
@@ -178,9 +185,14 @@ export function usePlanLogic() {
       })),
       aportesExtras: currentState.aportesExtras.map((a) => ({
         pessoaId: a.pessoaId || '',
-        valor: a.valor,
+        pessoaNome: a.pessoaNome || undefined,
+        valor: Number(a.valor) || 0,
         data: a.data,
-        origem: a.origem
+        origem: a.origem || 'Aporte Extra',
+        tipo: (a.tipo ? String(a.tipo).toLowerCase() : "aporte") === "retirada" ? "retirada" : "aporte",
+        motivo: a.motivo || undefined,
+        revertido: Boolean(a.revertido),
+        revertidoEm: a.revertidoEm || undefined,
       })),
       aportesRegularesEditados: currentState.aportesRegularesEditados,
       aportesRegularesEditadosPorPessoa: currentState.aportesRegularesEditadosPorPessoa,
