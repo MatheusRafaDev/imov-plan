@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import React from "react";
+import dynamic from "next/dynamic";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanStore } from "@/store/usePlanStore";
 import { brl } from "@/lib/finance";
@@ -12,8 +13,25 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RowActions } from "./TabelaMesAMes/RowActions";
 import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
-import { EditMesModal, type ModalTab } from "./TabelaMesAMes/EditMesModal";
-import { DetalheMesDiarioModal } from "./TabelaMesAMes/DetalheMesDiarioModal";
+import type { ModalTab } from "./TabelaMesAMes/EditMesModal";
+
+const ModalLoadingFallback = () => (
+  <div className="fixed inset-0 z-[60] grid place-items-center bg-black/50 p-4" role="status" aria-label="Carregando janela">
+    <div className="rounded-xl bg-card p-5 shadow-xl">
+      <Loader2 className="h-6 w-6 animate-spin text-accent" />
+    </div>
+  </div>
+);
+
+const EditMesModal = dynamic(
+  () => import("./TabelaMesAMes/EditMesModal").then((module) => module.EditMesModal),
+  { ssr: false, loading: () => <ModalLoadingFallback /> }
+);
+
+const DetalheMesDiarioModal = dynamic(
+  () => import("./TabelaMesAMes/DetalheMesDiarioModal").then((module) => module.DetalheMesDiarioModal),
+  { ssr: false, loading: () => <ModalLoadingFallback /> }
+);
 
 function DisplayAporte({ value, planned, isEdited }: { value: number; planned: number; isEdited: boolean }) {
   const diff = value - planned;
@@ -248,7 +266,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
     document.body.removeChild(link);
   };
 
-  const displayRows = (() => {
+  const displayRows = useMemo(() => {
     if (!sim || !sim.detalhesMensais) return [];
     
     return sim.detalhesMensais.map(r => {
@@ -301,9 +319,9 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
         saldoPorPessoa
       };
     });
-  })();
+  }, [sim, pessoas]);
 
-  const totals = (() => {
+  const totals = useMemo(() => {
     if (!displayRows.length) return { rendLiquido: 0, aporteRegular: 0, extras: 0, retiradas: 0, totalMes: 0, saldoFinal: 0, aportePorPessoa: {} as Record<string, number> };
     const rl = displayRows.reduce((a, b) => a + b.rendimentoLiquido, 0);
     const ap = displayRows.reduce((a, b) => a + b.aporteRegular, 0);
@@ -327,7 +345,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
       saldoFinal: displayRows[displayRows.length - 1].saldoAcumulado,
       aportePorPessoa
     };
-  })();
+  }, [displayRows, pessoas]);
 
   const selectedRow = editingMes !== null ? displayRows.find(r => r.mes === editingMes) || null : null;
 
