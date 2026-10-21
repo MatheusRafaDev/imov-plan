@@ -54,10 +54,26 @@ export interface BackendParticipanteSnapshot {
   sobraMensal: number;
 }
 
+export interface SimulacaoRequestPayload {
+  objetivoId: string;
+  valorJaGuardado?: number;
+  valorImovel?: number;
+  percentualEntrada?: number;
+  percentualCustosExtras?: number;
+  prazoMaxMeses?: number;
+  dataInicio?: string;
+  aportesMensais: { pessoaId: string; pessoaNome?: string; valor: number; valorAtual?: number; dataValorAtual?: string }[];
+  aportesExtras: { pessoaId: string; valor: number; data: string; origem: string }[];
+  aportesRegularesEditados?: Record<number, number>;
+  aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
+  taxaCDI: number;
+  percentualCdi: number;
+  cenario?: string;
+}
+
 export class SimulacaoService {
-  static async salvarRegistroSimulacao(payload: any) {
-    const response = await api.post("/simulacao", payload);
-    return response.data;
+  static async salvarRegistroSimulacao(planoId: string, payload: SimulacaoRequestPayload): Promise<BackendSimulacaoResult> {
+    return this.calcularSimulacao(planoId, payload);
   }
 
   /** GET /api/simulacao/{planoId}/ultima — Carrega última simulação do banco */
@@ -77,16 +93,7 @@ export class SimulacaoService {
   }
 
   /** POST /api/simulacao/{planoId}/calcular — Recalcula do zero e retorna */
-  static async calcularSimulacao(planoId: string, payload: {
-    objetivoId: string;
-    taxaCDI: number;
-    percentualCdi: number;
-    aportesMensais: { pessoaId: string; valor: number }[];
-    aportesExtras: { pessoaId: string; valor: number; data: string; origem: string }[];
-    aportesRegularesEditados?: Record<number, number>;
-    aportesRegularesEditadosPorPessoa?: Record<string, Record<number, number>>;
-    cenario?: string;
-  }): Promise<BackendSimulacaoResult> {
+  static async calcularSimulacao(planoId: string, payload: SimulacaoRequestPayload): Promise<BackendSimulacaoResult> {
     const response = await api.post(`/simulacao/${planoId}/calcular`, payload);
     return response.data;
   }

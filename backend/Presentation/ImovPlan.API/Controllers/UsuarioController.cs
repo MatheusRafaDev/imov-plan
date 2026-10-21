@@ -1,4 +1,7 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -93,6 +96,32 @@ namespace ImovPlan.API.Controllers
             });
         }
 
+        [HttpPatch("{id}/senha")]
+        public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest request)
+        {
+            var usuarioId = User.GetUsuarioId();
+            if (string.IsNullOrEmpty(usuarioId) || usuarioId != id)
+                return NotFound(new { message = "Usuário não encontrado." });
+
+            if (string.IsNullOrWhiteSpace(request.SenhaAtual) || string.IsNullOrWhiteSpace(request.NovaSenha))
+                return BadRequest(new { message = "Informe a senha atual e a nova senha." });
+
+            if (!IsPasswordStrong(request.NovaSenha))
+                return BadRequest(new { message = "A senha deve ter pelo menos 8 caracteres, incluindo letras e números." });
+
+            var existing = await _usuarioRepository.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound(new { message = "Usuário não encontrado." });
+
+            if (string.IsNullOrEmpty(existing.PasswordHash) || !VerifyPassword(request.SenhaAtual, existing.PasswordHash))
+                return BadRequest(new { message = "A senha atual está incorreta ou esta conta não possui senha local." });
+
+            existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NovaSenha, workFactor: 12);
+            await _usuarioRepository.UpdateAsync(id, existing);
+
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
@@ -141,6 +170,26 @@ namespace ImovPlan.API.Controllers
             var bytes = System.Text.Encoding.UTF8.GetBytes(json);
             return File(bytes, "application/json", $"exportacao_dados_{usuarioId}.json");
         }
+
+        private static bool VerifyPassword(string password, string passwordHash)
+        {
+            if (passwordHash.StartsWith("$2", StringComparison.Ordinal))
+                return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+
+            // Compatibilidade com hashes SHA-256 antigos; o hash novo será salvo como BCrypt.
+            using var sha256 = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(password + "ImovPlanSalt2026");
+            var legacyHash = Convert.ToBase64String(sha256.ComputeHash(bytes));
+            return string.Equals(passwordHash, legacyHash, StringComparison.Ordinal);
+        }
+
+        private static bool IsPasswordStrong(string password)
+        {
+            if (password.Length < 8)
+                return false;
+
+            return Regex.IsMatch(password, @"[a-zA-Z\u00C0-\u00FF]") && Regex.IsMatch(password, @"[0-9]");
+        }
     }
 
 
@@ -149,4 +198,11 @@ namespace ImovPlan.API.Controllers
         public string? Name { get; set; }
         public string? DataNascimento { get; set; }
     }
+
+    public class ChangePasswordRequest
+    {
+        public string SenhaAtual { get; set; } = string.Empty;
+        public string NovaSenha { get; set; } = string.Empty;
+    }
+
 }

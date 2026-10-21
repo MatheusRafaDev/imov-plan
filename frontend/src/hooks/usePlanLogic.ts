@@ -10,6 +10,13 @@ import { getBrasiliaToday } from '@/utils/dates';
 // Fila global para serializar requisições de salvamento e evitar concorrência
 let globalSaveQueue: Promise<any> = Promise.resolve();
 
+function formatarDataCheckpoint(value?: string | null): string {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+  return getBrasiliaToday().dataStr;
+}
+
 export function usePlanLogic() {
   const state = usePlanStore();
   const planoId = state.planoId;
@@ -78,7 +85,7 @@ export function usePlanLogic() {
           valorInicial: Number(p.valorInicial) || 0,
           tipoInvestimento: p.tipoInvestimento || undefined,
           valorAtual: p.valorAtual !== undefined && p.valorAtual !== null && p.valorAtual !== "" ? Number(p.valorAtual) : Number(p.valorInicial) || 0,
-          dataValorAtual: p.dataValorAtual || new Date().toISOString(),
+          dataValorAtual: formatarDataCheckpoint(p.dataValorAtual),
         })),
         bancoEscolhido: payload.bancoEscolhido ? {
           id: payload.bancoEscolhido.id,
@@ -181,7 +188,7 @@ export function usePlanLogic() {
         pessoaId: p.id,
         valor: p.aporte_mensal,
         valorAtual: p.valorAtual,
-        dataValorAtual: p.dataValorAtual
+        dataValorAtual: formatarDataCheckpoint(p.dataValorAtual)
       })),
       aportesExtras: currentState.aportesExtras.map((a) => ({
         pessoaId: a.pessoaId || '',
