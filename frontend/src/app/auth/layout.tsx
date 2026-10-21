@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "Acessar Conta ou Cadastrar",
+  title: "login",
   description:
     "Entre na sua conta Imov.Plan ou cadastre-se gratuitamente para planejar a entrada do seu imóvel dos sonhos com cálculo de CDI e custos de ITBI.",
   alternates: {

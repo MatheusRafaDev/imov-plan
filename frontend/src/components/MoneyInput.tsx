@@ -134,10 +134,10 @@ export const MoneyInput = React.forwardRef<HTMLInputElement, Props>(
           placeholder={placeholder}
           className={cn(
             "num text-right font-medium",
-            variant === "money" && "pl-9",
-            variant === "percent" && "pr-8",
             hasError && "input-error border-destructive focus-visible:ring-destructive",
             className,
+            variant === "money" && "!pl-9",
+            variant === "percent" && "!pr-8",
           )}
           value={text}
           onFocus={handleFocus}

@@ -11,11 +11,14 @@ import { toast } from "sonner";
 import { Building2, Plus, Trash2, CheckCircle2, Loader2, ArrowRight, Clock, Edit2, Check, X, AlertTriangle } from "lucide-react";
 import { SimulacaoService, type BackendSimulacaoResult } from "@/services/SimulacaoService";
 import { usePlanStore } from "@/store/usePlanStore";
+import { usePlanLogic } from "@/hooks/usePlanLogic";
+import { extractSaldoAtual } from "@/utils/simulacaoSelectors";
 
 export default function PlanosPage() {
   const planoId = usePlanStore((state) => state.planoId);
   const setPlanoId = usePlanStore((state) => state.setPlanoId);
   const resetPlan = usePlanStore((state) => state.reset);
+  const { progressoAtual } = usePlanLogic();
   const { data: planos = [], isLoading: carregandoPlanos } = usePlanos();
   const { mutateAsync: criarNovoPlano } = useCriarPlano();
   const { mutateAsync: excluirPlano } = useExcluirPlano();
@@ -317,30 +320,38 @@ export default function PlanosPage() {
                 {/* Conteúdo com Hierarquia Visual Priorizada */}
                 <div className="p-5 space-y-4">
                   {/* Saldo Atual & Progresso Hero */}
-                  {sim ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">Saldo atual</span>
-                        <span className="text-muted-foreground text-[11px] font-medium">Meta: {brl(sim.totalNecessario || (plano.valorImovel * (plano.percentualEntrada / 100)))}</span>
+                  {sim ? (() => {
+                    const meta = sim.totalNecessario || (plano.valorImovel * (plano.percentualEntrada / 100));
+                    const saldoAtual = (isAtivo && progressoAtual > 0)
+                      ? progressoAtual
+                      : (extractSaldoAtual(sim) || sim.valorJaGuardado);
+                    const percentualProgresso = meta > 0 ? Math.min(100, (saldoAtual / meta) * 100) : 0;
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">Saldo atual</span>
+                          <span className="text-muted-foreground text-[11px] font-medium">Meta: {brl(meta)}</span>
+                        </div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="font-display text-2xl sm:text-3xl font-semibold text-foreground num leading-none">
+                            {brl(saldoAtual)}
+                          </span>
+                          <span className="text-xs font-semibold text-accent uppercase tracking-wider">
+                            {percentualProgresso.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="relative h-2 w-full bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
+                            style={{ 
+                              width: `${percentualProgresso}%` 
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="font-display text-2xl sm:text-3xl font-semibold text-foreground num leading-none">
-                          {brl(sim.valorJaGuardado)}
-                        </span>
-                        <span className="text-xs font-semibold text-accent uppercase tracking-wider">
-                          {(sim.totalNecessario > 0 ? Math.min(100, (sim.valorJaGuardado / sim.totalNecessario) * 100) : 0).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="relative h-2 w-full bg-secondary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
-                          style={{ 
-                            width: `${sim.totalNecessario > 0 ? Math.min(100, (sim.valorJaGuardado / sim.totalNecessario) * 100) : 0}%` 
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : carregandoSimulacoes ? (
+                    );
+                  })() : carregandoSimulacoes ? (
                     <div className="h-20 bg-secondary/30 rounded-xl animate-pulse flex items-center justify-center text-muted-foreground/50 text-xs">
                       Calculando indicadores...
                     </div>

@@ -273,12 +273,25 @@ export function usePlanLogic() {
       if (rowMesAtual) {
         const prevRow = simulacaoData?.detalhesMensais?.find((x: any) => x.mes === rowMesAtual.mes - 1);
         const saldoInicialMes = prevRow 
-          ? Number(prevRow.totalAcumulado || 0) 
+          ? (rowMesAtual.mes === 1 && (Number(state.objetivo?.valorJaGuardado || 0) > 0 || somaPessoasGuardado > 0)
+              ? Math.max(Number(prevRow.totalAcumulado || 0), Number(state.objetivo?.valorJaGuardado || 0), somaPessoasGuardado)
+              : Number(prevRow.totalAcumulado || 0))
           : (Number(simulacaoData?.valorJaGuardado || state.objetivo?.valorJaGuardado || somaPessoasGuardado) || 0);
 
+        const prevParts = prevRow?.participantes || [];
         const saldosIniciaisPorPessoa: Record<string, number> = {};
-        state.pessoas.forEach(p => {
-          const prevPart = prevRow?.participantes?.find((part: any) => (part.participanteId || part.id) === p.id);
+        state.pessoas.forEach((p, idx) => {
+          let prevPart = prevParts.find((part: any) => (part.participanteId || part.id) === p.id);
+          if (!prevPart && p.nome) {
+            prevPart = prevParts.find((part: any) => part.nome && part.nome.trim().toLowerCase() === p.nome.trim().toLowerCase());
+          }
+          if (!prevPart && prevParts.length === 1 && state.pessoas.length === 1) {
+            prevPart = prevParts[0];
+          }
+          if (!prevPart && prevParts[idx]) {
+            prevPart = prevParts[idx];
+          }
+
           saldosIniciaisPorPessoa[p.id] = prevPart 
             ? Number(prevPart.saldo || 0) 
             : Number(p.valorInicial ?? p.valorAtual ?? 0);
@@ -300,8 +313,19 @@ export function usePlanLogic() {
 
         const diaAporteConfig = state.diasDoAportePorMes?.[rowMesAtual.mes] ?? state.diaDoAporte ?? 5;
 
-        const aportesParticipantes = state.pessoas.map(p => {
-          const partRow = (rowMesAtual.participantes || []).find((part: any) => (part.participanteId || part.id) === p.id);
+        const partRows = rowMesAtual.participantes || [];
+        const aportesParticipantes = state.pessoas.map((p, idx) => {
+          let partRow = partRows.find((part: any) => (part.participanteId || part.id) === p.id);
+          if (!partRow && p.nome) {
+            partRow = partRows.find((part: any) => part.nome && part.nome.trim().toLowerCase() === p.nome.trim().toLowerCase());
+          }
+          if (!partRow && partRows.length === 1 && state.pessoas.length === 1) {
+            partRow = partRows[0];
+          }
+          if (!partRow && partRows[idx]) {
+            partRow = partRows[idx];
+          }
+
           const valorAporte = partRow ? Number(partRow.aporteMensal || 0) : Number(p.aporte_mensal || 0);
           const diaPessoa = p.diaAporte ?? diaAporteConfig;
           return {

@@ -159,15 +159,26 @@ namespace ImovPlan.API.Controllers
         [HttpPut("draft/{id}")]
         public async Task<IActionResult> UpdateDraft(string id, [FromBody] PlanoDraftDto draftDto)
         {
-            var usuarioIdClaim = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioIdClaim))
-                return Unauthorized(new { message = "Autenticação é obrigatória." });
+            try
+            {
+                var usuarioIdClaim = User.GetUsuarioId();
+                if (string.IsNullOrEmpty(usuarioIdClaim))
+                    return Unauthorized(new { message = "Autenticação é obrigatória." });
 
-            var updated = await _planoService.UpdateDraftAsync(id, draftDto, usuarioIdClaim);
-            if (!updated)
-                return NotFound(new { message = "Plano n\u00e3o encontrado ou n\u00e3o autorizado." });
+                if (draftDto == null)
+                    return BadRequest(new { message = "Dados do rascunho inválidos." });
 
-            return NoContent();
+                var updated = await _planoService.UpdateDraftAsync(id, draftDto, usuarioIdClaim);
+                if (!updated)
+                    return NotFound(new { message = "Plano não encontrado ou não autorizado." });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro inesperado ao atualizar rascunho do plano {PlanoId}", id);
+                return StatusCode(500, new { message = "Erro ao atualizar rascunho.", detail = ex.Message });
+            }
         }
 
         [HttpPost("{id}/concluir")]

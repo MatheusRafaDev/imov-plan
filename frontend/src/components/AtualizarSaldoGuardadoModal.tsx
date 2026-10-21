@@ -28,7 +28,7 @@ function AtualizarSaldoGuardadoModalContent({
 }: {
   onClose: () => void;
 }) {
-  const { pessoas, salvarPlano, calcularBackend, progressoAtualPorPessoa, objetivo, setObjetivo } = usePlanLogic();
+  const { pessoas, setPessoas, salvarPlano, calcularBackend, progressoAtualPorPessoa, objetivo, setObjetivo } = usePlanLogic();
   const [salvando, setSalvando] = useState(false);
 
   // Mapeamento local dos saldos por pessoa inicializado sincronicamente ao montar o modal
@@ -92,6 +92,8 @@ function AtualizarSaldoGuardadoModalContent({
 
       const totalGuardadoSoma = updatedPeople.reduce((acc, p) => acc + (p.valorAtual || 0), 0);
       const novoObjetivo = objetivo ? { ...objetivo, valorJaGuardado: totalGuardadoSoma } : null;
+      
+      setPessoas(updatedPeople);
       if (novoObjetivo) {
         setObjetivo(novoObjetivo);
       }
@@ -102,7 +104,10 @@ function AtualizarSaldoGuardadoModalContent({
       });
 
       if (savedId) {
-        await calcularBackend(savedId);
+        await calcularBackend(savedId, {
+          pessoas: updatedPeople,
+          objetivo: novoObjetivo ?? undefined,
+        });
         toast.success("Saldos atualizados e sincronizados no Mês a Mês!");
         onClose();
       } else {

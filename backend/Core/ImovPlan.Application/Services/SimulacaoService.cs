@@ -70,20 +70,65 @@ namespace ImovPlan.Application.Services
                 }
             }
 
-            var saldoInicialTotal = saldosIndividuais.Values.Sum();
-            
-            // Calculate ValorJaGuardado dynamically from participants; fallback to plan objective if none exists.
-            var valorJaGuardado = saldoInicialTotal > 0
-                ? saldoInicialTotal
-                : planejamento.ValorJaGuardado ?? 0m;
-            
-            // A global balance remains unassigned until the user explicitly assigns
-            // it to a participant; never split it automatically.
-
-            var saldoConjunto = valorJaGuardado;
-            var totalInvestido = saldoConjunto;
+            if (participantesDb.Count == 0)
+            {
+                var planParts = await _participanteRepo.GetByPlanejamentoIdAsync(planejamento.Id);
+                foreach (var p in planParts)
+                {
+                    participantesDb[p.Id] = p;
+                    var saldoTeorico = p.PatrimonioInicial?.Valor ?? 0m;
+                    saldosTeoricosIniciais[p.Id] = saldoTeorico;
+                    saldosIndividuais[p.Id] = saldoTeorico;
+                    if (p.ValorAtual.HasValue && p.DataValorAtual.HasValue)
+                    {
+                        checkpoints[p.Id] = (p.ValorAtual.Value, p.DataValorAtual.Value.Date);
+                    }
+                    nomesIndividuais[p.Id] = p.Nome;
+                }
+            }
 
             var aportesMensaisRequest = request.AportesMensais ?? new List<AporteMensalDto>();
+
+            // Mapeamento bidirecional entre o ID enviado no request (ex: 'p1' ou ObjectId) e o ID real do banco
+            var requestIdToDbId = new Dictionary<string, string>();
+            foreach (var aporte in aportesMensaisRequest)
+            {
+                if (participantesDb.ContainsKey(aporte.PessoaId))
+                {
+                    requestIdToDbId[aporte.PessoaId] = aporte.PessoaId;
+                }
+                else if (participantesDb.Count == 1 && aportesMensaisRequest.Count == 1)
+                {
+                    requestIdToDbId[aporte.PessoaId] = participantesDb.Keys.First();
+                }
+                else
+                {
+                    var match = participantesDb.Values.FirstOrDefault(p =>
+                        !requestIdToDbId.ContainsValue(p.Id) &&
+                        !string.IsNullOrEmpty(p.Nome) &&
+                        p.Nome.Equals(aporte.PessoaNome, StringComparison.OrdinalIgnoreCase));
+                    if (match != null)
+                    {
+                        requestIdToDbId[aporte.PessoaId] = match.Id;
+                    }
+                }
+
+                if (requestIdToDbId.TryGetValue(aporte.PessoaId, out var realDbId) &&
+                    participantesDb.TryGetValue(realDbId, out var part))
+                {
+                    if (aporte.ValorAtual.HasValue)
+                    {
+                        part.ValorAtual = aporte.ValorAtual.Value;
+                        if (part.PatrimonioInicial != null)
+                            part.PatrimonioInicial.Valor = aporte.ValorAtual.Value;
+                    }
+                    if (aporte.Valor > 0)
+                    {
+                        part.AporteMensal = aporte.Valor;
+                    }
+                }
+            }
+
             var totalAporteMensal = aportesMensaisRequest.Sum(a => a.Valor);
             var aportesRegularesEditados = request.AportesRegularesEditados ?? new Dictionary<int, decimal>();
             var aportesRegularesEditadosPorPessoa = request.AportesRegularesEditadosPorPessoa ?? new Dictionary<string, Dictionary<int, decimal>>();
@@ -97,16 +142,16 @@ namespace ImovPlan.Application.Services
             {
                 var p = participantesDb[pid];
                 var saldoTeorico = p.PatrimonioInicial?.Valor ?? 0m;
-                var valorAtual = p.ValorAtual ?? 0m;
-                saldosIndividuais[pid] = valorAtual > 0 ? valorAtual : saldoTeorico;
+                var valorAtual = p.ValorAtual;
+                saldosIndividuais[pid] = valorAtual.HasValue ? valorAtual.Value : saldoTeorico;
             }
-            saldoConjunto = saldosIndividuais.Values.Sum();
-            if (saldoConjunto == 0 && (planejamento.ValorJaGuardado ?? 0m) > 0)
-            {
-                saldoConjunto = planejamento.ValorJaGuardado.GetValueOrDefault();
-            }
-            valorJaGuardado = saldoConjunto;
-            totalInvestido = saldoConjunto;
+            var saldoInicialTotal = saldosIndividuais.Values.Sum();
+            var saldoConjunto = request.ValorJaGuardado.HasValue && request.ValorJaGuardado.Value > 0
+                ? request.ValorJaGuardado.Value
+                : (saldoInicialTotal > 0 ? saldoInicialTotal : (planejamento.ValorJaGuardado ?? 0m));
+
+            var valorJaGuardado = saldoConjunto;
+            var totalInvestido = saldoConjunto;
             var saldosBaseSimulacao = new Dictionary<string, decimal>(saldosIndividuais);
             int? mesAtingiu = null;
             DateTime? dataAtingiu = null;
@@ -136,10 +181,12 @@ namespace ImovPlan.Application.Services
             foreach (var p in participantesDb.Keys)
             {
                 var extrasPessoaMes0 = extrasMes0List
-                    .Where(a => a.PessoaId == p && !string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase))
+                    .Where(a => a.PessoaId == p || (requestIdToDbId.TryGetValue(a.PessoaId ?? "", out var mId) && mId == p))
+                    .Where(a => !string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase))
                     .Sum(a => a.Valor);
                 var retiradasPessoaMes0 = extrasMes0List
-                    .Where(a => a.PessoaId == p && string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase))
+                    .Where(a => a.PessoaId == p || (requestIdToDbId.TryGetValue(a.PessoaId ?? "", out var mId) && mId == p))
+                    .Where(a => string.Equals(a.Tipo, "retirada", StringComparison.OrdinalIgnoreCase))
                     .Sum(a => a.Valor);
                 saldosIndividuais[p] += (extrasPessoaMes0 - retiradasPessoaMes0);
 
@@ -187,9 +234,13 @@ namespace ImovPlan.Application.Services
 
                 foreach (var extra in aportesExtrasMes)
                 {
-                    if (!string.IsNullOrEmpty(extra.PessoaId) && extrasPorPessoa.ContainsKey(extra.PessoaId))
+                    var extraPid = extra.PessoaId;
+                    if (!string.IsNullOrEmpty(extraPid) && requestIdToDbId.TryGetValue(extraPid, out var mId))
+                        extraPid = mId;
+
+                    if (!string.IsNullOrEmpty(extraPid) && extrasPorPessoa.ContainsKey(extraPid))
                     {
-                        extrasPorPessoa[extra.PessoaId] += extra.Valor;
+                        extrasPorPessoa[extraPid] += extra.Valor;
                     }
                     else
                     {
@@ -209,10 +260,16 @@ namespace ImovPlan.Application.Services
 
                 foreach (var aporteRequest in aportesMensaisRequest)
                 {
-                    var pid = aporteRequest.PessoaId;
+                    var pid = requestIdToDbId.TryGetValue(aporteRequest.PessoaId, out var mappedId)
+                        ? mappedId
+                        : aporteRequest.PessoaId;
+
                     if (!aporteRegularPorPessoa.ContainsKey(pid)) continue;
 
-                    if (aportesRegularesEditadosPorPessoa.TryGetValue(pid, out var dict) && dict.TryGetValue(meses, out var editedValue))
+                    var reqPessoaId = aporteRequest.PessoaId;
+                    if ((aportesRegularesEditadosPorPessoa.TryGetValue(pid, out var dict) ||
+                         aportesRegularesEditadosPorPessoa.TryGetValue(reqPessoaId, out dict)) &&
+                        dict.TryGetValue(meses, out var editedValue))
                     {
                         aporteRegularPorPessoa[pid] = editedValue;
                     }
@@ -324,20 +381,21 @@ namespace ImovPlan.Application.Services
 
             // Persistir registro da simulação
             var participantesSnapshot = new List<ParticipanteSnapshot>();
-            foreach (var aporte in aportesMensaisRequest)
+            foreach (var pid in participantesDb.Keys)
             {
-                var participante = participantesDb.GetValueOrDefault(aporte.PessoaId);
-                if (participante != null)
+                var participante = participantesDb[pid];
+                var aporte = aportesMensaisRequest.FirstOrDefault(a =>
+                    a.PessoaId == pid ||
+                    (requestIdToDbId.TryGetValue(a.PessoaId, out var mId) && mId == pid));
+
+                participantesSnapshot.Add(new ParticipanteSnapshot
                 {
-                    participantesSnapshot.Add(new ParticipanteSnapshot
-                    {
-                        ParticipanteId = participante.Id,
-                        Nome = participante.Nome,
-                        AporteMensal = aporte.Valor,
-                        ValorInicial = saldosBaseSimulacao.GetValueOrDefault(participante.Id),
-                        SobraMensal = participante.SobraMensal,
-                    });
-                }
+                    ParticipanteId = participante.Id,
+                    Nome = participante.Nome,
+                    AporteMensal = aporte?.Valor ?? participante.AporteMensal,
+                    ValorInicial = saldosBaseSimulacao.GetValueOrDefault(participante.Id),
+                    SobraMensal = participante.SobraMensal,
+                });
             }
 
             var registro = new HistoricoSimulacao

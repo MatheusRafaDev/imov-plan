@@ -58,11 +58,33 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.UsarGastosDetalhados = participante.UsarGastosDetalhados;
                 existing.SobraMensal = participante.SobraMensal;
                 existing.AporteMensal = participante.AporteMensal;
-                existing.PatrimonioInicial = participante.PatrimonioInicial;
+                existing.DiaAporte = participante.DiaAporte;
                 existing.ValorAtual = participante.ValorAtual;
                 existing.DataValorAtual = participante.DataValorAtual;
 
-                _context.Participantes.Update(existing);
+                if (participante.PatrimonioInicial != null)
+                {
+                    if (existing.PatrimonioInicial != null)
+                    {
+                        existing.PatrimonioInicial.Valor = participante.PatrimonioInicial.Valor;
+                        existing.PatrimonioInicial.Fonte = participante.PatrimonioInicial.Fonte;
+                        existing.PatrimonioInicial.TipoInvestimento = participante.PatrimonioInicial.TipoInvestimento;
+                        existing.PatrimonioInicial.RegistradoEm = participante.PatrimonioInicial.RegistradoEm;
+                    }
+                    else
+                    {
+                        existing.PatrimonioInicial = participante.PatrimonioInicial;
+                    }
+                }
+                else
+                {
+                    existing.PatrimonioInicial = null;
+                }
+
+                if (_context.Entry(existing).State == EntityState.Detached)
+                {
+                    _context.Participantes.Update(existing);
+                }
                 await _context.SaveChangesAsync();
             }
         }

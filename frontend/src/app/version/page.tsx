@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 
 export default function VersionPage() {
+  useEffect(() => {
+    document.title = "Imov.plan | versão";
+  }, []);
   const { data, isLoading, error } = useQuery({
     queryKey: ["version"],
     queryFn: async () => {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Recuperar Senha",
+  title: "recuperar senha",
   description: "Recupere o acesso à sua conta no Imov.Plan.",
   alternates: {
     canonical: "/auth/forgot-password",

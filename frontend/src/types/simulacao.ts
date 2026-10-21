@@ -22,6 +22,7 @@ export interface ParticipanteSummary {
 export interface SimulacaoSummary {
   totalNecessario: number;
   valorJaGuardado: number;
+  saldoAtual?: number;
   totalInvestido: number;
   totalRetirado?: number;
   totalAcumulado: number;

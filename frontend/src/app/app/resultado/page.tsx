@@ -110,9 +110,9 @@ export default function ResultadoPage() {
   }
 
   return (
-    <div className="max-w-screen-2xl w-full mx-auto space-y-6">
+    <div className="max-w-screen-2xl w-full mx-auto space-y-6 min-w-0 max-w-full">
       {/* Header */}
-      <div className="flex items-start justify-between px-4 sm:px-6 md:px-8 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
+      <div className="flex items-start justify-between animate-fade-in-up" style={{ animationDelay: "0ms" }}>
         <div>
           <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">
             Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}
@@ -133,23 +133,23 @@ export default function ResultadoPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "100ms" }}>
+      <div className="animate-fade-in-up w-full min-w-0" style={{ animationDelay: "100ms" }}>
         <SummaryCards summary={summary} progressoAtual={progressoAtual} />
       </div>
 
       {/* Investment Chart */}
-      <div className="animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "150ms" }}>
+      <div className="animate-fade-in-up w-full min-w-0" style={{ animationDelay: "150ms" }}>
         <InvestmentChart data={chartData} summary={summary} />
       </div>
 
       {/* Financial Summary & Participants */}
-      <div className="grid lg:grid-cols-2 gap-4 animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "200ms" }}>
+      <div className="grid lg:grid-cols-2 gap-4 animate-fade-in-up w-full min-w-0" style={{ animationDelay: "200ms" }}>
         <FinancialSummaryCard summary={summary} />
         <ParticipantsCard participantes={participantes} />
       </div>
 
       {/* Table */}
-      <div className="animate-fade-in-up px-4 sm:px-6 md:px-8" style={{ animationDelay: "250ms" }}>
+      <div className="animate-fade-in-up w-full min-w-0 max-w-full" style={{ animationDelay: "250ms" }}>
         {calculating ? <TableSkeleton /> : <TabelaMesAMes allowDailyDetail={true} />}
       </div>
     </div>

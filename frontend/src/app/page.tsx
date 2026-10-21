@@ -229,6 +229,10 @@ export default function Index() {
     }
   }, [loading, user, router]);
 
+  useEffect(() => {
+    document.title = "Imov.plan | simulador de entrada e financiamento";
+  }, []);
+
   /* simulator state */
   const [valor, setValor] = useState(500000);
   const [pct, setPct] = useState(20);

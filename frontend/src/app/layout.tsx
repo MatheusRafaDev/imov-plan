@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
   title: {
     default: siteConfig.title,
-    template: "%s | Imov.Plan",
+    template: "Imov.plan | %s",
   },
   description: siteConfig.description,
   keywords: siteConfig.keywords,
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Imov.Plan",
+    title: "Imov.plan",
     statusBarStyle: "black-translucent",
   },
   icons: {

@@ -5,7 +5,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { ShieldCheck, Lock, UserCheck, Database, FileText, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade",
+  title: "política de privacidade",
   description:
     "Entenda como o Imov.Plan protege e trata seus dados patrimoniais e financeiros em conformidade rigorosa com a LGPD.",
   alternates: {

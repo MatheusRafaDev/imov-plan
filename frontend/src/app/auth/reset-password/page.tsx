@@ -95,6 +95,10 @@ function ResetPasswordForm() {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
 
+  useEffect(() => {
+    document.title = "Imov.plan | redefinir senha";
+  }, []);
+
   // Valida o token assim que a página carrega
   useEffect(() => {
     if (!token) {

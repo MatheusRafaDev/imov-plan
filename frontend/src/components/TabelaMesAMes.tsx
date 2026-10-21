@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import React from "react";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanStore } from "@/store/usePlanStore";
 import { brl } from "@/lib/finance";
 import { getBrasiliaToday } from "@/utils/dates";
-import { Check, Loader2, Download, Trash2, AlertTriangle, X, CalendarDays } from "lucide-react";
+import { Check, Loader2, Download, Trash2, AlertTriangle, X, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RowActions } from "./TabelaMesAMes/RowActions";
@@ -105,6 +105,48 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   const [modalFocusPessoaId, setModalFocusPessoaId] = useState<string | null>(null);
   const [extraParaExcluir, setExtraParaExcluir] = useState<{ index: number; origem: string; valor: number; pessoaNome?: string; data?: string; tipo?: "aporte" | "retirada" } | null>(null);
   const [excluindoExtra, setExcluindoExtra] = useState(false);
+
+  // Estados e ref para controle da rolagem horizontal
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = tableContainerRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 6);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 6);
+  }, []);
+
+  const scrollTable = (direction: "left" | "right") => {
+    const el = tableContainerRef.current;
+    if (!el) return;
+    const scrollAmount = Math.max(260, Math.floor(el.clientWidth * 0.65));
+    el.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
+  const minTableWidth = useMemo(() => {
+    const pCount = Math.max(1, pessoas.length);
+    if (showFinancials) {
+      return Math.max(880, 560 + pCount * 220);
+    }
+    return Math.max(560, 420 + pCount * 120);
+  }, [pessoas.length, showFinancials]);
+
+  useEffect(() => {
+    checkScroll();
+    const el = tableContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      checkScroll();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [checkScroll, backendData?.detalhesMensais?.length, pessoas.length]);
 
   const handleSalvarDiaAporte = (novoDia: number, aplicarParaTodos: boolean) => {
     if (mesDetalheDiario == null) return;
@@ -209,23 +251,56 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   const displayRows = (() => {
     if (!sim || !sim.detalhesMensais) return [];
     
-    return sim.detalhesMensais.map(r => ({
-      mes: r.mes,
-      data: new Date(r.dataReferencia).toISOString(),
-      aporteRegular: r.aporteMensal,
-      aportesExtras: r.aportesExtras,
-      retiradas: r.retiradas ?? 0,
-      rendimentoLiquido: r.rendimentoLiquido,
-      saldoAcumulado: r.totalAcumulado,
-      atingiu: sim.mesesParaAtingir === r.mes && sim.atingiuMeta,
-      isExtra: Math.abs(r.aportesExtras) > 0.001 || Math.abs(r.retiradas ?? 0) > 0.001,
-      aporteFinalPorPessoa: Object.fromEntries(
-        (r.participantes || []).map(p => [p.participanteId, p.aporteMensal])
-      ),
-      saldoPorPessoa: Object.fromEntries(
-        (r.participantes || []).map(p => [p.participanteId, p.saldo])
-      )
-    }));
+    return sim.detalhesMensais.map(r => {
+      const parts = r.participantes || [];
+      const aporteFinalPorPessoa: Record<string, number> = {};
+      const saldoPorPessoa: Record<string, number> = {};
+
+      pessoas.forEach((p, idx) => {
+        let match = parts.find(part => (part.participanteId || (part as any).id) === p.id);
+        if (!match && p.nome) {
+          match = parts.find(part => part.nome && part.nome.trim().toLowerCase() === p.nome.trim().toLowerCase());
+        }
+        if (!match && parts.length === 1 && pessoas.length === 1) {
+          match = parts[0];
+        }
+        if (!match && parts[idx]) {
+          match = parts[idx];
+        }
+
+        if (match) {
+          aporteFinalPorPessoa[p.id] = match.aporteMensal;
+          saldoPorPessoa[p.id] = match.saldo;
+          aporteFinalPorPessoa[match.participanteId] = match.aporteMensal;
+          saldoPorPessoa[match.participanteId] = match.saldo;
+        } else {
+          aporteFinalPorPessoa[p.id] = 0;
+          saldoPorPessoa[p.id] = 0;
+        }
+      });
+
+      // Also ensure direct participanteIds from simulation are present
+      parts.forEach(part => {
+        if (saldoPorPessoa[part.participanteId] === undefined) {
+          saldoPorPessoa[part.participanteId] = part.saldo;
+          aporteFinalPorPessoa[part.participanteId] = part.aporteMensal;
+        }
+      });
+
+      return {
+        mes: r.mes,
+        data: new Date(r.dataReferencia).toISOString(),
+        aporteRegular: r.aporteMensal,
+        aportesExtras: r.aportesExtras,
+        retiradas: r.retiradas ?? 0,
+        rendimentoLiquido: r.rendimentoLiquido,
+        saldoAcumulado: r.totalAcumulado,
+        atingiu: sim.mesesParaAtingir === r.mes && sim.atingiuMeta,
+        isExtra: Math.abs(r.aportesExtras) > 0.001 || Math.abs(r.retiradas ?? 0) > 0.001,
+        aporteFinalPorPessoa,
+        saldoPorPessoa
+      };
+    });
   })();
 
   const totals = (() => {
@@ -437,7 +512,12 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
         pessoas: novasPessoas,
         objetivo: objetivo ? { ...objetivo, valorJaGuardado: novoTotalGuardado } : undefined
       });
-      if (savedId) await calcularBackend(savedId);
+      if (savedId) {
+        await calcularBackend(savedId, {
+          pessoas: novasPessoas,
+          objetivo: objetivo ? { ...objetivo, valorJaGuardado: novoTotalGuardado } : undefined
+        });
+      }
       toast.success("Saldo inicial guardado atualizado com sucesso!");
       return;
     }
@@ -490,18 +570,53 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   if (!displayRows.length) return null;
 
   return (
-    <div className="space-y-4 relative w-full">
+    <div className="space-y-4 relative w-full min-w-0 max-w-full">
       {/* Container fixo para evitar reflows no pai */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3.5 w-full min-w-0 max-w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-display font-semibold text-xl sm:text-2xl tracking-tight text-foreground">Mês a Mês</h3>
             <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-medium shadow-soft">
               {displayRows.length - 1} meses
             </span>
+            {canScrollRight && (
+              <span className="hidden md:inline-flex text-[11px] text-muted-foreground items-center gap-1 bg-secondary/50 px-2.5 py-0.5 rounded-full border border-border/40">
+                Deslize para ver todas as colunas ➔
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
+          <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
+            {/* Controles rápidos de rolagem horizontal */}
+            {(canScrollLeft || canScrollRight) && (
+              <div className="flex items-center gap-1 bg-secondary/40 border border-border/70 rounded-xl p-0.5 shadow-xs">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => scrollTable("left")}
+                  disabled={!canScrollLeft}
+                  className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:pointer-events-none cursor-pointer"
+                  title="Rolar para a esquerda"
+                  aria-label="Rolar para a esquerda"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => scrollTable("right")}
+                  disabled={!canScrollRight}
+                  className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:pointer-events-none cursor-pointer"
+                  title="Rolar para a direita"
+                  aria-label="Rolar para a direita"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             <Button
               variant="outline"
               size="sm"
@@ -513,11 +628,38 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
             </Button>
           </div>
         </div>
+
+        {/* Dica para mobile quando houver colunas ocultas */}
+        {canScrollRight && (
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground bg-secondary/30 px-3 py-1.5 rounded-xl border border-border/40 md:hidden">
+            <span>Deslize a tabela para o lado para ver todos os dados</span>
+            <span className="text-accent font-semibold text-xs animate-pulse">➔</span>
+          </div>
+        )}
       
-        {/* Usando block e min-w-full mas limitando o overflow num scroll container estável */}
-                
-        <div className={`overflow-x-auto bg-card rounded-2xl shadow-soft border border-border/50 transition-opacity duration-300 custom-scrollbar ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
-          <table className="w-full text-sm font-sans border-collapse relative">
+        {/* Scroll container com min-w-0 e max-w-full para disparar o overflow-x corretamente */}
+        <div className="relative w-full min-w-0 max-w-full">
+          {/* Sombras suaves indicando mais conteúdo à esquerda ou à direita */}
+          {canScrollLeft && (
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-card/90 to-transparent z-10 rounded-l-2xl border-l border-border/30" />
+          )}
+          {canScrollRight && (
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card/90 to-transparent z-10 rounded-r-2xl border-r border-border/30" />
+          )}
+
+          <div 
+            ref={tableContainerRef}
+            onScroll={checkScroll}
+            style={{
+              WebkitOverflowScrolling: "touch",
+              touchAction: "pan-x pan-y",
+            }}
+            className={`w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain bg-card rounded-2xl shadow-soft border border-border/50 transition-opacity duration-300 custom-scrollbar ${calculating ? "opacity-60 pointer-events-none" : "opacity-100"}`}
+          >
+            <table 
+              className="w-full text-sm font-sans border-collapse relative"
+              style={{ minWidth: `${minTableWidth}px` }}
+            >
             <thead className="bg-card text-muted-foreground border-b border-border/60">
               <tr>
                 <Th className="w-px">Mês</Th>
@@ -733,6 +875,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
           </table>
         </div>
       </div>
+    </div>
 
       {selectedRow && (
         <EditMesModal

@@ -54,7 +54,17 @@ namespace ImovPlan.Infrastructure.Data
             modelBuilder.Entity<Participante>().OwnsOne(p => p.PatrimonioInicial);
             modelBuilder.Entity<HistoricoSimulacao>().OwnsMany(h => h.ParticipantesSnapshot);
             modelBuilder.Entity<EvolucaoMensalSimulacao>().OwnsMany(e => e.Participantes);
-            modelBuilder.Entity<PontoInteresseCache>().OwnsMany(c => c.Resultados);
+            modelBuilder.Entity<ParametrosFinanceiros>().OwnsMany(p => p.AliquotasIr);
+            modelBuilder.Entity<ParametrosFinanceiros>().OwnsMany(p => p.FaixasCartorio);
+            modelBuilder.Entity<ParametrosFinanceiros>().OwnsMany(p => p.BancosFinanciamento);
+            modelBuilder.Entity<ParametrosFinanceiros>().OwnsMany(p => p.Investimentos);
+            modelBuilder.Entity<PontoInteresseCache>().OwnsMany(c => c.Resultados, r =>
+            {
+                if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+                {
+                    r.Ignore(p => p.Tags);
+                }
+            });
 
             // Indexes for frequently queried collections
             modelBuilder.Entity<Participante>()

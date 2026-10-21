@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { usePlanLogic } from "@/hooks/usePlanLogic";
+import { usePlanStore } from "@/store/usePlanStore";
 import { type Pessoa, type GastoDetalhado } from "@/context/PlanContext";
 import { useDebouncedCallback } from "use-debounce";
 import PessoaCard from "@/components/PessoaCard";
@@ -246,7 +247,8 @@ export default function PessoasPage() {
     try {
       const savedId = await salvarPlano();
       if (savedId && !savedId.startsWith("local-draft")) {
-        await calcularBackend(savedId).catch(() => {});
+        const cur = usePlanStore.getState();
+        await calcularBackend(savedId, { pessoas: cur.pessoas, objetivo: cur.objetivo }).catch(() => {});
       }
     } catch {}
   }, 1200);

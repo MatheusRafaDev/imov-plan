@@ -36,6 +36,10 @@ export default function AuthPage() {
     }
   }, [isAuthenticated, user, router, loading]);
 
+  useEffect(() => {
+    document.title = isLogin ? "Imov.plan | login" : "Imov.plan | cadastro";
+  }, [isLogin]);
+
   const loginWithGoogleRef = useRef(loginWithGoogle);
   const routerRef = useRef(router);
 

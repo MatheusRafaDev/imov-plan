@@ -5,8 +5,8 @@
 //   - Resto: stale-while-revalidate
 //   - /api/*: nunca intercepta (passa direto para a rede)
 
-const CACHE_NAME = "imovplan-v7";
-const STATIC_CACHE = "imovplan-static-v7";
+const CACHE_NAME = "imovplan-v8";
+const STATIC_CACHE = "imovplan-static-v8";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = [OFFLINE_URL, "/icon.svg", "/favicon.ico", "/favicon.svg", "/manifest.json"];
@@ -81,11 +81,15 @@ async function networkFirstNavigate(request) {
   try {
     const response = await fetch(request);
     return response;
-  } catch {
+  } catch (err) {
     const cached = await caches.match(request);
     if (cached) return cached;
     const offlineHtml = await caches.match(OFFLINE_URL);
     if (offlineHtml) return offlineHtml;
+    try {
+      const fallbackResponse = await fetch(OFFLINE_URL);
+      if (fallbackResponse.ok) return fallbackResponse;
+    } catch {}
     return new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
   }
 }

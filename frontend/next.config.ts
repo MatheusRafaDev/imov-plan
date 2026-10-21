@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
           "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.googletagmanager.com https://vercel.live",
           "style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com https://vercel.live",
           "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com https://vercel.live",
-          "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com https://vercel.live https://assets.vercel.com",
+          "font-src 'self' data: https://fonts.gstatic.com https://*.gstatic.com https://fonts.googleapis.com https://accounts.google.com https://vercel.live https://*.vercel.live https://assets.vercel.com https://*.vercel.com",
           "img-src 'self' data: blob: https://images.unsplash.com https://lh3.googleusercontent.com https://*.tile.openstreetmap.org https://unpkg.com https://logo.clearbit.com https://www.google.com https://*.gstatic.com https://vercel.live https://vercel.com",
           "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://play.google.com https://nominatim.openstreetmap.org https://images.unsplash.com https://fonts.googleapis.com https://fonts.gstatic.com https://vercel.live wss://*.pusher.com",
           "frame-src https://accounts.google.com https://vercel.live",

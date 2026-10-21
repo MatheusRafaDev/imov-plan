@@ -142,14 +142,23 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export const InvestmentChart = React.memo(function InvestmentChart({ data, summary }: InvestmentChartProps) {
-  const [isMounted, setIsMounted] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [isReady, setIsReady] = React.useState(false);
 
   React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true);
+    let animId: number;
+    const checkDim = () => {
+      if (containerRef.current && containerRef.current.clientWidth > 0) {
+        setIsReady(true);
+      } else {
+        animId = requestAnimationFrame(checkDim);
+      }
+    };
+    animId = requestAnimationFrame(checkDim);
+    return () => cancelAnimationFrame(animId);
   }, []);
 
-  if (!data || data.length === 0 || !summary || !isMounted) return null;
+  if (!data || data.length === 0 || !summary) return null;
 
   // Mostrar ~6 ticks no eixo X sem poluir
   const step = Math.max(1, Math.floor(data.length / 6));
@@ -176,9 +185,10 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
         </div>
       </div>
 
-      <div className="h-[240px] min-h-[240px] sm:h-[280px] sm:min-h-[280px] md:h-[320px] md:min-h-[320px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-          <AreaChart data={data} margin={{ top: 16, right: 8, left: 8, bottom: 0 }}>
+      <div ref={containerRef} className="h-[240px] min-h-[240px] sm:h-[280px] sm:min-h-[280px] md:h-[320px] md:min-h-[320px] w-full min-w-0">
+        {isReady && (
+          <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={240}>
+            <AreaChart data={data} margin={{ top: 16, right: 8, left: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.22} />
@@ -284,6 +294,7 @@ export const InvestmentChart = React.memo(function InvestmentChart({ data, summa
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </Card>
   );

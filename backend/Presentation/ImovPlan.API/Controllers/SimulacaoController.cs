@@ -80,7 +80,31 @@ namespace ImovPlan.API.Controllers
             if (planejamento == null || string.IsNullOrEmpty(usuarioId) || planejamento.UsuarioId != usuarioId)
                 return NotFound(new { message = "Planejamento não encontrado" });
 
+            if (request.ValorJaGuardado.HasValue)
+                planejamento.ValorJaGuardado = request.ValorJaGuardado.Value;
+
+            if (request.ValorImovel.HasValue && request.ValorImovel.Value > 0)
+                planejamento.ValorImovel = request.ValorImovel.Value;
+
+            if (request.PercentualEntrada.HasValue && request.PercentualEntrada.Value > 0)
+                planejamento.PercentualEntrada = request.PercentualEntrada.Value;
+
+            if (request.PercentualCustosExtras.HasValue)
+                planejamento.PercentualCustosExtras = request.PercentualCustosExtras.Value;
+
+            if (request.PrazoMaxMeses.HasValue && request.PrazoMaxMeses.Value > 0)
+                planejamento.PrazoMaxMeses = request.PrazoMaxMeses.Value;
+
+            if (!string.IsNullOrEmpty(request.DataInicio) && DateTime.TryParse(request.DataInicio, out var dtInicio))
+                planejamento.DataInicio = dtInicio;
+
             var totalNecessario = planejamento.CustosCompra?.TotalNecessario ?? 0m;
+            if (planejamento.ValorImovel.HasValue && (planejamento.PercentualEntrada.HasValue || planejamento.PercentualCustosExtras.HasValue))
+            {
+                var entrada = (planejamento.ValorImovel.Value * (planejamento.PercentualEntrada ?? 20m)) / 100m;
+                var extras = (planejamento.ValorImovel.Value * (planejamento.PercentualCustosExtras ?? 0m)) / 100m;
+                totalNecessario = entrada + extras;
+            }
             
             // Build cache key based on inputs that affect simulation
             var requestHash = System.Text.Json.JsonSerializer.Serialize(request);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Cookies from "js-cookie";
 
@@ -10,6 +10,27 @@ import { AppShell } from "@/components/AppShell";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      "/app/imovel": "imóvel",
+      "/app/pessoas": "pessoas",
+      "/app/planejamento": "planejamento",
+      "/app/resultado": "resultado",
+      "/app/planos": "meus planos",
+      "/app/perfil": "perfil",
+      "/app/financiamento": "financiamento",
+      "/app/pronto": "imóvel pronto",
+      "/app/planta": "imóvel na planta",
+      "/app/lancar-aporte": "lançar aporte",
+      "/app/onboarding": "onboarding",
+    };
+
+    const matchingKey = Object.keys(titles).find((route) => pathname.startsWith(route));
+    const pageTitle = matchingKey ? titles[matchingKey] : "planejamento";
+    document.title = `Imov.plan | ${pageTitle}`;
+  }, [pathname]);
 
   useEffect(() => {
     // Só redireciona se terminou o loading e nem no state nem nos cookies há usuário

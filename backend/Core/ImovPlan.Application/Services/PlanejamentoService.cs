@@ -190,20 +190,32 @@ namespace ImovPlan.Application.Services
                 // Update CustosCompra subdocument directly in Planejamento
                 var parametros = await _parametrosRepo.GetAtivoAsync();
                 var valorEntrada = o.ValorImovel * o.PercentualEntrada / 100m;
-                var custoITBI = o.ValorImovel * parametros.CustoItbiPadrao;
-                var custoEscritura = o.ValorImovel * parametros.CustoEscrituraPadrao;
-                var custoRegistro = o.ValorImovel * parametros.CustoRegistroPadrao;
+                var custoITBI = o.ValorImovel * (parametros?.CustoItbiPadrao ?? 0.02m);
+                var custoEscritura = o.ValorImovel * (parametros?.CustoEscrituraPadrao ?? 0.015m);
+                var custoRegistro = o.ValorImovel * (parametros?.CustoRegistroPadrao ?? 0.015m);
                 var totalNecessario = valorEntrada + (o.ValorImovel * o.PercentualCustosExtras / 100m);
 
-                existingPlanejamento.CustosCompra = new CustosCompra
+                if (existingPlanejamento.CustosCompra != null)
                 {
-                    ValorEntrada = valorEntrada,
-                    TotalNecessario = totalNecessario,
-                    CustoITBI = custoITBI,
-                    CustoEscritura = custoEscritura,
-                    CustoRegistro = custoRegistro,
-                    CalculadoEm = DateTime.UtcNow,
-                };
+                    existingPlanejamento.CustosCompra.ValorEntrada = valorEntrada;
+                    existingPlanejamento.CustosCompra.TotalNecessario = totalNecessario;
+                    existingPlanejamento.CustosCompra.CustoITBI = custoITBI;
+                    existingPlanejamento.CustosCompra.CustoEscritura = custoEscritura;
+                    existingPlanejamento.CustosCompra.CustoRegistro = custoRegistro;
+                    existingPlanejamento.CustosCompra.CalculadoEm = DateTime.UtcNow;
+                }
+                else
+                {
+                    existingPlanejamento.CustosCompra = new CustosCompra
+                    {
+                        ValorEntrada = valorEntrada,
+                        TotalNecessario = totalNecessario,
+                        CustoITBI = custoITBI,
+                        CustoEscritura = custoEscritura,
+                        CustoRegistro = custoRegistro,
+                        CalculadoEm = DateTime.UtcNow,
+                    };
+                }
             }
 
             // ── Map Banco Escolhido ──
@@ -290,12 +302,29 @@ namespace ImovPlan.Application.Services
 
                 var keptParticipanteIds = new List<string>();
 
-                foreach (var pDto in draftDto.Pessoas)
+                for (int i = 0; i < draftDto.Pessoas.Count; i++)
                 {
-                    // Try to find existing participante by Id only
+                    var pDto = draftDto.Pessoas[i];
                     Participante? participante = null;
+
+                    // 1. Tentar encontrar pelo Id exato
                     if (!string.IsNullOrEmpty(pDto.Id))
                         participante = existingPlanParticipantes.FirstOrDefault(p => p.Id == pDto.Id);
+
+                    // 2. Fallback para IDs temporários do frontend (ex: 'p1') ou mismatch
+                    if (participante == null && existingPlanParticipantes.Count > 0)
+                    {
+                        if (draftDto.Pessoas.Count == 1 && existingPlanParticipantes.Count == 1)
+                        {
+                            participante = existingPlanParticipantes[0];
+                        }
+                        else if (!string.IsNullOrWhiteSpace(pDto.Nome))
+                        {
+                            participante = existingPlanParticipantes.FirstOrDefault(p =>
+                                !keptParticipanteIds.Contains(p.Id) &&
+                                p.Nome.Equals(pDto.Nome, StringComparison.OrdinalIgnoreCase));
+                        }
+                    }
 
                     if (participante != null)
                     {
@@ -311,18 +340,28 @@ namespace ImovPlan.Application.Services
                         participante.ValorAtual = pDto.ValorAtual;
                         participante.DataValorAtual = ParseCheckpointDate(pDto.DataValorAtual);
                         
-                        // Update PatrimonioInicial subdocument directly
+                        // Update PatrimonioInicial subdocument directly in-place
                         if (pDto.ValorInicial > 0)
                         {
                             var tipoInvestimento = pDto.TipoInvestimento ?? draftDto.Objetivo?.TipoInvestimento;
                             var fonte = MapTipoInvestimentoToFonte(tipoInvestimento);
-                            participante.PatrimonioInicial = new PatrimonioInicial
+                            if (participante.PatrimonioInicial != null)
                             {
-                                Valor = pDto.ValorInicial,
-                                Fonte = fonte,
-                                TipoInvestimento = tipoInvestimento,
-                                RegistradoEm = DateTime.UtcNow,
-                            };
+                                participante.PatrimonioInicial.Valor = pDto.ValorInicial;
+                                participante.PatrimonioInicial.Fonte = fonte;
+                                participante.PatrimonioInicial.TipoInvestimento = tipoInvestimento;
+                                participante.PatrimonioInicial.RegistradoEm = DateTime.UtcNow;
+                            }
+                            else
+                            {
+                                participante.PatrimonioInicial = new PatrimonioInicial
+                                {
+                                    Valor = pDto.ValorInicial,
+                                    Fonte = fonte,
+                                    TipoInvestimento = tipoInvestimento,
+                                    RegistradoEm = DateTime.UtcNow,
+                                };
+                            }
                         }
                         else
                         {
@@ -401,6 +440,11 @@ namespace ImovPlan.Application.Services
 
             await _planejamentoRepo.UpdateAsync(id, existingPlanejamento);
             return true;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Erro ao atualizar rascunho do plano {PlanoId}: {Message}", id, ex.Message);
+                throw;
             }
             finally
             {

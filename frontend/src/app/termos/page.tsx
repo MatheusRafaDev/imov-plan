@@ -5,7 +5,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { FileText, Scale, AlertTriangle, ShieldCheck, HelpCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Termos de Uso",
+  title: "termos de uso",
   description:
     "Conheça os termos, diretrizes e condições de utilização do simulador e planejador financeiro Imov.Plan.",
   alternates: {

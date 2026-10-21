@@ -1,6 +1,6 @@
-﻿import { ImageResponse } from "next/og";
+import { ImageResponse } from "next/og";
 
-export const alt = "Imov.Plan - Planejador Financeiro para Entrada do Imóvel";
+export const alt = "Imov.plan | Planejador Financeiro para Entrada do Imóvel";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

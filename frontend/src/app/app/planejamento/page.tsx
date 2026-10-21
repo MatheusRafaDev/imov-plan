@@ -487,13 +487,13 @@ export default function PlanejamentoPage() {
           aria-modal="true"
         >
           <div 
-            className="relative w-full max-w-md rounded-2xl border border-border/70 bg-white dark:bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden"
+            className="relative w-full max-w-lg max-h-[90dvh] flex flex-col rounded-2xl border border-border/70 bg-card shadow-2xl animate-in zoom-in-95 duration-200 text-card-foreground overflow-hidden font-sans"
           >
             {/* Linha decorativa de topo */}
-            <div className={`absolute top-0 left-0 right-0 h-1 ${novoAporte.tipo === "retirada" ? "bg-rose-500" : "bg-accent"}`} />
+            <div className={`absolute top-0 left-0 right-0 h-1 z-10 ${novoAporte.tipo === "retirada" ? "bg-rose-500" : "bg-accent"}`} />
 
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3 pb-4 border-b border-border/40">
+            {/* Header fixo */}
+            <div className="flex items-start justify-between gap-3 p-5 sm:p-6 pb-4 border-b border-border/40 shrink-0 bg-secondary/20">
               <div className="flex items-center gap-3">
                 <div className={`h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 ${
                   novoAporte.tipo === "retirada"
@@ -517,7 +517,7 @@ export default function PlanejamentoPage() {
               </div>
               <button 
                 type="button"
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
                 onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}
                 title="Fechar"
                 disabled={salvandoAporte}
@@ -526,74 +526,78 @@ export default function PlanejamentoPage() {
               </button>
             </div>
 
-            {/* Alternador de Tipo de Movimentação */}
-            <div className="grid grid-cols-2 p-1 bg-secondary/50 rounded-xl mt-4 border border-border/50">
-              <button
-                type="button"
-                onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "aporte" }))}
-                className={`py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  novoAporte.tipo === "aporte" 
-                    ? "bg-background text-foreground shadow-xs" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Plus className="h-3.5 w-3.5 text-accent" />
-                <span>Aporte Extra</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "retirada" }))}
-                className={`py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  novoAporte.tipo === "retirada" 
-                    ? "bg-background text-rose-500 shadow-xs" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
-                <span>Retirada / Resgate</span>
-              </button>
-            </div>
-
-            {novoAporte.tipo === "retirada" && (
-              <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs flex justify-between items-center text-foreground">
-                <span className="text-muted-foreground">Saldo acumulado disponível:</span>
-                <span className="font-semibold num">{brl(totalGuardado)}</span>
-              </div>
-            )}
-
-            {/* Form Content */}
-            <div className="space-y-4 py-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">
-                  {novoAporte.tipo === "retirada" ? "Valor da retirada" : "Valor do aporte"}
-                </Label>
-                <MoneyInput
-                  variant="money"
-                  min={0}
-                  value={novoAporte.valor}
-                  onChange={(v) => setNovoAporte(prev => ({ ...prev, valor: v }))}
-                  placeholder="R$ 0,00"
-                  className="h-11 w-full rounded-xl border border-border bg-background px-3 text-lg font-semibold text-foreground focus:ring-2 focus:ring-accent"
-                />
+            {/* Corpo rolável com scrollbar suave */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 custom-scrollbar flex-1">
+              {/* Alternador de Tipo de Movimentação */}
+              <div className="grid grid-cols-2 p-1 bg-secondary/50 rounded-xl border border-border/50">
+                <button
+                  type="button"
+                  onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "aporte" }))}
+                  className={`py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    novoAporte.tipo === "aporte" 
+                      ? "bg-card text-foreground shadow-xs" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Plus className="h-3.5 w-3.5 text-accent" />
+                  <span>Aporte Extra</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNovoAporte(prev => ({ ...prev, tipo: "retirada" }))}
+                  className={`py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    novoAporte.tipo === "retirada" 
+                      ? "bg-card text-rose-500 shadow-xs" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
+                  <span>Retirada / Resgate</span>
+                </button>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Data da movimentação</Label>
-                <input
-                  type="date"
-                  value={novoAporte.data}
-                  onChange={(e) => setNovoAporte(prev => ({ ...prev, data: e.target.value }))}
-                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
-                />
+              {novoAporte.tipo === "retirada" && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs flex justify-between items-center text-foreground">
+                  <span className="text-muted-foreground">Saldo acumulado disponível:</span>
+                  <span className="font-semibold num">{brl(totalGuardado)}</span>
+                </div>
+              )}
+
+              {/* Grid de 2 colunas para Valor e Data */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">
+                    {novoAporte.tipo === "retirada" ? "Valor da retirada" : "Valor do aporte"}
+                  </Label>
+                  <MoneyInput
+                    variant="money"
+                    min={0}
+                    value={novoAporte.valor}
+                    onChange={(v) => setNovoAporte(prev => ({ ...prev, valor: v }))}
+                    placeholder="0,00"
+                    className="h-11 w-full rounded-xl border border-border bg-background text-base font-semibold text-foreground focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">Data da movimentação</Label>
+                  <input
+                    type="date"
+                    value={novoAporte.data}
+                    onChange={(e) => setNovoAporte(prev => ({ ...prev, data: e.target.value }))}
+                    className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
+                  />
+                </div>
               </div>
 
+              {/* Origem / Motivo */}
               {novoAporte.tipo === "retirada" ? (
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-foreground">Motivo da retirada</Label>
                   <select
                     value={novoAporte.motivo}
                     onChange={(e) => setNovoAporte(prev => ({ ...prev, motivo: e.target.value }))}
-                    className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
+                    className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none cursor-pointer"
                   >
                     {MOTIVOS_RETIRADA.map((m) => (
                       <option key={m} value={m}>{m}</option>
@@ -614,7 +618,7 @@ export default function PlanejamentoPage() {
                   <select
                     value={novoAporte.origem}
                     onChange={(e) => setNovoAporte(prev => ({ ...prev, origem: e.target.value }))}
-                    className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none"
+                    className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:ring-2 focus:ring-accent outline-none cursor-pointer"
                   >
                     {ORIGENS.map((o) => (
                       <option key={o} value={o}>{o}</option>
@@ -631,17 +635,18 @@ export default function PlanejamentoPage() {
                 </div>
               )}
 
+              {/* Titular / Quem */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">
                   {novoAporte.tipo === "retirada" ? "Titular da retirada" : "Quem contribuiu?"}
                 </Label>
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="flex flex-wrap gap-2 pt-0.5">
                   <button
                     type="button"
                     onClick={() => setNovoAporte(prev => ({ ...prev, pessoa_id: "" }))}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
+                    className={`rounded-xl px-3.5 py-2 text-xs font-medium transition-all cursor-pointer ${
                       novoAporte.pessoa_id === ""
-                        ? 'bg-primary text-primary-foreground shadow-xs ring-1 ring-primary'
+                        ? 'bg-primary text-primary-foreground shadow-xs ring-1 ring-primary font-semibold'
                         : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/50'
                     }`}
                   >
@@ -652,9 +657,9 @@ export default function PlanejamentoPage() {
                       key={p.id}
                       type="button"
                       onClick={() => setNovoAporte(prev => ({ ...prev, pessoa_id: p.id }))}
-                      className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
+                      className={`rounded-xl px-3.5 py-2 text-xs font-medium transition-all cursor-pointer ${
                         novoAporte.pessoa_id === p.id
-                          ? 'bg-primary text-primary-foreground shadow-xs ring-1 ring-primary'
+                          ? 'bg-primary text-primary-foreground shadow-xs ring-1 ring-primary font-semibold'
                           : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/50'
                       }`}
                     >
@@ -665,12 +670,12 @@ export default function PlanejamentoPage() {
               </div>
             </div>
 
-            {/* Footer Actions */}
-            <div className="flex items-center gap-3 pt-3 border-t border-border/40">
+            {/* Footer Actions fixo */}
+            <div className="flex items-center gap-3 p-4 sm:p-5 border-t border-border/40 bg-secondary/15 shrink-0">
               <Button 
                 type="button" 
                 variant="outline" 
-                className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80" 
+                className="flex-1 h-11 rounded-xl font-medium border-border/70 hover:bg-secondary/80 cursor-pointer" 
                 onClick={() => { setIsAportesExtrasModalOpen(false); setEditingAporteIndex(null); }}
                 disabled={salvandoAporte}
               >
@@ -680,7 +685,7 @@ export default function PlanejamentoPage() {
                 type="button"
                 onClick={adicionarAporte}
                 disabled={salvandoAporte || !novoAporte.valor || Number(novoAporte.valor) <= 0}
-                className={`flex-1 h-11 rounded-xl font-semibold shadow-glow disabled:opacity-50 flex items-center justify-center gap-2 ${
+                className={`flex-1 h-11 rounded-xl font-semibold shadow-glow disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${
                   novoAporte.tipo === "retirada"
                     ? "bg-rose-600 hover:bg-rose-700 text-white"
                     : "bg-gradient-warm text-accent-foreground hover:opacity-95"

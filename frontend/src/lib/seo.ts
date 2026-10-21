@@ -19,10 +19,10 @@ export function getBaseUrl(): string {
 }
 
 export const siteConfig = {
-  name: "Imov.Plan",
-  legalName: "Imov.Plan Tecnologia Financeira",
-  title: "Imov.Plan - Planejador Financeiro para Entrada do Imóvel dos Sonhos",
-  shortTitle: "Imov.Plan - Simulador de Entrada e Financiamento",
+  name: "Imov.plan",
+  legalName: "Imov.plan Tecnologia Financeira",
+  title: "Imov.plan | Planejador Financeiro para Entrada do Imóvel dos Sonhos",
+  shortTitle: "Imov.plan | Simulador de Entrada e Financiamento",
   description:
     "Simulador inteligente para planejar a compra do seu imóvel. Calcule quanto guardar por mês com rendimento no CDI, imposto regressivo, custos de ITBI, escritura e comparação SAC vs PRICE.",
   url: getBaseUrl(),

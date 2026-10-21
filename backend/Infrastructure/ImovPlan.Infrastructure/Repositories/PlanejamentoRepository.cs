@@ -87,12 +87,34 @@ namespace ImovPlan.Infrastructure.Repositories
                 existing.MesesConcluidos = planejamento.MesesConcluidos;
                 existing.TipoInvestimento = planejamento.TipoInvestimento;
                 existing.Status = planejamento.Status;
-                existing.UsuarioId = planejamento.UsuarioId;
-                existing.CustosCompra = planejamento.CustosCompra;
                 existing.Estado = planejamento.Estado;
                 existing.Cidade = planejamento.Cidade;
 
-                _context.Planejamentos.Update(existing);
+                if (planejamento.CustosCompra != null)
+                {
+                    if (existing.CustosCompra != null)
+                    {
+                        existing.CustosCompra.ValorEntrada = planejamento.CustosCompra.ValorEntrada;
+                        existing.CustosCompra.TotalNecessario = planejamento.CustosCompra.TotalNecessario;
+                        existing.CustosCompra.CustoITBI = planejamento.CustosCompra.CustoITBI;
+                        existing.CustosCompra.CustoEscritura = planejamento.CustosCompra.CustoEscritura;
+                        existing.CustosCompra.CustoRegistro = planejamento.CustosCompra.CustoRegistro;
+                        existing.CustosCompra.CalculadoEm = planejamento.CustosCompra.CalculadoEm;
+                    }
+                    else
+                    {
+                        existing.CustosCompra = planejamento.CustosCompra;
+                    }
+                }
+                else
+                {
+                    existing.CustosCompra = null;
+                }
+
+                if (_context.Entry(existing).State == EntityState.Detached)
+                {
+                    _context.Planejamentos.Update(existing);
+                }
                 await _context.SaveChangesAsync();
             }
         }
