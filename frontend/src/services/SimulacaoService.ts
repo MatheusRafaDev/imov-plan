@@ -68,7 +68,8 @@ export class SimulacaoService {
     } catch (error: any) {
       const status = error?.response?.status;
       // 404/204: sem simulação salva para o plano ainda
-      if (status === 404 || status === 204) {
+      // 500: falha no backend ao recuperar simulação anterior; retorna null para permitir novo cálculo
+      if (status === 404 || status === 204 || status === 500) {
         return null;
       }
       throw error;

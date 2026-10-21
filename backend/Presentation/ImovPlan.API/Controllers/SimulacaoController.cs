@@ -21,17 +21,20 @@ namespace ImovPlan.API.Controllers
         private readonly IPlanejamentoRepository _planejamentoRepository;
         private readonly IHistoricoSimulacaoRepository _historicoRepository;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
+        private readonly Microsoft.Extensions.Logging.ILogger<SimulacaoController> _logger;
 
         public SimulacaoController(
             ISimulacaoService simulacaoService,
             IPlanejamentoRepository planejamentoRepository,
             IHistoricoSimulacaoRepository historicoRepository,
-            Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
+            Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
+            Microsoft.Extensions.Logging.ILogger<SimulacaoController> logger)
         {
             _simulacaoService = simulacaoService;
             _planejamentoRepository = planejamentoRepository;
             _historicoRepository = historicoRepository;
             _cache = cache;
+            _logger = logger;
         }
 
         /// <summary>
@@ -40,22 +43,30 @@ namespace ImovPlan.API.Controllers
         [HttpGet("{planoId}/ultima")]
         public async Task<IActionResult> GetUltimaSimulacao(string planoId)
         {
-            var usuarioId = User.GetUsuarioId();
-            if (string.IsNullOrEmpty(usuarioId))
-                return Unauthorized(new { message = "Não autorizado." });
+            try
+            {
+                var usuarioId = User.GetUsuarioId();
+                if (string.IsNullOrEmpty(usuarioId))
+                    return Unauthorized(new { message = "Não autorizado." });
 
-            var planejamento = await _planejamentoRepository.GetByIdAsync(planoId);
-            if (planejamento == null || planejamento.UsuarioId != usuarioId)
-                return NotFound(new { message = "Planejamento não encontrado" });
+                var planejamento = await _planejamentoRepository.GetByIdAsync(planoId);
+                if (planejamento == null || planejamento.UsuarioId != usuarioId)
+                    return NotFound(new { message = "Planejamento não encontrado" });
 
-            var ultimoRegistro = await _historicoRepository.GetUltimoByPlanejamentoIdAsync(planoId);
-            if (ultimoRegistro == null)
+                var ultimoRegistro = await _historicoRepository.GetUltimoByPlanejamentoIdAsync(planoId);
+                if (ultimoRegistro == null)
+                    return NoContent();
+
+                var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
+
+                var result = MapToDto(ultimoRegistro, evolucao);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao recuperar última simulação do plano {PlanoId}", planoId);
                 return NoContent();
-
-            var evolucao = await _historicoRepository.GetEvolucaoBySimulacaoIdAsync(ultimoRegistro.Id);
-
-            var result = MapToDto(ultimoRegistro, evolucao);
-            return Ok(result);
+            }
         }
 
         /// <summary>

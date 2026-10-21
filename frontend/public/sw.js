@@ -5,8 +5,8 @@
 //   - Resto: stale-while-revalidate
 //   - /api/*: nunca intercepta (passa direto para a rede)
 
-const CACHE_NAME = "imovplan-v6";
-const STATIC_CACHE = "imovplan-static-v6";
+const CACHE_NAME = "imovplan-v7";
+const STATIC_CACHE = "imovplan-static-v7";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = [OFFLINE_URL, "/icon.svg", "/favicon.ico", "/favicon.svg", "/manifest.json"];
