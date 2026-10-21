@@ -5,7 +5,7 @@
       "root": "frontend",
       "framework": "nextjs"
     },
-    "api": {
+    "backend": {
       "root": "backend",
       "entrypoint": "Dockerfile.vercel"
     }
@@ -14,7 +14,7 @@
     {
       "source": "/api/:match*",
       "destination": {
-        "service": "api",
+        "service": "backend",
         "path": "/api/:match*"
       }
     },
