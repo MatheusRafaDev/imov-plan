@@ -714,14 +714,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
           </div>
         </div>
 
-        {/* Dica para mobile quando houver colunas ocultas */}
-        {canScrollRight && (
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground bg-secondary/30 px-3 py-1.5 rounded-xl border border-border/40 md:hidden">
-            <span>Deslize a tabela para o lado para ver todos os dados</span>
-            <span className="text-accent font-semibold text-xs animate-pulse">➔</span>
-          </div>
-        )}
-      
         {/* Scroll container com min-w-0 e max-w-full para disparar o overflow-x corretamente */}
         <div className="relative w-full min-w-0 max-w-full">
           <div 
