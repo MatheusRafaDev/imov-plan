@@ -264,8 +264,7 @@ export default function AuthPage() {
         <div className="flex flex-col items-center gap-4 text-center p-6">
           <Logo href="/" size="lg" className="animate-pulse-glow" />
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-            <Loader2 className="h-4 w-4 animate-spin-smooth text-accent" />
-            <span>Carregando acesso seguro...</span>
+   
           </div>
         </div>
       </div>
