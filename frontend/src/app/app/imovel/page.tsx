@@ -178,8 +178,8 @@ export default function ObjetivoPage() {
       // Atualiza o estado do contexto
       setObjetivo(novoObjetivo);
 
-      // Salva no backend usando o novoObjetivo diretamente (evita bug de closure/estado desatualizado)
-      const sucesso = await salvarPlano(novoObjetivo);
+      // Salva no backend usando o novoObjetivo empacotado como { objetivo: novoObjetivo }
+      const sucesso = await salvarPlano({ objetivo: novoObjetivo });
 
       if (sucesso != null) {
         toast.success("Plano salvo com sucesso!");

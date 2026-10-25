@@ -169,9 +169,21 @@ export function useSaveDraft() {
         return null;
       }
     },
-    onSuccess: (newPlanoId) => {
+    onSuccess: (newPlanoId, variables) => {
       if (newPlanoId) {
         setPlanoId(newPlanoId);
+      }
+      if (variables?.payload?.objetivo) {
+        queryClient.setQueryData(['planDraft', newPlanoId || usuarioId], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            objetivo: {
+              ...(old.objetivo || {}),
+              ...variables.payload.objetivo,
+            }
+          };
+        });
       }
       queryClient.invalidateQueries({ queryKey: ['planos', usuarioId] });
     },

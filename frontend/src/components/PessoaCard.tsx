@@ -71,7 +71,7 @@ export default function PessoaCard({
   const saldoAcumulado = progressoAtual > 0 ? progressoAtual : valorBase;
 
   const [saldoEditado, setSaldoEditado] = useState<number | "" | null>(null);
-  const displaySaldo = saldoEditado !== null ? saldoEditado : saldoAcumulado;
+  const displaySaldo = saldoEditado !== null ? saldoEditado : (valorBase > 0 ? valorBase : saldoAcumulado);
 
   const role = index === 0 ? "Titular" : "Participante";
   const percent = totalGuardadoObjetivo > 0 ? Math.min(100, Math.max(0, (saldoAcumulado / totalGuardadoObjetivo) * 100)) : 0;

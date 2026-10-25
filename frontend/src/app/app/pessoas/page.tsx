@@ -53,6 +53,7 @@ export default function PessoasPage() {
 
   // Redirect if missing step 1
   useEffect(() => {
+    if (isLoading) return;
     if (planoId && (!objetivo || !objetivo.valorImovel || objetivo.valorImovel === 0)) {
       const paths: Record<string, string> = {
         entrada: "/app/imovel",
@@ -61,7 +62,7 @@ export default function PessoasPage() {
       };
       router.replace(paths[cenario] || "/app/imovel");
     }
-  }, [planoId, objetivo, cenario, router]);
+  }, [planoId, objetivo, cenario, router, isLoading]);
 
   useEffect(() => {
     if (pessoas.length === 0 && user && planoId && !wasInitialized.current) {
@@ -75,6 +76,7 @@ export default function PessoasPage() {
         gastos_detalhados: [],
         aporte_mensal: 0,
         valorInicial: totalObjetivo,
+        valorAtual: totalObjetivo,
       };
       setPessoas([defaultPessoa]);
       saveDraft({ pessoas: [defaultPessoa] });

@@ -3,7 +3,7 @@ import { usePlanStore } from '@/store/usePlanStore';
 import { useSaveDraft, usePlanDraft } from '@/hooks/usePlanDraft';
 import { useCalcularSimulacao, useUltimaSimulacao } from '@/hooks/useSimulacao';
 import { useDebouncedCallback } from 'use-debounce';
-import { calcularEvolucaoDiariaAteHoje, calcularEvolucaoDiariaDoMes } from '@/lib/finance';
+import { calcularEvolucaoDiariaDoMes } from '@/lib/finance';
 import { getBrasiliaToday } from '@/utils/dates';
 
 
@@ -30,19 +30,28 @@ export function usePlanLogic() {
   const { mutateAsync: calcularSimulacao, isPending: isCalculating } = useCalcularSimulacao();
 
   // 4. Combined Save Function with Debounce
-  const saveDraftCore = async (patch?: Partial<typeof state>) => {
+  const saveDraftCore = async (patch?: any) => {
     try {
+      const patchObj =
+        patch && (patch.valorImovel !== undefined || patch.nomePlano !== undefined || patch.percentualEntrada !== undefined) && patch.objetivo === undefined
+          ? { objetivo: patch }
+          : patch;
+
+      if (patchObj?.objetivo) {
+        usePlanStore.getState().setObjetivo(patchObj.objetivo);
+      }
+
       const currentState = usePlanStore.getState();
       const payload = {
-        objetivo: patch?.objetivo !== undefined ? patch.objetivo : currentState.objetivo,
-        pessoas: patch?.pessoas !== undefined ? patch.pessoas : currentState.pessoas,
-        bancoEscolhido: patch?.bancoEscolhido !== undefined ? patch.bancoEscolhido : currentState.bancoEscolhido,
-        aportesExtras: patch?.aportesExtras !== undefined
-          ? patch.aportesExtras
+        objetivo: patchObj?.objetivo !== undefined ? patchObj.objetivo : currentState.objetivo,
+        pessoas: patchObj?.pessoas !== undefined ? patchObj.pessoas : currentState.pessoas,
+        bancoEscolhido: patchObj?.bancoEscolhido !== undefined ? patchObj.bancoEscolhido : currentState.bancoEscolhido,
+        aportesExtras: patchObj?.aportesExtras !== undefined
+          ? patchObj.aportesExtras
           : (currentState.aportesExtras.length > 0 ? currentState.aportesExtras : (isDraftLoading ? undefined : [])),
-        aportesRegularesEditados: patch?.aportesRegularesEditados !== undefined ? patch.aportesRegularesEditados : currentState.aportesRegularesEditados,
-        aportesRegularesEditadosPorPessoa: patch?.aportesRegularesEditadosPorPessoa !== undefined ? patch.aportesRegularesEditadosPorPessoa : currentState.aportesRegularesEditadosPorPessoa,
-        mesesConcluidos: patch?.mesesConcluidos !== undefined ? patch.mesesConcluidos : currentState.mesesConcluidos,
+        aportesRegularesEditados: patchObj?.aportesRegularesEditados !== undefined ? patchObj.aportesRegularesEditados : currentState.aportesRegularesEditados,
+        aportesRegularesEditadosPorPessoa: patchObj?.aportesRegularesEditadosPorPessoa !== undefined ? patchObj.aportesRegularesEditadosPorPessoa : currentState.aportesRegularesEditadosPorPessoa,
+        mesesConcluidos: patchObj?.mesesConcluidos !== undefined ? patchObj.mesesConcluidos : currentState.mesesConcluidos,
       };
       
       // Format the payload to PlanoDraftPayload structure before sending
@@ -218,8 +227,18 @@ export function usePlanLogic() {
   };
 
   const salvarPlano = async (patch?: any) => {
-    if (patch) state.hydrate(patch);
-    return await saveDraftCore(patch);
+    const normalizedPatch =
+      patch && (patch.valorImovel !== undefined || patch.nomePlano !== undefined || patch.percentualEntrada !== undefined) && patch.objetivo === undefined
+        ? { objetivo: patch }
+        : patch;
+
+    if (normalizedPatch) {
+      if (normalizedPatch.objetivo) {
+        usePlanStore.getState().setObjetivo(normalizedPatch.objetivo);
+      }
+      state.hydrate(normalizedPatch);
+    }
+    return await saveDraftCore(normalizedPatch);
   };
 
   // Calcula o progresso atual com base no saldo do dia de hoje (evolução diária) ou meses concluídos
@@ -231,13 +250,15 @@ export function usePlanLogic() {
     
     const { ano: hojeAno, mes: hojeMes, dia: diaHoje } = getBrasiliaToday();
 
+    // 1. Saldo base de cada participante informado diretamente no cadastro/plano
     state.pessoas.forEach(p => {
       const valorBase = Number(p.valorAtual ?? p.valorInicial ?? 0);
-      const evolucao = p.dataValorAtual
-        ? calcularEvolucaoDiariaAteHoje(valorBase, p.dataValorAtual, taxaCdiAnual, p.tipoInvestimento).saldoAtualizado
-        : valorBase;
-      pPorPessoa[p.id] = evolucao;
+      pPorPessoa[p.id] = valorBase;
     });
+
+    if (state.pessoas.length === 1 && (!pPorPessoa[state.pessoas[0].id] || pPorPessoa[state.pessoas[0].id] === 0) && Number(state.objetivo?.valorJaGuardado || 0) > 0) {
+      pPorPessoa[state.pessoas[0].id] = Number(state.objetivo?.valorJaGuardado || 0);
+    }
 
     const somaPessoasGuardado = state.pessoas.reduce(
       (acc, p) => acc + Number(pPorPessoa[p.id] || 0),
@@ -276,102 +297,109 @@ export function usePlanLogic() {
           rowMesAtual = mesesEvolucao.find((r: any) => r.mes === proxMes) || mesesEvolucao[mesesEvolucao.length - 1];
         }
       }
+    }
 
-      if (rowMesAtual) {
-        const prevRow = simulacaoData?.detalhesMensais?.find((x: any) => x.mes === rowMesAtual.mes - 1);
-        const saldoInicialMes = prevRow 
-          ? (rowMesAtual.mes === 1 && (Number(state.objetivo?.valorJaGuardado || 0) > 0 || somaPessoasGuardado > 0)
-              ? Math.max(Number(prevRow.totalAcumulado || 0), Number(state.objetivo?.valorJaGuardado || 0), somaPessoasGuardado)
-              : Number(prevRow.totalAcumulado || 0))
-          : (Number(simulacaoData?.valorJaGuardado || state.objetivo?.valorJaGuardado || somaPessoasGuardado) || 0);
+    // Regra crítica: Na criação de novo imóvel/plano ou no primeiro mês (nenhum mês concluído ainda ou mês em andamento <= 1):
+    // Deve pegar estritamente o valor já guardado atual. Não deve calcular rendimento projetado e nem debitar/injetar
+    // o aporte regular na conta, pois o valor informado é a reserva existente de hoje e o primeiro aporte ainda é planejado.
+    const isPrimeiroMesOuNovo = state.mesesConcluidos.length === 0 || (rowMesAtual && rowMesAtual.mes <= 1);
 
-        const prevParts = prevRow?.participantes || [];
-        const saldosIniciaisPorPessoa: Record<string, number> = {};
-        state.pessoas.forEach((p, idx) => {
-          let prevPart = prevParts.find((part: any) => (part.participanteId || part.id) === p.id);
-          if (!prevPart && p.nome) {
-            prevPart = prevParts.find((part: any) => part.nome && part.nome.trim().toLowerCase() === p.nome.trim().toLowerCase());
+    if (isPrimeiroMesOuNovo) {
+      return { progressoAtual: pAtual, progressoAtualPorPessoa: pPorPessoa };
+    }
+
+    if (rowMesAtual) {
+      const prevRow = simulacaoData?.detalhesMensais?.find((x: any) => x.mes === rowMesAtual.mes - 1);
+      const saldoInicialMes = prevRow 
+        ? Number(prevRow.totalAcumulado || 0)
+        : (Number(simulacaoData?.valorJaGuardado || state.objetivo?.valorJaGuardado || somaPessoasGuardado) || 0);
+
+      const prevParts = prevRow?.participantes || [];
+      const saldosIniciaisPorPessoa: Record<string, number> = {};
+      state.pessoas.forEach((p, idx) => {
+        let prevPart = prevParts.find((part: any) => (part.participanteId || part.id) === p.id);
+        if (!prevPart && p.nome) {
+          prevPart = prevParts.find((part: any) => part.nome && part.nome.trim().toLowerCase() === p.nome.trim().toLowerCase());
+        }
+        if (!prevPart && prevParts.length === 1 && state.pessoas.length === 1) {
+          prevPart = prevParts[0];
+        }
+        if (!prevPart && prevParts[idx]) {
+          prevPart = prevParts[idx];
+        }
+
+        saldosIniciaisPorPessoa[p.id] = prevPart 
+          ? Number(prevPart.saldo || 0) 
+          : Number(p.valorInicial ?? p.valorAtual ?? 0);
+      });
+
+      const rowExtras = (state.aportesExtras || []).filter(e => {
+        if (!e?.data || !rowMesAtual.dataReferencia) return false;
+        try {
+          const extraMatch = String(e.data).match(/^(\d{4})-(\d{2})/);
+          const rowMatch = String(rowMesAtual.dataReferencia).match(/^(\d{4})-(\d{2})/);
+          if (extraMatch && rowMatch) {
+            return extraMatch[1] === rowMatch[1] && extraMatch[2] === rowMatch[2];
           }
-          if (!prevPart && prevParts.length === 1 && state.pessoas.length === 1) {
-            prevPart = prevParts[0];
-          }
-          if (!prevPart && prevParts[idx]) {
-            prevPart = prevParts[idx];
-          }
+          return e.data.startsWith(rowMesAtual.dataReferencia.split("T")[0]);
+        } catch {
+          return false;
+        }
+      });
 
-          saldosIniciaisPorPessoa[p.id] = prevPart 
-            ? Number(prevPart.saldo || 0) 
-            : Number(p.valorInicial ?? p.valorAtual ?? 0);
-        });
+      const diaAporteConfig = state.diasDoAportePorMes?.[rowMesAtual.mes] ?? state.diaDoAporte ?? 5;
 
-        const rowExtras = (state.aportesExtras || []).filter(e => {
-          if (!e?.data || !rowMesAtual.dataReferencia) return false;
-          try {
-            const extraMatch = String(e.data).match(/^(\d{4})-(\d{2})/);
-            const rowMatch = String(rowMesAtual.dataReferencia).match(/^(\d{4})-(\d{2})/);
-            if (extraMatch && rowMatch) {
-              return extraMatch[1] === rowMatch[1] && extraMatch[2] === rowMatch[2];
+      const partRows = rowMesAtual.participantes || [];
+      const aportesParticipantes = state.pessoas.map((p, idx) => {
+        let partRow = partRows.find((part: any) => (part.participanteId || part.id) === p.id);
+        if (!partRow && p.nome) {
+          partRow = partRows.find((part: any) => part.nome && part.nome.trim().toLowerCase() === p.nome.trim().toLowerCase());
+        }
+        if (!partRow && partRows.length === 1 && state.pessoas.length === 1) {
+          partRow = partRows[0];
+        }
+        if (!partRow && partRows[idx]) {
+          partRow = partRows[idx];
+        }
+
+        const valorAporte = partRow ? Number(partRow.aporteMensal || 0) : Number(p.aporte_mensal || 0);
+        const diaPessoa = p.diaAporte ?? diaAporteConfig;
+        return {
+          pessoaId: p.id,
+          pessoaNome: p.nome,
+          valor: valorAporte,
+          diaAporte: diaPessoa,
+        };
+      });
+
+      const evolucaoMes = calcularEvolucaoDiariaDoMes({
+        dataReferencia: rowMesAtual.dataReferencia,
+        saldoInicialMes,
+        saldosIniciaisPorPessoa,
+        aporteRegular: Number(rowMesAtual.aporteMensal || 0),
+        diaAporteRegular: diaAporteConfig,
+        aportesParticipantes,
+        aportesExtras: rowExtras,
+        taxaCdiAnual,
+        tipoInvestimento,
+      });
+
+      // Seleciona o dia correspondente a hoje (ex: dia 16)
+      const diaCorrespondente = evolucaoMes.dias.find(d => d.dia === diaHoje) || evolucaoMes.dias[evolucaoMes.dias.length - 1];
+
+      if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
+        pAtual = diaCorrespondente.saldoFinal;
+
+        if (diaCorrespondente.saldoPorPessoa) {
+          state.pessoas.forEach(p => {
+            if (diaCorrespondente.saldoPorPessoa && diaCorrespondente.saldoPorPessoa[p.id] !== undefined) {
+              pPorPessoa[p.id] = Number(diaCorrespondente.saldoPorPessoa[p.id].toFixed(2));
             }
-            return e.data.startsWith(rowMesAtual.dataReferencia.split("T")[0]);
-          } catch {
-            return false;
-          }
-        });
-
-        const diaAporteConfig = state.diasDoAportePorMes?.[rowMesAtual.mes] ?? state.diaDoAporte ?? 5;
-
-        const partRows = rowMesAtual.participantes || [];
-        const aportesParticipantes = state.pessoas.map((p, idx) => {
-          let partRow = partRows.find((part: any) => (part.participanteId || part.id) === p.id);
-          if (!partRow && p.nome) {
-            partRow = partRows.find((part: any) => part.nome && part.nome.trim().toLowerCase() === p.nome.trim().toLowerCase());
-          }
-          if (!partRow && partRows.length === 1 && state.pessoas.length === 1) {
-            partRow = partRows[0];
-          }
-          if (!partRow && partRows[idx]) {
-            partRow = partRows[idx];
-          }
-
-          const valorAporte = partRow ? Number(partRow.aporteMensal || 0) : Number(p.aporte_mensal || 0);
-          const diaPessoa = p.diaAporte ?? diaAporteConfig;
-          return {
-            pessoaId: p.id,
-            pessoaNome: p.nome,
-            valor: valorAporte,
-            diaAporte: diaPessoa,
-          };
-        });
-
-        const evolucaoMes = calcularEvolucaoDiariaDoMes({
-          dataReferencia: rowMesAtual.dataReferencia,
-          saldoInicialMes,
-          saldosIniciaisPorPessoa,
-          aporteRegular: Number(rowMesAtual.aporteMensal || 0),
-          diaAporteRegular: diaAporteConfig,
-          aportesParticipantes,
-          aportesExtras: rowExtras,
-          taxaCdiAnual,
-          tipoInvestimento,
-        });
-
-        // Seleciona o dia correspondente a hoje (ex: dia 16)
-        const diaCorrespondente = evolucaoMes.dias.find(d => d.dia === diaHoje) || evolucaoMes.dias[evolucaoMes.dias.length - 1];
-
-        if (diaCorrespondente && diaCorrespondente.saldoFinal > 0) {
-          pAtual = diaCorrespondente.saldoFinal;
-
-          if (diaCorrespondente.saldoPorPessoa) {
-            state.pessoas.forEach(p => {
-              if (diaCorrespondente.saldoPorPessoa && diaCorrespondente.saldoPorPessoa[p.id] !== undefined) {
-                pPorPessoa[p.id] = Number(diaCorrespondente.saldoPorPessoa[p.id].toFixed(2));
-              }
-            });
-          }
+          });
         }
       }
-    } else if (state.pessoas.length > 0) {
-      // Caso a simulação do backend ainda não tenha sido carregada, calcula em tempo real o dia atual
+    } else if (state.pessoas.length > 0 && !isPrimeiroMesOuNovo) {
+      // Caso a simulação do backend ainda não tenha sido carregada e já existam meses concluídos
       const diaAporteConfig = state.diaDoAporte ?? 5;
       const saldosIniciaisPorPessoa: Record<string, number> = {};
       state.pessoas.forEach(p => {

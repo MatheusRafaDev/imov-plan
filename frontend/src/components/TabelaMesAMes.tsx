@@ -729,7 +729,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
               className={`w-full text-xs sm:text-sm font-sans border-collapse relative ${
                 showFinancials 
                   ? (pessoas.length > 1 ? "md:min-w-[980px]" : "md:min-w-[820px]") 
-                  : (pessoas.length > 1 ? "max-w-5xl md:min-w-[780px]" : "max-w-4xl md:min-w-[640px]")
+                  : (pessoas.length > 1 ? "md:min-w-[780px]" : "md:min-w-[640px]")
               }`}
             >
             <thead className="bg-card text-muted-foreground border-b border-border/60">
@@ -739,7 +739,7 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
                 {/* Colunas individuais de aporte por pessoa no PC */}
                 {pessoas.map(p => (
                   <Th key={`th-ap-${p.id}`} right className="hidden md:table-cell w-28 sm:w-36">
-                    {pessoas.length > 1 ? `Aporte ${p.nome.split(" ")[0]}` : p.nome.split(" ")[0]}
+                    Aporte {p.nome ? p.nome.split(" ")[0] : "Participante"}
                   </Th>
                 ))}
                 <Th right className="w-24 sm:w-32">

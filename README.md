@@ -16,6 +16,7 @@
   <a href="#-principais-funcionalidades">Funcionalidades</a> •
   <a href="#-arquitetura-e-estrutura">Arquitetura</a> •
   <a href="#-stack-tecnológica">Stack</a> •
+  <a href="docs/DOCUMENTACAO_SISTEMA.md">📖 Documentação Técnica</a> •
   <a href="#-licença">Licença</a>
 </p>
 
