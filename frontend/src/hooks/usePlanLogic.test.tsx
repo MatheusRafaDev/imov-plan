@@ -43,7 +43,7 @@ describe("usePlanLogic - progressoAtual no primeiro mês e em nova criação", (
       percentualEntrada: 20,
       percentualCustosExtras: 5,
       valorJaGuardado: 50000,
-      prazoMeses: 36,
+      prazoMaxMeses: 36,
       taxaCdiAnual: 10.5,
       tipoInvestimento: "cdb_100",
     });
@@ -52,6 +52,7 @@ describe("usePlanLogic - progressoAtual no primeiro mês e em nova criação", (
         id: "pessoa-joao",
         nome: "Joao silva",
         renda_mensal: 6000,
+        renda_complementar: 0,
         gastos_mensais: 4000,
         aporte_mensal: 2000,
         diaAporte: 1, // Dia 1 configurado
@@ -76,13 +77,14 @@ describe("usePlanLogic - progressoAtual no primeiro mês e em nova criação", (
       percentualEntrada: 20,
       percentualCustosExtras: 5,
       valorJaGuardado: 70000,
-      prazoMeses: 24,
+      prazoMaxMeses: 24,
     });
     usePlanStore.getState().setPessoas([
       {
         id: "p1",
         nome: "Pessoa 1",
         renda_mensal: 5000,
+        renda_complementar: 0,
         gastos_mensais: 3000,
         aporte_mensal: 2000,
         diaAporte: 1,
@@ -93,6 +95,7 @@ describe("usePlanLogic - progressoAtual no primeiro mês e em nova criação", (
         id: "p2",
         nome: "Pessoa 2",
         renda_mensal: 4000,
+        renda_complementar: 0,
         gastos_mensais: 2500,
         aporte_mensal: 1500,
         diaAporte: 5,
