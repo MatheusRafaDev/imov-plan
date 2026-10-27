@@ -59,7 +59,12 @@ export function SummaryCards({ summary, progressoAtual }: SummaryCardsProps) {
   if (!summary) return null;
 
   const metaCard = resolveMetaCard(summary);
-  const progressPercent = ((progressoAtual / summary.totalNecessario) * 100).toFixed(1);
+  const valorProgresso = progressoAtual > 0 
+    ? progressoAtual 
+    : (summary.saldoAtual && summary.saldoAtual > 0 ? summary.saldoAtual : summary.valorJaGuardado);
+  const progressPercent = summary.totalNecessario > 0 
+    ? ((valorProgresso / summary.totalNecessario) * 100).toFixed(1)
+    : "0.0";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -73,7 +78,7 @@ export function SummaryCards({ summary, progressoAtual }: SummaryCardsProps) {
 
       <StatCard
         label="Progresso atual da meta"
-        value={`${formatCurrency(progressoAtual)} de ${formatCurrency(summary.totalNecessario)}`}
+        value={`${formatCurrency(valorProgresso)} de ${formatCurrency(summary.totalNecessario)}`}
         icon={<Target className="w-3.5 h-3.5" />}
         variant="default"
         subtitle={`${progressPercent}% alcançado`}

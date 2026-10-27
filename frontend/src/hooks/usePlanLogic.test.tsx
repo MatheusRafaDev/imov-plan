@@ -111,4 +111,71 @@ describe("usePlanLogic - progressoAtual no primeiro mês e em nova criação", (
     expect(result.current.progressoAtualPorPessoa["p1"]).toBe(40000);
     expect(result.current.progressoAtualPorPessoa["p2"]).toBe(30000);
   });
+
+  it("deve calcular o progresso atual com base no dia de hoje da evolução diária quando existe simulação", async () => {
+    const { getBrasiliaToday } = await import("@/utils/dates");
+    const { SimulacaoService } = await import("@/services/SimulacaoService");
+    const { ano, mes } = getBrasiliaToday();
+    const dataRefAtual = `${ano}-${String(mes).padStart(2, "0")}-01`;
+
+    const mockSim = {
+      planoId: "plano-ativo-123",
+      totalNecessario: 53750,
+      valorJaGuardado: 42500,
+      prazoMaxMeses: 36,
+      taxaCdiAnual: 10.5,
+      mesesParaAtingir: 4,
+      atingiuMeta: false,
+      detalhesMensais: [
+        {
+          mes: 0,
+          dataReferencia: dataRefAtual,
+          aporteMensal: 0,
+          totalAcumulado: 42500,
+          participantes: [
+            { participanteId: "part1", nome: "Rafael", aporteMensal: 1535, saldo: 25000 },
+            { participanteId: "part2", nome: "Maria", aporteMensal: 1535, saldo: 17500 },
+          ],
+        },
+        {
+          mes: 1,
+          dataReferencia: dataRefAtual,
+          aporteMensal: 3070,
+          totalAcumulado: 45920,
+          participantes: [
+            { participanteId: "part1", nome: "Rafael", aporteMensal: 1535, saldo: 26710 },
+            { participanteId: "part2", nome: "Maria", aporteMensal: 1535, saldo: 19210 },
+          ],
+        },
+      ],
+      participantesSnapshot: [
+        { participanteId: "part1", nome: "Rafael", aporteMensal: 1535, valorInicial: 25000 },
+        { participanteId: "part2", nome: "Maria", aporteMensal: 1535, valorInicial: 17500 },
+      ],
+    };
+
+    vi.mocked(SimulacaoService.getUltimaSimulacao).mockResolvedValue(mockSim as any);
+    queryClient.setQueryData(["simulacao", "plano-ativo-123"], mockSim);
+
+    usePlanStore.getState().setPlanoId("plano-ativo-123");
+    usePlanStore.getState().setObjetivo({
+      valorImovel: 500000,
+      valorJaGuardado: 42500,
+      taxaCdiAnual: 10.5,
+      tipoInvestimento: "cdb_100",
+    });
+    usePlanStore.getState().setPessoas([
+      { id: "part1", nome: "Rafael", renda_mensal: 5000, renda_complementar: 0, gastos_mensais: 2000, aporte_mensal: 1535, diaAporte: 5, valorInicial: 25000 },
+      { id: "part2", nome: "Maria", renda_mensal: 5000, renda_complementar: 0, gastos_mensais: 2000, aporte_mensal: 1535, diaAporte: 5, valorInicial: 17500 },
+    ]);
+    usePlanStore.getState().setMesesConcluidos([]);
+
+    const { result } = renderHook(() => usePlanLogic(), { wrapper });
+
+    // O progresso atual deve refletir o dia de hoje (superior a 42.500 e <= 45.920)
+    expect(result.current.progressoAtual).toBeGreaterThan(42500);
+    expect(result.current.progressoAtual).toBeLessThanOrEqual(45920);
+    expect(result.current.progressoAtualPorPessoa["part1"]).toBeGreaterThan(25000);
+    expect(result.current.progressoAtualPorPessoa["part2"]).toBeGreaterThan(17500);
+  });
 });

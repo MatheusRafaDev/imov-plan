@@ -8,7 +8,10 @@ import {
   Info, 
   Check, 
   CalendarDays,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal
 } from "lucide-react";
 import { 
   brl, 
@@ -59,6 +62,9 @@ export function DetalheMesDiarioModal({
 }: DetalheMesDiarioModalProps) {
   const [diaAporte, setDiaAporte] = useState<number>(diaAporteInicial);
   const [salvandoPadrao, setSalvandoPadrao] = useState(false);
+  const [apenasUteis, setApenasUteis] = useState(false);
+  const [mostrarColunasIndividuais, setMostrarColunasIndividuais] = useState(false);
+  const [mostrarConfigAportes, setMostrarConfigAportes] = useState(false);
 
   // Mapeia o dia do aporte para cada pessoa
   const [diasPorPessoa, setDiasPorPessoa] = useState<Record<string, number>>(() => {
@@ -152,9 +158,14 @@ export function DetalheMesDiarioModal({
       }
     }, 280);
     return () => clearTimeout(timer);
-  }, [isOpen, isMesAtual, diaHoje]);
+  }, [isOpen, isMesAtual, diaHoje, apenasUteis]);
 
-  const diasFiltrados = resultado.dias;
+  const diasFiltrados = useMemo(() => {
+    if (!apenasUteis) return resultado.dias;
+    return resultado.dias.filter(
+      (d) => d.isDiaUtil || d.totalAportesDoDia > 0 || (isMesAtual && d.dia === diaHoje)
+    );
+  }, [resultado.dias, apenasUteis, isMesAtual, diaHoje]);
 
   if (!isOpen || typeof document === "undefined") return null;
 
@@ -223,203 +234,216 @@ export function DetalheMesDiarioModal({
 
         {/* Corpo com scroll */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
-          {/* Card de Configuração: Quando cai o aporte */}
-          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-3.5 sm:p-4 space-y-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 text-foreground font-semibold text-xs sm:text-sm">
-                  <Clock className="h-3.5 w-3.5 text-accent" />
-                  <span>Quando caem os aportes neste mês?</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground max-w-xl">
-                  {pessoas && pessoas.length > 1 
-                    ? "Defina o dia em que o depósito de cada participante cai para render mais juros."
-                    : "Defina o dia exato do depósito. O dinheiro rende antes e passa a render mais a partir deste dia."}
-                </p>
+          {/* Barra de configuração de aportes (Compacta e expansível) */}
+          <div className="rounded-2xl border border-border/50 bg-secondary/15 p-3 text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-4 w-4 text-accent shrink-0" />
+                <span>
+                  Aportes caem no:{" "}
+                  {pessoas && pessoas.length > 0 ? (
+                    <strong className="text-foreground font-semibold">
+                      {pessoas.map((p) => `${p.nome.split(" ")[0]} (dia ${diasPorPessoa[p.id] ?? p.diaAporte ?? diaAporte})`).join(", ")}
+                    </strong>
+                  ) : (
+                    <strong className="text-foreground font-semibold">dia {diaAporte}</strong>
+                  )}
+                </span>
               </div>
 
-              {onSalvarDiaAporte && (!pessoas || pessoas.length <= 1) && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSalvarComoPadrao}
-                  className="text-xs h-7 px-2.5 border-accent/30 hover:bg-accent/10 text-foreground cursor-pointer shrink-0"
-                >
-                  {salvandoPadrao ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 mr-1 text-success" /> Padrão salvo!
-                    </>
-                  ) : (
-                    "Usar como padrão"
-                  )}
-                </Button>
-              )}
+              <button
+                type="button"
+                onClick={() => setMostrarConfigAportes(!mostrarConfigAportes)}
+                className="text-xs font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer self-end sm:self-auto shrink-0"
+              >
+                {mostrarConfigAportes ? (
+                  <>Fechar configuração <ChevronUp className="h-3.5 w-3.5" /></>
+                ) : (
+                  <>Alterar dia do aporte <ChevronDown className="h-3.5 w-3.5" /></>
+                )}
+              </button>
             </div>
 
-            {/* Controles de seleção de dia por participante ou geral */}
-            {pessoas && pessoas.length > 0 ? (
-              <div className="space-y-2.5 pt-1">
-                {pessoas.map((p) => {
-                  const diaAtualPessoa = diasPorPessoa[p.id] ?? p.diaAporte ?? diaAporte;
-                  return (
-                    <div 
-                      key={p.id} 
-                      className="bg-card border border-border/60 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-xs sm:text-sm text-foreground truncate">{p.nome}</span>
-                          <span className="text-xs font-bold text-accent num shrink-0">+{brl(Number(p.aporte_mensal || 0))}</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Aporte agendado para o <strong className="text-accent font-semibold">dia {diaAtualPessoa}</strong> de cada mês
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                        {[1, 5, 20].map((d) => (
-                          <button
-                            key={d}
-                            type="button"
-                            onClick={() => handleMudarDiaPessoa(p.id, d)}
-                            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              diaAtualPessoa === d
-                                ? "bg-accent text-accent-foreground shadow-2xs"
-                                : "bg-secondary/40 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80"
-                            }`}
-                          >
-                            Dia {d}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                {[1, 5, 20].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => handleMudarDia(d)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                      diaAporte === d
-                        ? "bg-accent text-accent-foreground shadow-xs"
-                        : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                    }`}
-                  >
-                    Dia {d}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Destaque do Dia Atual */}
-          {isMesAtual && saldoHoje !== null && (
-            <div className="rounded-2xl border-2 border-accent/40 bg-gradient-to-r from-accent/15 via-accent/10 to-transparent p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-accent text-accent-foreground font-display font-extrabold text-base flex items-center justify-center shrink-0 shadow-xs ring-4 ring-accent/20">
-                  {diaHoje}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent bg-accent/20 px-2.5 py-0.5 rounded-full border border-accent/30">
-                      Hoje · Dia {diaHoje}
-                    </span>
-                    <span className="text-xs text-foreground font-semibold">
-                      Posição Atual em Tempo Real
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Saldo ao término do dia de hoje considerando aportes e juros compostos já acumulados.
+            {mostrarConfigAportes && (
+              <div className="pt-3 mt-2.5 border-t border-border/40 space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    Defina o dia em que o depósito cai para recalcular a rentabilidade:
                   </p>
+                  {onSalvarDiaAporte && (!pessoas || pessoas.length <= 1) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSalvarComoPadrao}
+                      className="text-xs h-7 px-2 border-accent/30 hover:bg-accent/10 cursor-pointer"
+                    >
+                      {salvandoPadrao ? (
+                        <><Check className="h-3 w-3 mr-1 text-success" /> Salvo!</>
+                      ) : (
+                        "Salvar como padrão"
+                      )}
+                    </Button>
+                  )}
                 </div>
-              </div>
-              <div className="sm:text-right shrink-0 bg-card/80 sm:bg-transparent px-3 py-2 sm:p-0 rounded-xl border border-border/40 sm:border-0">
-                <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Saldo Fechamento Hoje</p>
-                <p className="font-display text-lg sm:text-2xl font-extrabold text-accent num">
-                  {brl(saldoHoje)}
-                </p>
-                {pessoas && pessoas.length > 1 && itemHoje?.saldoPorPessoa && (
-                  <div className="flex items-center gap-1.5 mt-1 sm:justify-end text-[11px] text-muted-foreground flex-wrap">
-                    {pessoas.map(p => (
-                      <span key={p.id} className="bg-background/60 px-2 py-0.5 rounded-md border border-border/40">
-                        {p.nome.split(" ")[0]}: <strong className="text-foreground">{brl(itemHoje.saldoPorPessoa?.[p.id] ?? 0)}</strong>
-                      </span>
+
+                {pessoas && pessoas.length > 0 ? (
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {pessoas.map((p) => {
+                      const diaAtualPessoa = diasPorPessoa[p.id] ?? p.diaAporte ?? diaAporte;
+                      return (
+                        <div key={p.id} className="bg-card border border-border/60 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-2xs">
+                          <div className="min-w-0">
+                            <span className="font-semibold text-xs text-foreground truncate block">{p.nome}</span>
+                            <span className="text-[10px] text-accent font-bold num">+{brl(Number(p.aporte_mensal || 0))}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {[1, 5, 10, 20].map((d) => (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => handleMudarDiaPessoa(p.id, d)}
+                                className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${
+                                  diaAtualPessoa === d
+                                    ? "bg-accent text-accent-foreground shadow-2xs"
+                                    : "bg-secondary/40 border border-border/50 text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                {d}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    {[1, 5, 10, 20].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => handleMudarDia(d)}
+                        className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                          diaAporte === d
+                            ? "bg-accent text-accent-foreground shadow-xs"
+                            : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                        }`}
+                      >
+                        Dia {d}
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* KPIs Resumo do Mês */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
-              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Saldo Inicial</p>
+              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-0.5">Saldo Inicial</p>
               <p className="font-display text-base sm:text-lg font-bold text-foreground num">{brl(resultado.saldoInicialMes)}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Início do mês</p>
+              <p className="text-[10px] text-muted-foreground">Início do mês</p>
             </div>
 
             <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
-              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Aportes do Mês</p>
+              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-0.5">Aportes do Mês</p>
               <p className="font-display text-base sm:text-lg font-bold text-accent num">{brl(resultado.totalAportesMes)}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Cai no dia {resultado.diaAporteConfigurado}</p>
+              <p className="text-[10px] text-muted-foreground">Total depositado</p>
             </div>
 
             <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
-              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Rendimento do Mês</p>
+              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-0.5">Rendimento</p>
               <p className="font-display text-base sm:text-lg font-bold text-success num">+{brl(resultado.totalRendimentoMes)}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Juros compostos diários</p>
+              <p className="text-[10px] text-muted-foreground">{resultado.diasUteisTotais} dias úteis</p>
             </div>
 
-            <div className="bg-secondary/20 rounded-2xl p-3 sm:p-3.5 border border-border/40">
-              <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Saldo Final</p>
-              <p className="font-display text-base sm:text-lg font-bold text-foreground num">{brl(resultado.saldoFinalMes)}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Fechamento do mês</p>
+            <div className={`rounded-2xl p-3 sm:p-3.5 border transition-all ${
+              isMesAtual && saldoHoje !== null
+                ? "bg-accent/10 border-accent/40 shadow-2xs ring-1 ring-accent/20"
+                : "bg-secondary/20 border-border/40"
+            }`}>
+              <div className="flex items-center justify-between gap-1 mb-0.5">
+                <p className={`text-[10px] uppercase font-semibold tracking-wider ${isMesAtual ? "text-accent font-bold" : "text-muted-foreground"}`}>
+                  {isMesAtual ? `Saldo Hoje (Dia ${diaHoje})` : "Saldo Final"}
+                </p>
+                {isMesAtual && (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-accent text-accent-foreground">
+                    Hoje
+                  </span>
+                )}
+              </div>
+              <p className={`font-display text-base sm:text-lg font-extrabold num ${isMesAtual ? "text-accent" : "text-foreground"}`}>
+                {brl(isMesAtual && saldoHoje !== null ? saldoHoje : resultado.saldoFinalMes)}
+              </p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                {isMesAtual ? "Posição atual em tempo real" : "Fechamento do mês"}
+              </p>
             </div>
           </div>
 
-          {/* Legenda e contagem de dias */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
-            <span className="text-xs font-semibold text-foreground/80">
-              Todos os dias ({resultado.dias.length})
-            </span>
-
-            <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-              <span className="inline-flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-accent inline-block" /> Dia do Aporte
-              </span>
-              <span>·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-success inline-block" /> Rendimento Útil
-              </span>
+          {/* Barra de Filtro e Visualização da Tabela */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+            <div className="flex items-center gap-1.5 bg-secondary/30 p-1 rounded-xl w-fit border border-border/40">
+              <button
+                type="button"
+                onClick={() => setApenasUteis(false)}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  !apenasUteis
+                    ? "bg-card text-foreground shadow-2xs border border-border/50"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Todos os dias ({resultado.dias.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setApenasUteis(true)}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  apenasUteis
+                    ? "bg-card text-foreground shadow-2xs border border-border/50"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Apenas dias úteis e aportes
+              </button>
             </div>
+
+            {pessoas && pessoas.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setMostrarColunasIndividuais(!mostrarColunasIndividuais)}
+                className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 self-end sm:self-auto ${
+                  mostrarColunasIndividuais
+                    ? "bg-accent/15 border-accent/40 text-accent font-bold"
+                    : "bg-card border-border/50 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <SlidersHorizontal className="h-3 w-3" />
+                {mostrarColunasIndividuais ? "Ocultar colunas por pessoa" : "Expandir colunas por pessoa"}
+              </button>
+            )}
           </div>
 
-          {/* Tabela do Dia a Dia */}
+          {/* Tabela Simplificada */}
           <div className="rounded-2xl border border-border/50 overflow-hidden bg-card shadow-soft">
             <div className="overflow-x-auto">
               <table className="w-full text-xs font-sans border-collapse">
                 <thead className="bg-secondary/30 text-muted-foreground border-b border-border/50">
                   <tr>
-                    <th className="px-3.5 py-2.5 text-left font-medium whitespace-nowrap">Dia</th>
-                    <th className="px-3.5 py-2.5 text-left font-medium whitespace-nowrap">Status</th>
-                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Saldo Início</th>
-                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Aporte Entrada</th>
-                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Rendimento do Dia</th>
-                    {pessoas && pessoas.map(p => (
-                      <th key={p.id} className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">
+                    <th className="px-4 py-2.5 text-left font-medium whitespace-nowrap">Dia</th>
+                    <th className="px-4 py-2.5 text-right font-medium whitespace-nowrap">Aporte</th>
+                    <th className="px-4 py-2.5 text-right font-medium whitespace-nowrap">Rendimento</th>
+                    {mostrarColunasIndividuais && pessoas && pessoas.map(p => (
+                      <th key={p.id} className="px-4 py-2.5 text-right font-medium whitespace-nowrap">
                         <div className="flex flex-col items-end">
                           <span className="text-foreground font-semibold">{p.nome.split(" ")[0]}</span>
                           <span className="text-[10px] font-normal text-muted-foreground/70">saldo</span>
                         </div>
                       </th>
                     ))}
-                    <th className="px-3.5 py-2.5 text-right font-medium whitespace-nowrap">Saldo Fim do Dia</th>
+                    <th className="px-4 py-2.5 text-right font-medium whitespace-nowrap">Saldo Acumulado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -437,12 +461,12 @@ export function DetalheMesDiarioModal({
                             : hasAporte 
                               ? "bg-accent/5 font-medium hover:bg-secondary/15" 
                               : !item.isDiaUtil 
-                                ? "opacity-60 bg-secondary/5 hover:bg-secondary/15" 
+                                ? "opacity-50 bg-secondary/5 hover:bg-secondary/15" 
                                 : "hover:bg-secondary/15"
                         }`}
                       >
                         {/* Dia */}
-                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <span className={`font-display font-bold text-sm w-6 text-right num ${isHoje ? "text-accent font-extrabold scale-110" : "text-foreground"}`}>
                               {String(item.dia).padStart(2, "0")}
@@ -458,96 +482,67 @@ export function DetalheMesDiarioModal({
                           </div>
                         </td>
 
-                        {/* Status / Tag */}
-                        <td className="px-3.5 py-2.5 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {isHoje && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent text-accent-foreground shadow-2xs">
-                                Dia Atual
-                              </span>
-                            )}
-                            {item.detalhesAportesRegulares && item.detalhesAportesRegulares.length > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/25">
-                                <ArrowDownLeft className="h-3 w-3" /> Aporte {item.detalhesAportesRegulares.map(a => a.pessoaNome ? a.pessoaNome.split(" ")[0] : "Participante").join(" & ")}
-                              </span>
-                            ) : hasAporte ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/25">
-                                <ArrowDownLeft className="h-3 w-3" /> Aporte extra
-                              </span>
-                            ) : item.isDiaUtil ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                                Dia útil
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 italic">
-                                Fim de semana
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Saldo Inicial */}
-                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap text-muted-foreground num">
-                          {brl(item.saldoInicial)}
-                        </td>
-
                         {/* Aporte */}
-                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap num">
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap num">
                           {hasAporte ? (
                             <div>
                               <span className="font-bold text-accent">+{brl(item.totalAportesDoDia)}</span>
                               {item.detalhesAportesRegulares && item.detalhesAportesRegulares.length > 0 && (
-                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[150px] ml-auto">
+                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[180px] ml-auto">
                                   {item.detalhesAportesRegulares.map(a => `${a.pessoaNome ? a.pessoaNome.split(" ")[0] : ""}: ${brl(a.valor)}`).join(", ")}
                                 </p>
                               )}
-                              {item.detalhesExtras.length > 0 && (
-                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[150px] ml-auto">
+                              {item.detalhesExtras && item.detalhesExtras.length > 0 && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[180px] ml-auto">
                                   Extra: {item.detalhesExtras.map(e => e.origem).join(", ")}
                                 </p>
                               )}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground/40">—</span>
+                            <span className="text-muted-foreground/30">—</span>
                           )}
                         </td>
 
-                        {/* Rendimento do Dia */}
-                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap num">
+                        {/* Rendimento */}
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap num">
                           {item.rendimentoDoDia > 0 ? (
                             <span className="font-semibold text-success">
                               +{brl(item.rendimentoDoDia)}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground/40 text-[11px]">R$ 0,00</span>
+                            <span className="text-muted-foreground/30">—</span>
                           )}
                         </td>
 
-                        {/* Colunas Individuais por Pessoa */}
-                        {pessoas && pessoas.map(p => {
+                        {/* Colunas Opcionais por Pessoa (quando expandido) */}
+                        {mostrarColunasIndividuais && pessoas && pessoas.map(p => {
                           const saldoPessoa = item.saldoPorPessoa?.[p.id] ?? 0;
-                          const aportePessoa = item.aportePorPessoa?.[p.id] ?? 0;
-                          const hasAportePessoa = aportePessoa > 0;
-
                           return (
-                            <td key={p.id} className="px-3.5 py-2.5 text-right whitespace-nowrap num">
-                              <div className="flex flex-col items-end">
-                                <span className={isHoje ? "font-bold text-accent" : "font-medium text-foreground"}>
-                                  {brl(saldoPessoa)}
-                                </span>
-                                {hasAportePessoa && (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-accent bg-accent/15 px-1.5 py-0.2 rounded border border-accent/25 mt-0.5 shadow-2xs">
-                                    +{brl(aportePessoa)}
-                                  </span>
-                                )}
-                              </div>
+                            <td key={p.id} className="px-4 py-2.5 text-right whitespace-nowrap num">
+                              <span className={isHoje ? "font-bold text-accent" : "font-medium text-foreground"}>
+                                {brl(saldoPessoa)}
+                              </span>
                             </td>
                           );
                         })}
 
-                        {/* Saldo Final */}
-                        <td className={`px-3.5 py-2.5 text-right whitespace-nowrap num ${isHoje ? "text-accent font-extrabold text-sm" : "font-semibold text-foreground"}`}>
-                          {brl(item.saldoFinal)}
+                        {/* Saldo Acumulado */}
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap num">
+                          <div className="flex flex-col items-end">
+                            <span className={isHoje ? "text-accent font-extrabold text-sm" : "font-semibold text-foreground"}>
+                              {brl(item.saldoFinal)}
+                            </span>
+                            {!mostrarColunasIndividuais && pessoas && pessoas.length > 1 && item.saldoPorPessoa && (
+                              <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground flex-wrap justify-end">
+                                {pessoas.map((p, pIdx) => (
+                                  <span key={p.id}>
+                                    {pIdx > 0 && <span className="opacity-40 mr-1">•</span>}
+                                    {p.nome.split(" ")[0]}: <strong className="text-foreground/80 font-medium">{brl(item.saldoPorPessoa?.[p.id] ?? 0)}</strong>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
