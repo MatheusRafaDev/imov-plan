@@ -8,11 +8,12 @@ import { usePlanLogic } from "@/hooks/usePlanLogic";
 import { usePlanStore } from "@/store/usePlanStore";
 import { brl, formatBrlCompact } from "@/lib/finance";
 import { getBrasiliaToday } from "@/utils/dates";
-import { Check, Loader2, Download, Trash2, AlertTriangle, X, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { Check, Loader2, Trash2, AlertTriangle, X, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RowActions } from "./TabelaMesAMes/RowActions";
 import { ExtrasCell } from "./TabelaMesAMes/ExtrasCell";
+import { ExportPlanDropdown } from "@/components/ExportPlanDropdown";
 import type { ModalTab } from "./TabelaMesAMes/EditMesModal";
 
 const ModalLoadingFallback = () => (
@@ -264,57 +265,6 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
   };
 
   const sim = backendData;
-
-  const handleExportCSV = () => {
-    if (!displayRows.length) return;
-
-    const headers = [
-      "Mes",
-      "Data",
-      ...pessoas.map(p => p.nome),
-      "Aportes Extras",
-      "Retiradas",
-      "Aporte Liquido Mes",
-      ...(showFinancials ? [
-        "Rendimento Liquido", 
-        ...pessoas.map(p => `Acum. ${p.nome.split(" ")[0]}`),
-        "Acumulado"
-      ] : [])
-    ];
-
-    const rows = displayRows.map(r => {
-      const isZero = r.mes === 0;
-      const dataFormatada = new Date(r.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(" de ", " ");
-      const aporteLiquidoMes = r.aporteRegular + r.aportesExtras - (r.retiradas || 0);
-      const rowData = [
-        isZero ? "Início" : `Mês ${r.mes}`,
-        dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1),
-        ...pessoas.map(p => {
-          const real = isZero ? (r.saldoPorPessoa[p.id] ?? Number(p.valorInicial) ?? 0) : r.aporteFinalPorPessoa[p.id] || 0;
-          return real.toFixed(2);
-        }),
-        r.aportesExtras.toFixed(2),
-        (r.retiradas || 0).toFixed(2),
-        aporteLiquidoMes.toFixed(2),
-        ...(showFinancials ? [
-          r.rendimentoLiquido.toFixed(2),
-          ...pessoas.map(p => (r.saldoPorPessoa[p.id] || 0).toFixed(2)),
-          r.saldoAcumulado.toFixed(2)
-        ] : [])
-      ];
-      return rowData.join(";");
-    });
-
-    const csvContent = [headers.join(";"), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `imov-plan-simulacao-${getBrasiliaToday().dataStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   // This transformation mutates local accumulator objects; preserve the runtime memo even though React Compiler cannot rewrite it.
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
@@ -702,15 +652,11 @@ export const TabelaMesAMes = React.memo(function TabelaMesAMes({
               </div>
             )}
 
-            <Button
-              variant="outline"
+            <ExportPlanDropdown
+              showFinancials={showFinancials}
+              label="Exportar"
               size="sm"
-              onClick={handleExportCSV}
-              className="text-xs h-8 gap-1.5 border-border/80 hover:bg-secondary/50 text-foreground cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-accent" />
-              Exportar CSV
-            </Button>
+            />
           </div>
         </div>
 

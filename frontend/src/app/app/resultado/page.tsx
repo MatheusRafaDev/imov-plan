@@ -15,6 +15,7 @@ import { ResultadoPageSkeleton } from "@/components/Skeleton";
 import { SummaryCards } from "./components/SummaryCards";
 import { ParticipantsCard } from "./components/ParticipantsCard";
 import { FinancialSummaryCard } from "./components/FinancialSummaryCard";
+import { ExportPlanDropdown } from "@/components/ExportPlanDropdown";
 
 import { 
   extractSimulacaoSummary, 
@@ -112,7 +113,7 @@ export default function ResultadoPage() {
   return (
     <div className="max-w-screen-2xl w-full mx-auto space-y-6 min-w-0 max-w-full">
       {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in-up" style={{ animationDelay: "0ms" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
         <div>
           <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">
             Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}
@@ -123,6 +124,9 @@ export default function ResultadoPage() {
           <p className="text-muted-foreground text-sm">
             O resultado de tudo o que você preencheu nas etapas anteriores.
           </p>
+        </div>
+        <div className="shrink-0 flex items-center">
+          <ExportPlanDropdown label="Baixar Planilha" size="default" />
         </div>
       </div>
 
