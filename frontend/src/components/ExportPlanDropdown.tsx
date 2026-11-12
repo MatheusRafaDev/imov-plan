@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Download, FileSpreadsheet, FileText, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -46,14 +47,60 @@ export function ExportPlanDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [portalPos, setPortalPos] = useState({ top: 0, left: 0, width: 320 });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updatePos = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+    const menuWidth = isMobile ? Math.min(300, window.innerWidth - 24) : 320;
+
+    let left = align === "left" ? rect.left : rect.right - menuWidth;
+
+    if (typeof window !== "undefined") {
+      if (left + menuWidth > window.innerWidth - 12) {
+        left = window.innerWidth - menuWidth - 12;
+      }
+      if (left < 12) {
+        left = 12;
+      }
+    }
+
+    let top = rect.bottom + 6;
+    const estimatedHeight = 230;
+    if (typeof window !== "undefined" && top + estimatedHeight > window.innerHeight && rect.top - estimatedHeight > 10) {
+      top = rect.top - estimatedHeight - 6;
+    }
+
+    setPortalPos({ top, left, width: menuWidth });
+  }, [align]);
+
+  useEffect(() => {
+    if (isOpen) {
+      updatePos();
+      window.addEventListener("scroll", updatePos, { passive: true });
+      window.addEventListener("resize", updatePos, { passive: true });
+      return () => {
+        window.removeEventListener("scroll", updatePos);
+        window.removeEventListener("resize", updatePos);
+      };
+    }
+  }, [isOpen, updatePos]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = e.target as Node;
+      if (buttonRef.current && buttonRef.current.contains(target)) return;
+      if (menuRef.current && menuRef.current.contains(target)) return;
+      setIsOpen(false);
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsOpen(false);
@@ -130,8 +177,9 @@ export function ExportPlanDropdown({
   const isBusy = isExportingExcel || isExportingCSV;
 
   return (
-    <div ref={containerRef} className="relative inline-flex text-left">
+    <>
       <Button
+        ref={buttonRef}
         variant={variant}
         size={size}
         disabled={!hasData || isBusy}
@@ -156,13 +204,19 @@ export function ExportPlanDropdown({
         />
       </Button>
 
-      {isOpen && (
+      {isOpen && mounted && typeof document !== "undefined" && createPortal(
         <div
+          ref={menuRef}
           role="menu"
           aria-orientation="vertical"
-          className={`absolute top-full mt-1.5 z-50 w-72 sm:w-80 rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md p-1.5 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95 ${
-            align === "right" ? "right-0" : "left-0"
-          }`}
+          style={{
+            position: "fixed",
+            top: `${portalPos.top}px`,
+            left: `${portalPos.left}px`,
+            width: `${portalPos.width}px`,
+            zIndex: 99999,
+          }}
+          className="rounded-xl border border-border/80 bg-popover/98 backdrop-blur-md p-1.5 text-popover-foreground shadow-2xl animate-in fade-in-0 zoom-in-95"
         >
           <div className="px-2.5 py-1.5 mb-1 border-b border-border/50">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -214,9 +268,9 @@ export function ExportPlanDropdown({
               </p>
             </div>
           </button>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
-

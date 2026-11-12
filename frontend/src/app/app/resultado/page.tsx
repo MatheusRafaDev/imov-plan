@@ -113,7 +113,7 @@ export default function ResultadoPage() {
   return (
     <div className="max-w-screen-2xl w-full mx-auto space-y-6 min-w-0 max-w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
+      <div className="relative z-20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in-up" style={{ animationDelay: "0ms" }}>
         <div>
           <p className="text-[10px] uppercase tracking-widest text-orange-500 font-medium mb-1">
             Etapa {currentStep > 0 ? currentStep : 4} de {totalSteps}
